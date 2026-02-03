@@ -1,0 +1,10 @@
+.adminWrap { padding: 30px; }
+.table { margin-top: 16px; border:1px solid #ddd; border-radius:12px; overflow:hidden; }
+.thead, .trow { display:grid; grid-template-columns: 1.5fr .8fr .5fr; gap:10px; padding:12px; }
+.thead { background:#f3f3f3; font-weight:700; }
+.trow { border-top:1px solid #eee; }
+.card { margin-top:16px; padding:16px; border:1px solid #ddd; border-radius:14px; max-width:700px; }
+.actions { display:flex; gap:10px; margin:14px 0; }
+.ok { background:#0a7d2c; color:#fff; border:0; padding:10px 14px; border-radius:10px; }
+.bad { background:#b00020; color:#fff; border:0; padding:10px 14px; border-radius:10px; }
+textarea { width:100%; min-height:90px; padding:10px; border:1px solid #ddd; border-radius:10px; }

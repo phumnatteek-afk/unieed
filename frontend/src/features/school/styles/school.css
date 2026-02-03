@@ -1,0 +1,8 @@
+.schoolWrap { min-height: 100vh; display:flex; justify-content:center; align-items:center; background:#f6f3ea; padding:40px; }
+.schoolCard { width:560px; background:#fff; border-radius:18px; padding:26px; box-shadow:0 8px 24px rgba(0,0,0,.08); text-align:center; }
+.badge { display:inline-block; padding:10px 14px; border-radius:999px; font-weight:700; margin:10px 0; }
+.badge.pending { background:#fff3cd; color:#8a6d3b; }
+.badge.rejected { background:#ffe5e7; color:#b00020; }
+.desc { margin:8px 0; opacity:.85; }
+.schoolHero { width:900px; text-align:center; }
+.primaryBtn { padding:16px 22px; border:0; border-radius:999px; background:#f4b400; font-weight:800; }
