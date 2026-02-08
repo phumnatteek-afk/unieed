@@ -1,0 +1,753 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
+import { getJson } from "../api/http.js";
+import "./styles/Homepage.css";
+// icon
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faMagnifyingGlass,
+  faPhone,
+  faEnvelope,
+} from "@fortawesome/free-solid-svg-icons";
+import { faFacebook, faLine } from "@fortawesome/free-brands-svg-icons";
+<link
+  rel="stylesheet"
+  href="https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css"
+></link>;
+
+export default function HomePage() {
+  const { token, role, userName, logout } = useAuth();
+
+  const [stats, setStats] = useState({
+    products_total: 0,
+    schools_approved: 0,
+    total_paid: 0,
+  });
+  const [projects, setProjects] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [q, setQ] = useState("");
+
+  // ===== Projects carousel (page-based, 2 cards/page)
+  const [projPage, setProjPage] = useState(0);
+  const [isSliding, setIsSliding] = useState(false);
+  function formatThaiDate(dateStr) {
+    if (!dateStr) return "";
+
+    const date = new Date(dateStr);
+
+    return date.toLocaleDateString("th-TH", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+  // ===== Testimonials slider
+  const [tsIndex, setTsIndex] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await getJson("/home", false);
+
+        setStats(data.stats || {});
+        setProjects(Array.isArray(data.projects) ? data.projects : []);
+        setProducts(Array.isArray(data.products) ? data.products : []);
+        setTestimonials(
+          Array.isArray(data.testimonials) ? data.testimonials : [],
+        );
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // ถ้าข้อมูล projects/testimonials เปลี่ยน (โหลดมาใหม่) ให้รีเซ็ต index ป้องกัน out-of-range
+  useEffect(() => {
+    setProjPage(0);
+    setIsSliding(false);
+  }, [projects.length]);
+
+  useEffect(() => {
+    setTsIndex(0);
+  }, [testimonials.length]);
+
+  const rightAccount = () => {
+    if (!token) {
+      return (
+        <div className="navAuth">
+          <Link className="navBtn navBtnOutline" to="/register">
+            ลงทะเบียน
+          </Link>
+          <Link className="navBtn navBtnWhite" to="/login">
+            เข้าสู่ระบบ
+          </Link>
+        </div>
+      );
+    }
+    return (
+      <div className="navAuth">
+        <span className="hello">สวัสดี, {userName || "ผู้ใช้"}</span>
+        <button className="navBtn navBtnOutline" onClick={logout}>
+          ออกจากระบบ
+        </button>
+      </div>
+    );
+  };
+
+  // ===== Projects paging logic
+  const perPage = 2;
+  const projPages = useMemo(() => {
+    const len = projects?.length || 0;
+    return Math.max(1, Math.ceil(len / perPage));
+  }, [projects]);
+
+  const goPrev = () => {
+    if (isSliding || projPages <= 1) return;
+    setIsSliding(true);
+    setProjPage((p) => (p - 1 + projPages) % projPages);
+  };
+
+  const goNext = () => {
+    if (isSliding || projPages <= 1) return;
+    setIsSliding(true);
+    setProjPage((p) => (p + 1) % projPages);
+  };
+
+  // ===== Testimonials logic (วนลูป ไม่ติดลบ)
+  const currentTs = useMemo(() => {
+    const a = testimonials || [];
+    if (!a.length) return null;
+    const idx = ((tsIndex % a.length) + a.length) % a.length;
+    return a[idx];
+  }, [testimonials, tsIndex]);
+
+  const tsPrev = () => {
+    const len = testimonials.length;
+    if (len <= 1) return;
+    setTsIndex((i) => (i - 1 + len) % len);
+  };
+
+  const tsNext = () => {
+    const len = testimonials.length;
+    if (len <= 1) return;
+    setTsIndex((i) => (i + 1) % len);
+  };
+
+  const steps = [
+    {
+      no: 1,
+      pic: "/src/unieed_pic/st1.png",
+      title: "เตรียมชุดนักเรียน",
+      desc: "เช็คสภาพชุด ทำความสะอาด พร้อมแพ็คให้กล่องเรียบร้อย",
+    },
+    {
+      no: 2,
+      pic: "/src/unieed_pic/st2.png",
+      title: "ส่งตรงถึงโรงเรียน",
+      desc: "ค้นหาโรงเรียนที่ต้องการตามไซส์ที่คุณมี",
+    },
+    {
+      no: 3,
+      pic: "/src/unieed_pic/st3.png",
+      title: "ส่งของ",
+      desc: "แพ็คใส่กล่อง จัดส่ง / Drop-off ที่โรงเรียนกำหนด",
+    },
+  ];
+
+  return (
+    <div className="homePage">
+      {/* ===== Top Header + Search ===== */}
+      <header className="topBar">
+        <div className="topRow">
+          <Link to="/" className="brand">
+            <img
+              className="brandLogo"
+              src="/src/unieed_pic/logo.png"
+              alt="Unieed"
+            />
+          </Link>
+
+          <nav className="navLinks">
+            <a href="#home" className="active">
+              หน้าหลัก
+            </a>
+            <a href="#projects">โครงการ</a>
+            <a href="#market">ร้านค้า</a>
+            <a href="#about">เกี่ยวกับเรา</a>
+          </nav>
+
+          {rightAccount()}
+        </div>
+
+        <div className="searchRow">
+          <div className="searchBox">
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="ค้นหาโครงการหรือสิ่งของที่ต้องการบริจาค..."
+            />
+            <button className="searchBtn" type="button" aria-label="search">
+              <FontAwesomeIcon icon={faMagnifyingGlass} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ===== Hero ===== */}
+      <section id="home" className="hero">
+        <div className="heroInner">
+          <div className="heroLeft">
+            <h1>เสื้อตัวเก่าของคุณ...</h1>
+            <p className="heroSub">
+              คือ <span>ชุดเก่งตัวใหม่ของน้อง</span>
+            </p>
+
+            <div className="heroActions">
+              <a className="pill pillYellow" href="#projects">
+                {" "}
+                <svg
+                  width="59"
+                  height="52"
+                  viewBox="0 0 59 52"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M54.0827 45.2471C54.0827 48.5436 51.1327 51.2408 47.5271 51.2408H11.4716C7.86602 51.2408 4.91602 48.5436 4.91602 45.2471V19.7736C4.91602 16.477 7.86602 13.7798 11.4716 13.7798H47.5271C51.1327 13.7798 54.0827 16.477 54.0827 19.7736V45.2471Z"
+                    fill="#FDD888"
+                  />
+                  <path
+                    d="M59 15.2779C59 18.5745 56.05 21.2717 52.4444 21.2717H6.55556C2.95 21.2717 0 18.5745 0 15.2779C0 11.9814 2.95 9.28418 6.55556 9.28418H52.4444C56.05 9.28418 59 11.9814 59 15.2779Z"
+                    fill="#FDD888"
+                  />
+                  <path
+                    d="M4.91602 21.272H54.0827V24.2689H4.91602V21.272Z"
+                    fill="#FCAB40"
+                  />
+                  <path
+                    d="M31.1398 3.29053H27.862C25.1463 3.29053 22.9453 5.30294 22.9453 7.78585V51.2407H36.0564V7.78585C36.0564 5.30443 33.8554 3.29053 31.1398 3.29053Z"
+                    fill="#DA2F47"
+                  />
+                  <path
+                    d="M26.2228 9.28415C28.0256 9.28415 28.2927 8.51096 26.8144 7.56544L15.7978 0.513772C14.3196 -0.431745 12.3808 -0.0346578 11.4859 1.39635L8.18192 6.68286C7.28709 8.11387 8.03114 9.28415 9.83392 9.28415H26.2228ZM32.7784 9.28415C30.9756 9.28415 30.7084 8.51096 32.1867 7.56544L43.205 0.513772C44.6816 -0.431745 46.6221 -0.0346578 47.5169 1.39635L50.8209 6.68136C51.7141 8.11387 50.97 9.28415 49.1673 9.28415H32.7784Z"
+                    fill="#DA2F47"
+                  />
+                </svg>{" "}
+                บริจาคชุดนักเรียน
+              </a>
+              <a className="pill pillWhite" href="#market">
+                <svg
+                  width="59"
+                  height="60"
+                  viewBox="0 0 59 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M53.4689 36.3636H16.5938L12.9062 14.5454H57.1564L53.4689 36.3636Z"
+                    fill="#CCD6DD"
+                  />
+                  <path
+                    d="M57.1269 45.4545H16.5643C14.5472 45.4545 12.9063 43.8345 12.9063 41.8473C12.9063 39.86 14.5767 38.1818 16.5938 38.1818L16.6067 38.18L16.6215 38.1818H53.4689C54.3705 38.1818 55.1394 37.5382 55.2869 36.6618L58.9744 14.8436C59.0647 14.3164 58.9135 13.7782 58.5614 13.3691C58.2129 12.9618 57.6985 12.7273 57.1564 12.7273H14.4126L12.4951 1.51636C12.3495 0.656364 11.6028 0.0763636 10.7583 0.0363636C10.7288 0.0309091 10.7085 0 10.679 0H1.84376C0.826003 0 0 0.814546 0 1.81818C0 2.82182 0.826003 3.63636 1.84376 3.63636H9.11922L14.4716 34.9382C11.4442 35.8345 9.21878 38.5745 9.21878 41.8473C9.21878 45.8418 12.5154 49.0909 16.5643 49.0909H57.1269C58.1465 49.0909 58.9707 48.2782 58.9707 47.2727C58.9707 46.2673 58.1465 45.4545 57.1269 45.4545ZM53.1371 27.2727H47.0398L47.5431 23.6364H53.7492L53.1371 27.2727ZM43.3172 27.2727H36.8751V23.6364H43.8206L43.3172 27.2727ZM33.1876 27.2727H26.7455L26.2422 23.6364H33.1876V27.2727ZM23.0248 27.2727H16.9275L16.3136 23.6364H22.5215L23.0248 27.2727ZM18.1555 34.5455L17.5415 30.9091H23.5282L24.0315 34.5455H18.1555ZM27.7541 34.5455L27.2507 30.9091H33.1876V34.5455H27.7541ZM36.8751 34.5455V30.9091H42.812L42.3087 34.5455H36.8751ZM46.0331 34.5455L46.5364 30.9091H52.5231L51.9091 34.5455H46.0331ZM54.979 16.3636L54.365 20H48.0483L48.5516 16.3636H54.979ZM44.8291 16.3636L44.3257 20H36.8751V16.3636H44.8291ZM33.1876 16.3636V20H25.737L25.2336 16.3636H33.1876ZM21.5111 16.3636L22.0144 20H15.6959L15.0819 16.3636H21.5111Z"
+                    fill="#66757F"
+                  />
+                  <path
+                    d="M22.125 58.182C25.1799 58.182 27.6563 55.74 27.6563 52.7275C27.6563 49.715 25.1799 47.2729 22.125 47.2729C19.0702 47.2729 16.5938 49.715 16.5938 52.7275C16.5938 55.74 19.0702 58.182 22.125 58.182Z"
+                    fill="#E1E8ED"
+                  />
+                  <path
+                    d="M22.125 60C18.0577 60 14.75 56.7382 14.75 52.7273C14.75 48.7164 18.0577 45.4546 22.125 45.4546C26.1924 45.4546 29.5 48.7164 29.5 52.7273C29.5 56.7382 26.1924 60 22.125 60ZM22.125 49.091C20.0914 49.091 18.4375 50.7219 18.4375 52.7273C18.4375 54.7328 20.0914 56.3637 22.125 56.3637C24.1587 56.3637 25.8125 54.7328 25.8125 52.7273C25.8125 50.7219 24.1587 49.091 22.125 49.091Z"
+                    fill="#292F33"
+                  />
+                  <path
+                    d="M47.9375 58.182C50.9924 58.182 53.4688 55.74 53.4688 52.7275C53.4688 49.715 50.9924 47.2729 47.9375 47.2729C44.8827 47.2729 42.4062 49.715 42.4062 52.7275C42.4062 55.74 44.8827 58.182 47.9375 58.182Z"
+                    fill="#E1E8ED"
+                  />
+                  <path
+                    d="M47.9375 60C43.8702 60 40.5625 56.7382 40.5625 52.7273C40.5625 48.7164 43.8702 45.4546 47.9375 45.4546C52.0049 45.4546 55.3125 48.7164 55.3125 52.7273C55.3125 56.7382 52.0049 60 47.9375 60ZM47.9375 49.091C45.9039 49.091 44.25 50.7219 44.25 52.7273C44.25 54.7328 45.9039 56.3637 47.9375 56.3637C49.9712 56.3637 51.625 54.7328 51.625 52.7273C51.625 50.7219 49.9712 49.091 47.9375 49.091Z"
+                    fill="#292F33"
+                  />
+                </svg>
+                เลือกซื้อชุดมือสอง
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== Stats ===== */}
+      <section className="stats">
+        <h2>ร่วมสร้างการเปลี่ยนแปลงไปกับ Unieed</h2>
+        <p className="sub">
+          ตัวเลขแหล่งการแบ่งปันที่เกิดขึ้นจริงจากทุกคนในปี 2569
+        </p>
+
+        <div className="statGrid">
+          <div className="statCard statBlue">
+            <div className="statIcon">
+              <svg
+                width="85"
+                height="86"
+                viewBox="0 0 85 86"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M85 76.4444C85 81.7215 80.7713 86 75.5556 86H9.44444C4.22875 86 0 81.7215 0 76.4444V9.55556C0 4.2785 4.22875 0 9.44444 0H75.5556C80.7713 0 85 4.2785 85 9.55556V76.4444Z"
+                  fill="white"
+                />
+                <path
+                  d="M45.6665 84.6984C43.924 86.4327 41.0765 86.4327 39.3363 84.6984L23.6751 69.1014C21.9349 67.367 21.4745 64.2471 22.6503 62.164L40.3587 18.0962C41.5369 16.0155 43.4635 16.0155 44.6394 18.0962L62.3477 62.164C63.5235 64.2447 63.0631 67.367 61.323 69.099L45.6665 84.6984Z"
+                  fill="#053F5C"
+                />
+                <path
+                  d="M42.4996 35.0406C44.7403 35.0406 47.2312 32.7664 49.3444 29.8065L44.6387 18.0962C43.4605 16.0155 41.5339 16.0155 40.358 18.0962L35.6523 29.8065C37.7703 32.7664 40.2589 35.0406 42.4996 35.0406Z"
+                  fill="#292F33"
+                />
+                <path
+                  d="M54.3054 13.8028C54.3054 18.4946 47.7156 30.7926 42.4999 30.7926C37.2842 30.7926 30.6943 18.4946 30.6943 13.8028C30.6943 9.54345 37.2842 7.1665 42.4999 7.1665C47.7156 7.1665 54.3054 9.54345 54.3054 13.8028Z"
+                  fill="#053F5C"
+                />
+                <path
+                  d="M0 9.55556V14.9401C4.89694 21.5573 16.006 33.4564 18.8889 33.4564C24.1046 33.4564 44.8611 7.66595 44.8611 2.38889C44.8611 0 42.5 0 40.1389 0H9.44444C4.22875 0 0 4.2785 0 9.55556Z"
+                  fill="#D9D9D9"
+                />
+                <path
+                  d="M40.1387 2.38889C40.1387 7.66595 60.8952 33.4564 66.1109 33.4564C68.9938 33.4564 80.1028 21.5573 84.9998 14.9401V9.55556C84.9998 4.2785 80.771 0 75.5553 0H44.8609C42.4998 0 40.1387 0 40.1387 2.38889Z"
+                  fill="#D9D9D9"
+                />
+                <path
+                  d="M9.44339 0C8.81297 0 8.20145 0.0692778 7.60645 0.188722C10.3996 4.14711 24.937 7.16667 42.4989 7.16667C60.0609 7.16667 74.5982 4.14711 77.3914 0.188722C76.7964 0.0692778 76.1849 0 75.5545 0H9.44339Z"
+                  fill="#181818"
+                  fill-opacity="0.533333"
+                />
+              </svg>
+            </div>
+            <div className="statValue">{stats.products_total || 0}</div>
+            <div className="statLabel">ชุดนักเรียนที่ส่งต่อแล้ว</div>
+          </div>
+
+          <div className="statCard statGreen">
+            <div className="statIcon">
+              <svg
+                width="109"
+                height="109"
+                viewBox="0 0 109 109"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M102.188 54.5339H6.8125L12.6712 39.853C13.2503 38.3883 14.6469 37.4346 16.2138 37.4346H92.7862C94.3531 37.4346 95.7497 38.3883 96.3288 39.853L102.188 54.5339Z"
+                  fill="#8C5543"
+                />
+                <path
+                  d="M59.6436 11.3428H68.8064C69.3514 11.3428 69.7942 11.7856 69.7942 12.3306V17.1675C69.7942 17.7125 69.3514 18.1553 68.8064 18.1553H61.7214C60.5973 18.1553 59.6776 17.2356 59.6776 16.1115V11.3428H59.6436Z"
+                  fill="#C3EF3C"
+                />
+                <path
+                  d="M65.0594 14.749H54.5V7.93652H65.0594C65.8088 7.93652 66.4219 8.54965 66.4219 9.29902V13.3525C66.4559 14.1359 65.8428 14.749 65.0594 14.749Z"
+                  fill="#00F397"
+                />
+                <path
+                  opacity="0.7"
+                  d="M6.8125 54.5H30.6562V102.188H6.8125V54.5ZM102.188 54.5H78.3438V102.188H102.188V54.5Z"
+                  fill="#FFDEA7"
+                />
+                <path
+                  d="M77.3901 47.5515L56.4417 26.9096C56.1916 26.6583 55.8944 26.4589 55.567 26.3228C55.2397 26.1867 54.8887 26.1167 54.5342 26.1167C54.1797 26.1167 53.8287 26.1867 53.5013 26.3228C53.174 26.4589 52.8767 26.6583 52.6267 26.9096L31.6782 47.5515C31.0592 48.165 30.7047 48.9963 30.6904 49.8677V102.222H44.203L54.4695 98.1104L64.7359 102.222H78.3779V49.8337C78.3439 48.9821 78.0032 48.1646 77.3901 47.5515Z"
+                  fill="#FFCE7C"
+                />
+                <path
+                  d="M16.0775 71.5312H11.1725C10.6616 71.5312 10.2188 71.0884 10.2188 70.5775V62.2663C10.2188 61.7553 10.6616 61.3125 11.1725 61.3125H16.0775C16.5884 61.3125 17.0312 61.7553 17.0312 62.2663V70.5775C17.0312 71.1225 16.6225 71.5312 16.0775 71.5312ZM27.25 70.5775V62.2663C27.25 61.7553 26.8072 61.3125 26.2962 61.3125H21.3913C20.8803 61.3125 20.4375 61.7553 20.4375 62.2663V70.5775C20.4375 71.0884 20.8803 71.5312 21.3913 71.5312H26.2962C26.8412 71.5312 27.25 71.1225 27.25 70.5775ZM17.0312 84.2025V75.8913C17.0312 75.3803 16.5884 74.9375 16.0775 74.9375H11.1725C10.6616 74.9375 10.2188 75.3803 10.2188 75.8913V84.2025C10.2188 84.7134 10.6616 85.1562 11.1725 85.1562H16.0775C16.6225 85.1562 17.0312 84.7475 17.0312 84.2025ZM27.25 84.2025V75.8913C27.25 75.3803 26.8072 74.9375 26.2962 74.9375H21.3913C20.8803 74.9375 20.4375 75.3803 20.4375 75.8913V84.2025C20.4375 84.7134 20.8803 85.1562 21.3913 85.1562H26.2962C26.8412 85.1562 27.25 84.7475 27.25 84.2025ZM87.6087 71.5312H82.7038C82.1928 71.5312 81.75 71.0884 81.75 70.5775V62.2663C81.75 61.7553 82.1928 61.3125 82.7038 61.3125H87.6087C88.1197 61.3125 88.5625 61.7553 88.5625 62.2663V70.5775C88.5625 71.1225 88.1537 71.5312 87.6087 71.5312ZM92.9225 71.5312H97.8275C98.3725 71.5312 98.7812 71.1225 98.7812 70.5775V62.2663C98.7812 61.7553 98.3384 61.3125 97.8275 61.3125H92.9225C92.4116 61.3125 91.9688 61.7553 91.9688 62.2663V70.5775C91.9688 71.0884 92.4116 71.5312 92.9225 71.5312ZM87.6087 85.1562H82.7038C82.1928 85.1562 81.75 84.7134 81.75 84.2025V75.8913C81.75 75.3803 82.1928 74.9375 82.7038 74.9375H87.6087C88.1197 74.9375 88.5625 75.3803 88.5625 75.8913V84.2025C88.5625 84.7475 88.1537 85.1562 87.6087 85.1562ZM92.9225 85.1562H97.8275C98.3725 85.1562 98.7812 84.7475 98.7812 84.2025V75.8913C98.7812 75.3803 98.3384 74.9375 97.8275 74.9375H92.9225C92.4116 74.9375 91.9688 75.3803 91.9688 75.8913V84.2025C91.9688 84.7134 92.4116 85.1562 92.9225 85.1562Z"
+                  fill="#83CBFF"
+                />
+                <path
+                  d="M54.5 61.3125C57.2102 61.3125 59.8094 60.2359 61.7257 58.3195C63.6421 56.4031 64.7188 53.8039 64.7188 51.0938C64.7188 48.3836 63.6421 45.7844 61.7257 43.868C59.8094 41.9516 57.2102 40.875 54.5 40.875C51.7898 40.875 49.1906 41.9516 47.2743 43.868C45.3579 45.7844 44.2812 48.3836 44.2812 51.0938C44.2812 53.8039 45.3579 56.4031 47.2743 58.3195C49.1906 60.2359 51.7898 61.3125 54.5 61.3125Z"
+                  fill="white"
+                />
+                <path
+                  d="M52.8309 21.1187V8.41344C52.8309 7.52781 53.5462 6.8125 54.4319 6.8125H54.6363C55.5219 6.8125 56.2372 7.52781 56.2372 8.41344V21.163C56.3961 21.2675 56.5437 21.389 56.68 21.5275L80.6259 45.4734C81.3413 46.1888 81.75 47.1425 81.75 48.1644L81.7159 54.3638C81.75 54.3978 81.75 54.4659 81.75 54.5341C81.75 55.4878 81.0006 56.2372 80.0469 56.2372C79.0931 56.2372 78.3438 55.4878 78.3438 54.5341C78.346 54.5 78.3517 54.4716 78.3608 54.4489C78.3721 54.4239 78.3778 54.3955 78.3778 54.3638H78.3438V50.2422C78.3438 49.3566 77.9691 48.505 77.3559 47.8919L56.4075 26.9434C56.1574 26.6921 55.8602 26.4927 55.5329 26.3567C55.2055 26.2206 54.8545 26.1505 54.5 26.1505C54.1455 26.1505 53.7945 26.2206 53.4671 26.3567C53.1398 26.4927 52.8425 26.6921 52.5925 26.9434L31.6441 47.8919C30.9969 48.505 30.6562 49.3566 30.6562 50.2422V54.3638H30.6222C30.6222 54.3955 30.6279 54.4239 30.6392 54.4489L30.6562 54.5341C30.6562 55.4878 29.9069 56.2372 28.9531 56.2372C27.9994 56.2372 27.25 55.4878 27.25 54.5341C27.25 54.5 27.2557 54.4716 27.267 54.4489L27.2841 54.3638H27.25V48.1644C27.25 47.1766 27.6587 46.1888 28.3741 45.4734L52.32 21.5275C52.4768 21.3752 52.6479 21.2383 52.8309 21.1187ZM52.7969 50.7872C52.7969 50.8485 52.8003 50.9098 52.8071 50.9711C52.7819 51.2244 52.8138 51.4801 52.9005 51.7194C52.9871 51.9588 53.1263 52.1756 53.3078 52.3541L58.3491 57.3953C58.6556 57.7359 59.0984 57.9062 59.5412 57.9062C59.9841 57.9062 60.3928 57.7359 60.7675 57.3953C61.4487 56.7141 61.4487 55.6581 60.7675 54.9769L56.2031 50.4125V45.9844C56.2031 45.0306 55.4538 44.2812 54.5 44.2812C53.5462 44.2812 52.7969 45.0306 52.7969 45.9844V50.7872ZM64.7528 102.188H44.145V84.1344C44.145 82.8059 45.2009 81.75 46.5294 81.75H62.3684C63.6969 81.75 64.7528 82.8059 64.7528 84.1344V102.188Z"
+                  fill="#7D4533"
+                />
+              </svg>
+            </div>
+            <div className="statValue">{stats.schools_approved || 0}</div>
+            <div className="statLabel">โรงเรียนที่เข้าร่วมโครงการ</div>
+          </div>
+
+          <div className="statCard statYellow">
+            <div className="statIcon">
+              <svg
+                width="109"
+                height="109"
+                viewBox="0 0 109 109"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M102.188 56.3258C102.188 66.8988 98.4543 74.3109 94.6256 79.0796C92.8731 81.2727 90.8338 83.2203 88.5625 84.8702V91.9688C88.5625 94.679 87.4859 97.2782 85.5695 99.1946C83.6531 101.111 81.0539 102.188 78.3438 102.188H74.9375C73.1307 102.188 71.3979 101.47 70.1203 100.192C68.8427 98.9147 68.125 97.1819 68.125 95.3751H54.5C54.5 97.1819 53.7823 98.9147 52.5047 100.192C51.2271 101.47 49.4943 102.188 47.6875 102.188H44.2812C41.5711 102.188 38.9719 101.111 37.0555 99.1946C35.1391 97.2782 34.0625 94.679 34.0625 91.9688V90.511C24.7771 87.5612 18.312 80.0606 15.1237 71.0409C14.9902 70.6002 14.7547 70.1972 14.4363 69.8646C14.1179 69.532 13.7256 69.2792 13.2912 69.1265C11.4282 68.5957 9.78858 67.4731 8.61984 65.9283C7.45109 64.3835 6.81671 62.5003 6.8125 60.5632V55.1541C6.8125 51.2301 9.41487 47.783 13.1822 46.7066C13.8907 46.5022 14.6537 45.821 15.0284 44.6833C17.3855 37.5574 22.3109 32.3527 28.6534 28.5377C29.3119 28.138 29.9023 27.7974 30.4246 27.5158V14.7355C30.4286 13.7001 30.743 12.6897 31.3271 11.8347C31.9112 10.9798 32.7383 10.3196 33.7014 9.93954C34.6377 9.5471 35.6677 9.43477 36.6665 9.61615C37.6653 9.79754 38.5901 10.2649 39.3286 10.9614C41.0521 12.5964 43.3139 14.538 45.7323 16.1253C48.2189 17.7467 50.5487 18.7822 52.4494 18.9729H52.4835C75.4621 18.9661 102.188 30.4588 102.188 56.3258Z"
+                  fill="url(#paint0_radial_2608_642)"
+                />
+                <path
+                  d="M37.4688 45.9844C37.4688 47.3395 36.9304 48.6391 35.9722 49.5972C35.0141 50.5554 33.7145 51.0938 32.3594 51.0938C31.0043 51.0938 29.7047 50.5554 28.7465 49.5972C27.7883 48.6391 27.25 47.3395 27.25 45.9844C27.25 44.6293 27.7883 43.3297 28.7465 42.3715C29.7047 41.4133 31.0043 40.875 32.3594 40.875C33.7145 40.875 35.0141 41.4133 35.9722 42.3715C36.9304 43.3297 37.4688 44.6293 37.4688 45.9844Z"
+                  fill="url(#paint1_radial_2608_642)"
+                />
+                <path
+                  d="M47.2928 32.2026C47.8688 30.8091 48.9745 29.7013 50.3669 29.1226C51.7593 28.5439 53.3245 28.5417 54.7185 29.1166L92.596 44.7513C93.9908 45.3267 95.0999 46.4327 95.6793 47.8259C96.2587 49.2191 96.2609 50.7854 95.6854 52.1803C95.11 53.5751 94.004 54.6842 92.6108 55.2636C91.2175 55.843 89.6512 55.8452 88.2564 55.2698L50.3789 39.6283C48.9854 39.0523 47.8775 37.9466 47.2989 36.5542C46.7202 35.1618 46.718 33.5966 47.2928 32.2026Z"
+                  fill="#9F1459"
+                />
+                <path
+                  d="M82.7037 52.9743C86.4489 51.4355 89.6526 48.819 91.9084 45.4566C94.1642 42.0942 95.3704 38.1375 95.374 34.0885C95.3776 30.0395 94.1785 26.0807 91.9286 22.7143C89.6788 19.3479 86.4798 16.7256 82.7373 15.1801C78.9949 13.6347 74.8777 13.2357 70.9081 14.0338C66.9386 14.8319 63.2955 16.7911 60.4412 19.6628C57.5868 22.5346 55.6498 26.1895 54.8759 30.1638C54.1019 34.1381 54.5259 38.2528 56.0941 41.9858L82.7037 52.9743Z"
+                  fill="url(#paint2_linear_2608_642)"
+                />
+                <path
+                  d="M82.7037 52.9743C86.4489 51.4355 89.6526 48.819 91.9084 45.4566C94.1642 42.0942 95.3704 38.1375 95.374 34.0885C95.3776 30.0395 94.1785 26.0807 91.9286 22.7143C89.6788 19.3479 86.4798 16.7256 82.7373 15.1801C78.9949 13.6347 74.8777 13.2357 70.9081 14.0338C66.9386 14.8319 63.2955 16.7911 60.4412 19.6628C57.5868 22.5346 55.6498 26.1895 54.8759 30.1638C54.1019 34.1381 54.5259 38.2528 56.0941 41.9858L82.7037 52.9743Z"
+                  fill="url(#paint3_linear_2608_642)"
+                  fill-opacity="0.8"
+                />
+                <defs>
+                  <radialGradient
+                    id="paint0_radial_2608_642"
+                    cx="0"
+                    cy="0"
+                    r="1"
+                    gradientUnits="userSpaceOnUse"
+                    gradientTransform="translate(36.0212 18.6429) rotate(74.152) scale(90.5872 93.3135)"
+                  >
+                    <stop stop-color="#FFBE1B" />
+                  </radialGradient>
+                  <radialGradient
+                    id="paint1_radial_2608_642"
+                    cx="0"
+                    cy="0"
+                    r="1"
+                    gradientUnits="userSpaceOnUse"
+                    gradientTransform="translate(30.3029 43.6301) rotate(59.532) scale(8.65821)"
+                  >
+                    <stop stop-color="#B91D6B" />
+                    <stop offset="1" stop-color="#670938" />
+                  </radialGradient>
+                  <linearGradient
+                    id="paint2_linear_2608_642"
+                    x1="88.3445"
+                    y1="51.9797"
+                    x2="54.7044"
+                    y2="25.847"
+                    gradientUnits="userSpaceOnUse"
+                  >
+                    <stop stop-color="#FF8A69" />
+                  </linearGradient>
+                  <linearGradient
+                    id="paint3_linear_2608_642"
+                    x1="80.3534"
+                    y1="16.0847"
+                    x2="64.637"
+                    y2="50.5559"
+                    gradientUnits="userSpaceOnUse"
+                  >
+                    <stop offset="0.67" stop-color="#FB5937" stop-opacity="0" />
+                    <stop offset="1" stop-color="#CD3E1D" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <div className="statValue">
+              ฿{Number(stats.total_paid || 0).toLocaleString()}
+            </div>
+            <div className="statLabel">ช่วยประหยัดค่าใช้จ่าย</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== Steps ===== */}
+      <section className="steps">
+        <div className="stepsWrap">
+          <div className="stepsSide">
+            <div className="stepsBig">
+              3 ขั้นตอน !<br />
+              บริจาคง่ายๆ
+            </div>
+            <div className="stepsHint">กรณีมีชุดอยู่แล้ว</div>
+          </div>
+
+          <div className="stepsCards">
+            {steps.map((s) => (
+              <div className="stepCard" key={s.no}>
+                <div className="stepPic">
+                  <img src={s.pic} />
+                </div>
+                {/* <div className="stepNo">{s.no}.</div> */}
+                <div className="stepTitle">
+                  {s.no}. {s.title}
+                </div>
+                <div className="stepDesc">{s.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== Projects (Smooth Carousel) ===== */}
+      <section id="projects" className="section sectionBlue">
+        <div className="sectionHead">
+          <h3>
+            โครงการขอรับบริจาค{" "}
+            <span>
+              <i class="fi fi-rs-school"></i>
+            </span>
+          </h3>
+          <button className="btnGhost" type="button">
+            ดูทั้งหมด
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="muted">กำลังโหลด…</div>
+        ) : (
+          <div className="carouselRow">
+            <button
+              className="navArrow"
+              onClick={goPrev}
+              disabled={isSliding || projPages <= 1}
+              aria-label="prev"
+            >
+              ‹
+            </button>
+
+            <div className="carouselViewport">
+              {!projects.length ? (
+                <div className="muted">ยังไม่มีโครงการในระบบ </div>
+              ) : (
+                <div
+                  className="carouselTrack"
+                  style={{ transform: `translateX(-${projPage * 100}%)` }}
+                  onTransitionEnd={() => setIsSliding(false)}
+                >
+                  {Array.from({ length: projPages }).map((_, pageIndex) => {
+                    const start = pageIndex * perPage;
+                    const slice = projects.slice(start, start + perPage);
+
+                    return (
+                      <div className="carouselPage" key={pageIndex}>
+                        {slice.map((p) => (
+                          <div className="projCard" key={p.request_id}>
+                            <div className="thumb">
+                              {p.request_image_url ? (
+                                <img
+                                  src={p.request_image_url}
+                                  alt={p.request_title}
+                                />
+                              ) : (
+                                <div className="thumbPlaceholder" />
+                              )}
+                            </div>
+
+                            <div className="projBody">
+                              <div className="projTitle">{p.request_title}</div>
+                              <div className="projMeta">
+                                <span>{p.school_name}</span>
+                                <span> จ.{p.school_address}</span>
+                              </div>
+
+                              <div className="projBottom">
+                                <div className="projFilled">
+                                  ยอดบริจาคปัจจุบัน{" "}
+                                  <span>
+                                    <b>{p.total_fulfilled || 0}</b>
+                                  </span>{" "}
+                                  ชิ้น
+                                </div>
+                                <button className="btnSend" type="button">
+                                  ส่งต่อ
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {slice.length < 2 && (
+                          <div className="projCard projCardGhost" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <button
+              className="navArrow"
+              onClick={goNext}
+              disabled={isSliding || projPages <= 1}
+              aria-label="next"
+            >
+              ›
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* ===== Market ===== */}
+      <section id="market" className="section">
+        <div className="sectionHead">
+          <h3>ตลาดชุดนักเรียนมือสอง</h3>
+          <button className="btnGhost" type="button">
+            ดูทั้งหมด
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="muted">กำลังโหลด…</div>
+        ) : (
+          <div className="grid3">
+            {products.map((x) => (
+              <div className="productCard" key={x.product_id}>
+                <div className="pThumb">
+                  {x.cover_image ? (
+                    <img src={x.cover_image} alt={x.product_title} />
+                  ) : (
+                    <div className="thumbPlaceholder" />
+                  )}
+                </div>
+
+                <div className="pBody">
+                  <div className="pTitle">{x.product_title}</div>
+                  <div className="pMeta">
+                    <span>ขนาด: {x.size_label || "-"} </span>
+                    <span>
+                      สภาพ:{" "}
+                      <span className="condPct"> {x.condition_percent} %</span>{" "}
+                      {x.condition || "-"}
+                    </span>
+                  </div>
+
+                  <div className="pBottom">
+                    <div className="pPrice">
+                      {Number(x.price || 0).toLocaleString()} บาท
+                    </div>
+                    <button className="cartBtn" type="button" aria-label="cart">
+                      <i class="fi fi-rr-shopping-cart-add"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {!products.length && (
+              <div className="muted">ยังไม่มีสินค้าในระบบ</div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* ===== Testimonials ===== */}
+      <section className="section sectionSoftBlue">
+        <div className="sectionHead">
+          <h3>ความประทับใจจากโรงเรียน</h3>
+        </div>
+
+        {!currentTs ? (
+          <div className="muted">ยังไม่มีรีวิวจากโรงเรียน</div>
+        ) : (
+          <div className="tsWrap">
+            <button
+              className="tsArrow tsArrowLeft"
+              onClick={tsPrev}
+              aria-label="prev"
+            >
+              ‹
+            </button>
+
+            <div className="tsCard">
+              <div className="tsLeft">
+                <div className="tsSchool">
+                  {currentTs.school_name}ได้รับชุดแล้ว!
+                </div>
+                <div className="tsDate">
+                  {formatThaiDate(currentTs.review_date)}
+                </div>
+                <div className="tsText">{currentTs.review_text}</div>
+              </div>
+
+              <div className="tsRight">
+                {currentTs.image_url ? (
+                  <img src={currentTs.image_url} alt={currentTs.school_name} />
+                ) : (
+                  <div className="thumbPlaceholder" />
+                )}
+              </div>
+            </div>
+            <button
+              className="tsArrow tsArrowRight"
+              onClick={tsNext}
+              aria-label="next"
+            >
+              ›
+            </button>
+            <div className="tsDots">
+              {testimonials.slice(0, 3).map((_, i) => (
+                <span
+                  key={i}
+                  className={`dot ${i === tsIndex % 3 ? "active" : ""}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ===== Footer ===== */}
+      <footer id="about" className="footer">
+        <div className="footerInner">
+          <div className="footBrand">
+            <div>
+              <Link to="/" onClick={() => window.scrollTo(0, 0)}>
+                <img
+                  className="footLogo"
+                  src="/src/unieed_pic/logo.png"
+                  alt="Unieed"
+                />
+              </Link>
+              <div className="footDesc">
+                แพลตฟอร์มส่งต่อแบ่งปันชุดนักเรียน
+                <br />
+                เพื่อมอบโอกาสทางการศึกษาให้กับนักเรียน
+              </div>
+            </div>
+          </div>
+
+          <div className="footCol">
+            <div className="footTitle">เมนูลัด</div>
+            <a href="#home">หน้าหลัก</a>
+            <a href="#projects">โครงการ</a>
+            <a href="#market">ร้านค้า</a>
+            <a href="#about">เกี่ยวกับเรา</a>
+          </div>
+
+          <div className="footCol">
+            <div className="footTitle">ติดต่อเรา</div>
+            <div>
+              <FontAwesomeIcon icon={faPhone} /> 062-379-0000
+            </div>
+            <div>
+              <FontAwesomeIcon icon={faEnvelope} /> contact@unieed.com
+            </div>
+            <div className="connect">
+              <div>
+                <FontAwesomeIcon icon={faFacebook} />{" "}
+              </div>
+              <div>
+                <FontAwesomeIcon icon={faLine} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
