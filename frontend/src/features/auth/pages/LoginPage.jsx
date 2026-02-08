@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { request } from "../../../api/http.js";
-import { useAuth } from "../../../context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext.jsx";
+import { login as loginService } from "../services/auth.service.js";
 import "../styles/auth.css";
 
 export default function LoginPage() {
@@ -16,10 +16,9 @@ export default function LoginPage() {
     e.preventDefault();
     setErr("");
     try {
-      const data = await request("/auth/login", { method:"POST", body:{ user_email, password } });
+      const data = await loginService({ user_email, password });
 
       if (data.requires_school_check) {
-        // เข้าได้แต่ยังไม่ approved -> ไปหน้า pending ที่คุณออกแบบไว้
         nav("/school/pending", { state: data });
         return;
       }
@@ -29,7 +28,9 @@ export default function LoginPage() {
       if (data.role === "admin") nav("/admin/schools");
       else if (data.role === "school_admin") nav("/school/dashboard");
       else nav("/");
-    } catch (e) { setErr(e.message); }
+    } catch (e) {
+      setErr(e?.data?.message || e.message);
+    }
   };
 
   return (

@@ -13,3 +13,4 @@ export async function uploadSchoolDoc(file) {
 
   return { url: result.secure_url, public_id: result.public_id };
 }
+

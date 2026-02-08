@@ -1,57 +1,47 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
-
-function getToken() {
-  return localStorage.getItem("token");
-}
+const BASE_URL = "http://localhost:3000";
 
 export async function request(path, options = {}) {
-  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+  const {
+    method = "GET",
+    body,
+    auth = true,
+    headers: extraHeaders = {},
+  } = options;
 
-  const headers = new Headers(options.headers || {});
-  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
-    headers.set("Content-Type", "application/json");
+  const headers = { ...extraHeaders };
+
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+
+  if (auth) {
+    const token = localStorage.getItem("token");
+    if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const token = getToken();
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
+  const res = await fetch(BASE_URL + path, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
 
-  const res = await fetch(url, { ...options, headers });
-
-  // รองรับ backend ส่ง error แบบ {message:"..."}
+  // กันกรณี backend ไม่ได้ส่ง json
+  const text = await res.text();
   let data = null;
-  const ct = res.headers.get("content-type") || "";
-  if (ct.includes("application/json")) data = await res.json();
-  else data = await res.text();
+  try { data = text ? JSON.parse(text) : null; } catch { data = { message: text }; }
 
   if (!res.ok) {
-    const msg = (data && data.message) ? data.message : "Request failed";
-    const err = new Error(msg);
-    err.status = res.status;
+    const err = new Error(data?.message || "Request failed");
     err.data = data;
+    err.status = res.status;
     throw err;
   }
-
   return data;
 }
 
-export function postJson(path, body, options = {}) {
-  return request(path, {
-    method: "POST",
-    body: JSON.stringify(body),
-    ...options,
-  });
+// ✅ เพื่อไม่ให้ไฟล์อื่นพัง (ที่เคย import getJson/postJson)
+export function getJson(path, auth = true) {
+  return request(path, { method: "GET", auth });
 }
 
-export function getJson(path, options = {}) {
-  return request(path, { method: "GET", ...options });
-}
-
-export async function uploadFile(path, file, fieldName = "file", extraFields = {}) {
-  const fd = new FormData();
-  fd.append(fieldName, file);
-  Object.entries(extraFields).forEach(([k, v]) => fd.append(k, v));
-
-  return request(path, { method: "POST", body: fd });
+export function postJson(path, body, auth = true) {
+  return request(path, { method: "POST", body, auth });
 }

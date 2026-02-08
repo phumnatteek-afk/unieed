@@ -1,33 +1,57 @@
 import { useState } from "react";
-import { request } from "../../../api/http.js";
 import { useNavigate } from "react-router-dom";
+import { request } from "../../../api/http.js";
 import "../styles/auth.css";
 
 export default function RegisterGeneralPage() {
-  const [user_name,setName] = useState("");
-  const [user_email,setEmail] = useState("");
-  const [password,setPw] = useState("");
-  const [err,setErr] = useState("");
-  const nav = useNavigate();
+  const navigate = useNavigate();
+
+  const [user_name, setUserName] = useState("");
+  const [user_email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState("");
 
   const submit = async (e) => {
     e.preventDefault();
     setErr("");
+
     try {
-      await request("/auth/register/general", { method:"POST", body:{ user_name, user_email, password } });
-      nav("/login");
-    } catch (e) { setErr(e.message); }
+      await request("/auth/register/general", {
+        method: "POST",
+        body: { user_name, user_email, password },
+        auth: false,
+      });
+
+      alert("สมัครสมาชิกสำเร็จ");
+      navigate("/login");
+    } catch (e) {
+      setErr(e?.data?.message || e.message);
+    }
   };
 
   return (
     <div className="authWrap">
       <div className="authCard">
-        <h2>ลงทะเบียนบุคคลทั่วไป</h2>
+        <h2>สมัครสมาชิก</h2>
         {err && <div className="error">{err}</div>}
+
         <form onSubmit={submit}>
-          <input value={user_name} onChange={e=>setName(e.target.value)} placeholder="ชื่อผู้ใช้" />
-          <input value={user_email} onChange={e=>setEmail(e.target.value)} placeholder="อีเมล" />
-          <input value={password} onChange={e=>setPw(e.target.value)} placeholder="รหัสผ่าน" type="password" />
+          <input
+            placeholder="ชื่อผู้ใช้"
+            value={user_name}
+            onChange={(e) => setUserName(e.target.value)}
+          />
+          <input
+            placeholder="อีเมล"
+            value={user_email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="รหัสผ่าน"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
           <button type="submit">ลงทะเบียน</button>
         </form>
       </div>

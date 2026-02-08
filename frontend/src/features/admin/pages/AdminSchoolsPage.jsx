@@ -27,13 +27,19 @@ export default function AdminSchoolsPage() {
         </div>
 
         {schools.map(s => (
-          <div className="trow" key={s.school_id}>
-            <div>{s.school_name}</div>
-            <div>{s.verification_status}</div>
-            <div><Link to={`/admin/schools/${s.school_id}`}>เปิด</Link></div>
-          </div>
-        ))}
+      <div className="row" key={s.school_id}>
+        <div>{s.school_name}</div>
+        <div>
+          <span className={`status ${s.verification_status}`}>
+            {s.verification_status}
+          </span>
+        </div>
+        <div className="actionsCell">
+          <a className="tab" href={`/admin/schools/${s.school_id}`}>เปิด</a>
+        </div>
       </div>
+    ))}
+  </div>
     </div>
   );
 }

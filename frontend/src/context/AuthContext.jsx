@@ -12,14 +12,25 @@ export function AuthProvider({ children }) {
     localStorage.setItem("token", token);
     localStorage.setItem("role", role);
     localStorage.setItem("userName", user_name || "");
-    setToken(token); setRole(role); setUserName(user_name || "");
+
+    setToken(token);
+    setRole(role);
+    setUserName(user_name || "");
   };
 
   const logout = () => {
-    localStorage.clear();
-    setToken(null); setRole(null); setUserName(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("userName");
+    setToken(null);
+    setRole(null);
+    setUserName(null);
   };
 
-  const value = useMemo(() => ({ token, role, userName, login, logout }), [token, role, userName]);
+  const value = useMemo(
+    () => ({ token, role, userName, login, logout }),
+    [token, role, userName]
+  );
+
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

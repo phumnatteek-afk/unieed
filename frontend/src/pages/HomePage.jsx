@@ -1,384 +1,424 @@
-import React, { useMemo, useState } from "react";
-import "./styles/Homepage.css";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
+import { getJson } from "../api/http.js";
+import "./styles/Homepage.css";
+// icon
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faMagnifyingGlass, faPhone, faEnvelope} from '@fortawesome/free-solid-svg-icons'
+import { faFacebook, faLine } from '@fortawesome/free-brands-svg-icons';
+<link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css'></link>
 
 export default function HomePage() {
-  // ===== Mock data (ค่อยเปลี่ยนเป็นดึงจาก API ได้) =====
-  const stats = { donatedSets: 300, helpedKids: 120 };
+    const { token, role, userName, logout } = useAuth();
 
-  const projects = useMemo(
-    () => [
-      {
-        id: 1,
-        title: "ขอรับบริจาคชุดนักเรียน ปีการศึกษา 2569",
-        school: "โรงเรียนบ้านสมมติ",
-        need: 12,
-        img: "https://images.unsplash.com/photo-1529390079861-591de354faf5?auto=format&fit=crop&w=1200&q=60",
-      },
-      {
-        id: 2,
-        title: "ขอรับบริจาคชุดนักเรียนหญิง ปีการศึกษา 2569",
-        school: "โรงเรียนตัวอย่าง",
-        need: 40,
-        img: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1200&q=60",
-      },
-      {
-        id: 3,
-        title: "ขอรับบริจาคชุดพละนักเรียน ปีการศึกษา 2569",
-        school: "โรงเรียนทดสอบ",
-        need: 18,
-        img: "https://images.unsplash.com/photo-1544986581-efac024faf62?auto=format&fit=crop&w=1200&q=60",
-      },
-    ],
-    []
-  );
+    const [stats, setStats] = useState({ products_total: 0, schools_approved: 0, total_paid: 0 });
+    const [projects, setProjects] = useState([]);
+    const [products, setProducts] = useState([]);
+    const [testimonials, setTestimonials] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  const products = useMemo(
-    () => [
-      {
-        id: 101,
-        name: "เสื้อนักเรียนชาย ตราสมอ",
-        school: "ตราโรงเรียนวิทยา",
-        price: 80,
-        condition: "สภาพ 80% ขึ้นไป",
-        img: "https://images.unsplash.com/photo-1520975693411-b76f2d0a5a58?auto=format&fit=crop&w=1200&q=60",
-      },
-      {
-        id: 102,
-        name: "เสื้อเนตรนารี",
-        school: "—",
-        price: 100,
-        condition: "สภาพ 90%",
-        img: "https://images.unsplash.com/photo-1520975958225-cc1c6b1b147b?auto=format&fit=crop&w=1200&q=60",
-      },
-      {
-        id: 103,
-        name: "เสื้อนักเรียนชาย ตราสมอ",
-        school: "ตราโรงเรียนวิทยา",
-        price: 80,
-        condition: "สภาพ 80% ขึ้นไป",
-        img: "https://images.unsplash.com/photo-1520975748751-3f43708d3d18?auto=format&fit=crop&w=1200&q=60",
-      },
-      {
-        id: 104,
-        name: "กางเกงนักเรียนรัฐบาล",
-        school: "—",
-        price: 80,
-        condition: "สภาพ 90%",
-        img: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=60",
-      },
-      {
-        id: 105,
-        name: "กางเกงนักเรียนเอกชน",
-        school: "—",
-        price: 80,
-        condition: "สภาพ 80% ขึ้นไป",
-        img: "https://images.unsplash.com/photo-1520975869014-7f1a6a5a7c66?auto=format&fit=crop&w=1200&q=60",
-      },
-      {
-        id: 106,
-        name: "เสื้อนักเรียนหญิง ตราสมอ",
-        school: "ตราโรงเรียนบ้านสมมติ",
-        price: 150,
-        condition: "สภาพ 80% ขึ้นไป",
-        img: "https://images.unsplash.com/photo-1520975755100-58a6a6b0d6c1?auto=format&fit=crop&w=1200&q=60",
-      },
-    ],
-    []
-  );
+    const [q, setQ] = useState("");
 
-  const categories = useMemo(
-    () => [
-      { key: "uniform", label: "ชุดนักเรียน", icon: "👔" },
-      { key: "pe", label: "ชุดพละ", icon: "👕" },
-      { key: "scout", label: "ชุดลูกเสือ-เนตรนารี", icon: "🧢" },
-      { key: "activity", label: "ชุดกิจกรรม", icon: "🎽" },
-    ],
-    []
-  );
+    // ===== Projects carousel (page-based, 2 cards/page)
+    const [projPage, setProjPage] = useState(0);
+    const [isSliding, setIsSliding] = useState(false);
+    function formatThaiDate(dateStr) {
+        if (!dateStr) return "";
 
-  // ===== UI state =====
-  const [projectIndex, setProjectIndex] = useState(0);
+        const date = new Date(dateStr);
 
-  const prevProject = () =>
-    setProjectIndex((i) => (i - 1 + projects.length) % projects.length);
-  const nextProject = () =>
-    setProjectIndex((i) => (i + 1) % projects.length);
+        return date.toLocaleDateString("th-TH", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+        });
+    }
+    // ===== Testimonials slider
+    const [tsIndex, setTsIndex] = useState(0);
 
-  const activeProject = projects[projectIndex];
+    useEffect(() => {
+        (async () => {
+            try {
+                setLoading(true);
+                const data = await getJson("/home", false);
 
-  return (
-    <div className="hp">
-      {/* ===== Top bar ===== */}
-      <header className="hpHeader">
-        <div className="hpNav">
-          <div className="hpBrand">
-            <div className="hpLogoBox" aria-label="Unieed logo">
-              <span className="hpLogoMark">✉️</span>
+                setStats(data.stats || {});
+                setProjects(Array.isArray(data.projects) ? data.projects : []);
+                setProducts(Array.isArray(data.products) ? data.products : []);
+                setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, []);
+
+    // ถ้าข้อมูล projects/testimonials เปลี่ยน (โหลดมาใหม่) ให้รีเซ็ต index ป้องกัน out-of-range
+    useEffect(() => {
+        setProjPage(0);
+        setIsSliding(false);
+    }, [projects.length]);
+
+    useEffect(() => {
+        setTsIndex(0);
+    }, [testimonials.length]);
+
+    const rightAccount = () => {
+        if (!token) {
+            return (
+                <div className="navAuth">
+                    <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
+                    <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
+                </div>
+            );
+        }
+        return (
+            <div className="navAuth">
+                <span className="hello">สวัสดี, {userName || "ผู้ใช้"}</span>
+                <button className="navBtn navBtnOutline" onClick={logout}>ออกจากระบบ</button>
             </div>
-            <span className="hpBrandName">Unieed</span>
-          </div>
+        );
+    };
 
-          <nav className="hpMenu">
-            <a className="hpMenuItem isActive" href="#home">
-              หน้าหลัก
-            </a>
-            <a className="hpMenuItem" href="#market">
-              ร้านค้า
-            </a>
-            <a className="hpMenuItem" href="#projects">
-              โครงการ
-            </a>
-            <a className="hpMenuItem" href="#about">
-              เกี่ยวกับเรา
-            </a>
-          </nav>
+    // ===== Projects paging logic
+    const perPage = 2;
+    const projPages = useMemo(() => {
+        const len = projects?.length || 0;
+        return Math.max(1, Math.ceil(len / perPage));
+    }, [projects]);
 
-          <div className="hpRight">
-            <button className="hpBell" aria-label="notifications">
-              🔔
-            </button>
-            <div className="hpUser">
-              <div className="hpAvatar" aria-hidden="true">
-                👤
-              </div>
-              <div className="hpUserMeta">
-                <div className="hpUserName">คุณชื่อ ผู้ใช้</div>
-                <div className="hpUserRole">บุคคลทั่วไป</div>
-              </div>
-              <span className="hpCaret">▾</span>
-            </div>
-    
-  <Link className="hpLoginBtn" to="/login">
-    เข้าสู่ระบบ
-  </Link>
-   <Link className="hpRegisterBtn" to="/register">
-    ลงทะเบียน
-  </Link>
+    const goPrev = () => {
+        if (isSliding || projPages <= 1) return;
+        setIsSliding(true);
+        setProjPage((p) => (p - 1 + projPages) % projPages);
+    };
 
-          </div>
+    const goNext = () => {
+        if (isSliding || projPages <= 1) return;
+        setIsSliding(true);
+        setProjPage((p) => (p + 1) % projPages);
+    };
+
+    // ===== Testimonials logic (วนลูป ไม่ติดลบ)
+    const currentTs = useMemo(() => {
+        const a = testimonials || [];
+        if (!a.length) return null;
+        const idx = ((tsIndex % a.length) + a.length) % a.length;
+        return a[idx];
+    }, [testimonials, tsIndex]);
+
+    const tsPrev = () => {
+        const len = testimonials.length;
+        if (len <= 1) return;
+        setTsIndex((i) => (i - 1 + len) % len);
+    };
+
+    const tsNext = () => {
+        const len = testimonials.length;
+        if (len <= 1) return;
+        setTsIndex((i) => (i + 1) % len);
+    };
+
+    const steps = [
+        { no: 1, pic:"/src/unieed_pic/st1.png", title: "เตรียมชุดนักเรียน", desc: "เช็คสภาพชุด ทำความสะอาด พร้อมแพ็คให้กล่องเรียบร้อย" },
+        { no: 2, pic:"/src/unieed_pic/st2.png", title: "ส่งตรงถึงโรงเรียน", desc: "ค้นหาโรงเรียนที่ต้องการตามไซส์ที่คุณมี" },
+        { no: 3, pic:"/src/unieed_pic/st3.png", title: "ส่งของ", desc: "แพ็คใส่กล่อง จัดส่ง / Drop-off ที่โรงเรียนกำหนด" },
+    ];
+
+    return (
+        <div className="homePage">
+            {/* ===== Top Header + Search ===== */}
+            <header className="topBar">
+                <div className="topRow">
+                    <Link to="/" className="brand">
+                        <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
+                    </Link>
+
+                    <nav className="navLinks">
+                        <a href="#home" className="active">หน้าหลัก</a>
+                        <a href="#projects">โครงการ</a>
+                        <a href="#market">ร้านค้า</a>
+                        <a href="#about">เกี่ยวกับเรา</a>
+                    </nav>
+
+                    {rightAccount()}
+                </div>
+
+                <div className="searchRow">
+                    <div className="searchBox">
+                        <input
+                            value={q}
+                            onChange={(e) => setQ(e.target.value)}
+                            placeholder="ค้นหาโครงการหรือสิ่งของที่ต้องการบริจาค..."
+                        />
+                        <button className="searchBtn" type="button" aria-label="search">
+      <FontAwesomeIcon icon={faMagnifyingGlass} />
+    </button>
+                    </div>
+                </div>
+            </header>
+
+            {/* ===== Hero ===== */}
+            <section id="home" className="hero">
+                <div className="heroInner">
+                    <div className="heroLeft">
+                        <h1>เสื้อตัวเก่าของคุณ...</h1>
+                        <p className="heroSub">
+                            คือ <span>ชุดเก่งตัวใหม่ของน้อง</span>
+                        </p>
+
+                        <div className="heroActions">
+                            <a className="pill pillYellow" href="#projects">🎁 บริจาคชุดนักเรียน</a>
+                            <a className="pill pillWhite" href="#market">🛒 เลือกซื้อชุดมือสอง</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== Stats ===== */}
+            <section className="stats">
+                <h2>ร่วมสร้างการเปลี่ยนแปลงไปกับ Unieed</h2>
+                <p className="sub">ตัวเลขแหล่งการแบ่งปันที่เกิดขึ้นจริงจากทุกคนในปี 2569</p>
+
+                <div className="statGrid">
+                    <div className="statCard statBlue">
+                        <div className="statIcon">👔</div>
+                        <div className="statValue">{stats.products_total || 0}</div>
+                        <div className="statLabel">ชุดนักเรียนที่ส่งต่อแล้ว</div>
+                    </div>
+
+                    <div className="statCard statGreen">
+                        <div className="statIcon">🏫</div>
+                        <div className="statValue">{stats.schools_approved || 0}</div>
+                        <div className="statLabel">โรงเรียนที่เข้าร่วมโครงการ</div>
+                    </div>
+
+                    <div className="statCard statYellow">
+                        <div className="statIcon">🐷</div>
+                        <div className="statValue">฿{Number(stats.total_paid || 0).toLocaleString()}</div>
+                        <div className="statLabel">ช่วยประหยัดค่าใช้จ่าย</div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== Steps ===== */}
+            <section className="steps">
+                <div className="stepsWrap">
+                    <div className="stepsSide">
+                        <div className="stepsBig">3 ขั้นตอน !<br/>บริจาคง่ายๆ</div>
+                        <div className="stepsHint">กรณีมีชุดอยู่แล้ว</div>
+                    </div>
+
+                    <div className="stepsCards">
+                        {steps.map((s) => (
+                            <div className="stepCard" key={s.no}>
+                                <div className="stepPic"><img src={s.pic}/></div>
+                                {/* <div className="stepNo">{s.no}.</div> */}
+                                <div className="stepTitle">{s.no}. {s.title}</div>
+                                <div className="stepDesc">{s.desc}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== Projects (Smooth Carousel) ===== */}
+            <section id="projects" className="section sectionBlue">
+                <div className="sectionHead">
+                    <h3>โครงการขอรับบริจาค <span><i class="fi fi-rs-school"></i></span></h3>
+                    <button className="btnGhost" type="button">ดูทั้งหมด</button>
+                </div>
+
+                {loading ? (
+                    <div className="muted">กำลังโหลด…</div>
+                ) : (
+                    <div className="carouselRow">
+                        <button
+                            className="navArrow"
+                            onClick={goPrev}
+                            disabled={isSliding || projPages <= 1}
+                            aria-label="prev"
+                        >
+                            ‹
+                        </button>
+
+                        <div className="carouselViewport">
+                            {!projects.length ? (
+                                <div className="muted">ยังไม่มีโครงการในระบบ </div>
+                            ) : (
+                                <div
+                                    className="carouselTrack"
+                                    style={{ transform: `translateX(-${projPage * 100}%)` }}
+                                    onTransitionEnd={() => setIsSliding(false)}
+                                >
+                                    {Array.from({ length: projPages }).map((_, pageIndex) => {
+                                        const start = pageIndex * perPage;
+                                        const slice = projects.slice(start, start + perPage);
+
+                                        return (
+                                            <div className="carouselPage" key={pageIndex}>
+                                                {slice.map((p) => (
+                                                    <div className="projCard" key={p.request_id}>
+                                                        <div className="thumb">
+                                                            {p.request_image_url ? (
+                                                                <img src={p.request_image_url} alt={p.request_title} />
+                                                            ) : (
+                                                                <div className="thumbPlaceholder" />
+                                                            )}
+                                                        </div>
+
+                                                        <div className="projBody">
+                                                            <div className="projTitle">{p.request_title}</div>
+                                                            <div className="projMeta">
+                                                                <span>{p.school_name}</span>
+                                                                <span> จ.{p.school_address}</span>
+                                                            </div>
+
+                                                            <div className="projBottom">
+                                                                <div className="projFilled">
+                                                                    ยอดบริจาคปัจจุบัน <span><b>{p.total_fulfilled || 0}</b></span> ชิ้น
+                                                                </div>
+                                                                <button className="btnSend" type="button">ส่งต่อ</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                {slice.length < 2 && <div className="projCard projCardGhost" />}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            className="navArrow"
+                            onClick={goNext}
+                            disabled={isSliding || projPages <= 1}
+                            aria-label="next"
+                        >
+                            ›
+                        </button>
+                    </div>
+                )}
+            </section>
+
+            {/* ===== Market ===== */}
+            <section id="market" className="section">
+                <div className="sectionHead">
+                    <h3>ตลาดชุดนักเรียนมือสอง</h3>
+                    <button className="btnGhost" type="button">ดูทั้งหมด</button>
+                </div>
+
+                {loading ? (
+                    <div className="muted">กำลังโหลด…</div>
+                ) : (
+                    <div className="grid3">
+                        {products.map((x) => (
+                            <div className="productCard" key={x.product_id}>
+                                <div className="pThumb">
+                                    {x.cover_image ? (
+                                        <img src={x.cover_image} alt={x.product_title} />
+                                    ) : (
+                                        <div className="thumbPlaceholder" />
+                                    )}
+                                </div>
+
+                                <div className="pBody">
+                                    <div className="pTitle">{x.product_title}</div>
+                                    <div className="pMeta">
+                                        <span>ขนาด: {x.size_label || "-"} </span>
+                                        <span>
+                                              สภาพ: <span className="condPct"> {x.condition_percent} %</span> {x.condition || "-"}
+                                        </span>
+                                    </div>
+
+                                    <div className="pBottom">
+                                        <div className="pPrice">{Number(x.price || 0).toLocaleString()} บาท</div>
+                                        <button className="cartBtn" type="button" aria-label="cart"><i class="fi fi-rr-shopping-cart-add"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
+                        {!products.length && <div className="muted">ยังไม่มีสินค้าในระบบ</div>}
+                    </div>
+                )}
+            </section>
+
+            {/* ===== Testimonials ===== */}
+            <section className="section sectionSoftBlue">
+                <div className="sectionHead">
+                    <h3>ความประทับใจจากโรงเรียน</h3>
+                </div>
+
+                {!currentTs ? (
+                    <div className="muted">ยังไม่มีรีวิวจากโรงเรียน</div>
+                ) : (
+                    <div className="tsWrap">
+                        <button className="tsArrow tsArrowLeft" onClick={tsPrev} aria-label="prev">‹</button>
+
+                        <div className="tsCard">
+                            <div className="tsLeft">
+                                <div className="tsSchool">{currentTs.school_name}ได้รับชุดแล้ว!</div>
+                                <div className="tsDate">
+                                    {formatThaiDate(currentTs.review_date)}
+                                </div>
+                                <div className="tsText">{currentTs.review_text}</div>
+                            </div>
+
+                            <div className="tsRight">
+                                {currentTs.image_url ? (
+                                    <img src={currentTs.image_url} alt={currentTs.school_name} />
+                                ) : (
+                                    <div className="thumbPlaceholder" />
+                                )}
+                            </div>
+                        </div>
+                        <button className="tsArrow tsArrowRight" onClick={tsNext} aria-label="next">›</button>
+                        <div className="tsDots">
+                            {testimonials.slice(0, 3).map((_, i) => (
+                                <span key={i} className={`dot ${i === (tsIndex % 3) ? "active" : ""}`} />
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </section>
+
+            {/* ===== Footer ===== */}
+            <footer id="about" className="footer">
+                <div className="footerInner">
+                    <div className="footBrand">
+                        <div>
+                            <img className="footLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
+                            <div className="footDesc">
+                                แพลตฟอร์มส่งต่อแบ่งปันชุดนักเรียน<br />
+                                เพื่อมอบโอกาสทางการศึกษาให้กับนักเรียน
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="footCol">
+                        <div className="footTitle">เมนูลัด</div>
+                        <a href="#home">หน้าหลัก</a>
+                        <a href="#projects">โครงการ</a>
+                        <a href="#market">ร้านค้า</a>
+                        <a href="#about">เกี่ยวกับเรา</a>
+                    </div>
+
+                    <div className="footCol">
+                        <div className="footTitle">ติดต่อเรา</div>
+                        <div><FontAwesomeIcon icon={faPhone} /> 062-379-0000</div>
+                        <div><FontAwesomeIcon icon={faEnvelope} /> contact@unieed.com</div>
+                        <div className="connect">
+                            <div><FontAwesomeIcon icon={faFacebook} /> </div>
+                            <div><FontAwesomeIcon icon={faLine} /></div>
+                        </div>
+
+                    </div>
+                </div>
+            </footer>
         </div>
-
-        {/* Search bar */}
-        <div className="hpSearchRow">
-          <div className="hpSearch">
-            <input
-              className="hpSearchInput"
-              placeholder="ค้นหาโครงการหรือสิ่งที่ต้องการบริจาค..."
-            />
-            <button className="hpSearchBtn" aria-label="search">
-              🔍
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ===== Hero ===== */}
-      <section className="hpHero" id="home">
-        <div
-          className="hpHeroBg"
-          style={{
-            backgroundImage:
-              "url(https://images.unsplash.com/photo-1603357465999-241beecc2629?auto=format&fit=crop&w=1800&q=60)",
-          }}
-        />
-        <div className="hpHeroOverlay" />
-
-        <div className="hpHeroContent">
-          <div className="hpHeroText">
-            <div className="hpHeroTitle">
-              <span className="hpHeroTitleMain">พลังการส่งต่อ</span>
-              <span className="hpHeroTitleSub">ของพวกเรา</span>
-            </div>
-
-            <div className="hpHeroStats">
-              <div className="hpStatCard hpStatDark">
-                <div className="hpStatLabel">บริจาคแล้ว</div>
-                <div className="hpStatValue">
-                  {stats.donatedSets}
-                  <span className="hpStatUnit">ชุด</span>
-                </div>
-              </div>
-              <div className="hpStatCard hpStatGold">
-                <div className="hpStatLabel">ช่วยเหลือเด็กได้</div>
-                <div className="hpStatValue">
-                  {stats.helpedKids}
-                  <span className="hpStatUnit">คน</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* optional: you can add CTA buttons here */}
-        </div>
-      </section>
-
-      {/* ===== Donation Projects ===== */}
-      <section className="hpSection" id="projects">
-        <div className="hpSectionHead">
-          <h2 className="hpSectionTitle">
-            โครงการขอรับบริจาค <span className="hpSectionIcon">🏫</span>
-          </h2>
-          <button className="hpPillBtn">ดูทั้งหมด</button>
-        </div>
-
-        <div className="hpCarousel">
-          <button className="hpArrow" onClick={prevProject} aria-label="prev">
-            ‹
-          </button>
-
-          <div className="hpProjectGrid">
-            {/* Left card */}
-            <div className="hpProjectCard">
-              <div
-                className="hpProjectImg"
-                style={{ backgroundImage: `url(${activeProject.img})` }}
-              />
-              <div className="hpProjectBody">
-                <div className="hpProjectTag">โครงการ</div>
-                <div className="hpProjectTitle">{activeProject.title}</div>
-                <div className="hpProjectMeta">
-                  <span className="hpProjectSchool">{activeProject.school}</span>
-                </div>
-                <div className="hpProjectNeed">
-                  ยอดของที่ต้องการรวม <b>{activeProject.need}</b> ชิ้น
-                </div>
-
-                <div className="hpProjectActions">
-                  <Link className="hpBtnPrimary" to="/projects">
-                    ส่งต่อ
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Right preview card (ถ้าอยากให้เหมือนภาพมากขึ้น ให้โชว์การ์ด 2 ใบ) */}
-            <div className="hpProjectCard hpProjectCardGhost">
-              <div
-                className="hpProjectImg"
-                style={{
-                  backgroundImage: `url(${
-                    projects[(projectIndex + 1) % projects.length].img
-                  })`,
-                }}
-              />
-              <div className="hpProjectBody">
-                <div className="hpProjectTag">โครงการ</div>
-                <div className="hpProjectTitle">
-                  {projects[(projectIndex + 1) % projects.length].title}
-                </div>
-                <div className="hpProjectNeed">
-                  ยอดของที่ต้องการรวม{" "}
-                  <b>{projects[(projectIndex + 1) % projects.length].need}</b>{" "}
-                  ชิ้น
-                </div>
-                <div className="hpProjectActions">
-                  <button className="hpBtnPrimary" onClick={nextProject}>
-                    ส่งต่อ
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button className="hpArrow" onClick={nextProject} aria-label="next">
-            ›
-          </button>
-        </div>
-
-        <div className="hpDots">
-          {projects.map((_, idx) => (
-            <span
-              key={idx}
-              className={`hpDot ${idx === projectIndex ? "isOn" : ""}`}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ===== Marketplace ===== */}
-      <section className="hpSection" id="market">
-        <h2 className="hpSectionTitleCenter">ตลาดเครื่องแบบนักเรียนมือสอง</h2>
-
-        <div className="hpCategoryBlock">
-          <div className="hpCategoryHead">
-            <div className="hpCategoryTitle">หมวดหมู่</div>
-            <button className="hpPillBtn">ดูทั้งหมด</button>
-          </div>
-
-          <div className="hpCategoryRow">
-            {categories.map((c) => (
-              <button key={c.key} className="hpCategoryBtn" type="button">
-                <div className="hpCategoryIcon">{c.icon}</div>
-                <div className="hpCategoryLabel">{c.label}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="hpProducts">
-          {products.map((p) => (
-            <div className="hpProductCard" key={p.id}>
-              <div
-                className="hpProductImg"
-                style={{ backgroundImage: `url(${p.img})` }}
-              />
-              <div className="hpProductBody">
-                <div className="hpProductName">{p.name}</div>
-                <div className="hpProductSchool">{p.school}</div>
-
-                <div className="hpProductBadges">
-                  <span className="hpBadge">id: {p.id}</span>
-                  <span className="hpBadge">{p.condition}</span>
-                </div>
-
-                <div className="hpProductBottom">
-                  <div className="hpProductPrice">
-                    {p.price} <span className="hpCurrency">บาท</span>
-                  </div>
-
-                  <div className="hpProductActions">
-                    <button className="hpBtnOutline" type="button">
-                      ใส่ตะกร้า
-                    </button>
-                    <button className="hpBtnPrimarySmall" type="button">
-                      ซื้อเลย
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Floating cart */}
-      <button className="hpCartFloat" aria-label="cart">
-        🛒
-      </button>
-
-      {/* Footer */}
-      <footer className="hpFooter" id="about">
-        <div className="hpFooterInner">
-          <div className="hpFooterLeft">
-            <div className="hpFooterBrand">
-              <div className="hpLogoBox isFooter">
-                <span className="hpLogoMark">✉️</span>
-              </div>
-              <div>
-                <div className="hpBrandNameFooter">Unieed</div>
-                <div className="hpFooterNote">แพลตฟอร์มส่งต่อชุดนักเรียนมือสอง</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="hpFooterRight">
-            <div className="hpFooterTitle">ติดต่อ</div>
-            <div className="hpFooterLine">โทร 062-379-0000</div>
-            <div className="hpFooterLine">อีเมล xxxx@gmail.com</div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
+    );
 }

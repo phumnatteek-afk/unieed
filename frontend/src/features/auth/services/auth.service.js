@@ -1,13 +1,13 @@
-import { postJson } from "../../../api/http.js";
+import { request } from "../../../api/http.js";
 
 export function registerGeneral(payload) {
-  return postJson("/auth/register/general", payload, false);
+  return request("/auth/register/general", { method: "POST", body: payload, auth: false });
 }
 
 export function registerSchoolOneStep(payload) {
-  return postJson("/auth/register/school", payload, false);
+  return request("/auth/register/school", { method: "POST", body: payload, auth: false });
 }
 
 export function login(payload) {
-  return postJson("/auth/login", payload, false);
+  return request("/auth/login", { method: "POST", body: payload, auth: false });
 }

@@ -201,3 +201,220 @@
   color: var(--muted);
   font-size: 13px;
 }
+/* ===== Page base ===== */
+.authWrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  background: #f3f4f6;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* White frame */
+.authFrame {
+  width: min(1120px, 100%);
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+/* Top bar (logo left) */
+.authTopBar {
+  padding: 18px 22px;
+}
+
+.brandMini {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brandMiniLogo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.brandMiniText {
+  font-size: 30px;
+  font-weight: 800;
+  color: #2f6ef6;
+  letter-spacing: 0.2px;
+}
+
+/* ===== Blue panel ===== */
+.authPanel {
+  margin: 0 22px 22px;
+  background: #8cc9ea;
+  border-radius: 16px;
+  padding: 34px 22px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.authPanelChoice {
+  padding-top: 40px;
+}
+
+/* Center brand */
+.brandCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.brandCenterLogo {
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.brandCenterName {
+  font-size: 32px;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 10px;
+}
+
+.brandTagline {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.brandSub {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+}
+
+/* ===== Choice cards ===== */
+.choiceGrid {
+  width: min(720px, 100%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin-top: 8px;
+  margin-bottom: 18px;
+}
+
+.choiceCard {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px 18px 16px;
+  text-align: center;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.choiceCardSchool {
+  background: #b7f246; /* เขียวแบบในภาพ */
+}
+
+.choiceIconWrap {
+  display: grid;
+  place-items: center;
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+.choiceIcon {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+}
+
+.choiceTitle {
+  font-size: 18px;
+  font-weight: 900;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.choiceEng {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(17, 24, 39, 0.7);
+  margin-bottom: 10px;
+}
+
+.choiceDesc {
+  font-size: 12.5px;
+  line-height: 1.55;
+  font-weight: 700;
+  color: rgba(17, 24, 39, 0.85);
+  margin-bottom: 12px;
+}
+
+/* Buttons inside cards */
+.choiceBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+  border: none;
+}
+
+.choiceBtnYellow {
+  background: #fbbf24;
+  color: #111827;
+}
+
+.choiceBtnWhite {
+  background: #ffffff;
+  color: #111827;
+}
+
+/* Bottom text link */
+.choiceBottom {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.choiceDivider {
+  opacity: 0.9;
+}
+
+.choiceBottomLink {
+  color: #ffffff;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.choiceBottomLink:hover {
+  text-decoration: underline;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 760px) {
+  .choiceGrid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 520px) {
+  .brandMiniText {
+    font-size: 22px;
+  }
+  .authPanel {
+    margin: 0 14px 14px;
+    padding: 26px 14px 18px;
+  }
+}

@@ -4,7 +4,7 @@ import * as svc from "../services/auth.service.js";
 import "../../auth/styles/auth.css";
 
 export default function RegisterSchoolPage() {
-  const nav = useNavigate();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     admin_name: "",
     admin_email: "",
