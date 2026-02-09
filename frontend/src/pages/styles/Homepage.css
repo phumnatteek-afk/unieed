@@ -1,4 +1,5 @@
 @import url('https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css');
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
 *{ box-sizing:border-box; }
 .homePage{ 
     color:var(--text); 
@@ -111,6 +112,7 @@ color:#ffffff;
   flex:1;
   font-size:18px;
   color:#999999;
+  background: transparent;
   
 }
 .searchBox input::placeholder {
@@ -131,6 +133,12 @@ color:#ffffff;
 }
 .fa-magnifying-glass:hover {
     color: #b6b6b6; 
+}
+.searchBox input:focus, 
+.searchBox input:focus-visible {
+  outline: none;
+  border: none;
+  box-shadow: none; /* สำคัญ: ลบเงาเรืองแสง */
 }
 
 
@@ -177,8 +185,23 @@ flex-direction: column;
 gap: 30px;           
     align-items: flex-start;
 }
+.hero-icon {
+  width: 120px;       /* กำหนดขนาดรูปกล่องของขวัญ (ปรับเลขนี้ตามใจชอบ) */
+  height: auto;
+  margin-bottom: 20px; /* เว้นระยะห่างจากตัวหนังสือ */
+  
+  /* เพิ่มลูกเล่นให้มันลอยๆ ดุ๊กดิ๊กได้ (ถ้าชอบ) */
+  animation: float 3s ease-in-out infinite;
+}
+
+/* สร้าง Animation การลอย */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); } /* ลอยขึ้น 10px */
+  100% { transform: translateY(0px); }
+}
 .pill{
-  height:65px;
+  height:80px;
   padding:0 28px;
   border-radius:999px;
   font-weight:400;
@@ -190,9 +213,22 @@ gap: 30px;
   box-shadow: 0 10px 20px rgba(0,0,0,.12);
   text-shadow:none;
 }
+.text-ban a {
+    font-size: 26px;
+    font-weight: 400;
+    margin-left: 10px;
+}
+.pill .pillYellow svg{
+  margin-right:8px;
+}
+/* .pill .pillYellow{
+  margin-right: 5px;
+} */
 .pillYellow{ background:#FFBE1B; color:#fff; }
 .pillWhite{ background:#fff; color:#FFBE1B; border: 1px solid#FFBE1B; }
 
+.pillYellow:hover{background:#ecaf14; }
+.pillWhite:hover{ background:#f0f0f0; }
 /* ===== STATS ===== */
 .stats{
 margin-top: 20px;
@@ -231,9 +267,16 @@ margin-top: 20px;
   font-weight:700;
   box-shadow: 0 2px 2px rgba(0,0,0,.12);
 }
-.statIcon{ font-size:40px; margin-bottom:6px; }
-.statValue{ font-size:60px; font-weight:500; margin-bottom:6px; }
-.statLabel{ font-size:24px; font-weight:200; color:#595959; }
+.statIcon1 svg {
+  margin-top: 10px;
+}
+.statIcon2 svg {
+  margin-top: -1px;
+}
+.statIcon{ font-size:40px;  }
+.statValue1{ font-size:60px; font-weight:500; font-family: 'Kanit'; margin-top: 4px;}
+.statValue{ font-size:60px; font-weight:500; font-family: 'Kanit'; margin-top: -8px;}
+.statLabel{ font-size:24px; font-weight:200; color:#595959;}
 
 .statBlue{ background: #CCDEFF; color:#88B1FF ;}
 .statGreen{ background: #E6FFBB; color:#92CC2C ;}
@@ -282,10 +325,10 @@ margin-top: 20px;
 
 .stepNo{ font-weight:500; color:#111827; margin-bottom:6px; font-size:30px;}
 .stepPic{
-    padding: 10px 0;
+   margin-top: 30px;
 }
-.stepTitle{ font-weight:500; font-size:24px; margin-bottom:6px; color: #000; position: relative; top: 20px;}
-.stepDesc{ max-width:260px; ;font-weight:400; font-size:16px; color:#475569; line-height:1.5; margin: 0 auto; padding: 30px 0 0;}
+.stepTitle{ font-weight:500; font-size:32px; margin-bottom:3px; color: #000; position: relative; top: 20px;}
+.stepDesc{ max-width:260px; ;font-weight:400; font-size:18px; color:#475569; line-height:1.5; margin: 0 auto; padding: 20px 0 0;}
 
 /* ===== SECTIONS ===== */ 
 #projects{
@@ -394,7 +437,9 @@ margin-top: 20px;
   transform: translateY(-1px);
   transition: transform 160ms ease;
 }
-
+.muted{
+    color: #888888;
+}
 
 .thumb{ height:220px; background:#eef2ff; }
 .thumb img{ width:100%; height:100%; object-fit:cover; 
@@ -659,9 +704,18 @@ display:block;  }
 }
 .tsDots .dot.active{
   background: #f59e0b;
-  
 }
-
+.footDesc{
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+.footer .footCol a {
+  font-size: 24px;
+}
+#contactfooter{
+  font-size: 24px;
+  font-family: 'Kanit', sans-serif;
+}
 /* responsive */
 @media (max-width: 980px){
   .tsWrap{ padding: 6px 14px 22px; }
