@@ -30,7 +30,8 @@ export default function RegisterGeneralPage() {
   };
 
   return (
-    <div className="authWrap">
+ <div className="auth-page">
+    {/* <div className="authWrap"> */}
       <div className="authCard">
         <h2>สมัครสมาชิก</h2>
         {err && <div className="error">{err}</div>}
