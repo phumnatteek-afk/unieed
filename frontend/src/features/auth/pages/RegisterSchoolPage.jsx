@@ -39,7 +39,7 @@ export default function RegisterSchoolPage() {
       setOk("ส่งคำขอสำเร็จ กำลังพาไปหน้าตรวจสอบสถานะ...");
 
       // เด้งไปหน้า pending (หรือหน้าผลลัพธ์ที่คุณมี)
-      setTimeout(() => nav("/school/pending"), 600);
+      setTimeout(() => navigate("/school/pending"), 600);
     } catch (e2) {
       setErr(e2?.message || "ส่งคำขอไม่สำเร็จ");
     } finally {

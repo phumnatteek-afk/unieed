@@ -1,8 +1,9 @@
+
 /* ========= Unieed Auth Theme ========= */
 :root{
-  --bg: #F7F2E8;
+  --bg: #ffffff;
   --card: #FFFFFF;
-  --text: #0B1F2C;
+  --text: #1b567d;
   --muted: #6B7B86;
 
   --primary: #0F4C6A;       /* navy/teal */
@@ -18,12 +19,20 @@
 
   --shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
   --radius: 18px;
+
+  /* --main-font: 'Kanit', sans-serif; */
+}
+body{
+  /* font-family: var(--main-font); */
+  background-color: #ffffff;
+  margin: 0;
+  padding: 0;
 }
 
 /* page */
 .auth-page{
   min-height: 100vh;
-  background: var(--bg);
+  background: #ffffff;
   display: grid;
   place-items: center;
   padding: 40px 16px;
@@ -32,30 +41,30 @@
 /* card */
 .auth-card{
   width: min(720px, 100%);
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  /* box-shadow: var(--shadow); */
   border-radius: var(--radius);
   overflow: hidden;
 }
 
 .auth-card__header{
   padding: 22px 24px 14px;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(243,180,63,0.16), rgba(255,255,255,0));
+  /* border-bottom: 1px solid var(--border); */
+  /* background: linear-gradient(180deg, rgba(243,180,63,0.16), rgba(255,255,255,0)); */
 }
 
 .auth-title{
   margin: 0;
-  color: var(--text);
+  color: #8cc9ea;
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 500;
   letter-spacing: .2px;
 }
 
 .auth-subtitle{
   margin: 6px 0 0;
-  color: var(--muted);
+  color: #8cc9ea;
   font-size: 14px;
 }
 
@@ -79,14 +88,14 @@
   grid-column: 1 / -1;
   margin-top: 6px;
   padding-top: 10px;
-  border-top: 1px dashed var(--border);
+  border-top: 1px dashed #d9d9d9;
 }
 
 .auth-section h3{
   margin: 0 0 10px;
-  color: var(--text);
+  color: #8cc9ea;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 /* field */
@@ -97,9 +106,9 @@
 }
 
 .auth-label{
-  color: var(--text);
+ color: #8cc9ea;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .auth-input{
@@ -171,23 +180,36 @@
   border: 0;
   border-radius: 14px;
   cursor: pointer;
-  font-weight: 800;
-  font-size: 14px;
-  transition: transform .06s ease, filter .15s ease;
+  font-weight: 500;
+  font-size: 18px;
+  transition: filter .1s ease; 
+  display: inline-flex !important; /* เพิ่มบรรทัดนี้ */
+  align-items: center; /* เพิ่มบรรทัดนี้ */
+  justify-content: center;
+  transform: none !important;
 }
 
-.auth-btn:active{ transform: translateY(1px); }
+/* .auth-btn:active{ 
+  transform: translateY(1px); } */
 
 .auth-btn--primary{
-  background: var(--primary);
-  color: #fff;
+  background: #fbbf24 !important; 
+  color: #fff !important; 
   min-width: 180px;
+  opacity: 1 !important; 
+  visibility: visible !important; 
+  transform: none
 }
 
-.auth-btn--primary:hover{ filter: brightness(1.05); }
+.auth-btn--primary:hover{ 
+  filter: brightness(1.05) !important; 
+  opacity: 1 !important; 
+}
+
 .auth-btn--primary:disabled{
-  opacity: .6;
+  opacity: .6 !important; 
   cursor: not-allowed;
+  transform: none !important;
 }
 
 .auth-btn--ghost{
@@ -204,26 +226,29 @@
 /* ===== Page base ===== */
 .authWrap {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 28px 16px;
-  background: #f3f4f6;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: #ffffff; /* ใช้ตัวแปรสีที่เราตั้งไว้ */
+  font-family: var(--main-font);
 }
 
 /* White frame */
 .authFrame {
   width: min(1120px, 100%);
-  background: #ffffff;
+  background-color: #ffffff !important; /* << นี่คือขอบขาวที่คุณต้องการ */
   border-radius: 18px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  position: relative;
+  z-index: 10;
 }
 
 /* Top bar (logo left) */
 .authTopBar {
-  padding: 18px 22px;
+  padding: 5px 20px;
 }
 
 .brandMini {
@@ -233,17 +258,30 @@
 }
 
 .brandMiniLogo {
-  width: 38px;
-  height: 38px;
+  width: 200px;
+  height: 100px;
   object-fit: contain;
 }
-
-.brandMiniText {
+.brandCenter .brandCenterLogo{
+  width: 150px;
+  height: 150px;
+  margin-top: -40px;
+  margin-bottom: -10px;
+  object-fit: contain;
+}
+.brandCenter .brandCenterName{
+  font-size: 32px;
+  font-weight: 500;
+  color: #ffffff;
+  margin-top: -10px;
+}
+/* .brandMiniText {
   font-size: 30px;
   font-weight: 800;
   color: #2f6ef6;
+  font-family: 'Mitr';
   letter-spacing: 0.2px;
-}
+} */
 
 /* ===== Blue panel ===== */
 .authPanel {
@@ -278,21 +316,22 @@
 
 .brandCenterName {
   font-size: 32px;
-  font-weight: 900;
+  font-weight: 500;
   color: #ffffff;
   margin-bottom: 10px;
 }
 
 .brandTagline {
   color: #ffffff;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 500;
   margin-bottom: 4px;
 }
 
 .brandSub {
   color: rgba(255, 255, 255, 0.9);
-  font-size: 13px;
+  font-size: 16px;
+  font-weight: 200;
 }
 
 /* ===== Choice cards ===== */
@@ -333,14 +372,14 @@
 
 .choiceTitle {
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 500;
   color: #111827;
   margin-bottom: 2px;
 }
 
 .choiceEng {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
   color: rgba(17, 24, 39, 0.7);
   margin-bottom: 10px;
 }
@@ -348,7 +387,7 @@
 .choiceDesc {
   font-size: 12.5px;
   line-height: 1.55;
-  font-weight: 700;
+  font-weight: 200;
   color: rgba(17, 24, 39, 0.85);
   margin-bottom: 12px;
 }
@@ -362,7 +401,7 @@
   padding: 0 16px;
   border-radius: 10px;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 500;
   text-decoration: none;
   border: none;
 }
@@ -384,7 +423,7 @@
   gap: 10px;
   color: rgba(255, 255, 255, 0.95);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .choiceDivider {
@@ -393,7 +432,7 @@
 
 .choiceBottomLink {
   color: #ffffff;
-  font-weight: 900;
+  font-weight: 500;
   text-decoration: none;
 }
 

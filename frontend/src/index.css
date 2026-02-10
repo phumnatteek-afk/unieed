@@ -1,18 +1,12 @@
-html, body {
-  margin: 0 auto;
-  padding: 0;
-  font-family: "Mitr", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+:root {
+  background-color: #ffffff !important; /* บังคับให้รากฐานเป็นสีขาว */
 }
 
-
-#root {
+html, body, #root {
+  margin: 0;
+  padding: 0;
   width: 100%;
   min-height: 100vh;
-}
-
-.page-container {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 0 24px;
-  width: 100%;
+  background-color: #ffffff !important;
 }
