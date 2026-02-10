@@ -6,3 +6,119 @@
 .desc { margin:8px 0; opacity:.85; }
 .schoolHero { width:900px; text-align:center; }
 .primaryBtn { padding:16px 22px; border:0; border-radius:999px; background:#f4b400; font-weight:800; }
+
+/* welcomepage */
+.swPage{
+  min-height:100vh;
+  background:#fbf1cf; /* โทนครีมเหมือนแบบ */
+  display:flex;
+  flex-direction:column;
+}
+
+.swTopbar{
+  height:86px;
+  background:#9fd3f2; /* ฟ้าอ่อน */
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 28px;
+}
+
+.swBrand{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+}
+
+.swLogo{
+  width:54px;
+  height:54px;
+  border-radius:14px;
+  background:rgba(255,255,255,.35);
+}
+
+.swBrandText{
+  font-size:34px;
+  font-weight:800;
+  color:#fff;
+  letter-spacing:.2px;
+}
+
+.swAdminTag{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:#0b3d59;
+  font-size:18px;
+}
+
+.swAvatar{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:rgba(0,0,0,.25);
+}
+
+.swMain{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+}
+
+.swHero{
+  width:min(980px, 92vw);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:18px;
+}
+
+.swIllustration{
+  width:min(720px, 92vw);
+  height:260px;
+  border-radius:22px;
+  background:rgba(0,0,0,.08); /* ถ้ามีภาพจริงค่อยเปลี่ยนเป็น img */
+}
+
+.swTitle{
+  margin:0;
+  font-size:44px;
+  font-weight:900;
+  color:#0b3d59;
+}
+
+.swSub{
+  margin:0;
+  font-size:40px;
+  font-weight:900;
+  color:#0b3d59;
+}
+
+.swCTA{
+  margin-top:10px;
+  width:min(620px, 92vw);
+  height:74px;
+  border:none;
+  border-radius:999px;
+  background:#f2b233;
+  color:#fff;
+  font-size:26px;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 10px 24px rgba(0,0,0,.12);
+}
+
+.swMuted{ color:#6b7280; }
+.swError{
+  color:#b91c1c;
+  background:#fee2e2;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid #fecaca;
+}

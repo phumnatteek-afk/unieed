@@ -45,3 +45,7 @@ export function getJson(path, auth = true) {
 export function postJson(path, body, auth = true) {
   return request(path, { method: "POST", body, auth });
 }
+
+export function getOverview() {
+  return request("/admin/overview", { method: "GET", auth: true });
+}

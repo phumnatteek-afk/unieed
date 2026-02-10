@@ -1,6 +1,13 @@
-import * as svc from "./school.service.js";
+import { getSchoolMe } from "./school.service.js";
 
-export const getMySchool = async (req, res, next) => {
-  try { res.json(await svc.getMySchool(req.user)); }
-  catch (e) { next(e); }
-};
+export async function schoolMe(req, res, next) {
+  try {
+    const user_id = req.user.user_id; // ต้องมาจาก middleware auth
+    const me = await getSchoolMe(user_id);
+    res.json(me);
+  } 
+  catch (err) {
+    next(err);
+  }
+}
+

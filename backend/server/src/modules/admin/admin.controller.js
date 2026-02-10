@@ -1,17 +1,39 @@
 import * as svc from "./admin.service.js";
 
-export const listSchools = async (req, res, next) => {
-  try { res.json(await svc.listSchools()); } catch (e) { next(e); }
-};
+export async function adminListSchools(req, res, next) {
+  try {
+    const { status = "", q = "", sort = "latest" } = req.query;
+    const data = await svc.listSchools({ status, q, sort });
+    res.json(data); // ✅ {stats, rows}
+  } catch (e) {
+    next(e);
+  }
+}
 
-export const getSchool = async (req, res, next) => {
-  try { res.json(await svc.getSchool(req.params.id)); } catch (e) { next(e); }
-};
+export async function adminApproveSchool(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    res.json(await svc.approveSchool(id));
+  } catch (e) {
+    next(e);
+  }
+}
 
-export const approveSchool = async (req, res, next) => {
-  try { res.json(await svc.approveSchool(req.params.id)); } catch (e) { next(e); }
-};
+export async function adminRemoveSchool(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    res.json(await svc.removeSchool(id));
+  } catch (e) {
+    next(e);
+  }
+}
 
-export const rejectSchool = async (req, res, next) => {
-  try { res.json(await svc.rejectSchool(req.params.id, req.body)); } catch (e) { next(e); }
-};
+export async function adminOverview(req, res, next) {
+  try {
+    const stats = await svc.getOverviewStats();
+    res.json(stats);
+  } catch (e) {
+    next(e);
+  }
+}
+

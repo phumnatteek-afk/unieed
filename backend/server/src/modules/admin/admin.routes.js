@@ -1,14 +1,17 @@
 import { Router } from "express";
 import { auth } from "../../middleware/auth.js";
 import { requireRole } from "../../middleware/requireRole.js";
-import { listSchools, getSchool, approveSchool, rejectSchool } from "./admin.controller.js";
+import { adminListSchools, adminApproveSchool, adminRemoveSchool } from "./admin.controller.js";
+import { adminOverview } from "./admin.controller.js";
 
 const r = Router();
-r.use(auth, requireRole("admin"));
 
-r.get("/schools", listSchools);
-r.get("/schools/:id", getSchool);
-r.post("/schools/:id/approve", approveSchool);
-r.post("/schools/:id/reject", rejectSchool);
+r.get("/schools", auth, requireRole(["admin"]), adminListSchools);
+r.post("/schools/:id/approve", auth, requireRole(["admin"]), adminApproveSchool);
+r.delete("/schools/:id", auth, requireRole(["admin"]), adminRemoveSchool);
+r.get("/overview", auth, requireRole(["admin"]), adminOverview);
+
 
 export default r;
+
+
