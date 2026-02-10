@@ -50,13 +50,11 @@ body{
 
 .auth-card__header{
   padding: 22px 24px 14px;
-  /* border-bottom: 1px solid var(--border); */
-  /* background: linear-gradient(180deg, rgba(243,180,63,0.16), rgba(255,255,255,0)); */
 }
 
 .auth-title{
   margin: 0;
-  color: #8cc9ea;
+  color: #5285e8;
   font-size: 24px;
   font-weight: 500;
   letter-spacing: .2px;
@@ -64,7 +62,7 @@ body{
 
 .auth-subtitle{
   margin: 6px 0 0;
-  color: #8cc9ea;
+  color: #5285e8;
   font-size: 14px;
 }
 
@@ -93,7 +91,7 @@ body{
 
 .auth-section h3{
   margin: 0 0 10px;
-  color: #8cc9ea;
+  color: #5285e8;
   font-size: 15px;
   font-weight: 600;
 }
@@ -106,7 +104,7 @@ body{
 }
 
 .auth-label{
- color: #8cc9ea;
+ color: #5285e8;
   font-size: 13px;
   font-weight: 600;
 }
@@ -220,7 +218,7 @@ body{
 
 .auth-helper{
   grid-column: 1 / -1;
-  color: var(--muted);
+  color: #a3a3a3;
   font-size: 13px;
 }
 /* ===== Page base ===== */
@@ -231,8 +229,8 @@ body{
   align-items: center;
   justify-content: center;
   padding: 28px 16px;
-  background: #ffffff; /* ใช้ตัวแปรสีที่เราตั้งไว้ */
-  font-family: var(--main-font);
+  
+  background-color: #ffffff !important;  /* ใช้ตัวแปรสีที่เราตั้งไว้ */
 }
 
 /* White frame */
@@ -431,7 +429,7 @@ body{
 }
 
 .choiceBottomLink {
-  color: #ffffff;
+  color: #0a2865;
   font-weight: 500;
   text-decoration: none;
 }
@@ -439,7 +437,71 @@ body{
 .choiceBottomLink:hover {
   text-decoration: underline;
 }
+.authCard {
+  border: 1px solid #d9d9d9 !important;
+  box-shadow: none !important;
+}
 
+.authCard h2{
+  margin: 0 0 18px;
+  font-size: 28px;
+  font-weight: 500;
+  color: #5285e8;
+}
+.authCard .error{
+  background: #ffe8ea;
+  color: #b42318;
+  border-radius: 14px;
+  padding: 12px 12px;
+  font-size: 14px;
+  line-height: 1.35;
+  margin-bottom: 18px;
+  font-weight: 600;
+}
+.authCard form input {
+  color: #383838;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 14px;
+  font-size: 14px;
+  background-color: #ffffff;
+}
+.authCard form input::placeholder{
+  color: #9aa7b1;
+}
+.authCard form input:focus{
+  border-color: rgba(15,76,106,.55);
+  box-shadow: 0 0 0 4px rgba(15,76,106,.12);
+  outline: none;
+}
+.authCard form button {
+  margin-top: 12px;
+  width: 100%;
+  height: 46px;
+  background: #fbbf24 !important;
+  background-color: #fbbf24 !important;
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  /* ล้างค่าเก่า */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.authCard form button:hover {
+  background-color: #bf9325 !important;
+}
+
+.authCard form button:disabled {
+  background-color: #fcd77d !important;
+  cursor: not-allowed;
+}
 /* ===== Responsive ===== */
 @media (max-width: 760px) {
   .choiceGrid {

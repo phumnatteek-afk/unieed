@@ -3,8 +3,8 @@ import "../styles/auth.css";
 
 export default function RegisterChoicePage() {
   return (
-    <div className="authWrap">
-      <div className="authFrame">
+<div className="auth-page">
+      <div className="auth-card">
         {/* Top-left brand */}
         <div className="authTopBar">
           <div className="brandMini">
@@ -19,7 +19,7 @@ export default function RegisterChoicePage() {
         </div>
 
         {/* Blue panel */}
-        <div className="authPanel authPanelChoice">
+        <div className="authPanel authPanelChoice" >
           {/* Center header */}
           <div className="brandCenter">
             <img
