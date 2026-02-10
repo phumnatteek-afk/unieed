@@ -3,6 +3,13 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
 import "./styles/globals.css";
+import "@fontsource/prompt/300.css";
+import "@fontsource/prompt/400.css";
+import "@fontsource/prompt/500.css";
+import "@fontsource/prompt/600.css";
+import "@fontsource/prompt/700.css";
+
+// Import Mitr สำหรับภาษาไทย
 import "@fontsource/mitr/300.css";
 import "@fontsource/mitr/400.css";
 import "@fontsource/mitr/500.css";

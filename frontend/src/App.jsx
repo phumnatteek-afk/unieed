@@ -9,85 +9,61 @@ import RegisterGeneralPage from "./features/auth/pages/RegisterGeneralPage.jsx";
 import RegisterSchoolPage from "./features/auth/pages/RegisterSchoolPage.jsx";
 
 import SchoolPendingPage from "./features/school/pages/SchoolPendingPage.jsx";
-import SchoolDashboardPage from "./features/school/pages/SchoolDashboardPage.jsx";
+import SchoolWelcomePage from "./features/school/pages/SchoolWelcomePage.jsx";
+
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 
 import AdminLoginPage from "./features/admin/pages/AdminLoginPage.jsx";
 import AdminBackofficePage from "./features/admin/pages/AdminBackofficePage.jsx";
 import AdminSchoolsPage from "./features/admin/pages/AdminSchoolsPage.jsx";
 import AdminSchoolDetailPage from "./features/admin/pages/AdminSchoolDetailPage.jsx";
-
 import AdminGuard from "./routes/AdminGuard.jsx";
+import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
+import "./App.css";
 
 export default function App() {
   return (
-     <div className="page-container">
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
+    <div className="page-container">
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
 
-          <Route path="/register" element={<RegisterChoicePage />} />
-          <Route path="/register/general" element={<RegisterGeneralPage />} />
-          <Route path="/register/school" element={<RegisterSchoolPage />} />
+            <Route path="/register" element={<RegisterChoicePage />} />
+            <Route path="/register/general" element={<RegisterGeneralPage />} />
+            <Route path="/register/school" element={<RegisterSchoolPage />} />
 
-          {/* School */}
-          <Route path="/school/pending" element={<SchoolPendingPage />} />
-          <Route
-            path="/school/dashboard"
-            element={
-              <ProtectedRoute allowRoles={["school_admin"]}>
-                <SchoolDashboardPage />
-              </ProtectedRoute>
-            }
-          />
+            {/* School */}
+            <Route path="/school/pending" element={<SchoolPendingPage />} />
+            <Route
+              path="/school/welcome"
+              element={
+                <ProtectedRoute allowRoles={["school_admin"]}>
+                  <SchoolWelcomePage />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Admin */}
-          <Route path="/admin/login" element={<AdminLoginPage />} />
+            {/* Admin */}
+            <Route path="/admin/login" element={<AdminLoginPage />} />
 
-          <Route
-            path="/admin"
-            element={
-              <AdminGuard>
-                <Navigate to="/admin/backoffice" replace />
-              </AdminGuard>
-            }
-          />
+            <Route element={<AdminGuard />}>
+              <Route element={<AdminLayout />}>
+                <Route path="/admin" element={<Navigate to="/admin/backoffice" replace />} />
+                <Route path="/admin/backoffice" element={<AdminBackofficePage />} />
+                <Route path="/admin/schools" element={<AdminSchoolsPage />} />
+                <Route path="/admin/schools/:id" element={<AdminSchoolDetailPage />} />
+              </Route>
+            </Route>
 
-          <Route
-            path="/admin/backoffice"
-            element={
-              <AdminGuard>
-                <AdminBackofficePage />
-              </AdminGuard>
-            }
-          />
 
-          <Route
-            path="/admin/schools"
-            element={
-              <AdminGuard>
-                <AdminSchoolsPage />
-              </AdminGuard>
-            }
-          />
-
-          <Route
-            path="/admin/schools/:id"
-            element={
-              <AdminGuard>
-                <AdminSchoolDetailPage />
-              </AdminGuard>
-            }
-          />
-
-          {/* fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  </div>
+            {/* fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </div>
   );
 }

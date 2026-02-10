@@ -26,7 +26,7 @@ export default function LoginPage() {
       login({ token: data.token, role: data.role, user_name: data.user_name });
 
       if (data.role === "admin") nav("/admin/schools");
-      else if (data.role === "school_admin") nav("/school/dashboard");
+      else if (data.role === "school_admin") nav("/school/welcome");
       else nav("/");
     } catch (e) {
       setErr(e?.data?.message || e.message);

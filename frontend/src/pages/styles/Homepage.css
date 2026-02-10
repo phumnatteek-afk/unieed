@@ -10,7 +10,7 @@
 /* ===== TOP BAR ===== */
 .topBar{
   background: #87C7EB ;
-  padding: 20px 30px 22px;
+  padding: 20px 30px 5px;
 }
 
 .topRow{
@@ -154,7 +154,7 @@ overflow:hidden;
 .heroInner{
   width:100%;
   margin:0 auto;
-  min-height: 600px;
+  min-height: 550px;
   background-position: center;
 }
 .heroLeft{
@@ -212,6 +212,8 @@ gap: 30px;
   justify-content:center;
   box-shadow: 0 10px 20px rgba(0,0,0,.12);
   text-shadow:none;
+  position: relative;
+  bottom: 50px;
 }
 .text-ban a {
     font-size: 26px;
