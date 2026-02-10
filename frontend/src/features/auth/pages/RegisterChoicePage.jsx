@@ -3,19 +3,19 @@ import "../styles/auth.css";
 
 export default function RegisterChoicePage() {
   return (
+
 <div className="auth-page">
+   
       <div className="auth-card">
-        {/* Top-left brand */}
-        <div className="authTopBar">
-          <div className="brandMini">
-            {/* เปลี่ยน path ให้ตรงกับไฟล์คุณใน public */}
+                <div className="brandMini">
             <img
               className="brandMiniLogo"
               src="src/unieed_pic/logo2.png"
               alt="Unieed"
             />
-            {/* <span className="brandMiniText">Unieed</span> */}
           </div>
+         <div className="authTopBar">
+  
         </div>
 
         {/* Blue panel */}

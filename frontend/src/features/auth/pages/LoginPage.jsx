@@ -34,7 +34,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="authWrap">
+    <div className="auth-page">
       <div className="authCard">
         <h2>เข้าสู่ระบบ</h2>
         {err && <div className="error">{err}</div>}

@@ -115,9 +115,10 @@ body{
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #fff;
-  color: var(--text);
+   color: #383838;
   font-size: 14px;
   outline: none;
+  font-family: 'Prompt', sans-serif;
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 
@@ -246,15 +247,20 @@ body{
 
 /* Top bar (logo left) */
 .authTopBar {
-  padding: 5px 20px;
+  padding: 20px 24px 10px;
+  background-color: #ffffff;
 }
 
 .brandMini {
   display: inline-flex;
-  align-items: center;
+  justify-content: flex-start;
   gap: 10px;
+  margin-top: -20px;
+  margin-left: auto;
+  /* position: fixed;
+  top: -10px;
+  left: 200px; */
 }
-
 .brandMiniLogo {
   width: 200px;
   height: 100px;
@@ -272,6 +278,7 @@ body{
   font-weight: 500;
   color: #ffffff;
   margin-top: -10px;
+  font-family: 'Mitr', sans-serif;
 }
 /* .brandMiniText {
   font-size: 30px;
@@ -280,16 +287,20 @@ body{
   font-family: 'Mitr';
   letter-spacing: 0.2px;
 } */
-
+.auth-card{
+  box-shadow: none;
+  border: none;
+}
 /* ===== Blue panel ===== */
 .authPanel {
-  margin: 0 22px 22px;
+  margin: -30px 22px 22px;
   background: #8cc9ea;
   border-radius: 16px;
-  padding: 34px 22px 28px;
+  padding: 50px 22px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  z-index: 100;
 }
 
 .authPanelChoice {
@@ -495,12 +506,25 @@ body{
 }
 
 .authCard form button:hover {
+   transform: scale(1);
   background-color: #bf9325 !important;
 }
 
 .authCard form button:disabled {
   background-color: #fcd77d !important;
   cursor: not-allowed;
+}
+
+/* หน้าเข้าสู่ระบบ */
+.links {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  font-size: 14px;
+  color :#0a2865;
+}
+.links :hover {
+  text-decoration: underline;
 }
 /* ===== Responsive ===== */
 @media (max-width: 760px) {
