@@ -1,6 +1,6 @@
 
 :root {
-  background-color: #ffffff !important; /* บังคับให้รากฐานเป็นสีขาว */
+  background-color: #ffffff !important; 
 }
 
 html, body, #root {
@@ -10,3 +10,4 @@ html, body, #root {
   min-height: 100vh;
   background-color: #ffffff !important;
 }
+
