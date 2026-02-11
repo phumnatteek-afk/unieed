@@ -189,7 +189,23 @@ export default function HomePage() {
           {rightAccount()}
         </div>
 
-        <div className="searchRow">
+        {/* <div className="searchRow">
+          <div className="searchBox">
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="ค้นหาโครงการหรือสิ่งของที่ต้องการบริจาค..."
+            />
+            <button className="searchBtn" type="button" aria-label="search">
+              <FontAwesomeIcon icon={faMagnifyingGlass} />
+            </button>
+          </div>
+        </div> */}
+      </header>
+    
+      {/* ===== Hero ===== */}
+      <section id="home" className="hero">
+          <div className="searchRow">
           <div className="searchBox">
             <input
               value={q}
@@ -201,10 +217,7 @@ export default function HomePage() {
             </button>
           </div>
         </div>
-      </header>
 
-      {/* ===== Hero ===== */}
-      <section id="home" className="hero">
         <div className="heroInner">
           <div className="heroLeft">
             <h1>เสื้อตัวเก่าของคุณ...</h1>

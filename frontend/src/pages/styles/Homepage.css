@@ -2,24 +2,42 @@
 @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
 *{ box-sizing:border-box; }
 .homePage{ 
+  width: 100%;
     color:var(--text); 
     background:#fff; 
-    width: 100%;
     margin: 0 auto;}
 
 /* ===== TOP BAR ===== */
-.topBar{
-  background: #87C7EB ;
-  padding: 20px 30px 5px;
+.topBar {
+  background: #87C7EB;
+  
+  /* บังคับให้กว้างเต็มจอเสมอ ไม่สนลูกใคร */
+  width: 100vw; 
+  
+  /* เผื่อมี Parent padding แอบแฝง ใช้สูตรนี้จะทะลุออกมาเต็มจอ */
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  
+  /* จัดเนื้อหาลูกให้อยู่กลาง */
+  display: flex;
+  justify-content: center; 
+  
+  padding: 15px 15px; /* ย้าย Padding บนล่างมาไว้ที่นี่ */
 }
-
-.topRow{
+.topRow {
   width: 100%;
+  
+  /* กำหนดขอบเขตเนื้อหาตามที่คุณต้องการ */
+  max-width: 1440px; 
+  
+  /* จัดกึ่งกลางหน้าจอ */
   margin: 0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 16px;
+  padding: 0 30px; /* กันเนื้อหาชิดขอบเกินไปเวลาจอเล็ก */
+  
+  /* การจัดวางข้างในเหมือนเดิม */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .brand{
@@ -89,17 +107,16 @@ color:#ffffff;
 
 .searchRow{
   width: 100%;
-  margin: 20px auto 0;
+  margin: 5px auto 0;
   display:flex;
   justify-content:center;
 }
 .searchBox{
   width: 700px;
     height: 60px;
-
   background:#fff;
   border-radius:35px;
-  padding: 10px 12px;
+  padding: 5px 12px;
   display:flex;
   align-items:center;
   gap:10px;
@@ -146,14 +163,19 @@ color:#ffffff;
 /* ===== HERO ===== */
 .hero{
    background-image: url("/src/unieed_pic/bannerunieed.png");
-  padding: 22px 18px 26px;
+  /* padding: 22px 18px 26px; */
+  padding: 0;
 overflow:hidden;
+  width: 100vw; 
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
   background-size: cover;
   background-position: center;
 }
 .heroInner{
   width:100%;
   margin:0 auto;
+  max-width: 1440px;
   min-height: 550px;
   background-position: center;
 }
@@ -288,14 +310,22 @@ margin-top: 20px;
 .steps{
 
   background:#E0EBFF;
+    width: 100vw; 
+  
+  /* เผื่อมี Parent padding แอบแฝง ใช้สูตรนี้จะทะลุออกมาเต็มจอ */
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
   padding: 40px ;
 }
 .stepsWrap{
   width: 100%;
+  max-width: 1440px;
   margin:0 auto;
   display:flex;
   gap:18px;
   align-items:stretch;
+  align-items: center;
+  justify-content: space-between;
 }
 .stepsSide{
   min-width: 307px;
@@ -741,14 +771,22 @@ display:block;  }
 .footer{
   background: #87C7EB ;
   min-height: 250px;
+  display: flex;
+  /* บังคับให้กว้างเต็มจอเสมอ ไม่สนลูกใคร */
+  width: 100vw; 
+  
+  /* เผื่อมี Parent padding แอบแฝง ใช้สูตรนี้จะทะลุออกมาเต็มจอ */
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  justify-content: center;
   margin-top: 30px;
   color:#fff;
   display: flex;
-  justify-content:space-between;
   
 }
 .footerInner{
   width:100%;
+  max-width: 1440px;
   margin: 0 30px;
   display:grid;
   grid-template-columns: 1.4fr 1fr 1fr;
