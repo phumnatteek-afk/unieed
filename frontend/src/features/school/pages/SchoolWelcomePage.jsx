@@ -4,6 +4,9 @@ import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
 import "../styles/school.css";
 
+// icon
+import { Icon } from "@iconify/react";
+
 export default function SchoolWelcomePage() {
   const nav = useNavigate();
   const { token, role, userName } = useAuth();
@@ -43,11 +46,11 @@ export default function SchoolWelcomePage() {
       <header className="swTopbar">
         <button className="swBrand" onClick={() => nav("/")}>
           <div className="swLogo" />
-          <div className="swBrandText">Unieed</div>
+          <div className="swBrandPic"><img src="/src/unieed_pic/logo.png" alt="Unieed Logo" /></div>
         </button>
 
         <div className="swAdminTag">
-          <span className="swAvatar" />
+          <span className="swAvatar"><Icon icon="subway:admin" /></span>
           <span>ผู้ดูแลระบบ: </span>
           <b>{coordinatorName || "-"}</b>
         </div>
@@ -55,21 +58,22 @@ export default function SchoolWelcomePage() {
 
       <main className="swMain">
         <div className="swHero">
-          <div className="swIllustration" />
+          <div className="swIllustration" 
+          ><img src="/src/unieed_pic/illustrator.png" alt="Illustration" /></div>
 
           {loading ? (
             <div className="swMuted">กำลังโหลด…</div>
           ) : err ? (
             <div className="swError">{err}</div>
           ) : (
-            <>
+            <div className="swWelcomeText">
               <h1 className="swTitle">ยินดีต้อนรับ คุณ{coordinatorName || "ผู้ประสานงาน"}</h1>
               <h2 className="swSub">{schoolName || "ชื่อโรงเรียน"}</h2>
 
               <button className="swCTA" onClick={() => nav("/school/request/new")}>
                 สร้างโพสต์ขอรับบริจาคได้เลยที่นี่
               </button>
-            </>
+            </div>
           )}
         </div>
       </main>

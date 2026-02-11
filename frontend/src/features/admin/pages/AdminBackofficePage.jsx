@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { request } from "../../../api/http.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import "../styles/admin.css";
+// icon
+import { Icon } from "@iconify/react";
 
 export default function AdminBackofficePage() {
   const { userName } = useAuth();
@@ -45,13 +47,15 @@ export default function AdminBackofficePage() {
         <div className="boTitle">Dashboard</div>
 
         <div className="boAdmin">
-          <div className="boAvatar" />
           <div className="boAdminText">
-            <div className="boAdminRole">ผู้ดูแลระบบ:</div>
-            <div className="boAdminName">{userName || "Admin"}</div>
+            <div className="boAdminRole"><span><Icon icon="subway:admin" /></span>
+          <span>ผู้ดูแลระบบ: </span>
+          <b>{userName || "Admin"}</b></div>
           </div>
         </div>
       </div>
+
+    
 
       <div className="boPanel">
         <div className="boPanelTitle">System Overview</div>
@@ -63,25 +67,29 @@ export default function AdminBackofficePage() {
           <div className="boCards">
             <div className="boCard boCardBlue">
               <div className="boCardLabel">ยอดผู้ใช้งานรวมทั้งหมด</div>
-              <div className="boCardIcon" />
+              <div className="boCardIcon">
+              <Icon icon="material-symbols:person-rounded" /></div>
               <div className="boCardValue">{stats.total_users.toLocaleString()}</div>
             </div>
 
             <div className="boCard boCardGreen">
               <div className="boCardLabel">โรงเรียนทั้งหมด</div>
-              <div className="boCardIcon" />
+              <div className="boCardIcon">
+              <Icon icon="teenyicons:school-outline" /></div>
               <div className="boCardValue">{stats.total_schools.toLocaleString()}</div>
             </div>
 
             <div className="boCard boCardYellow">
               <div className="boCardLabel">รายการสินค้าทั้งหมด</div>
-              <div className="boCardIcon" />
+              <div className="boCardIcon">
+              <Icon icon="icon-park-outline:ad-product" /></div>
               <div className="boCardValue">{stats.total_products.toLocaleString()}</div>
             </div>
 
             <div className="boCard boCardRed">
               <div className="boCardLabel">รายการซื้อสินค้า</div>
-              <div className="boCardIcon" />
+               <div className="boCardIcon">
+              <Icon icon="lets-icons:order" /></div>
               <div className="boCardValue">{stats.total_orders.toLocaleString()}</div>
             </div>
           </div>

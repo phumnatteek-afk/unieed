@@ -9,10 +9,7 @@ html, body {
 
 #root {
   width: 100%;
-<<<<<<< HEAD
   min-height: 100vh;
-}
-=======
   max-width: 1440px;
   margin: 0 auto;
 }
@@ -20,4 +17,3 @@ html, body {
   max-width: 1440px;
   margin: 0 auto;
 }
->>>>>>> 0c146272ccde621af196ed6d3a0ef71d254819c3

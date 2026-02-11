@@ -1,23 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600;700&display=swap');
 :root{
-  --bg: #0b1220;
-  --panel: rgba(255,255,255,.06);
-  --panel2: rgba(255,255,255,.09);
-  --stroke: rgba(255,255,255,.12);
-  --text: rgba(255,255,255,.92);
-  --muted: rgba(255,255,255,.65);
-  --muted2: rgba(255,255,255,.5);
-
-  --brand: #7c5cff;   /* ม่วง */
-  --brand2:#28d6c2;   /* เขียวฟ้า */
-  --ok: #22c55e;
-  --bad:#ef4444;
-  --warn:#f59e0b;
 
   --radius: 16px;
   --shadow: 0 16px 50px rgba(0,0,0,.45);
 }
 
-*{ box-sizing: border-box; }
+*{ box-sizing: border-box; 
+  font-family: "Prompt", "Mitr", sans-serif;
+}
 a{ color: inherit; text-decoration: none; }
 button, input, textarea{ font: inherit; }
 
@@ -386,8 +377,7 @@ textarea{
 
 /* Sidebar */
 .boSide {
-  background: #4f80d8;
-  color: #fff;
+  background: #5285E8;
   padding: 28px 24px;
 }
 
@@ -401,55 +391,61 @@ textarea{
 .boLogo {
   width: 56px;
   height: 56px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.18);
+    border-radius: 14px;}
+
+.boBrandName img {
+  width:200px;
+height: auto;
 }
 
-.boBrandName {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: 0.2px;
-}
-
-.boSideLine {
+/* .boSideLine {
   height: 2px;
   background: rgba(255,255,255,0.35);
   margin: 14px 0 20px;
-}
+} */
 
 .boMenu {
   display: grid;
-  gap: 14px;
+  gap: 6px;
   margin-top: 18px;
+
 }
 
 .boItem {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 14px;
-  border-radius: 12px;
-  color: rgba(255,255,255,0.92);
+  padding: 12px 0;
+  /* border-radius: 12px; */
+  color: rgb(210, 210, 210);
   text-decoration: none;
-  border: 1px solid rgba(255,255,255,0.20);
+  border-bottom: 2px solid rgba(255,255,255,0.20);
 }
 
 .boItem.active {
-  background: rgba(255,255,255,0.18);
-  border-color: rgba(255,255,255,0.35);
+  /* background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.35); */
+  background-color: transparent;
+  color: #fff;
+  font-weight: 700;
 }
 
 .boMenuIcon {
-  width: 34px;
-  height: 34px;
   border-radius: 10px;
-  background: rgba(255,255,255,0.2);
+  align-items: center;
+  justify-content: left;
+  position: relative; 
+  left: 0; 
+  
 }
 
 /* simple icon blocks */
-.boMenuIconGrid { }
-.boMenuIconEdit { }
-
+.boMenu svg{
+  display: inline-flex;
+  vertical-align: middle; 
+  width: 30px;
+  height: 30px;
+}
 /* Main */
 .boMain {
   background: #ffffff;
@@ -458,40 +454,45 @@ textarea{
 
 /* Page header */
 .boTop {
+  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 2px 18px;
-  border-bottom: 2px solid rgba(0,0,0,0.10);
+  padding: 10px 24px 18px;
+  
+
+  border-bottom: 2px solid rgba(0,0,0,0.10); 
 }
 
 .boTitle {
-  font-size: 34px;
-  font-weight: 800;
-  color: #143a4a;
+  font-size: 32px;
+  font-weight: 600;
+  color: #053F5C;
 }
 
 .boAdmin {
   display: flex;
   align-items: center;
   gap: 14px;
-  color: #143a4a;
+  color: #053F5C;
 }
 
-.boAvatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.12);
+.boAdminRole svg  {
+   width: 32px;
+  height: 32px;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-right: 12px;
 }
 
 .boAdminText {
   display: grid;
   line-height: 1.1;
+
 }
 
 .boAdminRole {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .boAdminName {
@@ -504,7 +505,7 @@ textarea{
   background: #fff;
   border-radius: 14px;
   border: 1px solid rgba(0,0,0,0.08);
-  box-shadow: 0 10px 18px rgba(0,0,0,0.08);
+  box-shadow: 1px 3px 2px rgba(0,0,0,0.08);
   padding: 22px 22px 28px;
   max-width: 1040px;
 }
@@ -530,20 +531,19 @@ textarea{
 
 .boCard {
   border-radius: 16px;
-  padding: 18px 16px 22px;
+  padding: 18px 10px 20px;
   color: #fff;
   text-align: center;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
-  min-height: 220px;
+  min-height: 250px;
   display: grid;
   align-content: start;
   gap: 10px;
 }
 
 .boCardLabel {
-  font-weight: 800;
-  font-size: 14px;
-  opacity: 0.95;
+  font-weight: 00;
+  font-size: 16px;
 }
 
 .boCardIcon {
@@ -551,19 +551,25 @@ textarea{
   height: 70px;
   margin: 8px auto 2px;
   border-radius: 18px;
-  background: rgba(0,0,0,0.18);
+}
+.boCardIcon svg {
+  width: 50px;
+  height: 50px;
+  display: inline-flex;
+  vertical-align: middle;
+  color:#053F5C ;
 }
 
 .boCardValue {
-  font-size: 46px;
-  font-weight: 900;
+  font-size: 60px;
+  font-weight: 700;
   letter-spacing: 0.5px;
 }
 
 /* Color themes */
-.boCardBlue { background: #7fc2ea; }
-.boCardGreen { background: #2fbe66; }
-.boCardYellow { background: #ffd154; color: #ffffff; }
+.boCardBlue { background: #87C7EB; }
+.boCardGreen { background: #31C464; }
+.boCardYellow { background: #FFCC4D; color: #ffffff; }
 .boCardRed { background: #e77b7b; }
 .boError{
   margin-top: 12px;

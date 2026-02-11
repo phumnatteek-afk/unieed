@@ -10,41 +10,61 @@
 /* welcomepage */
 .swPage{
   min-height:100vh;
-  background:#fbf1cf; /* โทนครีมเหมือนแบบ */
+  background:#FAF0CA; /* โทครีมเหมือนแบบ */
   display:flex;
   flex-direction:column;
 }
 
 .swTopbar{
   height:86px;
-  background:#9fd3f2; /* ฟ้าอ่อน */
+  background:#ffffff; /* ฟ้าอ่อน */
   display:flex;
   align-items:center;
   justify-content:space-between;
   padding:0 28px;
+    box-shadow:0 5px 3px rgba(0,0,0,.08);
 }
 
 .swBrand{
   display:flex;
   align-items:center;
-  gap:14px;
   border:none;
   background:transparent;
   cursor:pointer;
+  position: relative;
+  left: -30px;
+}
+.swBrand:hover, 
+.swBrand:focus, 
+.swBrand:active {
+    outline: none;
+    border: none;
+    background: transparent; /* ล็อคให้พื้นหลังใสเหมือนเดิม */
+    transform: none;         /* ป้องกันการขยับ */
 }
 
 .swLogo{
-  width:54px;
-  height:54px;
-  border-radius:14px;
-  background:rgba(255,255,255,.35);
+    width:280px;
+  height:86px;
+  background:#87C7EB;
+  position: absolute;
+    left: 0;
+  
 }
+.swBrandPic{
+    display:flex;
+    justify-content: center;
+    align-items: center;
+     position: relative;
+     margin-left: 20px;
+}
+.swBrandPic img{
+  width:200px;
+height: auto;
+    z-index: 1;
+    margin: 20px 0 ;
+    
 
-.swBrandText{
-  font-size:34px;
-  font-weight:800;
-  color:#fff;
-  letter-spacing:.2px;
 }
 
 .swAdminTag{
@@ -53,21 +73,28 @@
   gap:10px;
   color:#0b3d59;
   font-size:18px;
+  padding: 0 26px;
 }
 
-.swAvatar{
-  width:36px;
-  height:36px;
-  border-radius:50%;
-  background:rgba(0,0,0,.25);
-}
+.swAvatar {
+  display: inline-flex;
+  vertical-align: middle; 
 
+}
+.swAvatar svg {
+  width: 32px;
+  height: 32px;
+  color: #0b3d59;
+  margin-right: 8px;
+}
 .swMain{
   flex:1;
   display:flex;
   align-items:center;
   justify-content:center;
   padding:28px;
+  margin: 40px 0;
+
 }
 
 .swHero{
@@ -79,37 +106,39 @@
   gap:18px;
 }
 
-.swIllustration{
-  width:min(720px, 92vw);
-  height:260px;
-  border-radius:22px;
-  background:rgba(0,0,0,.08); /* ถ้ามีภาพจริงค่อยเปลี่ยนเป็น img */
+.swIllustration img{
+  width:min(600px, 92vw);
+    height:auto;
+
+}
+.swWelcomeText{
+    line-height: 1.6;
 }
 
 .swTitle{
   margin:0;
-  font-size:44px;
-  font-weight:900;
+  font-size:38px;
+  font-weight:600;
   color:#0b3d59;
 }
 
 .swSub{
   margin:0;
   font-size:40px;
-  font-weight:900;
+  font-weight:700;
   color:#0b3d59;
 }
 
 .swCTA{
-  margin-top:10px;
-  width:min(620px, 92vw);
-  height:74px;
+  margin:30px 0 40px;
+  width:min(500px, 92vw);
+  height:60px;
   border:none;
   border-radius:999px;
   background:#f2b233;
   color:#fff;
   font-size:26px;
-  font-weight:900;
+  font-weight:600;
   cursor:pointer;
   box-shadow:0 10px 24px rgba(0,0,0,.12);
 }
@@ -121,4 +150,127 @@
   padding:10px 14px;
   border-radius:12px;
   border:1px solid #fecaca;
+}
+
+/* ===== Pending Page ===== */
+.pendingPage {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f4f7fb, #eef2f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* Card */
+.pendingCard {
+  background: #ffffff;
+  width: 100%;
+  max-width: 560px;
+  border-radius: 18px;
+  padding: 32px 28px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* Title */
+.pendingTitle {
+  margin: 0 0 18px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: center;
+}
+
+/* Status */
+.pendingStatus {
+  padding: 20px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  text-align: center;
+}
+.pendingStatus svg {
+  vertical-align: middle;
+  margin-right: 8px;
+  font-size: 35px;
+}
+
+/* Status colors */
+.pendingStatus.pending {
+  background: #fffae2;
+  color: #FFBE1B;
+}
+
+.pendingStatus.approved {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.pendingStatus.rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* Description */
+.pendingDesc {
+  margin: 0 0 16px;
+  padding: 14px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #374151;
+  font-size: 14.5px;
+  line-height: 1.55;
+  border: 1px solid #eef2f7;
+}
+
+/* Note */
+.pendingNote {
+  background: #f9fafb;
+  border-left: 4px solid #e5e7eb;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 18px;
+}
+
+/* Actions */
+.pendingActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+/* Buttons */
+.btn {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btnPrimary {
+  background: #5285E8;
+  color: #ffffff;
+}
+
+.btnPrimary:hover {
+  background: #5285E8;
+  transform: translateY(-1px);
+}
+
+.btnGhost {
+  background: transparent;
+  color: #5285E8;
+  border: 1.5px solid #dbeafe;
+  padding: 8px 16px;
+}
+
+.btnGhost:hover {
+  background: #eff6ff;
 }
