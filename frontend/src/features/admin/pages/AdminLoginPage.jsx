@@ -38,26 +38,43 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="authWrap">
-      <div className="authCard">
-        <h2>Admin Login</h2>
-        {err && <div className="error">{err}</div>}
-
-        <form onSubmit={submit}>
-          <input
-            value={user_email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="อีเมล"
-          />
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="รหัสผ่าน"
-            type="password"
-          />
-          <button type="submit">เข้าสู่ระบบ</button>
-        </form>
-      </div>
+    <div className="adLgPage">
+  <div className="adLgCard">
+    <div className="adLgHeader">
+      <h2 className="adLgTitle">Admin Login</h2>
+      <p className="adLgSubtitle">เข้าสู่ระบบสำหรับผู้ดูแลระบบ</p>
     </div>
+
+    {err && <div className="adLgAlert">{err}</div>}
+
+    <form className="adLgForm" onSubmit={submit}>
+      <div className="adLgField">
+        <label className="adLgLabel">อีเมล</label>
+        <input
+          className="adLgInput"
+          value={user_email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="admin@email.com"
+        />
+      </div>
+
+      <div className="adLgField">
+        <label className="adLgLabel">รหัสผ่าน</label>
+        <input
+          className="adLgInput"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          type="password"
+        />
+      </div>
+
+      <button className="adLgBtn" type="submit">
+        เข้าสู่ระบบ
+      </button>
+    </form>
+  </div>
+</div>
+
   );
 }

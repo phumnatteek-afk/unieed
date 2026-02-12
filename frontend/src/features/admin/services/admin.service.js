@@ -13,7 +13,13 @@ export function listSchools({ q = "", status = "", sort = "latest" } = {}) {
 export function approveSchool(school_id) {
   return request(`/admin/schools/${school_id}/approve`, { method: "POST", auth: true });
 }
-
+export function rejectSchool(school_id, note) {
+  return request(`/admin/schools/${school_id}/reject`, {
+    method: "POST",
+    body: { note },
+    auth: true,
+  });
+}
 export function removeSchool(school_id) {
   return request(`/admin/schools/${school_id}`, { method: "DELETE", auth: true });
 }

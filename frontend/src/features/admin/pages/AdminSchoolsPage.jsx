@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as svc from "../services/admin.service.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import "../styles/backoffice.css";
+import { Icon } from "@iconify/react";
 
 export default function AdminSchoolsPage() {
   const { userName } = useAuth();
@@ -11,9 +12,29 @@ export default function AdminSchoolsPage() {
   const [err, setErr] = useState("");
 
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState(""); // "" | pending | approved | rejected
-  const [sort, setSort] = useState("latest"); // latest | oldest
+  const [status, setStatus] = useState("");
+  const [sort, setSort] = useState("latest");
   const [loading, setLoading] = useState(true);
+
+  // ✅ Pagination
+  const PAGE_SIZE = 5;
+  const [page, setPage] = useState(1);
+
+  // ✅ Modal state
+  const [confirmData, setConfirmData] = useState(null); // { type: "approve" | "remove", school_id }
+  const [rejectData, setRejectData] = useState(null);   // { school_id }
+  const [rejectNote, setRejectNote] = useState("");
+
+  // ✅ Toast
+  const [toast, setToast] = useState(null); // { type: "success" | "error", message }
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // ✅ กันกดซ้ำตอนกำลังบันทึก
+  const [actionLoading, setActionLoading] = useState(false);
 
   const load = async () => {
     try {
@@ -34,23 +55,72 @@ export default function AdminSchoolsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, status, sort]);
 
-  const onApprove = async (school_id) => {
-    if (!confirm("ยืนยันอนุมัติโรงเรียนนี้?")) return;
+  // ✅ เวลา filter/ค้นหา เปลี่ยน ให้กลับไปหน้า 1 เสมอ
+  useEffect(() => {
+    setPage(1);
+  }, [q, status, sort]);
+
+  // ✅ เปิด modal อนุมัติ
+  const onApprove = (school_id) => {
+    setConfirmData({ type: "approve", school_id });
+  };
+
+  // ✅ เปิด modal ปฏิเสธ
+  const onReject = (school_id) => {
+    setRejectNote("");
+    setRejectData({ school_id });
+  };
+
+  // ✅ เปิด modal นำออก
+  const onRemove = (school_id) => {
+    setConfirmData({ type: "remove", school_id });
+  };
+
+  // ✅ ยืนยัน (approve/remove)
+  const handleConfirm = async () => {
+    if (!confirmData || actionLoading) return;
+
+    setActionLoading(true);
     try {
-      await svc.approveSchool(school_id);
+      if (confirmData.type === "approve") {
+        await svc.approveSchool(confirmData.school_id);
+        setToast({ type: "success", message: "อนุมัติสำเร็จ" });
+      } else if (confirmData.type === "remove") {
+        await svc.removeSchool(confirmData.school_id);
+        setToast({ type: "success", message: "นำออกสำเร็จ" });
+      }
+
+      setConfirmData(null);
       await load();
     } catch (e) {
-      alert(e?.data?.message || e.message);
+      setToast({ type: "error", message: e?.data?.message || e.message || "ทำรายการไม่สำเร็จ" });
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const onRemove = async (school_id) => {
-    if (!confirm("นำโรงเรียนออกจากระบบ? (จะลบข้อมูลโรงเรียนและผู้ประสานงาน)")) return;
+  // ✅ ยืนยันปฏิเสธ
+  const handleRejectSubmit = async () => {
+    if (!rejectData || actionLoading) return;
+
+    const note = rejectNote.trim();
+    if (!note) {
+      setToast({ type: "error", message: "กรุณากรอกเหตุผลก่อนปฏิเสธ" });
+      return;
+    }
+
+    setActionLoading(true);
     try {
-      await svc.removeSchool(school_id);
+      await svc.rejectSchool(rejectData.school_id, note);
+      setToast({ type: "success", message: "ปฏิเสธเรียบร้อย" });
+
+      setRejectData(null);
+      setRejectNote("");
       await load();
     } catch (e) {
-      alert(e?.data?.message || e.message);
+      setToast({ type: "error", message: e?.data?.message || e.message || "ทำรายการไม่สำเร็จ" });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -66,16 +136,35 @@ export default function AdminSchoolsPage() {
 
   const tableRows = useMemo(() => rows, [rows]);
 
+  const totalPages = Math.max(1, Math.ceil(tableRows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+
+  const pagedRows = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return tableRows.slice(start, start + PAGE_SIZE);
+  }, [tableRows, safePage]);
+
+  const goPrev = () => setPage((p) => Math.max(1, p - 1));
+  const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
+  const goPage = (p) => setPage(p);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
   return (
-    <div className="admPage">
-      {/* Main */}
-      <main className="admMain">
-        {/* Topbar */}
-        <div className="admTop">
-          <div className="admTitle">จัดการโรงเรียน</div>
-          <div className="admMe">
-            <span className="admUserIcon">👤</span>
-            <span>ผู้ดูแลระบบ: {userName || "Admin"}</span>
+    <div className="boPage">
+      <main className="boMain">
+        <div className="boTop">
+          <div className="boTitle">จัดการโรงเรียน</div>
+          <div className="boAdmin">
+            <div className="boAdminText">
+              <div className="boAdminRole">
+                <span><Icon icon="subway:admin" /></span>
+                <span>ผู้ดูแลระบบ: </span>
+                <b>{userName || "Admin"}</b>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -104,12 +193,12 @@ export default function AdminSchoolsPage() {
         <section className="admFilters">
           <div className="admSearch">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา..." />
-            <button className="admSearchBtn" onClick={load}>🔍</button>
+            <button className="admSearchBtn" onClick={load} aria-label="search">
+              <Icon icon="material-symbols:search-rounded" width="28" height="28" />
+            </button>
           </div>
 
           <div className="admFilterRow">
-            <span className="admFilterLabel">Filter</span>
-
             <select value={status} onChange={(e) => setStatus(e.target.value)} className="admSelect">
               <option value="">สถานะทั้งหมด</option>
               <option value="pending">รอตรวจสอบ</option>
@@ -121,8 +210,6 @@ export default function AdminSchoolsPage() {
               <option value="latest">ล่าสุด</option>
               <option value="oldest">เก่าสุด</option>
             </select>
-
-            <button className="admBtn admBtnPrimary" onClick={load}>Filter</button>
           </div>
         </section>
 
@@ -133,82 +220,169 @@ export default function AdminSchoolsPage() {
           {loading ? (
             <div className="admMuted">กำลังโหลด…</div>
           ) : (
-            <div className="admTableWrap">
-              <table className="admTable">
-                <thead>
-                  <tr>
-                    <th>ชื่อโรงเรียน</th>
-                    <th>ผู้ดูแลโรงเรียน</th>
-                    <th>ข้อมูลติดต่อ</th>
-                    <th>ที่อยู่</th>
-                    <th>เอกสาร</th>
-                    <th>สถานะ</th>
-                    <th>จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableRows.map((s) => (
-                    <tr key={s.school_id}>
-                      <td className="admTdStrong">{s.school_name}</td>
-
-                      <td>
-                        <div className="admCol">
-                          <div className="admTdStrong">{s.coordinator_name || "-"}</div>
-                          <div className="admSmallMuted">{s.coordinator_email || "-"}</div>
-                        </div>
-                      </td>
-
-                      <td>{s.school_phone || "-"}</td>
-                      <td className="admClamp">{s.school_address || "-"}</td>
-
-                      <td>
-                        {s.school_doc_url ? (
-                          <a className="admDocBtn" href={s.school_doc_url} target="_blank" rel="noreferrer">
-                            🗂 ดูข้อมูล
-                          </a>
-                        ) : (
-                          <span className="admSmallMuted">-</span>
-                        )}
-                      </td>
-
-                      <td>{statusBadge(s.verification_status)}</td>
-
-                      <td>
-                        {canApprove(s.verification_status) && (
-                          <button
-                            className="admBtn admBtnSmall admBtnApprove"
-                            onClick={() => onApprove(s.school_id)}
-                          >
-                            อนุมัติ
-                          </button>
-                        )}
-
-                        {canRemove(s.verification_status) && (
-                          <button
-                            className="admBtn admBtnSmall admBtnDanger"
-                            onClick={() => onRemove(s.school_id)}
-                          >
-                            นำออก
-                          </button>
-                        )}
-
-                        {!canApprove(s.verification_status) && !canRemove(s.verification_status) && (
-                          <span className="admSmallMuted">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-
-                  {!tableRows.length && (
+            <>
+              <div className="admTableWrap">
+                <table className="admTable">
+                  <thead>
                     <tr>
-                      <td colSpan="7" className="admMuted">ยังไม่มีข้อมูล</td>
+                      <th>ชื่อโรงเรียน</th>
+                      <th>ผู้ดูแลโรงเรียน</th>
+                      <th>ข้อมูลติดต่อ</th>
+                      <th>ที่อยู่</th>
+                      <th>เอกสาร</th>
+                      <th>สถานะ</th>
+                      <th>จัดการ</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+
+                  <tbody>
+                    {pagedRows.map((s) => (
+                      <tr key={s.school_id}>
+                        <td className="admTdStrong">{s.school_name}</td>
+
+                        <td>
+                          <div className="admCol">
+                            <div className="admTdStrong">{s.coordinator_name || "-"}</div>
+                            <div className="admSmallMuted">{s.coordinator_email || "-"}</div>
+                          </div>
+                        </td>
+
+                        <td>{s.school_phone || "-"}</td>
+                        <td className="admClamp">{s.school_address || "-"}</td>
+
+                        <td>
+                          {s.school_doc_url ? (
+                            <a className="admDocBtn" href={s.school_doc_url} target="_blank" rel="noreferrer">
+                              🗂 ดูข้อมูล
+                            </a>
+                          ) : (
+                            <span className="admSmallMuted">-</span>
+                          )}
+                        </td>
+
+                        <td>{statusBadge(s.verification_status)}</td>
+
+                        <td>
+                          {canApprove(s.verification_status) ? (
+                            <>
+                              <button
+                                className="admBtn admBtnSmall admBtnApprove"
+                                onClick={() => onApprove(s.school_id)}
+                                disabled={actionLoading}
+                              >
+                                อนุมัติ
+                              </button>
+
+                              <button
+                                className="admBtn admBtnSmall admBtnDanger"
+                                onClick={() => onReject(s.school_id)}
+                                disabled={actionLoading}
+                                style={{ marginLeft: 8 }}
+                              >
+                                ปฏิเสธ
+                              </button>
+                            </>
+                          ) : canRemove(s.verification_status) ? (
+                            <button
+                              className="admBtn admBtnSmall admBtnout"
+                              onClick={() => onRemove(s.school_id)}
+                              disabled={actionLoading}
+                            >
+                              นำออก
+                            </button>
+                          ) : (
+                            <span className="admSmallMuted">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {!pagedRows.length && (
+                      <tr>
+                        <td colSpan="7" className="admMuted">ยังไม่มีข้อมูล</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination UI */}
+              <div className="admPager">
+                <div className="admPagerNums">
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const p = i + 1;
+                    return (
+                      <button
+                        key={p}
+                        className={`admPageNum ${p === safePage ? "active" : ""}`}
+                        onClick={() => goPage(p)}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="admPagerBtns">
+                  <button className="admPagerBtn" onClick={goPrev} disabled={safePage === 1}>
+                    กลับ
+                  </button>
+                  <button className="admPagerBtn" onClick={goNext} disabled={safePage === totalPages}>
+                    ถัดไป
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </section>
+
+        {/* Confirm Modal */}
+        {confirmData && (
+          <div className="admModalOverlay">
+            <div className="admModal">
+              <h3>ยืนยันการดำเนินการ</h3>
+              <p>
+                {confirmData.type === "approve"
+                  ? "ต้องการอนุมัติโรงเรียนนี้ใช่หรือไม่?"
+                  : "ต้องการนำโรงเรียนออกจากระบบใช่หรือไม่?"}
+              </p>
+              <div className="admModalActions">
+                <button onClick={() => setConfirmData(null)} className="admBtnGhost" disabled={actionLoading}>
+                  ยกเลิก
+                </button>
+                <button onClick={handleConfirm} className="admBtnPrimary" disabled={actionLoading}>
+                  {actionLoading ? "กำลังบันทึก..." : "ยืนยัน"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reject Modal */}
+        {rejectData && (
+          <div className="admModalOverlay">
+            <div className="admModal">
+              <h3>แจ้งเหตุผลการปฏิเสธ</h3>
+              <textarea
+                value={rejectNote}
+                onChange={(e) => setRejectNote(e.target.value)}
+                placeholder="กรอกเหตุผล..."
+                rows={4}
+              />
+              <div className="admModalActions">
+                <button onClick={() => setRejectData(null)} className="admBtnGhost" disabled={actionLoading}>
+                  ยกเลิก
+                </button>
+                <button onClick={handleRejectSubmit} className="admBtnDanger" disabled={actionLoading}>
+                  {actionLoading ? "กำลังบันทึก..." : "ปฏิเสธ"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Toast */}
+        {toast && <div className={`admToast ${toast.type}`}>{toast.message}</div>}
       </main>
     </div>
   );

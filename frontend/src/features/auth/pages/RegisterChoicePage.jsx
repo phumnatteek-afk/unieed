@@ -4,18 +4,18 @@ import "../styles/auth.css";
 export default function RegisterChoicePage() {
   return (
 
-<div className="auth-page">
-   
+    <div className="auth-page">
+
       <div className="auth-card">
-                <div className="brandMini">
-            <img
-              className="brandMiniLogo"
-              src="src/unieed_pic/logo2.png"
-              alt="Unieed"
-            />
-          </div>
-         <div className="authTopBar">
-  
+        {/* <div className="brandMini">
+          <img
+            className="brandMiniLogo"
+            src="src/unieed_pic/logo2.png"
+            alt="Unieed"
+          />
+        </div> */}
+        <div className="authTopBar">
+
         </div>
 
         {/* Blue panel */}
@@ -55,7 +55,7 @@ export default function RegisterChoicePage() {
                 </svg>
               </div>
 
-              <div className="choiceTitle">บุคคลทั่วไป / ผู้แบ่งปัน</div>
+              <div className="choiceTitle">บุคคลทั่วไป | ผู้แบ่งปัน</div>
               <div className="choiceEng">(General User)</div>
 
               <div className="choiceDesc">
@@ -74,15 +74,15 @@ export default function RegisterChoicePage() {
 
             <div className="choiceCard choiceCardSchool">
               <div className="choiceIconWrap">
-     <svg 
-      className="choiceIcon" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ width: '100px', height: '100px' }}
-    >
-      <path d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18L12 21L19 17.18V13.18L12 17L5 13.18Z" fill="#111827"/>
-    </svg>
+                <svg
+                  className="choiceIcon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ width: '100px', height: '100px' }}
+                >
+                  <path d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18L12 21L19 17.18V13.18L12 17L5 13.18Z" fill="#111827" />
+                </svg>
               </div>
 
               <div className="choiceTitle">โรงเรียน</div>

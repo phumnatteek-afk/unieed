@@ -37,3 +37,15 @@ export async function adminOverview(req, res, next) {
   }
 }
 
+export async function adminRejectSchool(req, res, next) {
+  try {
+    const school_id = Number(req.params.id);
+    const note = String(req.body?.note || "").trim();
+    const result = await svc.rejectSchool(school_id, note);
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+}
+
+

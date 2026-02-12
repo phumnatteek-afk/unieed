@@ -1,609 +1,834 @@
 @import url('https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css');
 @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
-*{ box-sizing:border-box; }
-.homePage{ 
+
+* {
+  box-sizing: border-box;
+}
+
+.homePage {
   width: 100%;
-    color:var(--text); 
-    background:#fff; 
-    margin: 0 auto;}
+  color: var(--text);
+  background: #fff;
+  margin: 0 auto;
+}
 
 /* ===== TOP BAR ===== */
 .topBar {
   background: #87C7EB;
-  
+
   /* บังคับให้กว้างเต็มจอเสมอ ไม่สนลูกใคร */
-  width: 100vw; 
-  
+  width: 100vw;
+
   /* เผื่อมี Parent padding แอบแฝง ใช้สูตรนี้จะทะลุออกมาเต็มจอ */
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
-  
+
   /* จัดเนื้อหาลูกให้อยู่กลาง */
   display: flex;
-  justify-content: center; 
-  
-  padding: 15px 15px; /* ย้าย Padding บนล่างมาไว้ที่นี่ */
+  justify-content: center;
+
+  padding: 15px 15px;
+  /* ย้าย Padding บนล่างมาไว้ที่นี่ */
 }
+
 .topRow {
   width: 100%;
-  
+
   /* กำหนดขอบเขตเนื้อหาตามที่คุณต้องการ */
-  max-width: 1440px; 
-  
+  max-width: 1440px;
+
   /* จัดกึ่งกลางหน้าจอ */
   margin: 0 auto;
-  padding: 0 30px; /* กันเนื้อหาชิดขอบเกินไปเวลาจอเล็ก */
-  
+  padding: 0 30px;
+  /* กันเนื้อหาชิดขอบเกินไปเวลาจอเล็ก */
+
   /* การจัดวางข้างในเหมือนเดิม */
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.brand{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  text-decoration:none;
-  color:#fff;
-  font-weight:400;
-}
-.brandLogo{ width:250px; height:84px; object-fit:contain; }
-
-.navLinks{
-  display:flex;
-  gap:28px;
-  align-items:center;
-}
-.navLinks a{
-  color:#F1F1F1;
-  text-decoration:none;
-  font-weight:400;
-  font-size:24px;
-  opacity:.95;
-}
-.navLinks .active{
-color:#ffffff;
-   font-weight:500; 
-}
-.navLinks a:hover{ color: #1d4ed8; }
-
-.navAuth{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.hello{
-  color:#fff;
-  font-weight:800;
-  font-size:22px;
-  opacity:.95;
-  white-space:nowrap;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #fff;
+  font-weight: 400;
 }
 
-.navBtn{
-  height:34px;
-  padding: 26px 20px;
-  border-radius:999px;
-  font-weight:400;
-  font-size:24px;
-  border:0;
-  cursor:pointer;
-  text-decoration:none;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
+.brandLogo {
+  width: 200px;
+  height: 84px;
+  object-fit: contain;
 }
-.navBtnOutline{
+
+.navLinks {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+}
+
+.navLinks a {
+  color: #F1F1F1;
+  text-decoration: none;
+  font-weight: 400;
+  font-size: 20px;
+  opacity: .95;
+}
+
+.navLinks .active {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.navLinks a:hover {
+  color: #1d4ed8;
+}
+
+.navAuth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hello {
+  color: #fff;
+  font-weight: 700;
+  font-size: 22px;
+  opacity: .95;
+  white-space: nowrap;
+}
+
+.navBtn {
+  height: 28px;
+  padding: 22px 20px;
+  border-radius: 999px;
+  font-weight: 400;
+  font-size: 16px;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navBtnOutline {
   background: #FFBE1B;
-  color:#fff;
+  color: #fff;
 }
-.navBtnWhite{
-  background:#fff;
-  color:#5285E8;
-}
-.navBtnOutline:hover{ filter:brightness(.98); }
-.navBtnWhite:hover{ filter:brightness(.98); }
 
-.searchRow{
+.navBtnWhite {
+  background: #fff;
+  color: #5285E8;
+}
+
+.navBtnOutline:hover {
+  filter: brightness(.98);
+}
+
+.navBtnWhite:hover {
+  filter: brightness(.98);
+}
+
+.searchRow {
   width: 100%;
   margin: 5px auto 0;
-  display:flex;
-  justify-content:center;
+  display: flex;
+  justify-content: center;
 }
-.searchBox{
+
+.searchBox {
   width: 700px;
-    height: 60px;
-  background:#fff;
-  border-radius:35px;
+  height: 48px;
+  background: #fff;
+  border-radius: 35px;
   padding: 5px 12px;
-  display:flex;
-  align-items:center;
-  gap:10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid#a2c0fd;
   box-shadow: 0 2px 2px rgba(51, 51, 51, 0.12);
 }
 
-.searchBox input{
-  border:none;
-  outline:none;
-  flex:1;
-  font-size:18px;
-  color:#999999;
+.searchBox input {
+  border: none;
+  outline: none;
+  flex: 1;
+  color: #999999;
   background: transparent;
-  
+
 }
+
 .searchBox input::placeholder {
-    color: #999999;    
-    opacity: 1;         
-    font-size: 18px; 
-    font-weight: 100;
-    letter-spacing: 1px;  
+  color: #999999;
+  opacity: 1;
+  font-size: 16px;
+  font-weight: 100;
+  letter-spacing: 1px;
 }
-.searchBtn{
-  border:0;
-  background:transparent; 
-  cursor:pointer;
-  font-size:28px;
+
+.searchBtn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 26px;
 }
+
 .fa-magnifying-glass {
-    color: #484848; 
+  color: #484848;
 }
+
 .fa-magnifying-glass:hover {
-    color: #b6b6b6; 
+  color: #b6b6b6;
 }
-.searchBox input:focus, 
+
+.searchBox input:focus,
 .searchBox input:focus-visible {
   outline: none;
   border: none;
-  box-shadow: none; /* สำคัญ: ลบเงาเรืองแสง */
+  box-shadow: none;
+  /* สำคัญ: ลบเงาเรืองแสง */
 }
 
 
 
 /* ===== HERO ===== */
-.hero{
-   background-image: url("/src/unieed_pic/bannerunieed.png");
+.hero {
+  background-image: url("/src/unieed_pic/bannerunieed.png");
   /* padding: 22px 18px 26px; */
   padding: 0;
-overflow:hidden;
-  width: 100vw; 
+  overflow: hidden;
+  /* width: 100vw; */
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
   background-size: cover;
-  background-position: center;
+  background-position: top center;
+  min-height: 380px;
 }
-.heroInner{
-  width:100%;
-  margin:0 auto;
-  max-width: 1440px;
-  min-height: 550px;
-  background-position: center;
-}
-.heroLeft{
-margin: 20px 80px ;
-  color:#fff;
-  text-shadow: 0 1px 2px rgba(0,0,0,.18);
-  line-height: 30px;
-}
-.heroLeft h1{
-  /* margin:0; */
-  font-size:70px;
-  font-weight:400;
-}
-.heroLeft p{
-font-size:32px;
-  font-weight:400;
-}
-.heroSub span{ 
-    font-size:46px;
-font-weight:400; 
-color: #FFEDBF;}
 
-.heroActions{
- position: relative;
- top: 250px;
- display: flex;
-flex-direction: column;
-gap: 30px;           
-    align-items: flex-start;
+.heroInner {
+  width: 100%;
+  margin: 0 auto;
+  max-width: 1440px;
+  min-height: 380px;
+  background-position: center;
 }
+
+.heroLeft {
+  margin: 50px 80px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+  line-height: 20px;
+}
+
+.heroLeft h1 {
+  /* margin:0; */
+  font-size: 50px;
+  font-weight: 500;
+  margin-top: 30px;
+}
+
+.heroLeft p {
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.heroSub span {
+  font-size: 40px;
+  font-weight: 500;
+  color: #FFEDBF;
+}
+
+.heroActions {
+  /* position: relative; */
+  top: 70%;
+  display: flex;
+  /* flex-direction: column;  */
+  /* justify-content: flex-end; */
+  gap: 20px;
+  text-align: right;
+  padding-right: 40px;
+  position: absolute;
+  right: 30px;
+
+}
+
+
 .hero-icon {
-  width: 120px;       /* กำหนดขนาดรูปกล่องของขวัญ (ปรับเลขนี้ตามใจชอบ) */
+  /* กำหนดขนาดรูปกล่องของขวัญ (ปรับเลขนี้ตามใจชอบ) */
   height: auto;
-  margin-bottom: 20px; /* เว้นระยะห่างจากตัวหนังสือ */
-  
+  margin-bottom: 20px;
+  /* เว้นระยะห่างจากตัวหนังสือ */
+
   /* เพิ่มลูกเล่นให้มันลอยๆ ดุ๊กดิ๊กได้ (ถ้าชอบ) */
   animation: float 3s ease-in-out infinite;
 }
 
 /* สร้าง Animation การลอย */
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); } /* ลอยขึ้น 10px */
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  /* ลอยขึ้น 10px */
+  100% {
+    transform: translateY(0px);
+  }
 }
-.pill{
-  height:80px;
-  padding:0 28px;
-  border-radius:999px;
-  font-weight:400;
-  font-size:26px;
-  text-decoration:none;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  box-shadow: 0 10px 20px rgba(0,0,0,.12);
-  text-shadow:none;
+
+.pill {
+  height: 60px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-weight: 400;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, .12);
+  text-shadow: none;
   position: relative;
   bottom: 50px;
 }
+
 .text-ban a {
-    font-size: 26px;
-    font-weight: 400;
-    margin-left: 10px;
+  font-size: 20px;
+  font-weight: 400;
+  margin-left: 10px;
 }
-.pill .pillYellow svg{
-  margin-right:8px;
+
+.pill .pillYellow svg {
+  margin-right: 8px;
 }
+
 /* .pill .pillYellow{
   margin-right: 5px;
 } */
-.pillYellow{ background:#FFBE1B; color:#fff; }
-.pillWhite{ background:#fff; color:#FFBE1B; border: 1px solid#FFBE1B; }
+.pillYellow {
+  background: #FFBE1B;
+  color: #fff;
+  border: 2px solid#ffff;
+}
 
-.pillYellow:hover{background:#ecaf14; }
-.pillWhite:hover{ background:#f0f0f0; }
+.pillWhite {
+  background: #fff;
+  color: #FFBE1B;
+  border: 2px solid#FFBE1B;
+}
+
+.pillYellow:hover {
+  background: #ecaf14;
+}
+
+.pillWhite:hover {
+  background: #f0f0f0;
+}
+
 /* ===== STATS ===== */
-.stats{
-margin-top: 20px;
-  padding: 50px 18px 24px;
-  text-align:center;
-}
-.stats h2{
-  margin:0;
-  font-size:40px;
-  font-weight:400;
-  color:#5285E8;
-}
-.stats .sub{
-  margin:6px 0 16px;
-  font-size:24px;
-  font-weight:100;
-  color: #000;
-}
-
-.statGrid{
-  width: 100%;
-  margin:20px auto;
-  display:grid;
-  grid-template-columns: repeat(3, 1fr);
-  padding: 0 170px;
-  gap:5px; 
-}
-.statCard{
-  border-radius:17px;
-  max-width: 315px;
-  height: 280px;
-  padding: 18px 0; 
-  border:1px solid var(--line);
-  text-align:center;
-  justify-content: center;
-  font-weight:700;
-  box-shadow: 0 2px 2px rgba(0,0,0,.12);
-}
-.statIcon1 svg {
+.stats {
   margin-top: 10px;
-}
-.statIcon2 svg {
-  margin-top: -1px;
-}
-.statIcon{ font-size:40px;  }
-.statValue1{ font-size:60px; font-weight:500; font-family: 'Kanit'; margin-top: 4px;}
-.statValue{ font-size:60px; font-weight:500; font-family: 'Kanit'; margin-top: -8px;}
-.statLabel{ font-size:24px; font-weight:200; color:#595959;}
-
-.statBlue{ background: #CCDEFF; color:#88B1FF ;}
-.statGreen{ background: #E6FFBB; color:#92CC2C ;}
-.statYellow{ background: #FFEDBF; color:#FFBE1B; }
-
-/* ===== STEPS ===== */
-.steps{
-
-  background:#E0EBFF;
-    width: 100vw; 
-  
-  /* เผื่อมี Parent padding แอบแฝง ใช้สูตรนี้จะทะลุออกมาเต็มจอ */
-  margin-left: calc(-50vw + 50%);
-  margin-right: calc(-50vw + 50%);
-  padding: 40px ;
-}
-.stepsWrap{
-  width: 100%;
-  max-width: 1440px;
-  margin:0 auto;
-  display:flex;
-  gap:18px;
-  align-items:stretch;
-  align-items: center;
-  justify-content: space-between;
-}
-.stepsSide{
-  min-width: 307px;
-    height: 300px;
-  padding: 14px 20px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-}
-.stepsBig{ font-size:40px; font-weight:500; color:#5285E8; line-height: 1.1;text-align: center;}
-
-.stepsHint{ margin-top:8px; font-size:20px; font-weight:400; color:#5285E8; text-align: center;}
-
-.stepsCards{
-  flex:1;
-  display:grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap:14px;
-}
-.stepCard{
-  background:#fff;
-  border-radius:14px;
-  padding: 14px ;
-  border:1px solid var(--line);
-  box-shadow: 0 10px 22px rgba(0,0,0,.08);
-  justify-content: center;
+  padding: 50px 18px 24px;
   text-align: center;
 }
 
-.stepNo{ font-weight:500; color:#111827; margin-bottom:6px; font-size:30px;}
-.stepPic{
-   margin-top: 30px;
+.stats h2 {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 400;
+  color: #5285E8;
 }
-.stepTitle{ font-weight:500; font-size:32px; margin-bottom:3px; color: #000; position: relative; top: 20px;}
-.stepDesc{ max-width:260px; ;font-weight:400; font-size:18px; color:#475569; line-height:1.5; margin: 0 auto; padding: 20px 0 0;}
 
-/* ===== SECTIONS ===== */ 
-#projects{
-    width: 100%;
-    margin-top: 30px;
+.stats .sub {
+  margin: 6px 0 16px;
+  font-size: 22px;
+  font-weight: 100;
+  color: #000;
 }
-.section{ padding: 30px }
-.sectionBlue{ background:#ffffff; }
-.sectionSoftBlue{ background:#dbeafe; }
 
-.sectionHead{
+.statGrid {
+  width: 80%;
+  margin: 20px auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 0 100px; 
+}
+
+.statCard {
+  border-radius: 17px;
+  width: 290px;
+  height: 290px;
+  padding: 18px 0;
+  border: 1px solid var(--line);
+  text-align: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, .12);
+}
+
+.statIcon1 svg {
+  margin-top: 10px;
+}
+
+.statIcon2 svg {
+  margin-top: -1px;
+}
+
+.statIcon {
+  font-size: 40px;
+}
+
+.statValue1 {
+  font-size: 60px;
+  font-weight: 500;
+  font-family: 'Kanit';
+  margin-top: 4px;
+}
+
+.statValue {
+  font-size: 60px;
+  font-weight: 500;
+  font-family: 'Kanit';
+  margin-top: -8px;
+}
+
+.statLabel {
+  font-size: 24px;
+  font-weight: 200;
+  color: #595959;
+}
+
+.statBlue {
+  background: #CCDEFF;
+  color: #88B1FF;
+}
+
+.statGreen {
+  background: #E6FFBB;
+  color: #92CC2C;
+}
+
+.statYellow {
+  background: #FFEDBF;
+  color: #FFBE1B;
+}
+
+/* ===== STEPS ===== */
+.steps {
+max-width: 1440px;
+  background: #E0EBFF;
+
+  /* เผื่อมี Parent padding แอบแฝง ใช้สูตรนี้จะทะลุออกมาเต็มจอ */
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  padding: 30px;
+  margin-top: 50px;
+}
+
+.stepsWrap {
   width: 100%;
-  margin:0 auto 12px;
-  
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+  margin: 0 auto;
+  display: flex;
+  gap: 18px;
+  align-items: stretch;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stepsSide {
+  width: 25%;
+  height: 100px;
+  padding: 14px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stepsBig {
+  font-size: 30px;
+  font-weight: 500;
+  color: #5285E8;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.stepsHint {
+  margin-top: 8px;
+  font-size: 20px;
+  font-weight: 400;
+  color: #5285E8;
+  text-align: center;
+}
+
+.stepsCards {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* gap: 14px; */
 
 }
-.sectionHead h3{
-  margin:0;
-  font-size:36px;
-  font-weight:400;
-  color:#5285E8;
+
+.stepCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
+  justify-content: center;
+  text-align: center;
+  max-width: 300px;
 }
-.btnGhost{
-  border:0;
-  background:#fbbf24;
-  color:#fff;
-  height:40px;
-  padding:0 20px;
-  border-radius:999px;
-  font-weight:400;
-  cursor:pointer;
+
+/* .stepNo {
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 6px;
+  font-size: 24px;
+} */
+
+.stepPic img {
+  margin-top: 30px;
+  width: 90px;
+   height: 60px; 
+}
+
+.stepTitle {
+  font-weight: 500;
+  font-size: 20px;
+  margin-bottom: 3px;
+  color: #000;
+  position: relative;
+  top: 20px;
+}
+
+.stepDesc {
+  max-width: 260px;
+  ;
+  font-weight: 400;
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0 auto;
+  padding: 20px 0 0;
+}
+
+/* ===== SECTIONS ===== */
+#projects {
+  width: 100%;
+  /* margin-top: 10px; */
+}
+
+.section {
+  padding: 30px
+}
+
+.sectionBlue {
+  background: #ffffff;
+}
+
+.sectionSoftBlue {
+  background: #dbeafe;
+}
+
+.sectionHead {
+  width: 100%;
+  margin: 0 auto 20px;
+  padding: 0 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+
+}
+
+.sectionHead h3 {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 500;
+  color: #5285E8;
+}
+
+.btnGhost {
+  border: 0;
+  background: #fbbf24;
+  color: #fff;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-weight: 400;
+  cursor: pointer;
 }
 
 /* ===== CAROUSEL PROJECTS ===== */
 /* ===== CAROUSEL PROJECTS (SMOOTH) ===== */
-.carouselRow{
-  width:100%;
-  margin:0 auto;
-  display:flex;
-  gap:20px;
-  align-items:center;
+.carouselRow {
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  gap: 20px;
+  align-items: center;
   justify-content: space-between;
 }
 
-.carouselViewport{
-  flex:1;
-  overflow:hidden;
-  border-radius:14px;
-  padding: 2px; 
+.carouselViewport {
+  flex: 1;
+  overflow: hidden;
+  border-radius: 14px;
+  padding: 2px;
 }
 
-.carouselTrack{
-  display:flex;
-  width:100%;
+.carouselTrack {
+  display: flex;
+  width: 100%;
   will-change: transform;
-  transition: transform 420ms cubic-bezier(.22,.61,.36,1);
+  transition: transform 420ms cubic-bezier(.22, .61, .36, 1);
 }
 
-.carouselPage{
+.carouselPage {
   flex: 0 0 100%;
   width: 150px;
-    height: 390px;
-  display:grid;
+  height: 390px;
+  display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap:20px;
+  gap: 20px;
 }
 
-.navArrow{
-    height: 40px;
-    width: 40px;
- font-size: 30px;
-  border-radius:50%;
+.navArrow {
+  height: 40px;
+  width: 40px;
+  font-size: 30px;
+  border-radius: 50%;
   border: 1px solid#D9D9D9;
-  background:#fff;
-  font-weight:400;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  background: #fff;
+  font-weight: 400;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #fbbf24;
 }
 
-.navArrow:disabled{
-  opacity:.55;
-  cursor:not-allowed;
+.navArrow:disabled {
+  opacity: .55;
+  cursor: not-allowed;
 }
 
 /* การ์ดโครงการ */
-.projCard{
-  background:#fff;
-  border:1px solid var(--line);
-  border-radius:14px;
-  overflow:hidden;
-  box-shadow: 0 10px 22px rgba(0,0,0,.08);
+.projCard {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
 }
 
-.projCardGhost{
-  visibility:hidden;
+.projCardGhost {
+  visibility: hidden;
 }
 
 
-.projCard:hover{
+.projCard:hover {
   transform: translateY(-1px);
   transition: transform 160ms ease;
 }
-.muted{
-    color: #888888;
+
+.muted {
+  color: #888888;
 }
 
-.thumb{ height:220px; background:#eef2ff; }
-.thumb img{ width:100%; height:100%; object-fit:cover; 
-display:block;  }
-.thumbPlaceholder{ width:100%; height:100%; background: linear-gradient(135deg, #e5e7eb, #f3f4f6); }
-.projBody{
-    width: 100%;
-    padding: 20px;
-}
-.projTitle{
-    font-size: 24px;
-    color: #000;
-    font-weight: 400;
-}
-.projMeta{
-    font-size: 14px;
-    color: #000;
-    font-weight: 200;
+.thumb {
+  height: 220px;
+  background: #eef2ff;
 }
 
-.projBottom{
-    display: flex;
-    justify-content: space-between;
-    margin: 15px 0;
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
-.projBottom button{
-    background-color: #FFBE1B;
-    padding: 8px 30px;
-    font-size: 24px;
-    font-weight: 300;
 
+.thumbPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #e5e7eb, #f3f4f6);
+}
+
+.projBody {
+  width: 100%;
+  padding: 20px;
+}
+
+.projTitle {
+  font-size: 24px;
+  color: #000;
+  font-weight: 400;
+}
+
+.projMeta {
+  font-size: 14px;
+  color: #000;
+  font-weight: 200;
+}
+
+.projBottom {
+  display: flex;
+  justify-content: space-between;
+  margin: 15px 0;
+}
+
+.projBottom button {
+  background-color: #FFBE1B;
+  padding: 8px 30px;
+  font-size: 24px;
+  font-weight: 300;
+  color: #fff;
 
 }
+
 .projFilled {
-    color: #000;
-    font-size: 22px;
+  color: #000;
+  font-size: 22px;
 }
-.projFilled span{
-    font-size: 25px;
-    color: #5285E8;
+
+.projFilled span {
+  font-size: 25px;
+  color: #5285E8;
 }
 
 
 
 /* ===== MARKET ===== */
-.grid3{
-  width:100%;
-  margin:0 auto;
-  display:grid;
+.grid3 {
+  width: 100%;
+  margin: 0 auto;
+  display: grid;
   grid-template-columns: repeat(3, 1fr);
   /* padding: 12px 30px; */
   justify-items: center;
   align-items: center;
 }
-.productCard{
-  background:#fff;
+
+.productCard {
+  background: #fff;
   width: 400px;
   border: 0.001px solid#d9d9d9;
-  border-radius:14px;
-  overflow:hidden;
-  box-shadow: 0 10px 22px rgba(0,0,0,.08);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
   padding: 12px 0;
 }
-.pThumb{ height:300px; background:#f1f5f9; border: 20px solid#fff;}
-.pThumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-.pBody{ padding:10px 20px; color: #000;}
-.pTitle{ font-size: 22px;font-weight:500; margin-bottom:6px; }
-.pMeta span{
-    background-color: #FAF0CA;
-    padding: 2px 10px;
-    border-radius: 40px;
-    margin-right:5px;
-    font-weight:200 ;
 
-}
-.pBottom{ margin-top:20px; display:flex; justify-content:space-between; align-items:center; }
-.pPrice{ font-size:26px; font-weight:400; color:#5285E8; }
-.cartBtn{
-  width:50px; height:50px;
-  border-radius:999px;
-  border:0;
-  background:#fbbf24;
-  cursor:pointer;
-}
-.cartBtn i{
-    text-align: center;
-    justify-content: center;
-    font-size: 28px;
-    
+.pThumb {
+  height: 300px;
+  background: #f1f5f9;
+  border: 20px solid#fff;
 }
 
-.tsWrap{
-  max-width:100%;
-  margin:0 auto;
-  display:flex;
-  gap:10px;
-  align-items:center;
+.pThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.tsCard{
-  flex:1;
+.pBody {
+  padding: 10px 20px;
+  color: #000;
+}
+
+.pTitle {
+  font-size: 22px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.pMeta span {
+  background-color: #FAF0CA;
+  padding: 2px 10px;
+  border-radius: 40px;
+  margin-right: 5px;
+  font-weight: 200;
+
+}
+
+.pBottom {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pPrice {
+  font-size: 26px;
+  font-weight: 400;
+  color: #5285E8;
+}
+
+.cartBtn {
+  width: 50px;
+  height: 50px;
+  border-radius: 999px;
+  border: 0;
+  background: #fbbf24;
+  cursor: pointer;
+  color: #fff;
+}
+
+.cartBtn i {
+  text-align: center;
+  justify-content: center;
+  font-size: 28px;
+
+}
+
+.tsWrap {
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tsCard {
+  flex: 1;
   /* background:#fff; */
-  border:1px solid var(--line);
-  border-radius:16px;
-  overflow:hidden;
-  display:grid;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  display: grid;
   grid-template-columns: 1.1fr .9fr;
   min-height: 220px;
-  box-shadow: 0 10px 22px rgba(0,0,0,.08);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
   will-change: transform;
   transition: transform 240ms ease;
 }
 
-.tsCard:hover{
+.tsCard:hover {
   transform: translateY(-1px);
 }
 
 .thumb img,
 .pThumb img,
-.tsRight img{
-  width:100%;
-  height:100%;
+.tsRight img {
+  width: 100%;
+  max-height: 500px;
   object-fit: cover;
   /* ⭐ โฟกัสด้านบน (เหมือนรูปเด็กใน Figma) */
-  object-position: 50% 30%;
-  display:block;
+  object-position: 50% 20%;
+  display: block;
 }
 
 .tsRight {
-  overflow: hidden;        
+  overflow: hidden;
   border-radius: 16px;
 }
+
 .tsRight img {
   width: 100%;
   height: 100%;
@@ -617,207 +842,290 @@ display:block;  }
 
 
 /* ===== TESTIMONIALS (match Figma) ===== */
- .sectionSoftBlue{
-  background:#fff;
-} 
+/* ===============================
+   TESTIMONIALS SECTION
+================================= */
 
-.tsWrap{
-  width:100%;
-  margin:0 auto;
-   justify-content: space-between;
-  position:relative;
-  padding: 6px 44px 22px;  
+
+.sectionSoftBlue{
+  background:#fff;
+  padding:80px 0;
 }
 
-/* ลูกศรเฉพาะ testimonial */
-.tsArrow{
-  position:absolute;
-  font-size: 30px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
-  border: 0;
-  background:#fff;
-  color: #fbbf24;
-  border: 1px solid#D9D9D9;
-  font-weight:400;
-  cursor: pointer;
+/* Header */
+.tsHead{
+  max-width:1100px;
+  margin:0 auto 30px;
+  padding:0 20px;
   display:flex;
   align-items:center;
-  justify-content:center;
-  box-shadow: 0 10px 18px rgba(0,0,0,.12);
-  z-index: 2;
-  border-radius:50%;
+  gap:18px;
 }
 
+.tsQuoteMark{
+  font-size:80px;
+  font-weight:900;
+  line-height:1;
+  color:#1d4ed8;
+  transform:translateY(-6px);
+}
 
-.tsArrowLeft{ left: 0; }
-.tsArrowRight{ right: 0; }
+.tsTitle{
+  font-size:36px;
+  font-weight:700;
+  letter-spacing:-0.02em;
+  margin:0;
+  flex:1;
+  color:#1d4ed8;
+}
 
-.tsCard{
-  width:100%;
-  border-radius: 20px;
-  overflow:hidden;
-  
+.tsControls{
+  display:flex;
+  gap:12px;
+}
 
+.tsNav{
+  width:52px;
+  height:52px;
+  border-radius:999px;
+  background:transparent;
+  border:2px solid #5285E8;
+  color:#1d4ed8;
+  font-size:26px;
   display:grid;
-  grid-template-columns: 1fr 514px; 
-  min-height: 280px;
-  height: 200px; 
+  place-items:center;
+  cursor:pointer;
+  transition:.2s ease;
 }
 
-/* ฝั่งซ้าย */
-.tsLeft{
-  padding: 22px 22px;
+.tsNav:hover{ transform:scale(1.06); }
+.tsNav:active{ transform:scale(.98); }
+
+/* Stage (3 cards) */
+.tsStage{
+  max-width:1100px;
+  margin:0 auto;
+  padding:0 20px;
+  display:grid;
+  grid-template-columns: 1fr 1.25fr 1fr;
+  gap:24px;
+  align-items:stretch;
+}
+
+/* Card base */
+.tsCard{
+  background:#ffffff;
+  border-radius:22px;
+  box-shadow:0 20px 45px rgba(0,0,0,.08);
+  overflow:hidden;
   display:flex;
   flex-direction:column;
-  justify-content:flex-start;
-  gap: 10px;
-}
-.tsSchool{
-  font-weight: 400;
-  font-size: 28px;
-  color:#0f172a;
-}
-.tsDate{
-  width: fit-content;
-  padding: 8px 20px;
-  border-radius: 999px;
-  background: #E0EBFF;
-  font-weight: 400;
-  font-size: 18px;
-  color:#111827;
-}
-.tsText{
-  font-weight: 300;
-  color:#475569;
-  line-height: 1.5;
-  font-size: 16px;
-  margin-top: 20px;
-
-  /* ✅ กันข้อความยาวดันการ์ด */
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 6;
-  -webkit-box-orient: vertical;
+  transition:.3s ease;
 }
 
-/* ฝั่งขวา (ภาพ) */
-.tsRight{
-  /* background:#f1f5f9; */
-  height: 100%;
+/* Center is emphasized */
+.tsCardMain{
+  transform:scale(1.05);
+  z-index:2;
 }
-.tsRight img{
+
+.tsCardSide{
+  opacity:.35;
+  transform:scale(.95);
+}
+
+/* Image on top (fixed height = same size) */
+.tsImageWrap{
+  width:100%;
+  height:220px;           /* ปรับได้ เช่น 200/240 */
+  overflow:hidden;
+  background:#f1f5f9;
+}
+
+.tsImageWrap img{
   width:100%;
   height:100%;
-  object-fit: cover;   
+  object-fit:cover;
+  object-position:center 30%;
   display:block;
+  transition:.4s ease;
 }
 
-/* จุด dots ใต้การ์ด */
-.tsDots{
-  position:absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
+.tsCardMain .tsImageWrap img{
+  transform:scale(1.05);
+}
+
+.tsImgPlaceholder{
+  width:100%;
+  height:100%;
+  background:linear-gradient(135deg,#e5e7eb,#f3f4f6);
+}
+
+/* Content */
+.tsCardInner{
+  padding:26px;
   display:flex;
-  gap: 8px;
-  align-items:center;
-  justify-content:center;
+  flex-direction:column;
+  text-align:center;
+  flex:1;
 }
 
-.tsDots .dot{
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(245,158,11,.45);
-  margin-top: 10px;
+.tsTextQuote{
+  font-size:16px;
+  line-height:1.8;
+  color:#475569;
+  font-style:italic;
+  margin-top:12px;
+
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:6;
+  -webkit-box-orient:vertical;
 }
-.tsDots .dot.active{
-  background: #f59e0b;
+
+.tsName{
+  margin-top:18px;
+  font-weight:700;
+  color:#1d4ed8;
+  font-size:18px;
 }
-.footDesc{
-  font-size: 24px;
-  margin-bottom: 12px;
+
+.tsSub{
+  margin-top:6px;
+  font-size:14px;
+  color:#94a3b8;
 }
-.footer .footCol a {
-  font-size: 24px;
-}
-#contactfooter{
-  font-size: 24px;
-  font-family: 'Kanit', sans-serif;
-}
-/* responsive */
+
+/* Responsive */
 @media (max-width: 980px){
-  .tsWrap{ padding: 6px 14px 22px; }
-  .tsArrowLeft{ left: 6px; }
-  .tsArrowRight{ right: 6px; }
+  .tsTitle{ font-size:28px; }
+  .tsQuoteMark{ font-size:60px; }
 
-  .tsCard{
-    grid-template-columns: 1fr;
-    height: auto;
-    min-height: 0;
-  }
-  .tsRight{
-    height: 240px; /* ให้ภาพมีความสูงคงที่บนมือถือ */
-  }
-  .tsText{
-    -webkit-line-clamp: 8;
-  }
+  .tsStage{ grid-template-columns: 1fr; }
+  .tsCardSide{ display:none; }
+  .tsCardMain{ transform:scale(1); }
+
+  .tsImageWrap{ height:200px; }
 }
+
 
 /* ===== FOOTER ===== */
-.footer{
-  background: #87C7EB ;
+.footer {
+  background: #87C7EB;
   min-height: 250px;
   display: flex;
   /* บังคับให้กว้างเต็มจอเสมอ ไม่สนลูกใคร */
-  width: 100vw; 
-  
+  width: 100vw;
+
   /* เผื่อมี Parent padding แอบแฝง ใช้สูตรนี้จะทะลุออกมาเต็มจอ */
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
   justify-content: center;
   margin-top: 30px;
-  color:#fff;
+  color: #fff;
   display: flex;
-  
+
 }
-.footerInner{
-  width:100%;
+
+.footerInner {
+  width: 100%;
   max-width: 1440px;
   margin: 0 30px;
-  display:grid;
+  display: grid;
   grid-template-columns: 1.4fr 1fr 1fr;
-  gap:18px;
+  gap: 18px;
   padding: 30px 50px;
-  
+
 }
-.footBrand{ display:flex; gap:12px; align-items:flex-start; }
-.footLogo{ width:300px; height:auto; object-fit:contain; padding: 20px 0; }
-.footDesc{ font-weight:400; font-size: 18px; opacity:.92; line-height:1.4; }
-.footCol{ display:flex; flex-direction:column; gap:8px; }
-.footTitle{ font-weight:500; margin-bottom:6px; font-size: 28px; }
-.footCol a{ color:#fff; text-decoration:none; font-weight:400; font-size: 18px; opacity:.92; }
-.footCol a:hover{ text-decoration:underline; }
-.connect{
-    display: flex;
-    color: #fff;
-    font-size: 22px;
-    gap: 10px;
+
+.footBrand {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.footLogo {
+  width: 300px;
+  height: auto;
+  object-fit: contain;
+  padding: 20px 0;
+}
+
+.footDesc {
+  font-weight: 400;
+  font-size: 18px;
+  opacity: .92;
+  line-height: 1.4;
+}
+
+.footCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footTitle {
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 28px;
+}
+
+.footCol a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 400;
+  font-size: 18px;
+  opacity: .92;
+}
+
+.footCol a:hover {
+  text-decoration: underline;
+}
+
+.connect {
+  display: flex;
+  color: #fff;
+  font-size: 22px;
+  gap: 10px;
 }
 
 
 /* ===== Responsive ===== */
-@media (max-width: 980px){
-  .navLinks{ display:none; }
-  .statGrid{ grid-template-columns: 1fr; }
-  .stepsWrap{ flex-direction:column; }
-  .stepsSide{ width:auto; text-align:center; }
-  .stepsCards{ grid-template-columns: 1fr; }
-  .carouselCards{ grid-template-columns: 1fr; }
-  .grid3{ grid-template-columns: 1fr; }
-  .tsCard{ grid-template-columns: 1fr; }
-  .heroLeft h1{ font-size:34px; }
+@media (max-width: 980px) {
+  .navLinks {
+    display: none;
+  }
+
+  .statGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .stepsWrap {
+    flex-direction: column;
+  }
+
+  .stepsSide {
+    width: auto;
+    text-align: center;
+  }
+
+  .stepsCards {
+    grid-template-columns: 1fr;
+  }
+
+  .carouselCards {
+    grid-template-columns: 1fr;
+  }
+
+  .grid3 {
+    grid-template-columns: 1fr;
+  }
+
+  .tsCard {
+    grid-template-columns: 1fr;
+  }
+
+  .heroLeft h1 {
+    font-size: 34px;
+  }
 }

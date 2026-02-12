@@ -57,16 +57,89 @@ export async function listSchools({ status = "", q = "", sort = "latest" } = {})
   };
 }
 
+// export async function approveSchool(school_id) {
+//   const [r] = await db.query(
+//     `UPDATE schools
+//      SET verification_status='approved', verification_note=NULL
+//      WHERE school_id=?`,
+//     [school_id]
+//   );
+//   if (r.affectedRows === 0) throw Object.assign(new Error("School not found"), { status: 404 });
+//   return { message: "Approved" };
+// }
+
 export async function approveSchool(school_id) {
-  const [r] = await db.query(
-    `UPDATE schools
-     SET verification_status='approved', verification_note=NULL
-     WHERE school_id=?`,
-    [school_id]
-  );
-  if (r.affectedRows === 0) throw Object.assign(new Error("School not found"), { status: 404 });
-  return { message: "Approved" };
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // 1) อัปเดตสถานะโรงเรียน
+    const [r] = await conn.query(
+      `UPDATE schools
+       SET verification_status='approved',
+           verification_note=NULL
+       WHERE school_id=?`,
+      [school_id]
+    );
+
+    if (r.affectedRows === 0) {
+      throw Object.assign(new Error("School not found"), { status: 404 });
+    }
+
+    // 2) อัปเดตสถานะผู้ประสานงานให้ active
+    await conn.query(
+      `UPDATE users
+       SET status='active'
+       WHERE role='school_admin' AND school_id=?`,
+      [school_id]
+    );
+
+    await conn.commit();
+    return { message: "Approved" };
+
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
 }
+
+export async function rejectSchool(school_id, note) {
+  if (!note) throw Object.assign(new Error("กรุณากรอกเหตุผลการปฏิเสธ"), { status: 400 });
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [sr] = await conn.query(
+      `UPDATE schools
+       SET verification_status='rejected', verification_note=?
+       WHERE school_id=?`,
+      [note, school_id]
+    );
+    if (sr.affectedRows === 0) {
+      throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
+    }
+
+    await conn.query(
+      `UPDATE users
+       SET status='rejected'
+       WHERE role='school_admin' AND school_id=?`,
+      [school_id]
+    );
+
+    await conn.commit();
+    return { message: "Rejected", school_id };
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+}
+
+
 
 export async function removeSchool(school_id) {
   const conn = await db.getConnection();

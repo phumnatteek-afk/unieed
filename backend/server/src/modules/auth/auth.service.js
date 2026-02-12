@@ -11,10 +11,10 @@ export async function registerSchoolOneStep(payload) {
   } = payload;
 
   if (!user_name || !user_email || !password) {
-    throw Object.assign(new Error("Missing user fields"), { status: 400 });
+    throw Object.assign(new Error("กรุณากรอกข้อมูลให้ครบ"), { status: 400 });
   }
   if (!school_name || !school_address) {
-    throw Object.assign(new Error("Missing school fields"), { status: 400 });
+    throw Object.assign(new Error("กรุณากรอกข้อมูลให้ครบ"), { status: 400 });
   }
 
   const [uExist] = await db.query("SELECT user_id FROM users WHERE user_email=?", [user_email]);
@@ -56,11 +56,37 @@ export async function registerSchoolOneStep(payload) {
   }
 }
 
-export async function login({ user_email, password }) {
+export async function registerGeneral(payload) {
+  const { user_name, user_email, password } = payload;
+
   if (!user_email || !password) {
-    throw Object.assign(new Error("Missing fields"), { status: 400 });
+    throw Object.assign(new Error("กรุณากรอกข้อมูลให้ครบ"), { status: 400 });
   }
 
+  const [uExist] = await db.query(
+    "SELECT user_id FROM users WHERE user_email=?",
+    [user_email]
+  );
+  if (uExist.length)
+    throw Object.assign(new Error("Email already used"), { status: 409 });
+
+  const password_hash = await hashPassword(password);
+
+  await db.query(
+    `INSERT INTO users
+      (user_name, user_email, password_hash, role, status)
+     VALUES (?, ?, ?, 'user', 'active')`,
+    [user_name || null, user_email, password_hash]
+  );
+
+  return { message: "Register success" };
+}
+
+
+export async function login({ user_email, password }) {
+  if (!user_email || !password) {
+    throw Object.assign(new Error("กรุณากรอกข้อมูลให้ครบ"), { status: 400 });
+  }
   const [rows] = await db.query(
     "SELECT user_id, user_name, user_email, password_hash, role, school_id, status FROM users WHERE user_email=?",
     [user_email]

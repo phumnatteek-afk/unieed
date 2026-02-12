@@ -15,40 +15,76 @@ export default function LoginPage() {
   const submit = async (e) => {
     e.preventDefault();
     setErr("");
-    try {
-      const data = await loginService({ user_email, password });
 
-      if (data.requires_school_check) {
-        nav("/school/pending", { state: data });
+    try {
+      const res = await loginService({ user_email, password }); // ✅ ใช้ res
+
+      // ✅ ถ้าโรงเรียนยังไม่ผ่านการอนุมัติ → ไปหน้า pending พร้อม state
+      if (res?.requires_school_check) {
+        nav("/school/pending", {
+          state: {
+            status: res.verification_status,
+            note: res.verification_note,
+          },
+        });
         return;
       }
 
-      login({ token: data.token, role: data.role, user_name: data.user_name });
+      // ✅ login ปกติ
+      login({ token: res.token, role: res.role, user_name: res.user_name });
 
-      if (data.role === "admin") nav("/admin/schools");
-      else if (data.role === "school_admin") nav("/school/welcome");
+      if (res.role === "admin") nav("/admin/schools");
+      else if (res.role === "school_admin") nav("/school/welcome");
       else nav("/");
-    } catch (e) {
-      setErr(e?.data?.message || e.message);
+    } catch (e2) {
+      setErr(e2?.data?.message || e2?.message || "เข้าสู่ระบบไม่สำเร็จ");
     }
   };
 
   return (
-    <div className="auth-page">
-      <div className="authCard">
-        <h2>เข้าสู่ระบบ</h2>
-        {err && <div className="error">{err}</div>}
-
-        <form onSubmit={submit}>
-          <input value={user_email} onChange={(e)=>setEmail(e.target.value)} placeholder="อีเมล" />
-          <input value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="รหัสผ่าน" type="password" />
-          <button type="submit">เข้าสู่ระบบ</button>
-        </form>
-
-        <div className="links">
-          <a href="/register">ลงทะเบียน</a>
-        </div>
-      </div>
+   <div className="lgPage">
+  <div className="lgCard">
+    <div className="lgHeader">
+      <h2 className="lgTitle">เข้าสู่ระบบ</h2>
+      {/* <p className="lgSubtitle">กรอกข้อมูลเพื่อเข้าใช้งานระบบ</p> */}
     </div>
+
+    {err && <div className="lgAlert lgAlert--error">{err}</div>}
+
+    <form className="lgForm" onSubmit={submit}>
+      <div className="lgField">
+        <label className="lgLabel">อีเมล</label>
+        <input
+          className="lgInput"
+          value={user_email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="name@email.com"
+        />
+      </div>
+
+      <div className="lgField">
+        <label className="lgLabel">รหัสผ่าน</label>
+        <input
+          className="lgInput"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          type="password"
+        />
+      </div>
+
+      <button type="submit" className="lgBtn">
+        เข้าสู่ระบบ
+      </button>
+    </form>
+
+    <div className="lgFooter">
+      ยังไม่มีบัญชี? |
+      <a href="/register" className="lgLink">
+        ลงทะเบียน
+      </a>
+    </div>
+  </div>
+</div>
   );
 }

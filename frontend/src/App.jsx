@@ -16,7 +16,6 @@ import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import AdminLoginPage from "./features/admin/pages/AdminLoginPage.jsx";
 import AdminBackofficePage from "./features/admin/pages/AdminBackofficePage.jsx";
 import AdminSchoolsPage from "./features/admin/pages/AdminSchoolsPage.jsx";
-import AdminSchoolDetailPage from "./features/admin/pages/AdminSchoolDetailPage.jsx";
 import AdminGuard from "./routes/AdminGuard.jsx";
 import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
 import "./App.css";
@@ -54,7 +53,7 @@ export default function App() {
                 <Route path="/admin" element={<Navigate to="/admin/backoffice" replace />} />
                 <Route path="/admin/backoffice" element={<AdminBackofficePage />} />
                 <Route path="/admin/schools" element={<AdminSchoolsPage />} />
-                <Route path="/admin/schools/:id" element={<AdminSchoolDetailPage />} />
+    
               </Route>
             </Route>
 

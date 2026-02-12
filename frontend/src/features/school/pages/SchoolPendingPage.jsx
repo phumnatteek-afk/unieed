@@ -1,7 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/school.css";
 // icon
-import { Icon } from "@iconify/react";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+
+import { faCircleXmark, faClock } from "@fortawesome/free-solid-svg-icons";
+
 
 export default function SchoolPendingPage() {
   const { state } = useLocation();
@@ -14,16 +17,30 @@ export default function SchoolPendingPage() {
     status === "approved"
       ? "อนุมัติแล้ว"
       : status === "rejected"
-      ? "ไม่ผ่านการยืนยัน"
-      : "รอการตรวจสอบ";
+        ? "ไม่ผ่านการยืนยัน"
+        : "รอการตรวจสอบ";
 
+  const statusConfig = {
+    rejected: {
+      label: "ไม่ผ่านการยืนยัน",
+      icon: <FontAwesomeIcon icon={faCircleXmark} />,
+      className: "status-rejected"
+    },
+    pending: {
+      label: "รอการตรวจสอบ",
+      icon: <FontAwesomeIcon icon={faClock} />,
+      className: "status-pending"
+    }
+  };
+  const currentStatus = statusConfig[status] || statusConfig.pending;
   return (
     <div className="pendingPage">
       <div className="pendingCard">
         <h2 className="pendingTitle">สถานะการยืนยันโรงเรียน</h2>
 
-        <div className={`pendingStatus ${status}`}>
-          <Icon icon="ic:outline-pending-actions" /> สถานะ: {statusLabel}
+        <div className={`pendingStatus ${status} flex items-center gap-2`}>
+          {currentStatus.icon}
+          <span>สถานะ: {currentStatus.label}</span>
         </div>
 
         {status === "pending" && (
@@ -34,6 +51,13 @@ export default function SchoolPendingPage() {
           </p>
         )}
 
+
+        {status === "rejected" && (
+          <p className="pendingDesc">
+            การยืนยันโรงเรียนของท่าน <b>ไม่ผ่านการตรวจสอบ</b> กรุณาดูเหตุผลด้านล่าง
+            และสามารถกลับไปแก้ไข/ยื่นเอกสารใหม่ได้
+          </p>
+        )}
         {note && <div className="pendingNote">หมายเหตุ: {note}</div>}
 
         <div className="pendingActions">

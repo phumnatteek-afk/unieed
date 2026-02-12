@@ -11,6 +11,9 @@ export async function uploadSchoolDoc(file) {
     resource_type: "auto"
   });
 
-  return { url: result.secure_url, public_id: result.public_id };
+  return {
+    school_doc_url: result.secure_url,
+    school_doc_public_id: result.public_id,
+  };
 }
 

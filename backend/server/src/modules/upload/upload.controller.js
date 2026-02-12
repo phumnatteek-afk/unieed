@@ -30,3 +30,23 @@ export async function uploadImage(req, res, next) {
     next(err);
   }
 }
+// ✅ เพิ่มใหม่: ใช้กับเอกสารโรงเรียน (คืน key ให้ตรงกับ DB)
+export async function uploadSchoolDoc(req, res, next) {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const b64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    const result = await cloudinary.uploader.upload(b64, {
+      folder: "unieed/school_docs",
+      resource_type: "auto", // รองรับ pdf/jpg/png ฯลฯ
+    });
+
+    return res.json({
+      school_doc_url: result.secure_url,
+      school_doc_public_id: result.public_id,
+    });
+  } catch (err) {
+    next(err);
+  }
+}

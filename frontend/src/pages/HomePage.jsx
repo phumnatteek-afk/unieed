@@ -16,6 +16,7 @@ import { faFacebook, faLine } from "@fortawesome/free-brands-svg-icons";
   rel="stylesheet"
   href="https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css"
 ></link>;
+import { Icon } from "@iconify/react";
 
 export default function HomePage() {
   const { token, role, userName, logout } = useAuth();
@@ -128,16 +129,17 @@ export default function HomePage() {
   }, [testimonials, tsIndex]);
 
   const tsPrev = () => {
-    const len = testimonials.length;
-    if (len <= 1) return;
-    setTsIndex((i) => (i - 1 + len) % len);
-  };
+  const len = testimonials?.length || 0;
+  if (len <= 1) return;
+  setTsIndex((i) => (i - 1 + len) % len);
+};
 
-  const tsNext = () => {
-    const len = testimonials.length;
-    if (len <= 1) return;
-    setTsIndex((i) => (i + 1) % len);
-  };
+const tsNext = () => {
+  const len = testimonials?.length || 0;
+  if (len <= 1) return;
+  setTsIndex((i) => (i + 1) % len);
+};
+
 
   const steps = [
     {
@@ -229,8 +231,8 @@ export default function HomePage() {
               <a className="pill pillYellow" href="#projects">
                 {" "}
                 <svg
-                  width="59"
-                  height="52"
+                  width="30"
+                  height="30"
                   viewBox="0 0 59 52"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -262,8 +264,8 @@ export default function HomePage() {
               </a>
               <a className="pill pillWhite" href="#market">
                 <svg
-                  width="59"
-                  height="60"
+                  width="30"
+                  height="30"
                   viewBox="0 0 59 60"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -486,33 +488,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== Steps ===== */}
-      <section className="steps">
-        <div className="stepsWrap">
-          <div className="stepsSide">
-            <div className="stepsBig">
-              3 ขั้นตอน !<br />
-              บริจาคง่ายๆ
-            </div>
-            <div className="stepsHint">กรณีมีชุดอยู่แล้ว</div>
-          </div>
-
-          <div className="stepsCards">
-            {steps.map((s) => (
-              <div className="stepCard" key={s.no}>
-                <div className="stepPic">
-                  <img src={s.pic} />
-                </div>
-                {/* <div className="stepNo">{s.no}.</div> */}
-                <div className="stepTitle">
-                  {s.no}. {s.title}
-                </div>
-                <div className="stepDesc">{s.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+    
 
       {/* ===== Projects (Smooth Carousel) ===== */}
       <section id="projects" className="section sectionBlue">
@@ -520,7 +496,7 @@ export default function HomePage() {
           <h3>
             โครงการขอรับบริจาค{" "}
             <span>
-              <i class="fi fi-rs-school"></i>
+              <Icon icon="hugeicons:school" width="50" height="50" />
             </span>
           </h3>
           <button className="btnGhost" type="button">
@@ -667,61 +643,92 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ===== Testimonials ===== */}
-      <section className="section sectionSoftBlue">
-        <div className="sectionHead">
-          <h3>ความประทับใจจากโรงเรียน</h3>
-        </div>
-
-        {!currentTs ? (
-          <div className="muted">ยังไม่มีรีวิวจากโรงเรียน</div>
-        ) : (
-          <div className="tsWrap">
-            <button
-              className="tsArrow tsArrowLeft"
-              onClick={tsPrev}
-              aria-label="prev"
-            >
-              ‹
-            </button>
-
-            <div className="tsCard">
-              <div className="tsLeft">
-                <div className="tsSchool">
-                  {currentTs.school_name}ได้รับชุดแล้ว!
-                </div>
-                <div className="tsDate">
-                  {formatThaiDate(currentTs.review_date)}
-                </div>
-                <div className="tsText">{currentTs.review_text}</div>
-              </div>
-
-              <div className="tsRight">
-                {currentTs.image_url ? (
-                  <img src={currentTs.image_url} alt={currentTs.school_name} />
-                ) : (
-                  <div className="thumbPlaceholder" />
-                )}
-              </div>
+      {/* ===== Steps ===== */}
+      <section className="steps">
+        <div className="stepsWrap">
+          <div className="stepsSide">
+            <div className="stepsBig">
+              3 ขั้นตอน !<br />
+              บริจาคง่ายๆ
             </div>
-            <button
-              className="tsArrow tsArrowRight"
-              onClick={tsNext}
-              aria-label="next"
-            >
-              ›
-            </button>
-            <div className="tsDots">
-              {testimonials.slice(0, 3).map((_, i) => (
-                <span
-                  key={i}
-                  className={`dot ${i === tsIndex % 3 ? "active" : ""}`}
-                />
-              ))}
-            </div>
+            <div className="stepsHint">กรณีมีชุดอยู่แล้ว</div>
           </div>
-        )}
+
+          <div className="stepsCards">
+            {steps.map((s) => (
+              <div className="stepCard" key={s.no}>
+                <div className="stepPic">
+                  <img src={s.pic} />
+                </div>
+                {/* <div className="stepNo">{s.no}.</div> */}
+                <div className="stepTitle">
+                  {s.no}. {s.title}
+                </div>
+                <div className="stepDesc">{s.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
+
+      
+
+      {/* ===== Testimonials ===== */}
+      {/* ===== Testimonials ===== */}
+<section className="section sectionSoftBlue">
+  <div className="tsHead">
+    <div className="tsQuoteMark"><Icon icon="bi:quote" width="50" height="50" /></div>
+    <h3 className="tsTitle">ความประทับใจของโรงเรียน</h3>
+
+    <div className="tsControls">
+      <button className="tsNav tsNavLeft" onClick={tsPrev} aria-label="prev">
+        ‹
+      </button>
+      <button className="tsNav tsNavRight" onClick={tsNext} aria-label="next">
+        ›
+      </button>
+    </div>
+  </div>
+
+  {!testimonials.length ? (
+    <div className="muted">ยังไม่มีรีวิวจากโรงเรียน</div>
+  ) : (() => {
+      const len = testimonials.length;
+      const getTs = (i) => testimonials[(i + len) % len];
+
+      const leftTs = getTs(tsIndex - 1);
+      const midTs = getTs(tsIndex);
+      const rightTs = getTs(tsIndex + 1);
+
+      const renderCard = (item, variant) => (
+        <div className={`tsCard ${variant}`} aria-hidden={variant === "tsCardSide"}>
+          <div className="tsImageWrap">
+            {item?.image_url ? (
+              <img src={item.image_url} alt={item.school_name || "โรงเรียน"} />
+            ) : (
+              <div className="tsImgPlaceholder" />
+            )}
+          </div>
+
+          <div className="tsCardInner">
+            <div className="tsTextQuote">“{item?.review_text || ""}”</div>
+            <div className="tsName">{item?.school_name || "โรงเรียน"}</div>
+            <div className="tsSub">{formatThaiDate(item?.review_date)}</div>
+          </div>
+        </div>
+      );
+
+      return (
+        <div className="tsStage">
+          {renderCard(leftTs, "tsCardSide")}
+          {renderCard(midTs, "tsCardMain")}
+          {renderCard(rightTs, "tsCardSide")}
+        </div>
+      );
+    })()
+  }
+</section>
+
 
       {/* ===== Footer ===== */}
       <footer id="about" className="footer">

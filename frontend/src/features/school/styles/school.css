@@ -221,18 +221,20 @@ height: auto;
   color: #374151;
   font-size: 14.5px;
   line-height: 1.55;
-  border: 1px solid #eef2f7;
+  /* border: 1px solid #eef2f7; */
 }
 
 /* Note */
 .pendingNote {
   background: #f9fafb;
-  border-left: 4px solid #e5e7eb;
+  /* border-left: 4px solid #e5e7eb; */
+  border: 1px solid #eef2f7;
   padding: 12px 14px;
   border-radius: 10px;
   font-size: 14px;
   color: #374151;
   margin-bottom: 18px;
+
 }
 
 /* Actions */
