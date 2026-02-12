@@ -218,6 +218,7 @@
 
 .heroLeft {
   margin: 50px 80px;
+  width: 100%;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .18);
   line-height: 20px;
@@ -243,16 +244,21 @@
 
 .heroActions {
   /* position: relative; */
-  top: 70%;
+  margin-top: 240px;
   display: flex;
+    /* กำหนดขอบเขตเนื้อหาตามที่คุณต้องการ */
+  /* max-width: 1440px; */
+  width: 100%;
+  justify-content: flex-end;
+  /* จัดกึ่งกลางหน้าจอ */
+  padding: 0;
   /* flex-direction: column;  */
   /* justify-content: flex-end; */
   gap: 20px;
-  text-align: right;
-  padding-right: 40px;
-  position: absolute;
-  right: 30px;
 
+  padding-right: 110px;
+  position: relative;
+  /* right: 30px; */
 }
 
 
@@ -352,7 +358,8 @@
 }
 
 .statGrid {
-  width: 80%;
+  width: 90%;
+  gap: 20px;
   margin: 20px auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -420,9 +427,8 @@
 
 /* ===== STEPS ===== */
 .steps {
-max-width: 1440px;
   background: #E0EBFF;
-
+width: 100vw;
   /* เผื่อมี Parent padding แอบแฝง ใช้สูตรนี้จะทะลุออกมาเต็มจอ */
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
@@ -432,6 +438,7 @@ max-width: 1440px;
 
 .stepsWrap {
   width: 100%;
+  max-width: 1440px;
   margin: 0 auto;
   display: flex;
   gap: 18px;
@@ -469,7 +476,7 @@ max-width: 1440px;
   flex: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  /* gap: 14px; */
+  gap: 14px;
 
 }
 
@@ -481,7 +488,9 @@ max-width: 1440px;
   box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
   justify-content: center;
   text-align: center;
-  max-width: 300px;
+  max-width: 400px;
+  width: 307px;
+  height: 250px;
 }
 
 /* .stepNo {
@@ -491,15 +500,13 @@ max-width: 1440px;
   font-size: 24px;
 } */
 
+.stepPic svg, 
 .stepPic img {
-  margin-top: 30px;
-  width: 90px;
-   height: 60px; 
+  margin-top: 15px;
 }
-
 .stepTitle {
   font-weight: 500;
-  font-size: 20px;
+  font-size: 24px;
   margin-bottom: 3px;
   color: #000;
   position: relative;
@@ -552,7 +559,15 @@ max-width: 1440px;
   font-weight: 500;
   color: #5285E8;
 }
-
+.sectionHead h3 span{
+  display: inline-flex;   /* จัดให้กล่องมันยืดหยุ่น */
+  align-items: center;    /* จัดกึ่งกลางในตัวมันเอง */
+  
+  /* --- พระเอกของเรา --- */
+  /* ค่าบวก (+) = ขยับลง */
+  /* ค่าลบ (-) = ขยับขึ้น */
+  transform: translateY(3px);
+}
 .btnGhost {
   border: 0;
   background: #fbbf24;
