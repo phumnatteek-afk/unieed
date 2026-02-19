@@ -8,8 +8,10 @@
 .homePage {
   width: 100%;
   color: var(--text);
-  background: #fff;
+  background-color: #fff; 
   margin: 0 auto;
+  background:linear-gradient(270deg, hsla(201, 100%, 78%, 0.15) 0%, hsla(54, 100%, 86%, 0.15) 99%);;
+  
 }
 
 /* ===== TOP BAR ===== */
@@ -89,21 +91,47 @@
   align-items: center;
   gap: 10px;
 }
+.userNameText {
+  font-size: 25px;
+  display: inline-block;
+  color: #FFFFFF;
+  /* สำหรับภาษาไทย บางฟอนต์อาจต้องขยับขึ้นเล็กน้อยเพื่อให้ดูกึ่งกลางสายตา */
+  transform: translateY(-1px); 
+}
 
-.hello {
+/* .hello {
   color: #fff;
   font-weight: 700;
   font-size: 22px;
   opacity: .95;
   white-space: nowrap;
+} */
+.hello {
+  display: flex;
+  align-items: center;
+  /* font-size: 22px; */
+  gap: 10px;        
+  color:#ffff ;
+  font-weight: 700;
+  margin-right: 15px;
+}
+.iconBorder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;            /* ขนาดวงกลมด้านนอก */
+  height: 35px;
+  border-radius: 50%;     /* ทำให้เป็นวงกลมเป๊ะ */
+  color: #ffff;         /* สีของตัวไอคอนข้างใน */
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3); /* เงาบางๆ ให้ดูมีมิติ */
 }
 
 .navBtn {
   height: 28px;
-  padding: 22px 20px;
+  padding: 18px 17px;
   border-radius: 999px;
-  font-weight: 400;
-  font-size: 16px;
+  font-weight: 500;
+  font-size: 14px;
   border: 0;
   cursor: pointer;
   text-decoration: none;
@@ -242,7 +270,7 @@
 
 .heroActions {
   /* position: relative; */
-  margin-top: 240px;
+  margin-top: 220px;
   display: flex;
     /* กำหนดขอบเขตเนื้อหาตามที่คุณต้องการ */
   /* max-width: 1440px; */
@@ -298,7 +326,7 @@
   box-shadow: 0 10px 20px rgba(0, 0, 0, .12);
   text-shadow: none;
   position: relative;
-  bottom: 50px;
+  bottom: 20px;
 }
 
 .text-ban a {
@@ -337,7 +365,7 @@
 /* ===== STATS ===== */
 .stats {
   margin-top: 10px;
-  padding: 50px 18px 24px;
+  padding: 50px 18px 2px;
   text-align: center;
 }
 
@@ -356,12 +384,12 @@
 }
 
 .statGrid {
-  width: 70%;
-  gap: 20px;
+  width: 65%;
+  gap: 18px;
   margin: 20px auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  padding: 0 100px; 
+  padding: 0 10px; 
 }
 
 .statCard {
@@ -533,11 +561,11 @@ width: 100vw;
 }
 
 .sectionBlue {
-  background: #ffffff;
+  /* background: #ffffff; */
 }
 
 .sectionSoftBlue {
-  background: #dbeafe;
+  /* background: #dbeafe; */
 }
 
 .sectionHead {
@@ -555,7 +583,8 @@ width: 100vw;
   margin: 0;
   font-size: 36px;
   font-weight: 500;
-  color: #5285E8;
+  /* color: #5285E8; */
+  color:#1d4ed8;
 }
 .sectionHead h3 span{
   display: inline-flex;   /* จัดให้กล่องมันยืดหยุ่น */
@@ -575,7 +604,12 @@ width: 100vw;
   border-radius: 999px;
   font-weight: 400;
   cursor: pointer;
+}.btnGhost:hover{
+  color: #fbbf24;
+  background: #fff;
+
 }
+
 
 /* ===== CAROUSEL PROJECTS ===== */
 /* ===== CAROUSEL PROJECTS (SMOOTH) ===== */
@@ -638,6 +672,8 @@ width: 100vw;
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
+  gap: 20px;
+  width: 100%;
 }
 
 .projCardGhost {
@@ -655,7 +691,8 @@ width: 100vw;
 }
 
 .thumb {
-  height: 220px;
+  width: 100%;
+  height: 240px;
   background: #eef2ff;
 }
 
@@ -674,7 +711,7 @@ width: 100vw;
 
 .projBody {
   width: 100%;
-  padding: 20px;
+  padding: 20px 15px;
 }
 
 .projTitle {
@@ -692,16 +729,18 @@ width: 100vw;
 .projBottom {
   display: flex;
   justify-content: space-between;
-  margin: 15px 0;
+  margin: 18px 0 20px;
 }
-
 .projBottom button {
   background-color: #FFBE1B;
-  padding: 8px 30px;
+  padding: 5px 23px;
   font-size: 24px;
   font-weight: 300;
   color: #fff;
 
+}
+.projBottom button:hover{
+  background-color: #fce29f;
 }
 
 .projFilled {
@@ -717,19 +756,27 @@ width: 100vw;
 
 
 /* ===== MARKET ===== */
+#market {
+  margin-top: 100px;
+  padding: 0 50px 40px;
+
+  /* background-color: #fff; */
+}
 .grid3 {
   width: 100%;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   /* padding: 12px 30px; */
   justify-items: center;
   align-items: center;
+  
 }
 
 .productCard {
   background: #fff;
-  width: 400px;
+  width: 300px;
+  height: 470px;
   border: 0.001px solid#d9d9d9;
   border-radius: 14px;
   overflow: hidden;
@@ -738,9 +785,10 @@ width: 100vw;
 }
 
 .pThumb {
-  height: 300px;
+  width: 100%;
+  height: 290px;
   background: #f1f5f9;
-  border: 20px solid#fff;
+  border: 10px solid#fff;
 }
 
 .pThumb img {
@@ -751,12 +799,13 @@ width: 100vw;
 }
 
 .pBody {
-  padding: 10px 20px;
+  padding: 10px 12px;
   color: #000;
+  margin-left: 5px;
 }
 
 .pTitle {
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 500;
   margin-bottom: 6px;
 }
@@ -767,6 +816,8 @@ width: 100vw;
   border-radius: 40px;
   margin-right: 5px;
   font-weight: 200;
+  font-size: 14px;
+  margin-top: 10px;
 
 }
 
@@ -791,12 +842,13 @@ width: 100vw;
   background: #fbbf24;
   cursor: pointer;
   color: #fff;
+  margin-right: 8px ;
 }
 
 .cartBtn i {
   text-align: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 26px;
 
 }
 
@@ -855,13 +907,11 @@ width: 100vw;
 
 
 /* ===== TESTIMONIALS (match Figma) ===== */
-/* ===============================
-   TESTIMONIALS SECTION
-================================= */
+/* ==================== */
 
 
 .sectionSoftBlue{
-  background:#fff;
+  /* background:#fff; */
   padding:80px 0;
 }
 
@@ -884,7 +934,7 @@ width: 100vw;
 }
 
 .tsTitle{
-  font-size:36px;
+  font-size:38px;
   font-weight:700;
   letter-spacing:-0.02em;
   margin:0;
@@ -894,12 +944,12 @@ width: 100vw;
 
 .tsControls{
   display:flex;
-  gap:12px;
+  gap:16px;
 }
 
 .tsNav{
-  width:52px;
-  height:52px;
+  width:50px;
+  height:50px;
   border-radius:999px;
   background:transparent;
   border:2px solid #5285E8;

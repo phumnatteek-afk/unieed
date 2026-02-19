@@ -92,10 +92,10 @@ export async function login({ user_email, password }) {
     [user_email]
   );
   const u = rows[0];
-  if (!u) throw Object.assign(new Error("Invalid credentials"), { status: 401 });
+  if (!u) throw Object.assign(new Error("ข้อมูลไม่ถูกต้อง"), { status: 401 });
 
   const ok = await verifyPassword(password, u.password_hash);
-  if (!ok) throw Object.assign(new Error("Invalid credentials"), { status: 401 });
+  if (!ok) throw Object.assign(new Error("ข้อมูลไม่ถูกต้อง"), { status: 401 });
 
   if (u.status === "banned") throw Object.assign(new Error("Account banned"), { status: 403 });
 

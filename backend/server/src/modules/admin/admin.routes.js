@@ -5,6 +5,7 @@ import { adminListSchools, adminApproveSchool, adminRemoveSchool } from "./admin
 import { adminOverview } from "./admin.controller.js";
 import { adminRejectSchool } from "./admin.controller.js";
 
+
 const r = Router();
 
 r.get("/schools", auth, requireRole(["admin"]), adminListSchools);

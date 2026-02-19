@@ -1,8 +1,13 @@
 /* ===== Backoffice Layout ===== */
+
+
+
 .admPage {
     display: flex;
     min-height: 100vh;
-    background: #f6f7fb;
+    background: #f6f7fb; 
+    /* background: #1f7a3a; */
+
 }
 
 .admSide {
@@ -270,12 +275,12 @@ border: 1px solid#2e6be6;
 }
 
 .admCard {
-    width: 1000px;
+     width: 1040px; 
     background: #fff;
     border-radius: 14px;
     border: 1px solid #e9ecf2;
     box-shadow: 0 6px 10px rgba(16, 24, 40, .06);
-    padding: 10px;
+    padding: 10px 5px;
 
 }
 

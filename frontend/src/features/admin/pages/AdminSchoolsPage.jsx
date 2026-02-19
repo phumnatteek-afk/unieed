@@ -153,7 +153,7 @@ export default function AdminSchoolsPage() {
   }, [page, totalPages]);
 
   return (
-    <div className="boPage">
+    <div className="admPage">
       <main className="boMain">
         <div className="boTop">
           <div className="boTitle">จัดการโรงเรียน</div>

@@ -71,7 +71,7 @@ export default function SchoolWelcomePage() {
               <h2 className="swSub">{schoolName || "ชื่อโรงเรียน"}</h2>
 
               <button className="swCTA" onClick={() => nav("/school/request/new")}>
-                สร้างโพสต์ขอรับบริจาคได้เลยที่นี่
+                เข้าสู่ระบบบันทึก
               </button>
             </div>
           )}

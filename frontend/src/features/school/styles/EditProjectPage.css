@@ -1,0 +1,259 @@
+/* src/pages/school/styles/editProject.css */
+
+/* ===== Edit Project Page ===== */
+.epPage{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  padding: 24px;
+  min-height: calc(100vh - 80px);
+  background:#f6f7fb;
+}
+
+.epLeft, .epRight{
+  background:#fff;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .08);
+}
+.epRight{
+    background: none;
+    box-shadow: none;
+}
+
+/* ===== Left: Form ===== */
+.epLeft h2{
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.epField{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.epField label{
+  font-size: 13px;
+  color:#334155;
+  font-weight: 700;
+}
+
+.epLeft input,
+.epLeft textarea,
+.epLeft select{
+  width:100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 12px;
+  font-size: 14px;
+  outline: none;
+  background:#fff;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.epLeft textarea{
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.epLeft input:focus,
+.epLeft textarea:focus,
+.epLeft select:focus{
+  border-color:#60a5fa;
+  box-shadow: 0 0 0 4px rgba(96,165,250,.18);
+}
+
+.epHint{
+  font-size: 12px;
+  color:#64748b;
+  margin-top: -2px;
+}
+
+.epError{
+  background:#fff1f2;
+  border:1px solid #fecdd3;
+  color:#9f1239;
+  padding: 12px 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+/* ===== Buttons ===== */
+.epActions{
+  display:flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.epBtn{
+  border:0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor:pointer;
+}
+
+.epBtnPrimary{
+  background:#2563eb;
+  color:#fff;
+  box-shadow: 0 10px 20px rgba(37,99,235,.22);
+}
+.epBtnPrimary:hover{
+  background:#f1f5f9;
+  color:#2563eb
+}
+.epBtnPrimary:disabled{
+  opacity:.75;
+  cursor:not-allowed;
+  box-shadow:none;
+}
+
+.epBtnGhost{
+  background:#f1f5f9;
+  color:#0f172a;
+}
+
+/* ===== Right: Preview ===== */
+.epRightHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom: 12px;
+}
+
+.epRightHead .ttl{
+  font-weight: 900;
+  color:#0f172a;
+}
+
+.epPreviewWrap{
+  display:flex;
+  justify-content:center;
+}
+
+/* Card preview */
+.projectCard{
+  width: min(420px, 100%);
+  border-radius: 18px;
+  overflow:hidden;
+  border: 1px solid #eef2f7;
+  box-shadow: 0 12px 30px rgba(15,23,42,.10);
+  background:#fff;
+}
+
+.projectCard .cover{
+  width:100%;
+  height: 230px;
+  background:#e2e8f0;
+  position: relative;
+}
+
+.projectCard .cover img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  display:block;
+}
+
+.coverPlaceholder{
+  width:100%;
+  height:100%;
+  background: linear-gradient(135deg, #e2e8f0, #f1f5f9);
+}
+
+.projectCard .badgeRow{
+  position:absolute;
+  left: 14px;
+  bottom: 14px;
+  display:flex;
+  gap: 8px;
+  flex-wrap:wrap;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 12px;
+  backdrop-filter: blur(6px);
+  background: rgba(255,255,255,.88);
+  border: 1px solid rgba(226,232,240,.9);
+  color:#0f172a;
+}
+
+.badgeDot{
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background:#94a3b8;
+}
+
+.dotGreen{ background:#16a34a; }
+.dotGray{ background:#94a3b8; }
+.dotYellow{ background:#f59e0b; }
+.dotBlue{ background:#4f46e5; }
+
+.cardBody{
+  padding: 16px;
+}
+
+.cardTitle{
+  font-weight: 600;
+  font-size: 16px;
+  color:#0f172a;
+  margin-bottom: 8px;
+}
+
+.cardDesc{
+  color:#475569;
+  font-size: 13px;
+  display:-webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow:hidden;
+  /* border-bottom: 1px solid#e9e9e9; */
+
+}
+
+.cardMeta{
+  margin-top: 12px;
+  color:#64748b;
+  font-size: 12px;
+  display:flex;
+  gap: 10px;
+  flex-wrap:wrap;
+}
+
+.cardSchool{
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 10px;
+  font-size: 1px;
+}
+
+.cardAddr{
+  color:#64748b;
+  font-size: 13px;
+  margin-top: 15px;
+  line-height: 1.5;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 980px){
+  .epPage{
+    grid-template-columns: 1fr;
+  }
+  .epPreviewWrap{
+    justify-content: flex-start;
+  }
+}

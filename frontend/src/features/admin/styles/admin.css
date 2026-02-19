@@ -457,7 +457,7 @@ textarea{
 .boShell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 300px 1fr;
   background: #ffffff;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
@@ -539,6 +539,11 @@ height: auto;
   padding: 28px 36px;
 }
 
+.boPage{
+  width: 100%;
+}
+
+
 /* Page header */
 .boTop {
   width: 100%;
@@ -594,7 +599,7 @@ height: auto;
   border: 1px solid rgba(0,0,0,0.08);
   box-shadow: 1px 3px 2px rgba(0,0,0,0.08);
   padding: 22px 22px 28px;
-  max-width: 1040px;
+  width: 1040px;
 }
 
 .boPanelTitle {

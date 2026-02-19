@@ -1,0 +1,101 @@
+/* Page */
+.srpPage{
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Card */
+.srpCard{
+  width: min(720px, 100%);
+  background: #fff;
+  border: 1px solid #eef0f4;
+  border-radius: 16px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.06);
+  padding: 18px 18px 20px;
+}
+
+.srpTitle{
+  margin: 0 0 14px;
+  font-size: 22px;
+  font-weight: 900;
+  color: #123a52;
+}
+
+/* Error */
+.srpError{
+  background: #ffe4e6;
+  color: #b91c1c;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+/* Form */
+.srpForm{display:flex; flex-direction:column; gap: 12px;}
+.srpField{display:flex; flex-direction:column; gap: 6px;}
+
+.srpLabel{
+  font-size: 13px;
+  font-weight: 900;
+  color: #2b2f36;
+}
+
+.srpReq{ color: #ef4444; }
+
+/* Inputs */
+.srpInput,
+.srpTextarea{
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d7dbe3;
+  border-radius: 12px;
+  outline: none;
+  font-size: 14px;
+}
+
+.srpTextarea{ resize: vertical; min-height: 110px; }
+
+.srpInput:focus,
+.srpTextarea:focus{
+  border-color: #6aa7ff;
+  box-shadow: 0 0 0 4px rgba(106,167,255,.18);
+}
+
+/* File input */
+.srpFile{
+  padding: 10px 0;
+}
+
+/* Preview */
+.srpPreviewWrap{
+  margin-top: 8px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #eef0f4;
+}
+
+.srpPreviewImg{
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Button */
+.srpBtn{
+  margin-top: 4px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  padding: 11px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 1000;
+}
+
+.srpBtn:disabled{
+  opacity: .6;
+  cursor: not-allowed;
+}

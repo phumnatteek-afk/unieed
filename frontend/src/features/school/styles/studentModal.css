@@ -1,0 +1,114 @@
+.smOverlay{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.35);
+  display:flex; align-items:center; justify-content:center;
+  z-index:9999;
+}
+.smModal{
+  width:min(980px, 92vw);
+  max-height:86vh;
+  background:#fff;
+  border-radius:18px;
+  box-shadow:0 18px 60px rgba(0,0,0,.25);
+  overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.smHead{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 18px;
+  border-bottom:1px solid #eee;
+}
+.smTitle{font-size:18px; font-weight:800;}
+.smClose{
+  border:none; background:transparent; font-size:18px; cursor:pointer;
+  width:36px; height:36px; border-radius:10px;
+}
+.smClose:hover{background:#f3f4f6;}
+.smBody{padding:16px 18px; overflow:auto;}
+.smGrid{
+  display:grid;
+  grid-template-columns: 2fr 1fr 1fr 1.2fr;
+  gap:12px;
+}
+.smField label{display:block; font-size:12px; color:#555; margin-bottom:6px;}
+.smField input, .smField select{
+  width:100%; padding:10px 12px;
+  border:1px solid #d7dbe3; border-radius:12px;
+  outline:none;
+}
+.smField input:focus, .smField select:focus{
+  border-color:#6aa7ff;
+  box-shadow:0 0 0 4px rgba(106,167,255,.18);
+}
+.smSection{margin-top:14px;}
+.smSectionHead{display:flex; align-items:center; justify-content:space-between; margin:8px 0 10px;}
+.smSectionTitle{font-weight:800;}
+.smBtnAdd{
+  border:none; padding:10px 12px; border-radius:12px;
+  background:#f1f5ff; color:#2b5cff; cursor:pointer; font-weight:700;
+}
+.smNeedCard{
+  border:1px solid #eef0f4;
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:10px;
+}
+.smNeedGrid{
+  display:grid;
+  grid-template-columns: 1.5fr .9fr .8fr 1fr;
+  gap:12px;
+}
+.smSupportRow{
+  margin-top:20px;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.smToggle{display:flex; gap:14px; align-items:center;}
+.smRadio{display:flex; gap:8px; align-items:center; font-weight:700; color:#333;}
+.smRadio input{
+    max-width:fit-content;
+}
+.smYears{display:flex; align-items:center; gap:8px; font-weight:700;}
+.smYears input{
+  width:90px;
+  padding:8px 10px;
+  border:1px solid #d7dbe3; border-radius:12px;
+}
+.smBtnRemove{
+  border:none; padding:8px 10px; border-radius:12px;
+  background:#fff1f2; color:#b42318; cursor:pointer; font-weight:800;
+}
+.smFoot{
+  padding:14px 18px;
+  border-top:1px solid #eee;
+  display:flex; justify-content:flex-end; gap:10px;
+}
+.smBtnGhost{
+  border:1px solid #d7dbe3;
+  background:#fff;
+  padding:10px 14px;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:800;
+  color:#3b82f6 ;
+}
+.smBtnPrimary{
+  border:none;
+  background:#3b82f6;
+  color:#fff;
+  padding:10px 14px;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:900;
+}
+.smBtnPrimary:disabled{
+  opacity: 0.9;; cursor:not-allowed;
+}
+.smBtnPrimary:hover{
+    background-color: #9a9a9a;
+}
+.smRadio{
+    max-width: 200px ;
+    padding: 0 10px;
+}

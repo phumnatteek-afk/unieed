@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { auth } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 import authRoutes from "./modules/auth/auth.routes.js";
@@ -13,7 +14,7 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 app.use("/auth", authRoutes);
-app.use("/school", schoolRoutes);
+app.use("/school", auth, schoolRoutes);
 app.use("/admin", adminRoutes);
 app.use("/upload", uploadRoutes);
 app.use("/", homeRoutes);

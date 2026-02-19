@@ -49,3 +49,28 @@ export function postJson(path, body, auth = true) {
 export function getOverview() {
   return request("/admin/overview", { method: "GET", auth: true });
 }
+
+const uploadImage = async (file) => {
+  const fd = new FormData();
+  fd.append("image", file);
+
+  setUploading(true);
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`http://localhost:3000/school/projects/${id}/image`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: fd,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || "Upload failed");
+
+    setImage(data.url); // ✅ เอา url จาก backend มาใส่ preview ทันที
+  } finally {
+    setUploading(false);
+  }
+};
