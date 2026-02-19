@@ -3,6 +3,16 @@
 
 * {
   box-sizing: border-box;
+
+}
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  /* เอาสี Gradient มาแปะตรงนี้ครับ */
+  background: linear-gradient(270deg, hsla(201, 100%, 78%, 0.15) 0%, hsla(54, 100%, 86%, 0.15) 99%);
+  background-attachment: fixed; /* ล็อกสีไม่ให้ขาดตอน */
 }
 
 .homePage {
@@ -10,8 +20,8 @@
   color: var(--text);
   background-color: #fff; 
   margin: 0 auto;
-  background:linear-gradient(270deg, hsla(201, 100%, 78%, 0.15) 0%, hsla(54, 100%, 86%, 0.15) 99%);;
-  
+  background: linear-gradient(270deg, hsla(201, 100%, 78%, 0.15) 0%, hsla(54, 100%, 86%, 0.15) 99%);
+  background-attachment: fixed; /* ล็อกสีไม่ให้ขาดตอน */
 }
 
 /* ===== TOP BAR ===== */
@@ -365,41 +375,55 @@
 /* ===== STATS ===== */
 .stats {
   margin-top: 10px;
-  padding: 50px 18px 2px;
+  padding: 50px 0 50px;
   text-align: center;
 }
 
 .stats h2 {
   margin: 0;
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 400;
   color: #5285E8;
 }
 
 .stats .sub {
   margin: 6px 0 16px;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 100;
   color: #000;
 }
 
 .statGrid {
-  width: 65%;
-  gap: 18px;
+  /* 1. เอา width: 65%; ออก แล้วใช้ fit-content แทน */
+  /* fit-content จะล็อกความกว้างให้พอดีกับกล่อง 3 ใบรวมกัน ห้ามยืดห้ามหด */
+  width: fit-content; 
+  gap: 3px;
   margin: 20px auto;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  padding: 0 10px; 
+  grid-template-columns: repeat(3, 280px); /* ล็อกคอลัมน์ไว้ที่ 280px */
+  padding: 0; 
+  /* 2. จัดให้กล่องลูกอยู่กึ่งกลางคอลัมน์พอดีเป๊ะ */
+  justify-items: center; 
 }
 
 .statCard {
   border-radius: 17px;
-  width: 290px;
-  height: 290px;
-  padding: 18px 0;
+  /* 3. ล็อกขนาดกล่องลูกให้ตายตัว */
+  width: 260px;
+  height: 230px;
+  padding: 15px 0;
   border: 1px solid var(--line);
-  text-align: center;
+  
+  /* 4. บังคับไม่ให้ padding หรือ border ไปดันขนาดกล่องให้เพี้ยน */
+  box-sizing: border-box; 
+  
+  /* 5. ถ้าอยากให้เนื้อหาข้างในอยู่ตรงกลางทั้งแนวตั้งและแนวนอน ให้ใช้ Flexbox ช่วยครับ */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  
+  text-align: center;
   font-weight: 700;
   box-shadow: 0 2px 2px rgba(0, 0, 0, .12);
 }
@@ -417,21 +441,21 @@
 }
 
 .statValue1 {
-  font-size: 60px;
+  font-size: 56px;
   font-weight: 500;
   font-family: 'Kanit';
   margin-top: 4px;
 }
 
 .statValue {
-  font-size: 60px;
+  font-size: 56px;
   font-weight: 500;
   font-family: 'Kanit';
   margin-top: -8px;
 }
 
 .statLabel {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 200;
   color: #595959;
 }
@@ -474,9 +498,10 @@ width: 100vw;
 }
 
 .stepsSide {
-  width: 25%;
+  width: 20%;
   height: 100px;
-  padding: 14px 30px;
+  /* margin-top: -150px; */
+  /* padding: 14px 30px; */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -484,25 +509,27 @@ width: 100vw;
 
 .stepsBig {
   font-size: 30px;
-  font-weight: 500;
+  font-weight: 700;
   color: #5285E8;
   line-height: 1.1;
   text-align: center;
 }
 
-.stepsHint {
+/* .stepsHint {
   margin-top: 8px;
   font-size: 20px;
   font-weight: 400;
   color: #5285E8;
   text-align: center;
-}
+} */
 
 .stepsCards {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 180px);
   gap: 14px;
+  width: 292px;
+  height: 200px;
 
 }
 
@@ -514,9 +541,7 @@ width: 100vw;
   box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
   justify-content: center;
   text-align: center;
-  max-width: 400px;
-  width: 307px;
-  height: 250px;
+  
 }
 
 /* .stepNo {
@@ -531,8 +556,8 @@ width: 100vw;
   margin-top: 15px;
 }
 .stepTitle {
-  font-weight: 500;
-  font-size: 24px;
+  font-weight: 600;
+  font-size: 13px;
   margin-bottom: 3px;
   color: #000;
   position: relative;
@@ -541,9 +566,8 @@ width: 100vw;
 
 .stepDesc {
   max-width: 260px;
-  ;
-  font-weight: 400;
-  font-size: 14px;
+  font-weight: 500;
+  font-size: 10px;
   color: #475569;
   line-height: 1.5;
   margin: 0 auto;
@@ -599,18 +623,45 @@ width: 100vw;
   transform: translateY(3px);
 }
 .btnGhost {
-  border: 0;
-  background: #fbbf24;
-  color: #fff;
+  appearance: none;
+  font-family: inherit;
   height: 40px;
   padding: 0 20px;
   border-radius: 999px;
+  font-size: 18px;
   font-weight: 400;
   cursor: pointer;
-}.btnGhost:hover{
-  color: #fbbf24;
-  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
+  outline: none;
 
+  /* สีปกติ */
+  background: #fbbf24;
+  color: #fff;
+
+  /* 1. ล้างขอบจริงทิ้งไปให้หมด */
+  border: 0 !important; 
+  /* 2. สร้างเส้นขอบปลอมๆ (เงา) สีใสรอไว้ */
+  box-shadow: inset 0 0 0 1px transparent; 
+
+  transition: all 0.2s ease;
+}
+
+.btnGhost:hover {
+  background: #fff !important;
+  color: #fbbf24 !important;
+
+  /* 3. ล้างขอบจริงทิ้งให้ชัวร์ */
+  border: 0 !important; 
+  /* 4. เปลี่ยนสีเส้นขอบปลอม (เงา) เป็นสีเหลือง ขนาดปุ่มจะเท่าเดิมเป๊ะ! */
+  box-shadow: inset 0 0 0 1px #fbbf24 !important; 
+
+  /* 5. ล็อกพิกัดกันลอย (ที่คุณเทสแล้วว่าเวิร์ค) */
+  transform: none !important;
+  margin: 0 !important;
 }
 
 
