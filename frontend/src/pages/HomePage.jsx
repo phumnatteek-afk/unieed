@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef} from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getJson } from "../api/http.js";
 import "./styles/Homepage.css";
+
+
 
 // icon
 import { Icon } from "@iconify/react";
@@ -17,7 +19,6 @@ import { faFacebook, faLine } from "@fortawesome/free-brands-svg-icons";
   rel="stylesheet"
   href="https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css"
 ></link>;
-
 export default function HomePage() {
   const { token, role, userName, logout } = useAuth();
 
@@ -36,17 +37,35 @@ export default function HomePage() {
   // ===== Projects carousel (page-based, 2 cards/page)
   const [projPage, setProjPage] = useState(0);
   const [isSliding, setIsSliding] = useState(false);
+
+  // ===== Projects random + auto slide (เพิ่ม)
+  const [projectMode, setProjectMode] = useState("newest"); // "newest" | "random"
+  const [randomProjects, setRandomProjects] = useState([]);
+
+  const [autoPlay, setAutoPlay] = useState(true);
+  const autoTimerRef = useRef(null);
+  const AUTO_MS = 3500;
+
+  // ===== helper: shuffle (สุ่มครั้งเดียวแบบนิ่ง ไม่สุ่มใหม่ทุก render) (เพิ่ม)
+  function shuffleArray(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
   function formatThaiDate(dateStr) {
     if (!dateStr) return "";
-
     const date = new Date(dateStr);
-
     return date.toLocaleDateString("th-TH", {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
   }
+
   // ===== Testimonials slider
   const [tsIndex, setTsIndex] = useState(0);
 
@@ -57,23 +76,27 @@ export default function HomePage() {
         const data = await getJson("/home", false);
 
         setStats(data.stats || {});
-        setProjects(Array.isArray(data.projects) ? data.projects : []);
+
+        // ✅ projects: set ครั้งเดียว + สุ่มครั้งเดียวหลังโหลด
+        const list = Array.isArray(data.projects) ? data.projects : [];
+        setProjects(list);
+        setRandomProjects(shuffleArray(list));
+
         setProducts(Array.isArray(data.products) ? data.products : []);
-        setTestimonials(
-          Array.isArray(data.testimonials) ? data.testimonials : [],
-        );
+        setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  // ถ้าข้อมูล projects/testimonials เปลี่ยน (โหลดมาใหม่) ให้รีเซ็ต index ป้องกัน out-of-range
+  // ถ้า projects โหลดใหม่/เปลี่ยนจำนวน -> รีเซ็ตหน้า + สถานะ slide
   useEffect(() => {
     setProjPage(0);
     setIsSliding(false);
   }, [projects.length]);
 
+  // ถ้า testimonials เปลี่ยน -> รีเซ็ต index
   useEffect(() => {
     setTsIndex(0);
   }, [testimonials.length]);
@@ -106,23 +129,73 @@ export default function HomePage() {
     );
   };
 
-  // ===== Projects paging logic
-  const perPage = 2;
+  // ===== projects ที่ใช้ “แสดงผลจริง” (newest / random) (เพิ่ม)
+  const displayProjects = useMemo(() => {
+    if (!projects?.length) return [];
+
+    if (projectMode === "random") return randomProjects;
+
+    // newest: ถ้ามี created_at ใช้ created_at, ถ้าไม่มีก็ fallback request_id
+    return [...projects].sort((a, b) => {
+      const da = new Date(a.created_at || a.createdAt || 0).getTime();
+      const db = new Date(b.created_at || b.createdAt || 0).getTime();
+      if (da && db) return db - da;
+      return Number(b.request_id || 0) - Number(a.request_id || 0);
+    });
+  }, [projects, randomProjects, projectMode]);
+
+  // ถ้าโหมด/จำนวน display เปลี่ยน -> รีเซ็ตหน้า (เพิ่ม)
+  useEffect(() => {
+    setProjPage(0);
+    setIsSliding(false);
+  }, [displayProjects.length, projectMode]);
+
+  // ===== Projects paging logic (ปรับให้ใช้ displayProjects)
+  const perPage = 3;
   const projPages = useMemo(() => {
-    const len = projects?.length || 0;
+    const len = displayProjects?.length || 0;
     return Math.max(1, Math.ceil(len / perPage));
-  }, [projects]);
+  }, [displayProjects]);
+
+  // ===== auto slide: start/stop (เพิ่ม)
+  const stopAuto = () => {
+    if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+    autoTimerRef.current = null;
+  };
+
+  const startAuto = () => {
+    stopAuto();
+    if (!autoPlay) return;
+    if (projPages <= 1) return;
+
+    autoTimerRef.current = setInterval(() => {
+      // กันกรณีมี transition ค้าง: ไม่บังคับก็ได้ แต่ช่วยให้ไม่ตีกัน
+      setProjPage((p) => (p + 1) % projPages);
+    }, AUTO_MS);
+  };
+
+  const resetAuto = () => {
+    startAuto();
+  };
+
+  useEffect(() => {
+    startAuto();
+    return stopAuto;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, projPages, projectMode, displayProjects.length]);
 
   const goPrev = () => {
     if (isSliding || projPages <= 1) return;
     setIsSliding(true);
     setProjPage((p) => (p - 1 + projPages) % projPages);
+    resetAuto(); // ✅ กดเองแล้วรีเซ็ต auto
   };
 
   const goNext = () => {
     if (isSliding || projPages <= 1) return;
     setIsSliding(true);
     setProjPage((p) => (p + 1) % projPages);
+    resetAuto(); // ✅ กดเองแล้วรีเซ็ต auto
   };
 
   // ===== Testimonials logic (วนลูป ไม่ติดลบ)
@@ -511,103 +584,123 @@ export default function HomePage() {
 
       {/* ===== Projects (Smooth Carousel) ===== */}
       <section id="projects" className="section sectionBlue">
-        <div className="sectionHead">
-          <h3>
-            โครงการขอรับบริจาค{" "}
-            <span>
-              <Icon icon="hugeicons:school" width="50" height="50" />
-            </span>
-          </h3>
-          <button className="btnGhost" type="button">
-            ดูทั้งหมด
-          </button>
-        </div>
+  <div className="sectionHead">
+    <h3>
+      โครงการขอรับบริจาค{" "}
+      <span>
+        <Icon icon="hugeicons:school" width="50" height="50" />
+      </span>
+    </h3>
 
-        {loading ? (
-          <div className="muted">กำลังโหลด…</div>
+    {/* (optional) ถ้าอยากให้มีปุ่มสลับ newest/random ใส่ได้
+    <button
+      className="btnGhost"
+      type="button"
+      onClick={() => setProjectMode((m) => (m === "newest" ? "random" : "newest"))}
+    >
+      {projectMode === "newest" ? "สุ่มโครงการ" : "เรียงล่าสุด"}
+    </button>
+    */}
+
+    <button className="btnGhost" type="button">
+      ดูทั้งหมด
+    </button>
+  </div>
+
+  {loading ? (
+    <div className="muted">กำลังโหลด…</div>
+  ) : (
+    <div className="carouselRow">
+      <button
+        className="navArrow"
+        onClick={goPrev}
+        disabled={isSliding || projPages <= 1}
+        aria-label="prev"
+      >
+        ‹
+      </button>
+
+      {/* ✅ (1) เพิ่ม pause/resume ตอน hover */}
+      <div
+        className="carouselViewport"
+        onMouseEnter={() => setAutoPlay(false)}
+        onMouseLeave={() => setAutoPlay(true)}
+      >
+        {/* ✅ (2) ใช้ displayProjects แทน projects */}
+        {!displayProjects.length ? (
+          <div className="muted">ยังไม่มีโครงการในระบบ</div>
         ) : (
-          <div className="carouselRow">
-            <button
-              className="navArrow"
-              onClick={goPrev}
-              disabled={isSliding || projPages <= 1}
-              aria-label="prev"
-            >
-              ‹
-            </button>
+          <div
+            className="carouselTrack"
+            style={{ transform: `translateX(-${projPage * 100}%)` }}
+            onTransitionEnd={() => setIsSliding(false)}
+          >
+            {Array.from({ length: projPages }).map((_, pageIndex) => {
+              const start = pageIndex * perPage;
 
-            <div className="carouselViewport">
-              {!projects.length ? (
-                <div className="muted">ยังไม่มีโครงการในระบบ </div>
-              ) : (
-                <div
-                  className="carouselTrack"
-                  style={{ transform: `translateX(-${projPage * 100}%)` }}
-                  onTransitionEnd={() => setIsSliding(false)}
-                >
-                  {Array.from({ length: projPages }).map((_, pageIndex) => {
-                    const start = pageIndex * perPage;
-                    const slice = projects.slice(start, start + perPage);
+              {/* ✅ (3) slice จาก displayProjects */}
+              const slice = displayProjects.slice(start, start + perPage);
 
-                    return (
-                      <div className="carouselPage" key={pageIndex}>
-                        {slice.map((p) => (
-                          <div className="projCard" key={p.request_id}>
-                            <div className="thumb">
-                              {p.request_image_url ? (
-                                <img
-                                  src={p.request_image_url}
-                                  alt={p.request_title}
-                                />
-                              ) : (
-                                <div className="thumbPlaceholder" />
-                              )}
-                            </div>
-
-                            <div className="projBody">
-                              <div className="projTitle">{p.request_title}</div>
-                              <div className="projMeta">
-                                <span>{p.school_name}</span>
-                                <span> จ.{p.school_address}</span>
-                              </div>
-
-                              <div className="projBottom">
-                                <div className="projFilled">
-                                  ยอดบริจาคปัจจุบัน{" "}
-                                  <span>
-                                    <b>{p.total_fulfilled || 0}</b>
-                                  </span>{" "}
-                                  ชิ้น
-                                </div>
-                                <button className="btnSend" type="button">
-                                  ส่งต่อ
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                        {slice.length < 2 && (
-                          <div className="projCard projCardGhost" />
+              return (
+                <div className="carouselPage" key={pageIndex}>
+                  {slice.map((p) => (
+                    <div className="projCard" key={p.request_id}>
+                      <div className="thumb">
+                        {p.request_image_url ? (
+                          <img
+                            src={p.request_image_url}
+                            alt={p.request_title}
+                          />
+                        ) : (
+                          <div className="thumbPlaceholder" />
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
 
-            <button
-              className="navArrow"
-              onClick={goNext}
-              disabled={isSliding || projPages <= 1}
-              aria-label="next"
-            >
-              ›
-            </button>
+                      <div className="projBody">
+                        <div className="projTitle">{p.school_name}</div>
+                        <div className="projMeta">
+                          <span>{p.request_title}</span>
+                        </div>
+                        <div className="adr">
+                          <span>ที่ตั้ง: {p.school_address}</span>
+                        </div>
+
+                        <div className="projBottom">
+                          <div className="projFilled">
+                            ยอดบริจาคปัจจุบัน{" "}
+                            <span>
+                              <b>{p.total_fulfilled || 0}</b>
+                            </span>{" "}
+                            ชิ้น
+                          </div>
+                          <button className="btnSend" type="button">
+                            ส่งต่อ
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {slice.length < 2 && <div className="projCard projCardGhost" />}
+                </div>
+              );
+            })}
           </div>
         )}
-      </section>
+      </div>
+
+      <button
+        className="navArrow"
+        onClick={goNext}
+        disabled={isSliding || projPages <= 1}
+        aria-label="next"
+      >
+        ›
+      </button>
+    </div>
+  )}
+</section>
+
 
       {/* ===== Steps ===== */}
       <section className="steps">

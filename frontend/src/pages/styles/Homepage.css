@@ -562,6 +562,9 @@ width: 100vw;
 
 .sectionBlue {
   /* background: #ffffff; */
+   /* background: #ffffff;
+  position: relative;
+  z-index: 1; */
 }
 
 .sectionSoftBlue {
@@ -633,16 +636,18 @@ width: 100vw;
   display: flex;
   width: 100%;
   will-change: transform;
-  transition: transform 420ms cubic-bezier(.22, .61, .36, 1);
+  /* transition: transform 420ms cubic-bezier(.22, .61, .36, 1); */
 }
 
 .carouselPage {
-  flex: 0 0 100%;
-  width: 150px;
-  height: 390px;
+   flex: 0 0 100%;
+  width: 100%;          /* ✅ จาก 190px เป็น 100% */
+  height: auto;         /* ✅ เอา 400px ออก ไม่ล็อคสูง */
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
+  background: transparent;
+  align-items: stretch; 
 }
 
 .navArrow {
@@ -671,9 +676,11 @@ width: 100vw;
   border: 1px solid var(--line);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .08);
   gap: 20px;
-  width: 100%;
+  width: 400px;
+  height: 420px;
+  padding-bottom: 30px;
 }
 
 .projCardGhost {
@@ -692,7 +699,7 @@ width: 100vw;
 
 .thumb {
   width: 100%;
-  height: 240px;
+  height: 260px;
   background: #eef2ff;
 }
 
@@ -706,36 +713,41 @@ width: 100vw;
 .thumbPlaceholder {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #e5e7eb, #f3f4f6);
+  /* background: linear-gradient(135deg, #e5e7eb, #f3f4f6); */
 }
 
 .projBody {
   width: 100%;
-  padding: 20px 15px;
+  padding: 20px 15px ;
 }
 
 .projTitle {
-  font-size: 24px;
+  font-size: 19px;
   color: #000;
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .projMeta {
-  font-size: 14px;
-  color: #000;
-  font-weight: 200;
+  font-size: 15px;
+  color: #525252;
+  font-weight: 400;
+}
+.adr{
+  font-size: 12px;
+  color: #999999;
+  margin-top: 12px;
 }
 
 .projBottom {
   display: flex;
   justify-content: space-between;
-  margin: 18px 0 20px;
+  margin: 5px 0 20px;
 }
 .projBottom button {
   background-color: #FFBE1B;
   padding: 5px 23px;
-  font-size: 24px;
-  font-weight: 300;
+  font-size: 20px;
+  font-weight: 400;
   color: #fff;
 
 }
@@ -745,7 +757,7 @@ width: 100vw;
 
 .projFilled {
   color: #000;
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .projFilled span {
@@ -757,7 +769,7 @@ width: 100vw;
 
 /* ===== MARKET ===== */
 #market {
-  margin-top: 100px;
+  margin-top: 50px;
   padding: 0 50px 40px;
 
   /* background-color: #fff; */
