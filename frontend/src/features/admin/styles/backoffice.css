@@ -591,3 +591,17 @@ border: 1px solid#2e6be6;
         transform: translateY(0);
     }
 }
+
+/* SchoolDetailModal overlay */
+.sdOverlay{
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
+
+/* Admin confirm/reject overlay ต้องสูงกว่า */
+.admModalOverlay{
+  position: fixed;
+  inset: 0;
+  z-index: 3000; /* สูงกว่า sdOverlay */
+}

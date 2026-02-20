@@ -278,6 +278,8 @@ export default function HomePage() {
             <a href="#projects">โครงการ</a>
             <a href="#market">ร้านค้า</a>
             <a href="#about">เกี่ยวกับเรา</a>
+            <button><a href="#" className="sell">ลงขาย</a></button>
+            
           </nav>
 
           {rightAccount()}

@@ -49,3 +49,31 @@ export async function adminRejectSchool(req, res, next) {
 }
 
 
+export async function getSchoolDetail(req, res, next) {
+  try {
+    const data = await svc.getSchoolDetail(req.params.id);
+    res.json(data);
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function updateSchool(req, res, next) {
+  try {
+    const data = await svc.updateSchool(req.params.id, req.body);
+    res.json(data);
+  } catch (e) {
+    next(e);
+  }
+}
+export async function adminUpdateSchool(req, res, next) {
+  try {
+    const data = await svc.adminUpdateSchool(req.params.id, req.body);
+    res.json(data);
+  } catch (e) {
+    next(e);
+  }
+}
+
+
+

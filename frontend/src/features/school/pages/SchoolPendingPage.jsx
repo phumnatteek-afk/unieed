@@ -17,7 +17,7 @@ export default function SchoolPendingPage() {
     status === "approved"
       ? "อนุมัติแล้ว"
       : status === "rejected"
-        ? "ไม่ผ่านการยืนยัน"
+        ? "รอพิจารณาใหม่"
         : "รอการตรวจสอบ";
 
   const statusConfig = {
@@ -45,7 +45,7 @@ export default function SchoolPendingPage() {
 
         {status === "pending" && (
           <p className="pendingDesc">
-            การลงทะเบียนของท่านอยู่ระหว่างการตรวจสอบเอกสาร
+            การลงทะเบียนของท่านอยู่ระหว่างการตรวจสอบ
             ระบบจะใช้ระยะเวลาในการพิจารณาประมาณ <b>3–5 วันทำการ</b>
             กรุณารอผลการตรวจสอบ และท่านจะได้รับการแจ้งผลเมื่อการพิจารณาเสร็จสิ้น
           </p>

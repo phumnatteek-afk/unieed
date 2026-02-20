@@ -254,7 +254,7 @@ export default function SchoolRequestManagePage() {
       <div className="pmTableCard">
         <div className="pmTableHead">
           <div className="pmTableTitle">
-            <span className="pmTableIcon">📄</span> รายชื่อนักเรียนในโครงการ
+            <span className="pmTableIcon"><Icon icon="gg:list" width="24" height="24" /></span> รายชื่อนักเรียนในโครงการ
           </div>
           <button className="pmBtnPrimary" onClick={onAdd} type="button">
             ➕ เพิ่มรายชื่อนักเรียน

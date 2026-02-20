@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { request } from "../../../api/http.js";
+// import { request } from "../../../api/http.js";
+import * as svc from "../services/auth.service.js"; // ปรับ path ให้ตรง
+
+
+
 import "../styles/auth.css";
 
 export default function RegisterGeneralPage() {
@@ -11,23 +15,20 @@ export default function RegisterGeneralPage() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
 
-  const submit = async (e) => {
-    e.preventDefault();
-    setErr("");
+const submit = async (e) => {
+  e.preventDefault();
+  setErr("");
 
-    try {
-      await request("/auth/register/general", {
-        method: "POST",
-        body: { user_name, user_email, password },
-        auth: false,
-      });
+  try {
+    await svc.registerGeneral({ user_name, user_email, password });
 
-      alert("สมัครสมาชิกสำเร็จ");
-      navigate("/login");
-    } catch (e) {
-      setErr(e?.data?.message || e.message);
-    }
-  };
+    alert("สมัครสมาชิกสำเร็จ");
+    navigate("/login");
+  } catch (e) {
+    setErr(e?.data?.message || e.message);
+  }
+};
+
 
   return (
  <div className="lgPage">

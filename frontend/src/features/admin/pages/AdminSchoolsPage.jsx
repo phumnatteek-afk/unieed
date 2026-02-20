@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as svc from "../services/admin.service.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
+import SchoolDetailModal from "../components/SchoolDetailModal.jsx";
 import "../styles/backoffice.css";
 import { Icon } from "@iconify/react";
 
@@ -16,25 +17,30 @@ export default function AdminSchoolsPage() {
   const [sort, setSort] = useState("latest");
   const [loading, setLoading] = useState(true);
 
-  // ✅ Pagination
+  // Pagination
   const PAGE_SIZE = 5;
   const [page, setPage] = useState(1);
 
-  // ✅ Modal state
+  // confirm/reject modals (เดิมของคุณ)
   const [confirmData, setConfirmData] = useState(null); // { type: "approve" | "remove", school_id }
   const [rejectData, setRejectData] = useState(null);   // { school_id }
   const [rejectNote, setRejectNote] = useState("");
 
-  // ✅ Toast
-  const [toast, setToast] = useState(null); // { type: "success" | "error", message }
+  // toast
+  const [toast, setToast] = useState(null);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 2500);
     return () => clearTimeout(t);
   }, [toast]);
 
-  // ✅ กันกดซ้ำตอนกำลังบันทึก
+  // กันกดซ้ำ
   const [actionLoading, setActionLoading] = useState(false);
+
+  // ✅ school detail modal
+  const [selectedSchool, setSelectedSchool] = useState(null);
+  const openSchoolModal = (s) => setSelectedSchool(s);
+  const closeSchoolModal = () => setSelectedSchool(null);
 
   const load = async () => {
     try {
@@ -50,46 +56,25 @@ export default function AdminSchoolsPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, status, sort]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, status, sort]);
+  useEffect(() => { setPage(1); }, [q, status, sort]);
 
-  // ✅ เวลา filter/ค้นหา เปลี่ยน ให้กลับไปหน้า 1 เสมอ
-  useEffect(() => {
-    setPage(1);
-  }, [q, status, sort]);
+  // open approve/reject/remove confirm
+  const onApprove = (school_id) => setConfirmData({ type: "approve", school_id });
+  const onRemove = (school_id) => setConfirmData({ type: "remove", school_id });
+  const onReject = (school_id) => { setRejectNote(""); setRejectData({ school_id }); };
 
-  // ✅ เปิด modal อนุมัติ
-  const onApprove = (school_id) => {
-    setConfirmData({ type: "approve", school_id });
-  };
-
-  // ✅ เปิด modal ปฏิเสธ
-  const onReject = (school_id) => {
-    setRejectNote("");
-    setRejectData({ school_id });
-  };
-
-  // ✅ เปิด modal นำออก
-  const onRemove = (school_id) => {
-    setConfirmData({ type: "remove", school_id });
-  };
-
-  // ✅ ยืนยัน (approve/remove)
   const handleConfirm = async () => {
     if (!confirmData || actionLoading) return;
-
     setActionLoading(true);
     try {
       if (confirmData.type === "approve") {
         await svc.approveSchool(confirmData.school_id);
         setToast({ type: "success", message: "อนุมัติสำเร็จ" });
-      } else if (confirmData.type === "remove") {
+      } else {
         await svc.removeSchool(confirmData.school_id);
         setToast({ type: "success", message: "นำออกสำเร็จ" });
       }
-
       setConfirmData(null);
       await load();
     } catch (e) {
@@ -99,10 +84,8 @@ export default function AdminSchoolsPage() {
     }
   };
 
-  // ✅ ยืนยันปฏิเสธ
   const handleRejectSubmit = async () => {
     if (!rejectData || actionLoading) return;
-
     const note = rejectNote.trim();
     if (!note) {
       setToast({ type: "error", message: "กรุณากรอกเหตุผลก่อนปฏิเสธ" });
@@ -113,7 +96,6 @@ export default function AdminSchoolsPage() {
     try {
       await svc.rejectSchool(rejectData.school_id, note);
       setToast({ type: "success", message: "ปฏิเสธเรียบร้อย" });
-
       setRejectData(null);
       setRejectNote("");
       await load();
@@ -127,15 +109,11 @@ export default function AdminSchoolsPage() {
   const statusBadge = (s) => {
     if (s === "pending") return <span className="admBadge admPending">รอตรวจสอบ</span>;
     if (s === "approved") return <span className="admBadge admApproved">อนุมัติแล้ว</span>;
-    if (s === "rejected") return <span className="admBadge admRejected">ปฏิเสธ</span>;
+    if (s === "rejected") return <span className="admBadge admRejected">รอพิจารณาใหม่</span>;
     return <span className="admBadge">-</span>;
   };
 
-  const canApprove = (s) => s === "pending";
-  const canRemove = (s) => s === "approved";
-
   const tableRows = useMemo(() => rows, [rows]);
-
   const totalPages = Math.max(1, Math.ceil(tableRows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
 
@@ -148,9 +126,28 @@ export default function AdminSchoolsPage() {
   const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
   const goPage = (p) => setPage(p);
 
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
+
+  // ✅ save edit from modal
+  const handleEditSave = async (school_id, payload) => {
+    if (actionLoading) return;
+
+    setActionLoading(true);
+    try {
+      await svc.updateSchool(school_id, payload);
+      setToast({ type: "success", message: "บันทึกข้อมูลโรงเรียนสำเร็จ" });
+
+      // อัปเดต selectedSchool ทันทีให้ UI ใน modal ไม่เด้งกลับ
+      setSelectedSchool((prev) => (prev ? { ...prev, ...payload } : prev));
+
+      await load();
+    } catch (e) {
+      setToast({ type: "error", message: e?.data?.message || e.message || "บันทึกไม่สำเร็จ" });
+      throw e; // ให้ modal รู้ว่าพัง (ถ้าคุณอยาก)
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <div className="admPage">
@@ -175,13 +172,11 @@ export default function AdminSchoolsPage() {
             <div className="admStatNum">{stats.total}</div>
             <div className="admStatSub">โรงเรียน</div>
           </div>
-
           <div className="admStatCard admStatWarn">
             <div className="admStatLabel">รอการตรวจสอบ</div>
             <div className="admStatNum">{stats.pending}</div>
             <div className="admStatSub">โรงเรียน</div>
           </div>
-
           <div className="admStatCard admStatOk">
             <div className="admStatLabel">อนุมัติแล้ว</div>
             <div className="admStatNum">{stats.approved}</div>
@@ -203,7 +198,7 @@ export default function AdminSchoolsPage() {
               <option value="">สถานะทั้งหมด</option>
               <option value="pending">รอตรวจสอบ</option>
               <option value="approved">อนุมัติแล้ว</option>
-              <option value="rejected">ปฏิเสธ</option>
+              <option value="rejected">รอพิจารณาใหม่</option>
             </select>
 
             <select value={sort} onChange={(e) => setSort(e.target.value)} className="admSelect">
@@ -231,7 +226,7 @@ export default function AdminSchoolsPage() {
                       <th>ที่อยู่</th>
                       <th>เอกสาร</th>
                       <th>สถานะ</th>
-                      <th>จัดการ</th>
+                      <th>ดูเพิ่มเติม</th>
                     </tr>
                   </thead>
 
@@ -253,7 +248,7 @@ export default function AdminSchoolsPage() {
                         <td>
                           {s.school_doc_url ? (
                             <a className="admDocBtn" href={s.school_doc_url} target="_blank" rel="noreferrer">
-                              🗂 ดูข้อมูล
+                              🗂 ดูเอกสาร
                             </a>
                           ) : (
                             <span className="admSmallMuted">-</span>
@@ -263,36 +258,10 @@ export default function AdminSchoolsPage() {
                         <td>{statusBadge(s.verification_status)}</td>
 
                         <td>
-                          {canApprove(s.verification_status) ? (
-                            <>
-                              <button
-                                className="admBtn admBtnSmall admBtnApprove"
-                                onClick={() => onApprove(s.school_id)}
-                                disabled={actionLoading}
-                              >
-                                อนุมัติ
-                              </button>
-
-                              <button
-                                className="admBtn admBtnSmall admBtnDanger"
-                                onClick={() => onReject(s.school_id)}
-                                disabled={actionLoading}
-                                style={{ marginLeft: 8 }}
-                              >
-                                ปฏิเสธ
-                              </button>
-                            </>
-                          ) : canRemove(s.verification_status) ? (
-                            <button
-                              className="admBtn admBtnSmall admBtnout"
-                              onClick={() => onRemove(s.school_id)}
-                              disabled={actionLoading}
-                            >
-                              นำออก
-                            </button>
-                          ) : (
-                            <span className="admSmallMuted">-</span>
-                          )}
+                          {/* ✅ แก้ row -> s */}
+                          <button className="btn btnGhost" onClick={() => openSchoolModal(s)}>
+                            ดูเพิ่มเติม
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -306,7 +275,7 @@ export default function AdminSchoolsPage() {
                 </table>
               </div>
 
-              {/* Pagination UI */}
+              {/* Pagination */}
               <div className="admPager">
                 <div className="admPagerNums">
                   {Array.from({ length: totalPages }).map((_, i) => {
@@ -336,7 +305,7 @@ export default function AdminSchoolsPage() {
           )}
         </section>
 
-        {/* Confirm Modal */}
+        {/* Confirm Modal (approve/remove) */}
         {confirmData && (
           <div className="admModalOverlay">
             <div className="admModal">
@@ -381,7 +350,18 @@ export default function AdminSchoolsPage() {
           </div>
         )}
 
-        {/* Toast */}
+        {/* ✅ School Detail Modal (ปุ่มอนุมัติ/ปฏิเสธ/นำออก อยู่ท้ายการ์ดในนี้) */}
+        <SchoolDetailModal
+          open={!!selectedSchool}
+          school={selectedSchool}
+          onClose={closeSchoolModal}
+          busy={actionLoading}
+          onEditSave={handleEditSave}
+          onApprove={(s) => onApprove(s.school_id)}
+          onReject={(s) => onReject(s.school_id)}
+          onRemove={(s) => onRemove(s.school_id)}
+        />
+
         {toast && <div className={`admToast ${toast.type}`}>{toast.message}</div>}
       </main>
     </div>

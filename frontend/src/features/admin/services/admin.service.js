@@ -1,29 +1,59 @@
 import { request } from "../../../api/http.js";
 
+/** GET /admin/schools?q=&status=&sort= */
 export function listSchools({ q = "", status = "", sort = "latest" } = {}) {
-  const qs = new URLSearchParams();
-  if (q) qs.set("q", q);
-  if (status) qs.set("status", status);
-  if (sort) qs.set("sort", sort);
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  if (status) params.set("status", status);
+  if (sort) params.set("sort", sort);
 
-  const suffix = qs.toString() ? `?${qs.toString()}` : "";
-  return request(`/admin/schools${suffix}`, { method: "GET", auth: true });
+  const qs = params.toString();
+  return request(`/admin/schools${qs ? `?${qs}` : ""}`, { method: "GET", auth: true });
 }
 
-export function approveSchool(school_id) {
-  return request(`/admin/schools/${school_id}/approve`, { method: "POST", auth: true });
+/** POST /admin/schools/:id/approve */
+export function approveSchool(id) {
+  return request(`/admin/schools/${id}/approve`, { method: "POST", auth: true });
 }
-export function rejectSchool(school_id, note) {
-  return request(`/admin/schools/${school_id}/reject`, {
+
+/** POST /admin/schools/:id/reject */
+export function rejectSchool(id, note) {
+  return request(`/admin/schools/${id}/reject`, {
     method: "POST",
     body: { note },
     auth: true,
   });
 }
-export function removeSchool(school_id) {
-  return request(`/admin/schools/${school_id}`, { method: "DELETE", auth: true });
+
+/** DELETE /admin/schools/:id */
+export function removeSchool(id) {
+  return request(`/admin/schools/${id}`, { method: "DELETE", auth: true });
 }
+
+/** GET /admin/overview */
 export function getOverview() {
   return request("/admin/overview", { method: "GET", auth: true });
+}
+
+/** GET /admin/schools/:id */
+export function getSchoolDetail(id) {
+  return request(`/admin/schools/${id}`, { method: "GET", auth: true });
+}
+
+/** PUT /admin/schools/:id */
+export function updateSchool(id, payload) {
+  return request(`/admin/schools/${id}`, {
+    method: "PUT",
+    body: payload,
+    auth: true,
+  });
+}
+
+export function updateSchoolAdmin(id, payload) {
+  return request(`/admin/schools/${id}`, {
+    method: "PATCH",
+    body: payload,
+    auth: true,
+  });
 }
 
