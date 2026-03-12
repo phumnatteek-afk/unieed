@@ -68,8 +68,8 @@ export default function SchoolPendingPage() {
             กลับไปยื่นเอกสาร/แก้ไข
           </button>
 
-          <button className="btn btnGhost" onClick={() => navigate("/login")}>
-            กลับไปหน้าเข้าสู่ระบบ
+          <button className="btn btnGhost" onClick={() => navigate("/")}>
+            กลับไปหน้าหลัก
           </button>
         </div>
       </div>

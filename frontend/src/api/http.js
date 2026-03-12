@@ -1,5 +1,4 @@
-
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = import.meta.env.VITE_API_BASE || "http://localhost:3000";
 
 export async function request(path, options = {}) {
   const { method = "GET", body, auth = true, headers: extraHeaders = {} } = options;

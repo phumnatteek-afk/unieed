@@ -118,8 +118,14 @@
   color: #222;
 }
 
+
 .sdVal--pre {
   white-space: pre-wrap;
+}
+.sdLink{
+    font-weight: 600;
+    color: dodgerblue;
+    text-decoration: underline;
 }
 
 /* ===== Inputs ===== */

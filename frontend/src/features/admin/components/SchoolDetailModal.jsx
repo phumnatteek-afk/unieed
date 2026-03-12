@@ -316,16 +316,6 @@ export default function SchoolDetailModal({
                 </div>
               </div>
 
-              <div className="sdInfoRow">
-                <div className="sdKey">เบอร์โทร</div>
-                <div className="sdVal">
-                  {editMode ? (
-                    <input className="sdInput" name="coordinator_phone" value={f.coordinator_phone} onChange={onChange} disabled={busy} placeholder="เว้นว่างได้" />
-                  ) : (
-                    school.coordinator_phone || "-"
-                  )}
-                </div>
-              </div>
 
 
               {/* ===== เอกสาร/หมายเหตุ ===== */}
@@ -365,7 +355,7 @@ export default function SchoolDetailModal({
             <div className="sdFooterRight">
               {status === "pending" && (
                 <>
-                  <button className="sdBtn sdBtn--bad" onClick={() => onReject?.(school)} disabled={busy} type="button">ปฏิเสธ</button>
+                  <button className="sdBtn sdBtn--bad" onClick={() => onReject?.(school)} disabled={busy} type="button">ไม่ผ่าน</button>
                   <button className="sdBtn sdBtn--ok" onClick={() => onApprove?.(school)} disabled={busy} type="button">อนุมัติ</button>
                 </>
               )}

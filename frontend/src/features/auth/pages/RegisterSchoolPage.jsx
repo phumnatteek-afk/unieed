@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as svc from "../services/auth.service.js";
-// import { request } from "../../../api/http.js";
-
-import { uploadSchoolDoc, uploadSchoolLogo } from "../../../api/upload.js"; // ✅ เพิ่มโลโก้
+import { uploadSchoolDoc, uploadSchoolLogo } from "../../../api/upload.js";
 import "../../auth/styles/auth.css";
 
 function normalizeThaiPhone(input) {
@@ -22,6 +20,9 @@ function normalizeThaiPhone(input) {
   return raw;
 }
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
 export default function RegisterSchoolPage() {
   const navigate = useNavigate();
@@ -33,12 +34,12 @@ export default function RegisterSchoolPage() {
     school_name: "",
     school_address: "",
     school_phone: "",
-    school_code: "",      // ✅ รหัสสถานศึกษา
+    school_code: "",
     school_intent: "",
   });
 
-  const [file, setFile] = useState(null);       // เอกสารยืนยันโรงเรียน
-  const [logoFile, setLogoFile] = useState(null); // ✅ โลโก้โรงเรียน
+  const [file, setFile] = useState(null);
+  const [logoFile, setLogoFile] = useState(null);
 
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
@@ -47,74 +48,87 @@ export default function RegisterSchoolPage() {
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const onSubmit = async (e) => {
-  e.preventDefault();
-  setErr("");
-  setOk("");
-  setLoading(true);
-
-  try {
-    // ---------- Required basic fields ----------
-    if (!form.user_name || !form.user_email || !form.password) {
-      setErr("กรุณากรอกข้อมูลผู้ดูแลให้ครบ");
-      return;
-    }
-
-    if (!form.school_name || !form.school_address) {
-      setErr("กรุณากรอกข้อมูลโรงเรียนให้ครบ");
-      return;
-    }
-
-    // ---------- Phone validation ----------
-    const normalizedPhone = normalizeThaiPhone(form.school_phone);
-
-    if (!normalizedPhone || !/^0\d{9}$/.test(normalizedPhone)) {
-      setErr("เบอร์โทรต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0");
-      return;
-    }
-
-    // ---------- School Code validation ----------
-    const schoolCodeDigits = String(form.school_code || "").replace(/\D/g, "");
-
-    if (!/^\d{10}$/.test(schoolCodeDigits)) {
-      setErr("รหัสสถานศึกษาต้องเป็นตัวเลข 10 หลักพอดี");
-      return;
-    }
-
-    // ---------- Upload doc ----------
-    let doc = { school_doc_url: null, school_doc_public_id: null };
-    if (file) {
-      setOk("กำลังอัปโหลดเอกสาร...");
-      doc = await uploadSchoolDoc(file);
-    }
-
-    // ---------- Upload logo ----------
-    let logo = { school_logo_url: null, school_logo_public_id: null };
-    if (logoFile) {
-      setOk("กำลังอัปโหลดโลโก้...");
-      logo = await uploadSchoolLogo(logoFile);
-    }
-
-    // ---------- Register ----------
-    setOk("กำลังส่งคำขอลงทะเบียน...");
-    await svc.registerSchoolOneStep({
-      ...form,
-      school_phone: normalizedPhone,
-      school_code: schoolCodeDigits,
-      ...doc,
-      ...logo,
-    });
-
-    setOk("ส่งคำขอสำเร็จ กำลังพาไปหน้าตรวจสอบสถานะ...");
-    setTimeout(() => navigate("/school/pending"), 600);
-
-  } catch (e2) {
-    setErr(e2?.data?.message || e2?.message || "ส่งคำขอไม่สำเร็จ");
+    e.preventDefault();
+    setErr("");
     setOk("");
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
 
+    try {
+      // ---------- Required basic fields ----------
+      const cleanName = form.user_name?.trim();
+      const cleanEmail = form.user_email?.trim().toLowerCase();
+      const cleanPassword = form.password || "";
+
+      if (!cleanName || !cleanEmail || !cleanPassword) {
+        setErr("กรุณากรอกข้อมูลผู้ดูแลให้ครบ");
+        return;
+      }
+
+      if (!isValidEmail(cleanEmail)) {
+        setErr("รูปแบบอีเมลไม่ถูกต้อง");
+        return;
+      }
+
+      if (cleanPassword.length < 6) {
+        setErr("รหัสผ่านต้องอย่างน้อย 6 ตัวอักษร");
+        return;
+      }
+
+      if (!form.school_name?.trim() || !form.school_address?.trim()) {
+        setErr("กรุณากรอกข้อมูลโรงเรียนให้ครบ");
+        return;
+      }
+
+      // ---------- Phone validation ----------
+      const normalizedPhone = normalizeThaiPhone(form.school_phone);
+      if (!normalizedPhone || !/^0\d{9}$/.test(normalizedPhone)) {
+        setErr("เบอร์โทรต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0");
+        return;
+      }
+
+      // ---------- School Code validation ----------
+      const schoolCodeDigits = String(form.school_code || "").replace(/\D/g, "");
+      if (!/^\d{10}$/.test(schoolCodeDigits)) {
+        setErr("รหัสสถานศึกษาต้องเป็นตัวเลข 10 หลักพอดี");
+        return;
+      }
+
+      // ---------- Upload doc ----------
+      let doc = { school_doc_url: null, school_doc_public_id: null };
+      if (file) {
+        setOk("กำลังอัปโหลดเอกสาร...");
+        doc = await uploadSchoolDoc(file);
+      }
+
+      // ---------- Upload logo ----------
+      let logo = { school_logo_url: null, school_logo_public_id: null };
+      if (logoFile) {
+        setOk("กำลังอัปโหลดโลโก้...");
+        logo = await uploadSchoolLogo(logoFile);
+      }
+
+      // ---------- Register ----------
+      setOk("กำลังส่งคำขอลงทะเบียน...");
+      await svc.registerSchoolOneStep({
+        ...form,
+        user_name: cleanName,
+        user_email: cleanEmail,
+        password: cleanPassword,
+        school_phone: normalizedPhone,
+        school_code: schoolCodeDigits,
+        ...doc,
+        ...logo,
+      });
+
+      setOk("ส่งคำขอสำเร็จ กำลังพาไปหน้าตรวจสอบสถานะ...");
+      setTimeout(() => navigate("/school/pending"), 600);
+    } catch (e2) {
+      setErr(e2?.data?.message || e2?.message || "ส่งคำขอไม่สำเร็จ");
+      setOk("");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="rsPage">
@@ -152,6 +166,8 @@ export default function RegisterSchoolPage() {
                 value={form.user_email}
                 onChange={onChange}
                 placeholder="name@email.com"
+                inputMode="email"
+                autoComplete="email"
               />
             </div>
 
@@ -164,6 +180,7 @@ export default function RegisterSchoolPage() {
                 value={form.password}
                 onChange={onChange}
                 placeholder="อย่างน้อย 6 ตัว"
+                autoComplete="new-password"
               />
             </div>
 
@@ -184,7 +201,6 @@ export default function RegisterSchoolPage() {
               />
             </div>
 
-            {/* ✅ เพิ่ม: รหัสสถานศึกษา */}
             <div className="rsField">
               <label className="rsLabel">รหัสสถานศึกษา</label>
               <input
@@ -219,7 +235,6 @@ export default function RegisterSchoolPage() {
               />
             </div>
 
-            {/* ✅ เพิ่ม: อัปโหลดโลโก้ */}
             <div className="rsField rsField--full">
               <label className="rsLabel">ตราโรงเรียน (ไฟล์รูป)</label>
 
@@ -235,9 +250,7 @@ export default function RegisterSchoolPage() {
               </label>
 
               {logoFile && (
-                <div className="rsHelper">
-                  แนะนำไฟล์ .png/.jpg ขนาดไม่เกิน ~2MB
-                </div>
+                <div className="rsHelper">แนะนำไฟล์ .png/.jpg ขนาดไม่เกิน ~2MB</div>
               )}
             </div>
 
@@ -253,11 +266,22 @@ export default function RegisterSchoolPage() {
                 <span className="rsFileBtn">เลือกไฟล์</span>
                 <span className="rsFileName">{file?.name || "ยังไม่ได้เลือกไฟล์"}</span>
               </label>
-              {logoFile && (
-                <div className="rsHelper">
-                  แนะนำไฟล์ .png/.pdf
-                </div>
-              )}
+
+              {/* ✅ แก้: ต้องเช็ค file ไม่ใช่ logoFile */}
+              {logoFile && <div className="rsHelper">แนะนำไฟล์ .png/.pdf</div>}
+            </div>
+
+            <div className="rsField rsField--full">
+              <label className="rsLabel">เหตุผล/ข้อความเพิ่มเติมถึงผู้ตรวจสอบ</label>
+              <textarea
+                className="rsTextarea"
+                name="school_intent"
+                value={form.school_intent}
+                onChange={onChange}
+                placeholder="เช่น วัตถุประสงค์การเข้าร่วมโครงการ, รายละเอียดเอกสารแนบ, หมายเหตุเพิ่มเติม ฯลฯ"
+                rows={5}
+              />
+              <div className="rsHelper">ข้อความนี้จะช่วยให้ทีมงานตรวจสอบได้เร็วและถูกต้องขึ้น</div>
             </div>
 
             <div className="rsActions">

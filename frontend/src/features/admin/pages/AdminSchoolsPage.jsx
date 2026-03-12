@@ -331,7 +331,7 @@ export default function AdminSchoolsPage() {
         {rejectData && (
           <div className="admModalOverlay">
             <div className="admModal">
-              <h3>แจ้งเหตุผลการปฏิเสธ</h3>
+              <h3>แจ้งเหตุผลการตรวจสอบ</h3>
               <textarea
                 value={rejectNote}
                 onChange={(e) => setRejectNote(e.target.value)}
@@ -343,7 +343,7 @@ export default function AdminSchoolsPage() {
                   ยกเลิก
                 </button>
                 <button onClick={handleRejectSubmit} className="admBtnDanger" disabled={actionLoading}>
-                  {actionLoading ? "กำลังบันทึก..." : "ปฏิเสธ"}
+                  {actionLoading ? "กำลังบันทึก..." : "บันทึก"}
                 </button>
               </div>
             </div>

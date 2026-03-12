@@ -8,17 +8,17 @@ import "@fontsource/prompt/400.css";
 import "@fontsource/prompt/500.css";
 import "@fontsource/prompt/600.css";
 import "@fontsource/prompt/700.css";
-
-// Import Mitr สำหรับภาษาไทย
 import "@fontsource/mitr/300.css";
 import "@fontsource/mitr/400.css";
 import "@fontsource/mitr/500.css";
 import "@fontsource/mitr/600.css";
 import "@fontsource/mitr/700.css";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <App />
+    </GoogleOAuthProvider>
   </React.StrictMode>
 );
-

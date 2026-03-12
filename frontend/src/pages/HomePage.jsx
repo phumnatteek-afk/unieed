@@ -381,7 +381,6 @@ export default function HomePage() {
             </a>
             <a href="#projects">โครงการ</a>
             <a href="#market">ร้านค้า</a>
-            <a href="#sell">ลงขาย</a>
             <a href="#about">เกี่ยวกับเรา</a>
             <button><a href="#" className="sell">ลงขาย</a></button>
             
