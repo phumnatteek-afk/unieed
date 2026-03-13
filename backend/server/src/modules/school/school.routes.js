@@ -16,6 +16,7 @@ import {
   createProject,
   listSchoolProjects,
   getLatestProject,
+  exportStudentsExcel,
 //   getProjectById,
 //   updateProject,
 //   uploadProjectImage,
@@ -32,6 +33,7 @@ r.get("/uniform-types", auth, requireRole(["school_admin"]), getUniformTypes);
 
 // ✅ ทุกอันนี้ใช้ req.user.school_id → ต้องมี auth
 r.get("/projects/:request_id/students", auth, requireRole(["school_admin"]), listProjectStudents);
+r.get("/projects/:request_id/students/export", auth, requireRole(["school_admin"]), exportStudentsExcel);
 r.post("/projects/:request_id/students", auth, requireRole(["school_admin"]), createStudentWithNeeds);
 r.put("/projects/:request_id/students/:student_id", auth, requireRole(["school_admin"]), updateStudentWithNeeds);
 r.delete("/projects/:request_id/students/:student_id", auth, requireRole(["school_admin"]), deleteStudent);

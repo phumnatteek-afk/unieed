@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getJson } from "../../../api/http.js"; // ✅ ปรับ path ถ้าไฟล์คุณอยู่คนละตำแหน่ง
+import { getBlob } from "../../../api/http.js"; // สำหรับ download Excel
 import { schoolRequestSvc } from "../services/schoolRequest.service.js";
 import StudentModal from "../components/StudentModal.jsx";
+import ExcelImportModal from "../components/ExcelImportModal.jsx";
 import "../styles/requestManage.css";
 
 import { Icon } from "@iconify/react";
@@ -60,6 +62,12 @@ export default function SchoolRequestManagePage() {
     // modal
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState(null);
+
+    // excel import modal
+    const [importOpen, setImportOpen] = useState(false);
+
+    // export
+    const [exporting, setExporting] = useState(false);
 
     const meta = projectStatusMeta(project?.status);
 
@@ -169,6 +177,24 @@ export default function SchoolRequestManagePage() {
         }
     };
 
+    const onExport = async () => {
+        if (exporting) return;
+        try {
+            setExporting(true);
+            const blob = await getBlob(`/school/projects/${requestId}/students/export`);
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement("a");
+            a.href     = url;
+            a.download = `unieed_${project?.request_title || requestId}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            alert(e?.data?.message || e.message || "Export ไม่สำเร็จ");
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
     <div className="pmPage">
       <div className="pmTop">
@@ -256,9 +282,26 @@ export default function SchoolRequestManagePage() {
           <div className="pmTableTitle">
             <span className="pmTableIcon"><Icon icon="gg:list" width="24" height="24" /></span> รายชื่อนักเรียนในโครงการ
           </div>
-          <button className="pmBtnPrimary" onClick={onAdd} type="button">
-            ➕ เพิ่มรายชื่อนักเรียน
-          </button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              className="pmBtnGhost"
+              onClick={onExport}
+              disabled={exporting || !rows.length}
+              type="button"
+              title="ดาวน์โหลดข้อมูลปัจจุบันเป็น Excel"
+            >
+              {exporting
+                ? "⏳ กำลัง Export..."
+                : <><Icon icon="mdi:microsoft-excel" width="18" height="18" /> Export Excel</>
+              }
+            </button>
+            <button className="pmBtnGhost" onClick={() => setImportOpen(true)} type="button">
+              <Icon icon="mdi:upload" width="18" height="18" /> Import จาก Excel
+            </button>
+            <button className="pmBtnPrimary" onClick={onAdd} type="button">
+              ➕ เพิ่มรายชื่อนักเรียน
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -355,6 +398,13 @@ export default function SchoolRequestManagePage() {
         onSave={onSave}
         uniformTypes={Array.isArray(uniformTypes) ? uniformTypes : []}
         initial={editing}
+      />
+
+      <ExcelImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        requestId={requestId}
+        onDone={loadStudentsAndTypes}
       />
     </div >
   );

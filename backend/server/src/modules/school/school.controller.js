@@ -522,3 +522,240 @@ export async function uploadProjectImage(req, res, next) {
   }
 }
 
+
+// ── Export นักเรียนทั้งหมดในโครงการเป็น Excel ────────────
+// GET /school/projects/:request_id/students/export
+// ใช้ library: exceljs  →  npm install exceljs
+export async function exportStudentsExcel(req, res, next) {
+  try {
+    const request_id = Number(req.params.request_id);
+    const school_id  = req.user.school_id;
+
+    // 1) ดึง project title
+    const [projRows] = await db.query(
+      `SELECT request_title FROM donation_request
+       WHERE request_id=? AND school_id=? LIMIT 1`,
+      [request_id, school_id]
+    );
+    if (!projRows[0]) return res.status(404).json({ message: "ไม่พบโครงการ" });
+    const projectTitle = projRows[0].request_title;
+
+    // 2) ดึง students
+    const [students] = await db.query(
+      `SELECT student_id, student_name, gender, education_level, urgency, created_at
+       FROM students
+       WHERE school_id=? AND request_id=?
+       ORDER BY created_at ASC`,
+      [school_id, request_id]
+    );
+
+    // 3) ดึง needs
+    const ids = students.map((s) => s.student_id);
+    let needsMap = new Map();
+    if (ids.length) {
+      const [needs] = await db.query(
+        `SELECT student_id, uniform_type_id, size,
+                quantity_needed, quantity_received,
+                status, support_mode, support_years
+         FROM student_need
+         WHERE school_id=? AND student_id IN (?)`,
+        [school_id, ids]
+      );
+      for (const n of needs) {
+        if (!needsMap.has(n.student_id)) needsMap.set(n.student_id, []);
+        needsMap.get(n.student_id).push(n);
+      }
+    }
+
+    // 4) สร้าง Excel ด้วย exceljs
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("รายชื่อนักเรียน");
+
+    // สีธีม Unieed
+    const BLUE      = "FF29B6E8";
+    const BLUE_DARK = "FF0E8BB5";
+    const BLUE_LT   = "FFE0F7FF";
+    const MALE_HD   = "FF1565C0";
+    const MALE_BG   = "FFE3F2FD";
+    const FEM_HD    = "FFAD1457";
+    const FEM_BG    = "FFFCE4EC";
+    const WHITE     = "FFFFFFFF";
+    const GRAY      = "FFF4F8FB";
+    const SUPP_BG   = "FFD6EEF8";
+
+    const thinBorder = {
+      top: { style: "thin", color: { argb: "FFC8E8F5" } },
+      left: { style: "thin", color: { argb: "FFC8E8F5" } },
+      bottom: { style: "thin", color: { argb: "FFC8E8F5" } },
+      right: { style: "thin", color: { argb: "FFC8E8F5" } },
+    };
+
+    // ── Row 1: Title ──────────────────────────────────────
+    ws.mergeCells("A1:O1");
+    const r1 = ws.getCell("A1");
+    r1.value = `🎒  Unieed — ${projectTitle}`;
+    r1.font = { name: "Arial", bold: true, size: 14, color: { argb: WHITE } };
+    r1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE } };
+    r1.alignment = { horizontal: "center", vertical: "middle" };
+    ws.getRow(1).height = 40;
+
+    // ── Row 2: Export date ────────────────────────────────
+    ws.mergeCells("A2:O2");
+    const r2 = ws.getCell("A2");
+    r2.value = `Export เมื่อ: ${new Date().toLocaleDateString("th-TH", {
+      year: "numeric", month: "long", day: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    })}  |  จำนวนนักเรียน: ${students.length} คน`;
+    r2.font = { name: "Arial", size: 9, italic: true, color: { argb: WHITE } };
+    r2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_DARK } };
+    r2.alignment = { horizontal: "center", vertical: "middle" };
+    ws.getRow(2).height = 18;
+
+    // ── Row 3: Section labels ─────────────────────────────
+    ws.mergeCells("A3:G3");
+    const s3a = ws.getCell("A3");
+    s3a.value = "👤  ข้อมูลนักเรียน";
+    s3a.font = { name: "Arial", bold: true, size: 9, color: { argb: WHITE } };
+    s3a.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_DARK } };
+    s3a.alignment = { horizontal: "center", vertical: "middle" };
+
+    ws.mergeCells("H3:K3");
+    const s3b = ws.getCell("H3");
+    s3b.value = "👦  ชุดนักเรียนชาย";
+    s3b.font = { name: "Arial", bold: true, size: 9, color: { argb: WHITE } };
+    s3b.fill = { type: "pattern", pattern: "solid", fgColor: { argb: MALE_HD } };
+    s3b.alignment = { horizontal: "center", vertical: "middle" };
+
+    ws.mergeCells("L3:O3");
+    const s3c = ws.getCell("L3");
+    s3c.value = "👧  ชุดนักเรียนหญิง";
+    s3c.font = { name: "Arial", bold: true, size: 9, color: { argb: WHITE } };
+    s3c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: FEM_HD } };
+    s3c.alignment = { horizontal: "center", vertical: "middle" };
+    ws.getRow(3).height = 18;
+
+    // ── Row 4: Column headers ─────────────────────────────
+    const headers = [
+      { col: "A", label: "#",                         bg: BLUE,    fg: WHITE  },
+      { col: "B", label: "ชื่อ-นามสกุล",              bg: BLUE,    fg: WHITE  },
+      { col: "C", label: "เพศ",                        bg: BLUE,    fg: WHITE  },
+      { col: "D", label: "ระดับชั้น",                  bg: BLUE,    fg: WHITE  },
+      { col: "E", label: "ความเร่งด่วน",               bg: BLUE,    fg: WHITE  },
+      { col: "F", label: "การรับ",                     bg: BLUE_DARK, fg: WHITE },
+      { col: "G", label: "จำนวนปี",                   bg: BLUE_DARK, fg: WHITE },
+      { col: "H", label: "รอบอก (cm)\nเสื้อชาย",      bg: MALE_BG,  fg: MALE_HD },
+      { col: "I", label: "จำนวน (ตัว)\nเสื้อชาย",     bg: MALE_BG,  fg: MALE_HD },
+      { col: "J", label: "รอบเอว (cm)\nกางเกงชาย",    bg: MALE_BG,  fg: MALE_HD },
+      { col: "K", label: "จำนวน (ตัว)\nกางเกงชาย",    bg: MALE_BG,  fg: MALE_HD },
+      { col: "L", label: "รอบอก (cm)\nเสื้อหญิง",     bg: FEM_BG,   fg: FEM_HD  },
+      { col: "M", label: "จำนวน (ตัว)\nเสื้อหญิง",    bg: FEM_BG,   fg: FEM_HD  },
+      { col: "N", label: "รอบเอว (cm)\nกระโปรงหญิง",  bg: FEM_BG,   fg: FEM_HD  },
+      { col: "O", label: "จำนวน (ตัว)\nกระโปรงหญิง",  bg: FEM_BG,   fg: FEM_HD  },
+    ];
+    ws.getRow(4).height = 42;
+    for (const h of headers) {
+      const c = ws.getCell(`${h.col}4`);
+      c.value = h.label;
+      c.font = { name: "Arial", bold: true, size: 9, color: { argb: h.fg } };
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: h.bg } };
+      c.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      c.border = thinBorder;
+    }
+
+    // ── Rows 5+: Data ─────────────────────────────────────
+    // map urgency / gender → ภาษาไทย
+    const URGENCY_TH = { very_urgent: "เร่งด่วนมาก", urgent: "เร่งด่วน", can_wait: "รอได้" };
+    const GENDER_TH  = { male: "ชาย", female: "หญิง" };
+
+    students.forEach((s, idx) => {
+      const rowNum = idx + 5;
+      const bg = idx % 2 === 0 ? GRAY : WHITE;
+      const needs = needsMap.get(s.student_id) || [];
+
+      // หา need ตาม uniform_type_id
+      const getNeed = (typeId) => needs.find((n) => n.uniform_type_id === typeId);
+      const getSize = (need, key) => {
+        if (!need) return "";
+        try {
+          const obj = typeof need.size === "string" ? JSON.parse(need.size) : need.size;
+          return obj?.[key] ?? "";
+        } catch { return ""; }
+      };
+
+      // support_mode — ใช้จาก need แรกที่มี
+      const firstNeed   = needs[0];
+      const supportMode = firstNeed?.support_mode === "recurring" ? "รับต่อเนื่อง" : "รับครั้งเดียว";
+      const supportYears= firstNeed?.support_mode === "recurring" ? (firstNeed.support_years || 1) : "";
+
+      const n1 = getNeed(1); // เสื้อชาย
+      const n3 = getNeed(3); // กางเกงชาย
+      const n2 = getNeed(2); // เสื้อหญิง
+      const n4 = getNeed(4); // กระโปรงหญิง
+
+      const rowData = [
+        idx + 1,
+        s.student_name,
+        GENDER_TH[s.gender] || s.gender,
+        s.education_level,
+        URGENCY_TH[s.urgency] || s.urgency,
+        supportMode,
+        supportYears,
+        getSize(n1, "chest"),
+        n1?.quantity_needed || "",
+        getSize(n3, "waist"),
+        n3?.quantity_needed || "",
+        getSize(n2, "chest"),
+        n2?.quantity_needed || "",
+        getSize(n4, "waist"),
+        n4?.quantity_needed || "",
+      ];
+
+      const cols = "ABCDEFGHIJKLMNO".split("");
+      rowData.forEach((val, ci) => {
+        const colLetter = cols[ci];
+        const isMale    = ["H","I","J","K"].includes(colLetter);
+        const isFemale  = ["L","M","N","O"].includes(colLetter);
+        const isSupport = ["F","G"].includes(colLetter);
+        const cellBg    = isMale ? (idx%2===0?"FFE3F2FD":"FFF3F8FF")
+                        : isFemale ? (idx%2===0?"FFFCE4EC":"FFFFF0F5")
+                        : isSupport ? (idx%2===0?"FFD6EEF8":"FFE4F4FB")
+                        : bg;
+
+        const c = ws.getCell(`${colLetter}${rowNum}`);
+        c.value = val === "" ? null : val;
+        c.font  = { name: "Arial", size: 10 };
+        c.fill  = { type: "pattern", pattern: "solid", fgColor: { argb: cellBg } };
+        c.alignment = { horizontal: ci === 1 ? "left" : "center", vertical: "middle" };
+        c.border = thinBorder;
+      });
+      ws.getRow(rowNum).height = 21;
+    });
+
+    // ── Column widths ─────────────────────────────────────
+    const widths = [5, 26, 8, 14, 16, 14, 9, 11, 9, 11, 9, 11, 9, 11, 9];
+    "ABCDEFGHIJKLMNO".split("").forEach((col, i) => {
+      ws.getColumn(col).width = widths[i];
+    });
+
+    // ── Summary row ───────────────────────────────────────
+    const lastRow = students.length + 5;
+    ws.mergeCells(`A${lastRow}:G${lastRow}`);
+    const sumCell = ws.getCell(`A${lastRow}`);
+    sumCell.value = `รวมทั้งหมด ${students.length} คน`;
+    sumCell.font  = { name: "Arial", bold: true, size: 10, color: { argb: WHITE } };
+    sumCell.fill  = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_DARK } };
+    sumCell.alignment = { horizontal: "right", vertical: "middle" };
+    ws.getRow(lastRow).height = 24;
+
+    // ── Stream response ───────────────────────────────────
+    const safeName = projectTitle.replace(/[^\u0E00-\u0E7Fa-zA-Z0-9_-]/g, "_");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(`unieed_${safeName}.xlsx`)}`);
+
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    next(err);
+  }
+}
