@@ -40,3 +40,21 @@ export function getJson(path, auth = true) {
 export function postJson(path, body, auth = true) {
   return request(path, { method: "POST", body, auth });
 }
+
+export async function getBlob(path, auth = true) {
+  const res = await fetch(BASE_URL + path, {
+    method: "GET",
+    headers: auth
+      ? {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        }
+      : {},
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Download failed");
+  }
+
+  return await res.blob();
+}
