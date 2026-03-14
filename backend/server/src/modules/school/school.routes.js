@@ -3,8 +3,11 @@ import { auth } from "../../middleware/auth.js";
 import { requireRole } from "../../middleware/requireRole.js";
 import multer from "multer";
 const upload = multer({ storage: multer.memoryStorage() });
-import { getProjectById, updateProject, uploadProjectImage } from "./school.controller.js";
+import { getProjectById, getProjectByIdPublic, updateProject, uploadProjectImage } from "./school.controller.js";
 
+// เพิ่มดีเทลการ์ด
+// ✅ แก้บรรทัด 6 เป็นแบบนี้
+//import { getProjectById, getProjectByIdPublic, updateProject, uploadProjectImage } from "./school.controller.js";
 
 import {
   schoolMe,
@@ -41,6 +44,9 @@ r.delete("/projects/:request_id/students/:student_id", auth, requireRole(["schoo
 r.post("/projects", auth, requireRole(["school_admin"]), createProject);
 r.get("/projects", auth, requireRole(["school_admin"]), listSchoolProjects);
 r.get("/projects/latest", auth, requireRole(["school_admin"]), getLatestProject);
+
+r.get("/projects/public/:request_id", getProjectByIdPublic);
+
 r.get("/projects/:request_id", auth, requireRole(["school_admin"]), getProjectById);
 r.put("/projects/:request_id", auth, requireRole(["school_admin"]), updateProject);
 

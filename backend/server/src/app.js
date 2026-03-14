@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 app.use("/auth", authRoutes);
-app.use("/school", auth, schoolRoutes);
+app.use("/school", schoolRoutes);
 app.use("/admin", adminRoutes);
 app.use("/upload", uploadRoutes);
 app.use("/", homeRoutes);

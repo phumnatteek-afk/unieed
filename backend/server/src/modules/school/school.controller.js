@@ -13,6 +13,34 @@ export async function schoolMe(req, res, next) {
   }
 }
 
+
+// ส่วนดีเทลการ์ด
+export async function getProjectByIdPublic(req, res, next) {
+  try {
+    const request_id = Number(req.params.request_id);
+
+    const [rows] = await db.query(
+      `SELECT dr.request_id,
+              dr.request_title,
+              dr.request_description,
+              dr.request_image_url,
+              dr.status,
+              dr.created_at,
+              s.school_name,
+              s.school_address,
+              s.school_phone
+     
+       FROM donation_request dr
+       JOIN schools s ON s.school_id = dr.school_id
+       WHERE dr.request_id = ? LIMIT 1`,
+      [request_id]
+    );
+
+    res.json(rows[0] || null);
+  } catch (err) {
+    next(err);
+  }
+}
 /**
  * สมมติว่า middleware auth ใส่ req.user = { user_id, role, school_id }
  * และโรงเรียนเข้า role: school_admin
