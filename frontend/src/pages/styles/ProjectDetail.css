@@ -1,0 +1,456 @@
+/* ===== PROJECT DETAIL PAGE ===== */
+
+.pdTopStrip {
+  background: #87C7EB;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  height: 32px;
+}
+
+.pdWrapper {
+  max-width: 1100px;
+  margin: 40px auto 60px;
+  padding: 0 20px;
+}
+
+/* ===== Hero Card ===== */
+.pdHeroCard {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.09);
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 40px;
+  padding: 32px;
+  margin-bottom: 40px;
+}
+
+/* Left */
+.pdLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pdImgWrap {
+  width: 100%;
+  height: 280px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #eef2ff;
+}
+
+.pdImgWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pdImgPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #e5e7eb, #f3f4f6);
+}
+
+.pdStatRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pdStatLabel {
+  font-size: 16px;
+  color: #555;
+  font-weight: 400;
+}
+
+.pdStatValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #000;
+}
+
+.pdStatBoxes {
+  display: flex;
+  gap: 12px;
+}
+
+.pdStatBox {
+  flex: 1;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Kanit', sans-serif;
+}
+
+.pdStatBoxBlue {
+  background: #87C7EB;
+  color: #fff;
+}
+
+.pdStatBoxYellow {
+  background: #FFBE1B;
+  color: #fff;
+}
+
+.pdBoxSub {
+  font-size: 11px;
+  font-weight: 300;
+  opacity: 0.9;
+  line-height: 1.3;
+}
+
+.pdBoxVal {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Right */
+.pdRight {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pdBadge {
+  display: inline-flex;
+  align-items: center;
+  background: #FFF3CD;
+  color: #B8860B;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.pdSchoolName {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1d4ed8;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.pdTitle {
+  font-size: 18px;
+  color: #374151;
+  margin: 0;
+  font-weight: 400;
+}
+
+.pdLocation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #FFBE1B;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.pdLocation span {
+  color: #555;
+}
+
+.pdQuote {
+  background: #F0F7FF;
+  border-left: 4px solid #87C7EB;
+  border-radius: 0 12px 12px 0;
+  margin: 4px 0;
+  padding: 14px 18px;
+  font-size: 15px;
+  color: #374151;
+  font-style: italic;
+  line-height: 1.7;
+}
+
+.pdProgressLabel {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1d4ed8;
+  margin-top: 4px;
+}
+
+.pdChannels {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pdChannel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #F0F7FF;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 15px;
+  color: #374151;
+  font-weight: 400;
+}
+
+.pdDonateBtn {
+  margin-top: 8px;
+  width: 100%;
+  height: 58px;
+  background: #FFBE1B;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Kanit', sans-serif;
+  transition: background 0.18s;
+}
+
+.pdDonateBtn:hover {
+  background: #f0ad00;
+}
+
+.pdNote {
+  text-align: center;
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+/* ===== Tabs ===== */
+.pdTabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0;
+}
+
+.pdTab {
+  background: none;
+  border: none;
+  font-family: 'Kanit', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: #888;
+  padding: 12px 28px 10px;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.18s;
+}
+
+.pdTabActive {
+  color: #1d4ed8;
+  border-bottom: 3px solid #1d4ed8;
+}
+
+.pdTabLine {
+  width: 100%;
+  height: 1px;
+  background: #e5e7eb;
+  margin-bottom: 36px;
+}
+
+/* ===== Detail Grid ===== */
+.pdDetailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+/* Left col */
+.pdDetailSectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1d4ed8;
+  margin-bottom: 16px;
+}
+
+.pdStudentBox {
+  background: #87C7EB;
+  border-radius: 14px;
+  padding: 18px 22px;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.pdStudentLabel {
+  font-size: 13px;
+  font-weight: 300;
+  margin-bottom: 6px;
+}
+
+.pdStudentVal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.pdUniformBox {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.pdUniformTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.pdUniformSub {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+.pdUniformImgs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pdUniformImg {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.pdUniformList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pdUniformRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+  color: #374151;
+}
+
+.pdUniformQty {
+  background: #FFBE1B;
+  color: #fff;
+  border-radius: 999px;
+  padding: 3px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Right col */
+.pdDetailRight {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-left: 1px solid #e5e7eb;
+  padding-left: 36px;
+}
+
+.pdContactItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.pdContactTitle {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.pdContactVal {
+  font-size: 16px;
+  color: #374151;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.pdContactPerson {
+  margin-top: 8px;
+}
+
+.pdPersonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.pdAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.pdAvatarPlaceholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #eef2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdPersonName {
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* ===== Reviews ===== */
+.pdReviews {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pdReviewCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border-left: 4px solid #87C7EB;
+}
+
+.pdReviewText {
+  font-size: 16px;
+  color: #374151;
+  font-style: italic;
+  line-height: 1.7;
+  margin: 0 0 12px;
+}
+
+.pdReviewMeta {
+  font-size: 13px;
+  color: #888;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .pdHeroCard {
+    grid-template-columns: 1fr;
+  }
+  .pdDetailGrid {
+    grid-template-columns: 1fr;
+  }
+  .pdDetailRight {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 24px;
+  }
+}

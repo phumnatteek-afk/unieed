@@ -29,6 +29,9 @@ import AdminSchoolsPage from "./features/admin/pages/AdminSchoolsPage.jsx";
 import AdminGuard from "./routes/AdminGuard.jsx";
 import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
 
+import ProjectDetailPage from "./pages/ProjectDetailPage";
+// ส่วนหน้าเมนู
+import DonationProject from "./pages/DonationProject";
 import "./App.css";
 
 export default function App() {
@@ -39,6 +42,7 @@ export default function App() {
           <Routes>
             {/* Public */}
             <Route path="/" element={<HomePage />} />
+            <Route path="/projects" element={<DonationProject />} />
             <Route path="/login" element={<LoginPage />} />
 
             <Route path="/register" element={<RegisterChoicePage />} />
@@ -49,7 +53,7 @@ export default function App() {
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/resend-verification" element={<ResendVerificationPage />} />
 
-
+            <Route path="/projects/:requestId" element={<ProjectDetailPage />} />
             {/* School */}
             <Route path="/school/pending" element={<SchoolPendingPage />} />
 
@@ -72,6 +76,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
+              
               {/* default ของ /school */}
               <Route index element={<Navigate to="dashboard" replace />} />
 
