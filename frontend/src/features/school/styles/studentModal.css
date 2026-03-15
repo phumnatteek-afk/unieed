@@ -1,114 +1,346 @@
-.smOverlay{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.35);
-  display:flex; align-items:center; justify-content:center;
-  z-index:9999;
+/* ── studentModal.css — Unieed design system ─────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@500;600;700&display=swap');
+
+:root {
+  --um-blue:       #29B6E8;
+  --um-blue-dark:  #0E8BB5;
+  --um-blue-lt:    #E0F7FF;
+  --um-blue-mid:   #B3E5FC;
+  --um-gold:       #F5A623;
+  --um-gold-lt:    #FFF8E7;
+  --um-text:       #0F2A38;
+  --um-text-sub:   #5A7A8A;
+  --um-border:     #D4EEF8;
+  --um-bg:         #FAFCFF;
+  --um-card:       #FFFFFF;
+  --um-radius:     12px;
+  --um-radius-sm:  8px;
+  --um-shadow:     0 4px 24px rgba(41,182,232,0.10);
+  --um-shadow-lg:  0 20px 60px rgba(15,42,56,0.18);
 }
-.smModal{
-  width:min(980px, 92vw);
-  max-height:86vh;
-  background:#fff;
-  border-radius:18px;
-  box-shadow:0 18px 60px rgba(0,0,0,.25);
-  overflow:hidden;
-  display:flex; flex-direction:column;
+
+/* ── Overlay ──────────────────────────────────────────────── */
+.smOverlay {
+  position: fixed; inset: 0;
+  background: rgba(10, 30, 50, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  animation: smFadeIn 0.2s ease;
 }
-.smHead{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:16px 18px;
-  border-bottom:1px solid #eee;
+@keyframes smFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Modal ────────────────────────────────────────────────── */
+.smModal {
+  background: var(--um-card);
+  border-radius: 20px;
+  width: min(680px, 95vw);
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  box-shadow: var(--um-shadow-lg);
+  border: 1px solid var(--um-border);
+  overflow: hidden;
+  animation: smSlideUp 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+  font-family: 'Sarabun', sans-serif;
 }
-.smTitle{font-size:18px; font-weight:800;}
-.smClose{
-  border:none; background:transparent; font-size:18px; cursor:pointer;
-  width:36px; height:36px; border-radius:10px;
+@keyframes smSlideUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.smClose:hover{background:#f3f4f6;}
-.smBody{padding:16px 18px; overflow:auto;}
-.smGrid{
-  display:grid;
-  grid-template-columns: 2fr 1fr 1fr 1.2fr;
-  gap:12px;
+
+/* ── Header ───────────────────────────────────────────────── */
+.smHead {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 16px;
+  background: linear-gradient(135deg, #F0FAFF 0%, #E8F7FE 100%);
+  border-bottom: 1px solid var(--um-border);
 }
-.smField label{display:block; font-size:12px; color:#555; margin-bottom:6px;}
-.smField input, .smField select{
-  width:100%; padding:10px 12px;
-  border:1px solid #d7dbe3; border-radius:12px;
-  outline:none;
+.smHeadLeft { display: flex; align-items: center; gap: 14px; }
+.smHeadIcon {
+  width: 44px; height: 44px;
+  background: white; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; box-shadow: 0 2px 8px rgba(41,182,232,0.15);
+  border: 1px solid var(--um-border);
 }
-.smField input:focus, .smField select:focus{
-  border-color:#6aa7ff;
-  box-shadow:0 0 0 4px rgba(106,167,255,.18);
+.smTitle {
+  font-family: 'Prompt', sans-serif;
+  font-size: 17px; font-weight: 600; color: var(--um-text);
+  line-height: 1.3;
 }
-.smSection{margin-top:14px;}
-.smSectionHead{display:flex; align-items:center; justify-content:space-between; margin:8px 0 10px;}
-.smSectionTitle{font-weight:800;}
-.smBtnAdd{
-  border:none; padding:10px 12px; border-radius:12px;
-  background:#f1f5ff; color:#2b5cff; cursor:pointer; font-weight:700;
+.smSubtitle { font-size: 12px; color: var(--um-text-sub); margin-top: 2px; }
+.smClose {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: white; border: 1px solid var(--um-border);
+  cursor: pointer; font-size: 14px; color: var(--um-text-sub);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
 }
-.smNeedCard{
-  border:1px solid #eef0f4;
-  border-radius:14px;
-  padding:12px;
-  margin-bottom:10px;
+.smClose:hover { background: #FEF2F2; color: #EF4444; border-color: #FCA5A5; }
+
+/* ── Body ─────────────────────────────────────────────────── */
+.smBody { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+.smBody::-webkit-scrollbar { width: 4px; }
+.smBody::-webkit-scrollbar-track { background: transparent; }
+.smBody::-webkit-scrollbar-thumb { background: var(--um-blue-mid); border-radius: 4px; }
+
+/* ── Section ──────────────────────────────────────────────── */
+.smSection {
+  background: var(--um-bg);
+  border: 1px solid var(--um-border);
+  border-radius: var(--um-radius);
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 14px;
 }
-.smNeedGrid{
-  display:grid;
-  grid-template-columns: 1.5fr .9fr .8fr 1fr;
-  gap:12px;
+.smSectionLabel {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 13px; font-weight: 600; color: var(--um-text);
 }
-.smSupportRow{
-  margin-top:20px;
-  display:flex; align-items:center; justify-content:space-between;
-  gap:12px;
-  flex-wrap:wrap;
+.smSectionNum {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--um-blue); color: white;
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
-.smToggle{display:flex; gap:14px; align-items:center;}
-.smRadio{display:flex; gap:8px; align-items:center; font-weight:700; color:#333;}
-.smRadio input{
-    max-width:fit-content;
+.smBtnAddNeed {
+  margin-left: auto;
+  background: var(--um-blue-lt); color: var(--um-blue-dark);
+  border: 1px solid var(--um-blue-mid); border-radius: 6px;
+  padding: 4px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
 }
-.smYears{display:flex; align-items:center; gap:8px; font-weight:700;}
-.smYears input{
-  width:90px;
-  padding:8px 10px;
-  border:1px solid #d7dbe3; border-radius:12px;
+.smBtnAddNeed:hover { background: var(--um-blue); color: white; }
+
+/* ── Grid ─────────────────────────────────────────────────── */
+.smGrid4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
-.smBtnRemove{
-  border:none; padding:8px 10px; border-radius:12px;
-  background:#fff1f2; color:#b42318; cursor:pointer; font-weight:800;
+.smFieldFull { grid-column: 1 / -1; }
+
+/* ── Field ────────────────────────────────────────────────── */
+.smField { display: flex; flex-direction: column; gap: 6px; }
+.smLabel {
+  font-size: 12px; font-weight: 600; color: var(--um-text);
+  letter-spacing: 0.02em;
 }
-.smFoot{
-  padding:14px 18px;
-  border-top:1px solid #eee;
-  display:flex; justify-content:flex-end; gap:10px;
+.smReq { color: #EF4444; }
+.smUnit { color: var(--um-text-sub); font-weight: 400; }
+
+.smInput, .smSelect {
+  background: white;
+  border: 1.5px solid var(--um-border);
+  border-radius: var(--um-radius-sm);
+  padding: 9px 12px;
+  font-size: 14px; color: var(--um-text);
+  font-family: 'Sarabun', sans-serif;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%; box-sizing: border-box;
 }
-.smBtnGhost{
-  border:1px solid #d7dbe3;
-  background:#fff;
-  padding:10px 14px;
-  border-radius:12px;
-  cursor:pointer;
-  font-weight:800;
-  color:#3b82f6 ;
+.smInput:focus, .smSelect:focus {
+  outline: none;
+  border-color: var(--um-blue);
+  box-shadow: 0 0 0 3px rgba(41,182,232,0.12);
 }
-.smBtnPrimary{
-  border:none;
-  background:#3b82f6;
-  color:#fff;
-  padding:10px 14px;
-  border-radius:12px;
-  cursor:pointer;
-  font-weight:900;
+.smInput::placeholder { color: #A0B8C8; }
+
+/* ── Toggle buttons (เพศ / ระดับ) ──────────────────────────── */
+.smToggleGroup {
+  display: flex; gap: 8px;
 }
-.smBtnPrimary:disabled{
-  opacity: 0.9;; cursor:not-allowed;
+.smToggleBtn {
+  flex: 1; padding: 9px 0;
+  background: white; border: 1.5px solid var(--um-border);
+  border-radius: var(--um-radius-sm);
+  font-size: 13px; font-weight: 500; color: var(--um-text-sub);
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
 }
-.smBtnPrimary:hover{
-    background-color: #9a9a9a;
+.smToggleBtn:hover { border-color: var(--um-blue); color: var(--um-blue); }
+.smToggleActive {
+  background: var(--um-blue) !important;
+  border-color: var(--um-blue) !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(41,182,232,0.30);
 }
-.smRadio{
-    max-width: 200px ;
-    padding: 0 10px;
+
+/* ── Urgency pills ───────────────────────────────────────── */
+.smUrgencyGroup { display: flex; gap: 8px; flex-wrap: wrap; }
+.smUrgencyBtn {
+  flex: 1; min-width: 100px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 14px;
+  background: white; border: 1.5px solid var(--um-border);
+  border-radius: var(--um-radius-sm);
+  font-size: 13px; font-weight: 500; color: var(--um-text-sub);
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
 }
+.smUrgencyBtn:hover { border-color: #CBD5E1; transform: translateY(-1px); }
+.smUrgencyActive { font-weight: 600 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.smUrgencyDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Quantity stepper ────────────────────────────────────── */
+.smQtyRow { display: flex; align-items: center; gap: 6px; }
+.smQtyBtn {
+  width: 32px; height: 36px; border-radius: 8px;
+  background: var(--um-blue-lt); border: 1.5px solid var(--um-blue-mid);
+  color: var(--um-blue-dark); font-size: 16px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.smQtyBtn:hover { background: var(--um-blue); color: white; border-color: var(--um-blue); }
+.smQtyInput {
+  width: 56px; text-align: center;
+  border: 1.5px solid var(--um-border); border-radius: 8px;
+  padding: 8px 4px; font-size: 14px; color: var(--um-text);
+  font-family: 'Sarabun', sans-serif;
+}
+.smQtyInput:focus { outline: none; border-color: var(--um-blue); }
+.smQtyUnit { font-size: 13px; color: var(--um-text-sub); }
+
+/* ── Need tabs ───────────────────────────────────────────── */
+.smNeedTabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.smNeedTab {
+  padding: 6px 14px; border-radius: 20px;
+  background: white; border: 1.5px solid var(--um-border);
+  font-size: 12px; font-weight: 500; color: var(--um-text-sub);
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
+}
+.smNeedTabActive {
+  background: var(--um-blue); border-color: var(--um-blue);
+  color: white; box-shadow: 0 2px 8px rgba(41,182,232,0.3);
+}
+
+/* ── Need card ───────────────────────────────────────────── */
+.smNeedCard {
+  background: white; border: 1.5px solid var(--um-border);
+  border-radius: var(--um-radius); padding: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+  animation: smFadeIn 0.15s ease;
+}
+.smNeedGrid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Support row ─────────────────────────────────────────── */
+.smSupportRow {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px dashed var(--um-border);
+}
+.smSupportLabel { font-size: 12px; font-weight: 600; color: var(--um-text-sub); white-space: nowrap; }
+.smSupportBtns { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex: 1; }
+.smSupportBtn {
+  padding: 7px 14px; border-radius: 20px;
+  background: white; border: 1.5px solid var(--um-border);
+  font-size: 12px; font-weight: 500; color: var(--um-text-sub);
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
+}
+.smSupportBtn:hover { border-color: var(--um-blue-mid); color: var(--um-blue); }
+.smSupportActive {
+  background: var(--um-gold-lt); border-color: var(--um-gold);
+  color: #92400E; font-weight: 600;
+}
+.smYears {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--um-text-sub);
+}
+.smBtnRemove {
+  margin-left: auto;
+  background: #FEF2F2; border: 1px solid #FCA5A5;
+  color: #EF4444; border-radius: 8px;
+  padding: 6px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
+}
+.smBtnRemove:hover { background: #EF4444; color: white; }
+
+/* ── Footer ──────────────────────────────────────────────── */
+.smFoot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px;
+  background: var(--um-bg);
+  border-top: 1px solid var(--um-border);
+  gap: 12px;
+}
+.smUrgencyBadge {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.smFootActions { display: flex; gap: 10px; margin-left: auto; }
+.smBtnGhost {
+  padding: 10px 20px; border-radius: 10px;
+  background: white; border: 1.5px solid var(--um-border);
+  color: var(--um-text-sub); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
+}
+.smBtnGhost:hover { border-color: var(--um-blue-mid); color: var(--um-blue); }
+.smBtnPrimary {
+  padding: 10px 22px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--um-blue) 0%, var(--um-blue-dark) 100%);
+  border: none; color: white;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  box-shadow: 0 4px 12px rgba(41,182,232,0.35);
+  font-family: 'Sarabun', sans-serif;
+}
+.smBtnPrimary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(41,182,232,0.45);
+}
+.smBtnPrimary:disabled {
+  opacity: 0.45; cursor: not-allowed;
+  box-shadow: none; transform: none;
+}
+
+/* ── additions for support chips + 3-col toggle ─────────── */
+.smToggleGroup3 { display: flex; gap: 6px; }
+.smToggleGroup3 .smToggleBtn { flex: 1; }
+
+.smSupportGroup {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.smSupportChip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 20px;
+  background: white; border: 1.5px solid var(--um-border);
+  font-size: 13px; font-weight: 500; color: var(--um-text-sub);
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
+}
+.smSupportChip:hover { border-color: var(--um-blue-mid); color: var(--um-blue); }
+.smSupportChipActive {
+  background: var(--um-gold-lt);
+  border-color: var(--um-gold);
+  color: #92400E; font-weight: 600;
+}
+.smYearsRow {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; color: var(--um-text-sub);
+  padding: 6px 12px; border-radius: 10px;
+  background: var(--um-bg); border: 1px solid var(--um-border);
+}
+.smNeedFooter {
+  display: flex; justify-content: flex-end;
+  padding-top: 10px; border-top: 1px dashed var(--um-border);
+}
+.smBtnRemove {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #FEF2F2; border: 1px solid #FCA5A5;
+  color: #EF4444; border-radius: 8px;
+  padding: 6px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
+}
+.smBtnRemove:hover { background: #EF4444; color: white; }
+.smBtnGhost, .smBtnPrimary { display: inline-flex; align-items: center; gap: 6px; }

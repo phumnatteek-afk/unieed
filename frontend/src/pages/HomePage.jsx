@@ -378,11 +378,11 @@ export default function HomePage() {
 
           <nav className="navLinks">
             <Link to="/" className="active">หน้าหลัก</Link>
-  <Link to="/projects">โครงการ</Link>
+            <Link to="/projects">โครงการ</Link>
             <a href="#market">ร้านค้า</a>
             <a href="#about">เกี่ยวกับเรา</a>
             <button><a href="#" className="sell">ลงขาย</a></button>
-            
+
           </nav>
 
           {rightAccount()}
@@ -678,10 +678,11 @@ export default function HomePage() {
               </svg>
             </div>
             <div className="statValue">
-              ฿{Number(stats.total_paid || 0).toLocaleString()}
+              {Number(stats.students_total || 0).toLocaleString()}
             </div>
-            <div className="statLabel">ช่วยประหยัดค่าใช้จ่าย</div>
+            <div className="statLabel">นักเรียนที่ต้องการชุดนักเรียน</div>
           </div>
+
         </div>
       </section>
 
@@ -751,49 +752,49 @@ export default function HomePage() {
                     return (
                       <div className="carouselPage" key={pageIndex}>
                         {slice.map((p) => (
-                    <div 
-  className="projCard" 
-  key={p.request_id}
-  onClick={() => navigate(`/projects/${p.request_id}`)}
-  style={{ cursor: "pointer" }}
->
-  <div className="thumb">
-    {p.request_image_url ? (
-      <img src={p.request_image_url} alt={p.request_title} />
-    ) : (
-      <div className="thumbPlaceholder" />
-    )}
-  </div>
+                          <div
+                            className="projCard"
+                            key={p.request_id}
+                            onClick={() => navigate(`/projects/${p.request_id}`)}
+                            style={{ cursor: "pointer" }}
+                          >
+                            <div className="thumb">
+                              {p.request_image_url ? (
+                                <img src={p.request_image_url} alt={p.request_title} />
+                              ) : (
+                                <div className="thumbPlaceholder" />
+                              )}
+                            </div>
 
-  <div className="projBody">
-    <div className="projTitle">{p.school_name}</div>
-    <div className="projMeta">
-      <span>{p.request_title}</span>
-    </div>
-    <div className="adr">
-      <span>ที่ตั้ง: {p.school_address}</span>
-    </div>
+                            <div className="projBody">
+                              <div className="projTitle">{p.school_name}</div>
+                              <div className="projMeta">
+                                <span>{p.request_title}</span>
+                              </div>
+                              <div className="adr">
+                                <span>ที่ตั้ง: {p.school_address}</span>
+                              </div>
 
-    <div className="projBottom">
-      <div className="projFilled">
-        ยอดบริจาคปัจจุบัน{" "}
-        <span><b>{p.total_fulfilled || 0}</b></span>{" "}
-        ชิ้น
-      </div>
-      {/* ✅ e.stopPropagation() กันไม่ให้ click ลามไปที่กล่อง */}
-      <button 
-        className="btnSend" 
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          navigate(`/projects/${p.request_id}`);
-        }}
-      >
-        ส่งต่อ
-      </button>
-    </div>
-  </div>
-</div>
+                              <div className="projBottom">
+                                <div className="projFilled">
+                                  ยอดบริจาคปัจจุบัน{" "}
+                                  <span><b>{p.total_fulfilled || 0}</b></span>{" "}
+                                  ชิ้น
+                                </div>
+                                {/* ✅ e.stopPropagation() กันไม่ให้ click ลามไปที่กล่อง */}
+                                <button
+                                  className="btnSend"
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/projects/${p.request_id}`);
+                                  }}
+                                >
+                                  ส่งต่อ
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         ))}
 
                         {slice.length < 2 && (

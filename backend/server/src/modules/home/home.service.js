@@ -6,7 +6,7 @@ export async function getHomeData() {
     SELECT
       (SELECT COUNT(*) FROM products WHERE status='available') AS products_total,
       (SELECT COUNT(*) FROM schools WHERE verification_status='approved') AS schools_approved,
-      0 AS total_paid
+      (SELECT COUNT(*) FROM students) AS students_total
   `);
 
   // 2) Projects
