@@ -680,7 +680,7 @@ export default function HomePage() {
             <div className="statValue">
               {Number(stats.students_total || 0).toLocaleString()}
             </div>
-            <div className="statLabel">นักเรียนที่ต้องการชุดนักเรียน</div>
+            <div className="statLabel">นักเรียนที่ต้องการชุด</div>
           </div>
 
         </div>
