@@ -634,12 +634,11 @@ body{
   font-weight:800;
   cursor:pointer;
   transition:all .2s ease;
-  box-shadow:0 10px 20px rgba(79,134,230,.25);
+  box-shadow:0 5px 5px rgba(79,134,230,.25);
   background-color: #fbbf24;
 }
 
 .lgBtn:hover{
-  transform:translateY(-2px);
   color: #3b74dc;
   background-color:#ffff ;
 }

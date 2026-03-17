@@ -44,9 +44,20 @@ export default function RegisterSchoolPage() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
+  const onPhoneChange = (e) => {
+  const val = e.target.value.replace(/\D/g, "");
+  const maxLen = val.startsWith("02") ? 9 : 10;
+  if (val.length > maxLen) return;
+  setForm((prev) => ({ ...prev, school_phone: val }));
+};
+const onNumberOnly = (e, maxLen) => {
+  const val = e.target.value.replace(/\D/g, "");
+  if (val.length > maxLen) return;
+  setForm((prev) => ({ ...prev, [e.target.name]: val }));
+};
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
@@ -81,17 +92,17 @@ export default function RegisterSchoolPage() {
 
       // ---------- Phone validation ----------
       const normalizedPhone = normalizeThaiPhone(form.school_phone);
-      if (!normalizedPhone || !/^0\d{9}$/.test(normalizedPhone)) {
-        setErr("เบอร์โทรต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0");
-        return;
-      }
+if (!normalizedPhone || !/^(02\d{7}|0[3-9]\d{8})$/.test(normalizedPhone)) {
+  setErr("เบอร์โทรไม่ถูกต้อง (02xxxxxxx หรือ 0xxxxxxxxx)");
+  return;
+}
 
       // ---------- School Code validation ----------
       const schoolCodeDigits = String(form.school_code || "").replace(/\D/g, "");
-      if (!/^\d{10}$/.test(schoolCodeDigits)) {
-        setErr("รหัสสถานศึกษาต้องเป็นตัวเลข 10 หลักพอดี");
-        return;
-      }
+if (!schoolCodeDigits) {
+  setErr("กรุณากรอกรหัสสถานศึกษา");
+  return;
+}
 
       // ---------- Upload doc ----------
       let doc = { school_doc_url: null, school_doc_public_id: null };
@@ -172,17 +183,39 @@ export default function RegisterSchoolPage() {
             </div>
 
             <div className="rsField">
-              <label className="rsLabel">รหัสผ่าน</label>
-              <input
-                className="rsInput"
-                type="password"
-                name="password"
-                value={form.password}
-                onChange={onChange}
-                placeholder="อย่างน้อย 6 ตัว"
-                autoComplete="new-password"
-              />
-            </div>
+  <label className="rsLabel">รหัสผ่าน</label>
+  <div style={{ position: "relative" }}>
+    <input
+      className="rsInput"
+      type={showPassword ? "text" : "password"}
+      name="password"
+      value={form.password}
+      onChange={onChange}
+      placeholder="อย่างน้อย 6 ตัว"
+      autoComplete="new-password"
+      style={{ paddingRight: "44px" }}
+    />
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      style={{
+        position: "absolute",
+        right: "12px",
+        top: "50%",
+        transform: "translateY(-50%)",
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        padding: 0,
+        color: "#888",
+        display: "flex",
+        alignItems: "center",
+      }}
+    >
+      {showPassword ? <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="m18.922 16.8l3.17 3.17l-1.06 1.061L4.06 4.061L5.12 3l2.74 2.738A11.9 11.9 0 0 1 12 5c4.808 0 8.972 2.848 11 7a12.66 12.66 0 0 1-4.078 4.8m-8.098-8.097l4.473 4.473a3.5 3.5 0 0 0-4.474-4.474zm5.317 9.56A11.9 11.9 0 0 1 12 19c-4.808 0-8.972-2.848-11-7a12.66 12.66 0 0 1 4.078-4.8l3.625 3.624a3.5 3.5 0 0 0 4.474 4.474l2.964 2.964z"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M1 12c2.028-4.152 6.192-7 11-7s8.972 2.848 11 7c-2.028 4.152-6.192 7-11 7s-8.972-2.848-11-7m11 3.5a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7"/></svg>}
+    </button>
+  </div>
+</div>
 
             <div className="rsHelper">ใช้อีเมลนี้สำหรับเข้าสู่ระบบในอนาคต</div>
 
@@ -200,19 +233,22 @@ export default function RegisterSchoolPage() {
                 placeholder="ชื่อโรงเรียน"
               />
             </div>
-
-            <div className="rsField">
-              <label className="rsLabel">รหัสสถานศึกษา</label>
-              <input
-                className="rsInput"
-                name="school_code"
-                value={form.school_code}
-                onChange={onChange}
-                placeholder="เช่น 10 หลัก / ตามรหัสของโรงเรียน"
-              />
-              <div className="rsHelper">กรอกเพื่อให้ตรวจสอบและอ้างอิงได้ง่ายขึ้น</div>
-            </div>
-
+<div className="rsField">
+  <label className="rsLabel">รหัสสถานศึกษา</label>
+  <input
+    className="rsInput"
+    name="school_code"
+    value={form.school_code}
+    onChange={(e) => {
+      const val = e.target.value.replace(/\D/g, "");
+      if (val.length > 10) return;
+      setForm((prev) => ({ ...prev, school_code: val }));
+    }}
+    placeholder="รหัสสถานศึกษา"
+    inputMode="numeric"
+  />
+  <div className="rsHelper">กรอกเฉพาะตัวเลข ไม่เกิน 10 หลัก</div>
+</div>
             <div className="rsField">
               <label className="rsLabel">ที่อยู่โรงเรียน</label>
               <input
@@ -225,16 +261,34 @@ export default function RegisterSchoolPage() {
             </div>
 
             <div className="rsField">
-              <label className="rsLabel">เบอร์โทร</label>
-              <input
-                className="rsInput"
-                name="school_phone"
-                value={form.school_phone}
-                onChange={onChange}
-                placeholder="0xx-xxx-xxxx"
-              />
-            </div>
-
+  <label className="rsLabel">เบอร์โทร</label>
+  <div style={{ position: "relative" }}>
+  <input
+  className="rsInput"
+  name="school_phone"
+  value={form.school_phone}
+  onChange={onPhoneChange}  // ← เปลี่ยนตรงนี้
+  placeholder="เช่น 02xxxxxxx หรือ 08xxxxxxxx"
+  inputMode="numeric"
+  style={{ paddingRight: "36px" }}
+/>
+  {((form.school_phone.startsWith("02") && form.school_phone.length === 9) ||
+  (!form.school_phone.startsWith("02") && form.school_phone.length === 10)) && (
+  <span style={{
+    position: "absolute",
+    right: "12px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    color: "#22c55e",
+    fontSize: "18px",
+    fontWeight: "bold",
+  }}>✓</span>
+)}
+</div>
+<div className="rsHelper">
+  {form.school_phone.length > 0 && `${form.school_phone.length} หลัก`}
+</div>
+</div>
             <div className="rsField rsField--full">
               <label className="rsLabel">ตราโรงเรียน (ไฟล์รูป)</label>
 
