@@ -7,44 +7,126 @@ export async function schoolMe(req, res, next) {
     const user_id = req.user.user_id; // ต้องมาจาก middleware auth
     const me = await getSchoolMe(user_id);
     res.json(me);
-  } 
+  }
   catch (err) {
     next(err);
   }
 }
 
-
-// ส่วนดีเทลการ์ด
 export async function getProjectByIdPublic(req, res, next) {
   try {
     const request_id = Number(req.params.request_id);
 
+    // ── Query 1: ข้อมูลหลัก ──────────────────────────────────────────────
     const [rows] = await db.query(
-      `SELECT dr.request_id,
-              dr.request_title,
-              dr.request_description,
-              dr.request_image_url,
-              dr.status,
-              dr.created_at,
-              s.school_name,
-              s.school_address,
-              s.school_phone
-     
+      `SELECT
+         dr.request_id,
+         dr.school_id,
+         dr.request_title,
+         dr.request_description,
+         dr.request_image_url,
+         dr.status,
+         dr.created_at,
+
+         s.school_name,
+         s.school_address        AS school_full_address,
+         s.school_phone,
+         s.school_logo_url,
+
+         (SELECT u.user_email
+          FROM users u
+          WHERE u.school_id = dr.school_id
+            AND u.role = 'school_admin'
+          ORDER BY u.user_id ASC LIMIT 1) AS school_email,
+
+         (SELECT u.user_name
+          FROM users u
+          WHERE u.school_id = dr.school_id
+            AND u.role = 'school_admin'
+          ORDER BY u.user_id ASC LIMIT 1) AS contact_person,
+
+         (SELECT COUNT(*)
+          FROM students st
+          WHERE st.request_id = dr.request_id
+         ) AS student_count,
+
+         (SELECT COALESCE(SUM(sn.quantity_needed), 0)
+          FROM student_need sn
+          JOIN students st ON st.student_id = sn.student_id
+          WHERE st.request_id = dr.request_id
+         ) AS total_needed,
+
+         (SELECT COALESCE(SUM(sn.quantity_received), 0)
+          FROM student_need sn
+          JOIN students st ON st.student_id = sn.student_id
+          WHERE st.request_id = dr.request_id
+         ) AS total_fulfilled
+
        FROM donation_request dr
        JOIN schools s ON s.school_id = dr.school_id
-       WHERE dr.request_id = ? LIMIT 1`,
+       WHERE dr.request_id = ?
+       LIMIT 1`,
       [request_id]
     );
 
-    res.json(rows[0] || null);
+    if (!rows[0]) return res.json(null);
+
+    const project = {
+      ...rows[0],
+      school_address:  rows[0].school_full_address,
+      total_needed:    Number(rows[0].total_needed),
+      total_fulfilled: Number(rows[0].total_fulfilled),
+      student_count:   Number(rows[0].student_count),
+    };
+
+    // ── Query 2: uniform_items + รูปชุดของโรงเรียน ───────────────────────
+    const [items] = await db.query(
+      `SELECT
+         ut.uniform_type_id,
+         ut.type_name            AS name,
+         ut.gender,
+         sn.size,
+         SUM(sn.quantity_needed) AS quantity,
+         uti.image_url
+       FROM student_need sn
+       JOIN students     st  ON st.student_id     = sn.student_id
+                             AND st.request_id     = ?
+       JOIN uniform_type ut  ON ut.uniform_type_id = sn.uniform_type_id
+       LEFT JOIN uniform_type_images uti
+              ON  uti.uniform_type_id = sn.uniform_type_id
+              AND uti.school_id       = ?
+              AND uti.request_id      = ?
+       GROUP BY
+         ut.uniform_type_id, ut.type_name,
+         ut.gender, sn.size, uti.image_url
+       ORDER BY ut.uniform_type_id ASC, sn.size ASC`,
+      [request_id, project.school_id, request_id]
+    );
+
+    project.uniform_items = items.map(i => ({
+      uniform_type_id: i.uniform_type_id,
+      name:      i.name,
+      gender:    i.gender,
+      size:      i.size   || null,
+      quantity:  Number(i.quantity),
+      image_url: i.image_url || null,
+    }));
+
+    // uniform_images — unique URL ต่อ uniform_type สำหรับแสดงรูปบน UI
+    const seen = new Set();
+    project.uniform_images = project.uniform_items.reduce((acc, item) => {
+      if (item.image_url && !seen.has(item.uniform_type_id)) {
+        seen.add(item.uniform_type_id);
+        acc.push(item.image_url);
+      }
+      return acc;
+    }, []);
+
+    res.json(project);
   } catch (err) {
     next(err);
   }
 }
-/**
- * สมมติว่า middleware auth ใส่ req.user = { user_id, role, school_id }
- * และโรงเรียนเข้า role: school_admin
- */
 
 export async function getUniformTypes(req, res) {
   const [rows] = await db.query(
@@ -189,9 +271,9 @@ export async function createStudentWithNeeds(req, res) {
     needs,   // [{uniform_type_id,size,quantity_needed,support_mode,support_years,status}]
   } = req.body;
   const genderDb =
-  gender === "ชาย" ? "male" :
-  gender === "หญิง" ? "female" :
-  gender;
+    gender === "ชาย" ? "male" :
+      gender === "หญิง" ? "female" :
+        gender;
 
 
   if (!student_name || !education_level || !gender) {
@@ -212,39 +294,39 @@ export async function createStudentWithNeeds(req, res) {
     );
 
     const student_id = ins.insertId;
-for (const n of needs) {
-  if (!n.uniform_type_id || !n.size || !n.quantity_needed) {
-    throw Object.assign(new Error("ข้อมูลความต้องการไม่ครบ"), { status: 400 });
-  }
+    for (const n of needs) {
+      if (!n.uniform_type_id || !n.size || !n.quantity_needed) {
+        throw Object.assign(new Error("ข้อมูลความต้องการไม่ครบ"), { status: 400 });
+      }
 
-  const needQty = Number(n.quantity_needed);
-  const recvQty = Math.max(0, Math.min(Number(n.quantity_received || 0), needQty));
+      const needQty = Number(n.quantity_needed);
+      const recvQty = Math.max(0, Math.min(Number(n.quantity_received || 0), needQty));
 
-  // สร้าง status จากจำนวนที่ได้รับแล้ว
-  const status =
-    recvQty >= needQty ? "fulfilled" :
-    recvQty > 0 ? "partial" :
-    "pending";
+      // สร้าง status จากจำนวนที่ได้รับแล้ว
+      const status =
+        recvQty >= needQty ? "fulfilled" :
+          recvQty > 0 ? "partial" :
+            "pending";
 
-  await conn.query(
-    `INSERT INTO student_need
+      await conn.query(
+        `INSERT INTO student_need
       (school_id, student_id, uniform_type_id, size,
        quantity_needed, quantity_received,
        status, support_mode, support_years, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-    [
-      school_id,
-      student_id,
-      n.uniform_type_id,
-      n.size,
-      needQty,
-      recvQty,
-      status,
-      n.support_mode || "one_time",
-      n.support_mode === "recurring" ? Number(n.support_years || 1) : null,
-    ]
-  );
-}
+        [
+          school_id,
+          student_id,
+          n.uniform_type_id,
+          n.size,
+          needQty,
+          recvQty,
+          status,
+          n.support_mode || "one_time",
+          n.support_mode === "recurring" ? Number(n.support_years || 1) : null,
+        ]
+      );
+    }
 
 
     await conn.commit();
@@ -264,10 +346,10 @@ export async function updateStudentWithNeeds(req, res) {
   const { student_name, education_level, gender, urgency, needs } = req.body;
 
   const genderDb =
-  gender === "ชาย" ? "male" :
-  gender === "หญิง" ? "female" :
-  gender;
-  
+    gender === "ชาย" ? "male" :
+      gender === "หญิง" ? "female" :
+        gender;
+
 
 
   const conn = await db.getConnection();
@@ -289,44 +371,44 @@ export async function updateStudentWithNeeds(req, res) {
     );
 
     // strategy: ลบ needs เดิม แล้ว insert ใหม่ (ง่าย + กัน mismatch)
-   await conn.query(
-  `DELETE FROM student_need WHERE student_id=? AND school_id=?`,
-  [student_id, school_id]
-);
+    await conn.query(
+      `DELETE FROM student_need WHERE student_id=? AND school_id=?`,
+      [student_id, school_id]
+    );
 
 
     if (!Array.isArray(needs) || needs.length === 0) {
       throw Object.assign(new Error("ต้องมีอย่างน้อย 1 รายการความต้องการ"), { status: 400 });
     }
-for (const n of needs) {
+    for (const n of needs) {
 
-  const needQty = Number(n.quantity_needed);
-  const recvQty = Math.max(0, Math.min(Number(n.quantity_received || 0), needQty));
+      const needQty = Number(n.quantity_needed);
+      const recvQty = Math.max(0, Math.min(Number(n.quantity_received || 0), needQty));
 
-  const status =
-    recvQty >= needQty ? "fulfilled" :
-    recvQty > 0 ? "partial" :
-    "pending";
+      const status =
+        recvQty >= needQty ? "fulfilled" :
+          recvQty > 0 ? "partial" :
+            "pending";
 
-  await conn.query(
-    `INSERT INTO student_need
+      await conn.query(
+        `INSERT INTO student_need
       (school_id, student_id, uniform_type_id, size,
        quantity_needed, quantity_received,
        status, support_mode, support_years, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-    [
-      school_id,
-      student_id,
-      n.uniform_type_id,
-      n.size,
-      needQty,
-      recvQty,
-      status,
-      n.support_mode || "one_time",
-      n.support_mode === "recurring" ? Number(n.support_years || 1) : null,
-    ]
-  );
-}
+        [
+          school_id,
+          student_id,
+          n.uniform_type_id,
+          n.size,
+          needQty,
+          recvQty,
+          status,
+          n.support_mode || "one_time",
+          n.support_mode === "recurring" ? Number(n.support_years || 1) : null,
+        ]
+      );
+    }
 
 
     await conn.commit();
@@ -557,7 +639,7 @@ export async function uploadProjectImage(req, res, next) {
 export async function exportStudentsExcel(req, res, next) {
   try {
     const request_id = Number(req.params.request_id);
-    const school_id  = req.user.school_id;
+    const school_id = req.user.school_id;
 
     // 1) ดึง project title
     const [projRows] = await db.query(
@@ -601,16 +683,16 @@ export async function exportStudentsExcel(req, res, next) {
     const ws = wb.addWorksheet("รายชื่อนักเรียน");
 
     // สีธีม Unieed
-    const BLUE      = "FF29B6E8";
+    const BLUE = "FF29B6E8";
     const BLUE_DARK = "FF0E8BB5";
-    const BLUE_LT   = "FFE0F7FF";
-    const MALE_HD   = "FF1565C0";
-    const MALE_BG   = "FFE3F2FD";
-    const FEM_HD    = "FFAD1457";
-    const FEM_BG    = "FFFCE4EC";
-    const WHITE     = "FFFFFFFF";
-    const GRAY      = "FFF4F8FB";
-    const SUPP_BG   = "FFD6EEF8";
+    const BLUE_LT = "FFE0F7FF";
+    const MALE_HD = "FF1565C0";
+    const MALE_BG = "FFE3F2FD";
+    const FEM_HD = "FFAD1457";
+    const FEM_BG = "FFFCE4EC";
+    const WHITE = "FFFFFFFF";
+    const GRAY = "FFF4F8FB";
+    const SUPP_BG = "FFD6EEF8";
 
     const thinBorder = {
       top: { style: "thin", color: { argb: "FFC8E8F5" } },
@@ -665,21 +747,21 @@ export async function exportStudentsExcel(req, res, next) {
 
     // ── Row 4: Column headers ─────────────────────────────
     const headers = [
-      { col: "A", label: "#",                         bg: BLUE,    fg: WHITE  },
-      { col: "B", label: "ชื่อ-นามสกุล",              bg: BLUE,    fg: WHITE  },
-      { col: "C", label: "เพศ",                        bg: BLUE,    fg: WHITE  },
-      { col: "D", label: "ระดับชั้น",                  bg: BLUE,    fg: WHITE  },
-      { col: "E", label: "ความเร่งด่วน",               bg: BLUE,    fg: WHITE  },
-      { col: "F", label: "การรับ",                     bg: BLUE_DARK, fg: WHITE },
-      { col: "G", label: "จำนวนปี",                   bg: BLUE_DARK, fg: WHITE },
-      { col: "H", label: "รอบอก (cm)\nเสื้อชาย",      bg: MALE_BG,  fg: MALE_HD },
-      { col: "I", label: "จำนวน (ตัว)\nเสื้อชาย",     bg: MALE_BG,  fg: MALE_HD },
-      { col: "J", label: "รอบเอว (cm)\nกางเกงชาย",    bg: MALE_BG,  fg: MALE_HD },
-      { col: "K", label: "จำนวน (ตัว)\nกางเกงชาย",    bg: MALE_BG,  fg: MALE_HD },
-      { col: "L", label: "รอบอก (cm)\nเสื้อหญิง",     bg: FEM_BG,   fg: FEM_HD  },
-      { col: "M", label: "จำนวน (ตัว)\nเสื้อหญิง",    bg: FEM_BG,   fg: FEM_HD  },
-      { col: "N", label: "รอบเอว (cm)\nกระโปรงหญิง",  bg: FEM_BG,   fg: FEM_HD  },
-      { col: "O", label: "จำนวน (ตัว)\nกระโปรงหญิง",  bg: FEM_BG,   fg: FEM_HD  },
+      { col: "A", label: "#", bg: BLUE, fg: WHITE },
+      { col: "B", label: "ชื่อ-นามสกุล", bg: BLUE, fg: WHITE },
+      { col: "C", label: "เพศ", bg: BLUE, fg: WHITE },
+      { col: "D", label: "ระดับชั้น", bg: BLUE, fg: WHITE },
+      { col: "E", label: "ความเร่งด่วน", bg: BLUE, fg: WHITE },
+      { col: "F", label: "การรับ", bg: BLUE_DARK, fg: WHITE },
+      { col: "G", label: "จำนวนปี", bg: BLUE_DARK, fg: WHITE },
+      { col: "H", label: "รอบอก (cm)\nเสื้อชาย", bg: MALE_BG, fg: MALE_HD },
+      { col: "I", label: "จำนวน (ตัว)\nเสื้อชาย", bg: MALE_BG, fg: MALE_HD },
+      { col: "J", label: "รอบเอว (cm)\nกางเกงชาย", bg: MALE_BG, fg: MALE_HD },
+      { col: "K", label: "จำนวน (ตัว)\nกางเกงชาย", bg: MALE_BG, fg: MALE_HD },
+      { col: "L", label: "รอบอก (cm)\nเสื้อหญิง", bg: FEM_BG, fg: FEM_HD },
+      { col: "M", label: "จำนวน (ตัว)\nเสื้อหญิง", bg: FEM_BG, fg: FEM_HD },
+      { col: "N", label: "รอบเอว (cm)\nกระโปรงหญิง", bg: FEM_BG, fg: FEM_HD },
+      { col: "O", label: "จำนวน (ตัว)\nกระโปรงหญิง", bg: FEM_BG, fg: FEM_HD },
     ];
     ws.getRow(4).height = 42;
     for (const h of headers) {
@@ -694,7 +776,7 @@ export async function exportStudentsExcel(req, res, next) {
     // ── Rows 5+: Data ─────────────────────────────────────
     // map urgency / gender → ภาษาไทย
     const URGENCY_TH = { very_urgent: "เร่งด่วนมาก", urgent: "เร่งด่วน", can_wait: "รอได้" };
-    const GENDER_TH  = { male: "ชาย", female: "หญิง" };
+    const GENDER_TH = { male: "ชาย", female: "หญิง" };
 
     students.forEach((s, idx) => {
       const rowNum = idx + 5;
@@ -712,9 +794,9 @@ export async function exportStudentsExcel(req, res, next) {
       };
 
       // support_mode — ใช้จาก need แรกที่มี
-      const firstNeed   = needs[0];
+      const firstNeed = needs[0];
       const supportMode = firstNeed?.support_mode === "recurring" ? "รับต่อเนื่อง" : "รับครั้งเดียว";
-      const supportYears= firstNeed?.support_mode === "recurring" ? (firstNeed.support_years || 1) : "";
+      const supportYears = firstNeed?.support_mode === "recurring" ? (firstNeed.support_years || 1) : "";
 
       const n1 = getNeed(1); // เสื้อชาย
       const n3 = getNeed(3); // กางเกงชาย
@@ -742,18 +824,18 @@ export async function exportStudentsExcel(req, res, next) {
       const cols = "ABCDEFGHIJKLMNO".split("");
       rowData.forEach((val, ci) => {
         const colLetter = cols[ci];
-        const isMale    = ["H","I","J","K"].includes(colLetter);
-        const isFemale  = ["L","M","N","O"].includes(colLetter);
-        const isSupport = ["F","G"].includes(colLetter);
-        const cellBg    = isMale ? (idx%2===0?"FFE3F2FD":"FFF3F8FF")
-                        : isFemale ? (idx%2===0?"FFFCE4EC":"FFFFF0F5")
-                        : isSupport ? (idx%2===0?"FFD6EEF8":"FFE4F4FB")
-                        : bg;
+        const isMale = ["H", "I", "J", "K"].includes(colLetter);
+        const isFemale = ["L", "M", "N", "O"].includes(colLetter);
+        const isSupport = ["F", "G"].includes(colLetter);
+        const cellBg = isMale ? (idx % 2 === 0 ? "FFE3F2FD" : "FFF3F8FF")
+          : isFemale ? (idx % 2 === 0 ? "FFFCE4EC" : "FFFFF0F5")
+            : isSupport ? (idx % 2 === 0 ? "FFD6EEF8" : "FFE4F4FB")
+              : bg;
 
         const c = ws.getCell(`${colLetter}${rowNum}`);
         c.value = val === "" ? null : val;
-        c.font  = { name: "Arial", size: 10 };
-        c.fill  = { type: "pattern", pattern: "solid", fgColor: { argb: cellBg } };
+        c.font = { name: "Arial", size: 10 };
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: cellBg } };
         c.alignment = { horizontal: ci === 1 ? "left" : "center", vertical: "middle" };
         c.border = thinBorder;
       });
@@ -771,8 +853,8 @@ export async function exportStudentsExcel(req, res, next) {
     ws.mergeCells(`A${lastRow}:G${lastRow}`);
     const sumCell = ws.getCell(`A${lastRow}`);
     sumCell.value = `รวมทั้งหมด ${students.length} คน`;
-    sumCell.font  = { name: "Arial", bold: true, size: 10, color: { argb: WHITE } };
-    sumCell.fill  = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_DARK } };
+    sumCell.font = { name: "Arial", bold: true, size: 10, color: { argb: WHITE } };
+    sumCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_DARK } };
     sumCell.alignment = { horizontal: "right", vertical: "middle" };
     ws.getRow(lastRow).height = 24;
 
@@ -783,6 +865,107 @@ export async function exportStudentsExcel(req, res, next) {
 
     await wb.xlsx.write(res);
     res.end();
+  } catch (err) {
+    next(err);
+  }
+}
+
+// school.controller.js
+
+export async function uploadUniformImage(req, res, next) {
+  try {
+    const school_id = req.user.school_id;
+    const request_id = Number(req.params.request_id);
+    const uniform_type_id = Number(req.params.uniform_type_id);
+
+    if (!req.file) {
+      return res.status(400).json({ message: "ไม่พบไฟล์รูปภาพ" });
+    }
+
+    // ตรวจสิทธิ์: โครงการนี้เป็นของโรงเรียนนี้จริงไหม
+    const [projRows] = await db.query(
+      `SELECT request_id FROM donation_request
+       WHERE request_id = ? AND school_id = ? LIMIT 1`,
+      [request_id, school_id]
+    );
+    if (!projRows[0]) {
+      return res.status(403).json({ message: "ไม่มีสิทธิ์จัดการโครงการนี้" });
+    }
+
+    // ลบรูปเดิมใน Cloudinary ถ้ามี
+    const [existing] = await db.query(
+      `SELECT image_public_id FROM uniform_type_images
+       WHERE school_id = ? AND request_id = ? AND uniform_type_id = ?
+       LIMIT 1`,
+      [school_id, request_id, uniform_type_id]
+    );
+    if (existing[0]?.image_public_id) {
+      await cloudinary.uploader.destroy(existing[0].image_public_id);
+    }
+
+    // Upload ขึ้น Cloudinary folder "uniform"
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "uniform",
+          public_id: `school_${school_id}_req_${request_id}_type_${uniform_type_id}`,
+          overwrite: true,
+          resource_type: "image",
+        },
+        (err, result) => (err ? reject(err) : resolve(result))
+      );
+      stream.end(req.file.buffer);
+    });
+
+    // Upsert ลง DB
+    await db.query(
+      `INSERT INTO uniform_type_images
+         (school_id, request_id, uniform_type_id, image_url, image_public_id)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         image_url       = VALUES(image_url),
+         image_public_id = VALUES(image_public_id),
+         updated_at      = NOW()`,
+      [school_id, request_id, uniform_type_id,
+        result.secure_url, result.public_id]
+    );
+
+    res.json({
+      image_url: result.secure_url,
+      image_public_id: result.public_id,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+export async function deleteUniformImage(req, res, next) {
+  try {
+    const school_id = req.user.school_id;
+    const request_id = Number(req.params.request_id);
+    const uniform_type_id = Number(req.params.uniform_type_id);
+
+    const [rows] = await db.query(
+      `SELECT image_public_id FROM uniform_type_images
+       WHERE school_id = ? AND request_id = ? AND uniform_type_id = ?
+       LIMIT 1`,
+      [school_id, request_id, uniform_type_id]
+    );
+
+    if (!rows[0]) {
+      return res.status(404).json({ message: "ไม่พบรูปภาพ" });
+    }
+
+    await cloudinary.uploader.destroy(rows[0].image_public_id);
+
+    await db.query(
+      `DELETE FROM uniform_type_images
+       WHERE school_id = ? AND request_id = ? AND uniform_type_id = ?`,
+      [school_id, request_id, uniform_type_id]
+    );
+
+    res.json({ message: "ลบรูปภาพสำเร็จ" });
   } catch (err) {
     next(err);
   }

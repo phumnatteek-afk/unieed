@@ -27,6 +27,25 @@ export default function ProjectDetailPage() {
       }
     })();
   }, [requestId]);
+  // แปลง size JSON → ข้อความภาษาไทย
+// {"chest":"32"} → "อก 32"
+// {"waist":"24"} → "เอว 24"
+// {"chest":"32","waist":"28"} → "อก 32 / เอว 28"
+// "32" (plain string) → "อก 32"
+const formatSize = (size) => {
+  if (!size) return "";
+  try {
+    const obj = typeof size === "string" ? JSON.parse(size) : size;
+    const parts = [];
+    if (obj.chest) parts.push(`อก ${obj.chest}`);
+    if (obj.waist) parts.push(`เอว ${obj.waist}`);
+    if (obj.length) parts.push(`ยาว ${obj.length}`);
+    return parts.length > 0 ? parts.join(" / ") : String(size);
+  } catch {
+    // ถ้าไม่ใช่ JSON ก็แสดงตรงๆ
+    return String(size);
+  }
+};
 
   const rightAccount = () => {
     if (!token) {
@@ -253,14 +272,33 @@ export default function ProjectDetailPage() {
                         <div className="pdUniformTitle">รายละเอียดชุดที่ต้องการ</div>
                         <div className="pdUniformSub">{project.education_level || ""}</div>
                         <div className="pdUniformImgs">
-                          {project.uniform_images?.map((img, i) => (
-                            <img key={i} src={img} alt="uniform" className="pdUniformImg" />
-                          ))}
-                        </div>
+  {(() => {
+    const seen = new Set();
+    return project.uniform_items
+      .filter(item => {
+        if (item.image_url && !seen.has(item.uniform_type_id)) {
+          seen.add(item.uniform_type_id);
+          return true;
+        }
+        return false;
+      })
+      .map(item => (
+        <div key={item.uniform_type_id} className="pdUniformImgWrap">
+          <img src={item.image_url} alt={item.name} className="pdUniformImg" />
+          <span className="pdUniformImgLabel">{item.name}</span>
+        </div>
+      ));
+  })()}
+</div>
                         <div className="pdUniformList">
                           {project.uniform_items.map((item, i) => (
                             <div className="pdUniformRow" key={i}>
-                              <span className="pdUniformName">{item.name}</span>
+                              <span className="pdUniformName">
+  {item.name}
+  {item.size && (
+    <span className="pdUniformSize">{formatSize(item.size)}</span>
+  )}
+</span>
                               <span className="pdUniformQty">{item.quantity} ชิ้น</span>
                             </div>
                           ))}
@@ -307,12 +345,15 @@ export default function ProjectDetailPage() {
                     <div className="pdContactPerson">
                       <div className="pdContactTitle">ผู้รับผิดชอบโครงการ</div>
                       <div className="pdPersonRow">
-                        {project.contact_avatar
-                          ? <img src={project.contact_avatar} alt="contact" className="pdAvatar" />
-                          : <div className="pdAvatarPlaceholder">
-                              <Icon icon="fluent:person-circle-28-filled" width="44" color="#87C7EB" />
-                            </div>}
-                        <span className="pdPersonName">{project.contact_person}</span>
+                        {project.school_logo_url
+  ? <img src={project.school_logo_url} alt={project.school_name} className="pdAvatar" />
+  : <div className="pdAvatarPlaceholder">
+      <Icon icon="fluent:person-circle-28-filled" width="44" color="#87C7EB" />
+    </div>}
+<div style={{ display: "flex", flexDirection: "column" }}>
+  <span className="pdPersonSchool">{project.school_name}</span>
+  <span className="pdPersonName">โดย {project.contact_person}</span>
+</div>
                       </div>
                     </div>
                   )}

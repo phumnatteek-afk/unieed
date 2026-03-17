@@ -20,6 +20,8 @@ import {
   listSchoolProjects,
   getLatestProject,
   exportStudentsExcel,
+  uploadUniformImage,
+  deleteUniformImage,
 //   getProjectById,
 //   updateProject,
 //   uploadProjectImage,
@@ -56,6 +58,22 @@ r.post(
   requireRole(["school_admin"]),
   upload.single("image"),
   uploadProjectImage
+);
+
+// school.routes.js
+r.post(
+  "/projects/:request_id/uniform-images/:uniform_type_id",
+  auth,
+  requireRole(["school_admin"]),
+  upload.single("image"),
+  uploadUniformImage
+);
+
+r.delete(
+  "/projects/:request_id/uniform-images/:uniform_type_id",
+  auth,
+  requireRole(["school_admin"]),
+  deleteUniformImage
 );
 
 export default r;
