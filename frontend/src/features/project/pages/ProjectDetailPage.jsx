@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
-import { getJson } from "../api/http.js";
+import { useAuth } from "../../../context/AuthContext.jsx";
+import { getJson } from "../../../api/http.js";
 import { Icon } from "@iconify/react";
-import "./styles/Homepage.css";
-import "./styles/ProjectDetail.css";
+import "../../../pages/styles/Homepage.css";
+import "../styles/ProjectDetail.css";
 
 export default function ProjectDetailPage() {
   const { token, userName, logout } = useAuth();

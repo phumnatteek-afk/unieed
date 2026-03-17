@@ -29,9 +29,9 @@ import AdminSchoolsPage from "./features/admin/pages/AdminSchoolsPage.jsx";
 import AdminGuard from "./routes/AdminGuard.jsx";
 import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
 
-import ProjectDetailPage from "./pages/ProjectDetailPage";
+import ProjectDetailPage from "./features/project/pages/ProjectDetailPage.jsx";
 // ส่วนหน้าเมนู
-import DonationProject from "./pages/DonationProject";
+import DonationProject from "./features/project/pages/DonationProject.jsx";
 import "./App.css";
 
 export default function App() {

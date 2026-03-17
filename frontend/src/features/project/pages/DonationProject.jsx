@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../../../context/AuthContext.jsx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Icon } from "@iconify/react";
-import "./styles/Homepage.css";
+import "../../../pages/styles/Homepage.css";
 
 export default function DonationProject() {
   const { token, userName, logout } = useAuth();
