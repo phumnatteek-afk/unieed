@@ -180,27 +180,36 @@
 
 .pdChannels {
   display: flex;
-  gap: 8px;
-
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .pdChannel {
-  width: 175px;
-  height: 60px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 15px;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid #e5e7eb;
   background: #fff;
-  border: 1px solid #000;
-  border-radius: 15px;
-  padding: 10px 10px;
+  cursor: pointer;
   font-size: 14px;
-  color: #053F5C;
-  font-weight: 700;
+  color: #555;
+  font-family: 'Kanit', sans-serif;
+  transition: all 0.18s;
+  user-select: none;
 }
-.pdChannel:hover{
-  background: #FFBE1B;
+
+.pdChannel:hover {
+  border-color: #87C7EB;
+}
+
+/* Active state ตามแต่ละ method */
+.pdChannel.pdChannelActive {
+  border-color: #5285E8;
+  background: #EEF5FF;
+  color: #1d4ed8;
+  font-weight: 600;
 }
 .pdDonateBtn {
   margin-top: 8px;
