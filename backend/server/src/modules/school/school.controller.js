@@ -17,7 +17,7 @@ export async function getProjectByIdPublic(req, res, next) {
   try {
     const request_id = Number(req.params.request_id);
 
-    // ── Query 1: ข้อมูลหลัก ──────────────────────────────────────────────
+    // ── Query 1: ข้อมูลหลัก ──────────────────────────────────
     const [rows] = await db.query(
       `SELECT
          dr.request_id,
@@ -27,41 +27,28 @@ export async function getProjectByIdPublic(req, res, next) {
          dr.request_image_url,
          dr.status,
          dr.created_at,
-
          s.school_name,
          s.school_address        AS school_full_address,
          s.school_phone,
          s.school_logo_url,
-
-         (SELECT u.user_email
-          FROM users u
+         (SELECT u.user_email FROM users u
           WHERE u.school_id = dr.school_id
             AND u.role = 'school_admin'
           ORDER BY u.user_id ASC LIMIT 1) AS school_email,
-
-         (SELECT u.user_name
-          FROM users u
+         (SELECT u.user_name FROM users u
           WHERE u.school_id = dr.school_id
             AND u.role = 'school_admin'
           ORDER BY u.user_id ASC LIMIT 1) AS contact_person,
-
-         (SELECT COUNT(*)
-          FROM students st
-          WHERE st.request_id = dr.request_id
-         ) AS student_count,
-
+         (SELECT COUNT(*) FROM students st
+          WHERE st.request_id = dr.request_id) AS student_count,
          (SELECT COALESCE(SUM(sn.quantity_needed), 0)
           FROM student_need sn
           JOIN students st ON st.student_id = sn.student_id
-          WHERE st.request_id = dr.request_id
-         ) AS total_needed,
-
+          WHERE st.request_id = dr.request_id) AS total_needed,
          (SELECT COALESCE(SUM(sn.quantity_received), 0)
           FROM student_need sn
           JOIN students st ON st.student_id = sn.student_id
-          WHERE st.request_id = dr.request_id
-         ) AS total_fulfilled
-
+          WHERE st.request_id = dr.request_id) AS total_fulfilled
        FROM donation_request dr
        JOIN schools s ON s.school_id = dr.school_id
        WHERE dr.request_id = ?
@@ -74,55 +61,82 @@ export async function getProjectByIdPublic(req, res, next) {
     const project = {
       ...rows[0],
       school_address:  rows[0].school_full_address,
-      total_needed:    Number(rows[0].total_needed),
-      total_fulfilled: Number(rows[0].total_fulfilled),
-      student_count:   Number(rows[0].student_count),
+      total_needed:    Number(rows[0].total_needed)    || 0,
+      total_fulfilled: Number(rows[0].total_fulfilled) || 0,
+      student_count:   Number(rows[0].student_count)   || 0,
+      uniform_items:   [],   // ✅ default ก่อน กัน undefined
     };
 
-    // ── Query 2: uniform_items + รูปชุดของโรงเรียน ───────────────────────
-    const [items] = await db.query(
-      `SELECT
-         ut.uniform_type_id,
-         ut.type_name            AS name,
-         ut.gender,
-         sn.size,
-         SUM(sn.quantity_needed) AS quantity,
-         uti.image_url
-       FROM student_need sn
-       JOIN students     st  ON st.student_id     = sn.student_id
-                             AND st.request_id     = ?
-       JOIN uniform_type ut  ON ut.uniform_type_id = sn.uniform_type_id
-       LEFT JOIN uniform_type_images uti
-              ON  uti.uniform_type_id = sn.uniform_type_id
-              AND uti.school_id       = ?
-              AND uti.request_id      = ?
-       GROUP BY
-         ut.uniform_type_id, ut.type_name,
-         ut.gender, sn.size, uti.image_url
-       ORDER BY ut.uniform_type_id ASC, sn.size ASC`,
-      [request_id, project.school_id, request_id]
-    );
+    const { school_id } = project;
 
-    project.uniform_items = items.map(i => ({
-      uniform_type_id: i.uniform_type_id,
-      name:      i.name,
-      gender:    i.gender,
-      size:      i.size   || null,
-      quantity:  Number(i.quantity),
-      image_url: i.image_url || null,
-    }));
+    // ── Query 2: uniform_items ────────────────────────────────
+    // แยก try/catch เพื่อกันไม่ให้ crash ทั้งหน้า
+    try {
+      const [items] = await db.query(
+        `SELECT
+           ut.uniform_type_id,
+           ut.type_name                                    AS name,
+           ut.gender,
+           ut.uniform_category,
+           sn.size,
+           st.education_level_group                        AS education_level,
+           SUM(sn.quantity_needed)                         AS quantity,
+           COALESCE(uti_exact.image_url, uti_all.image_url) AS image_url
+         FROM student_need sn
+         JOIN students     st  ON st.student_id     = sn.student_id
+                               AND st.request_id     = ?
+         JOIN uniform_type ut  ON ut.uniform_type_id = sn.uniform_type_id
+         LEFT JOIN uniform_type_images uti_exact
+                ON  uti_exact.uniform_type_id = sn.uniform_type_id
+                AND uti_exact.school_id       = ?
+                AND uti_exact.request_id      = ?
+                AND uti_exact.education_level = st.education_level_group
+         LEFT JOIN uniform_type_images uti_all
+                ON  uti_all.uniform_type_id  = sn.uniform_type_id
+                AND uti_all.school_id        = ?
+                AND uti_all.request_id       = ?
+                AND uti_all.education_level  IS NULL
+         GROUP BY
+           ut.uniform_type_id, ut.type_name, ut.gender,
+           ut.uniform_category,
+           sn.size, st.education_level_group,
+           uti_exact.image_url, uti_all.image_url
+         ORDER BY
+           ut.uniform_type_id ASC,
+           st.education_level_group ASC,
+           sn.size ASC`,
+        [request_id, school_id, request_id, school_id, request_id]
+      );
 
-    // uniform_images — unique URL ต่อ uniform_type สำหรับแสดงรูปบน UI
-    const seen = new Set();
-    project.uniform_images = project.uniform_items.reduce((acc, item) => {
-      if (item.image_url && !seen.has(item.uniform_type_id)) {
-        seen.add(item.uniform_type_id);
-        acc.push(item.image_url);
-      }
-      return acc;
-    }, []);
+      project.uniform_items = (items || []).map(i => {
+        let sizeObj = null;
+        if (i.size) {
+          try {
+            sizeObj = typeof i.size === "string" ? JSON.parse(i.size) : i.size;
+          } catch {
+            sizeObj = i.size;
+          }
+        }
+        return {
+          uniform_type_id:   i.uniform_type_id,
+          name:              i.name,
+          gender:            i.gender,
+          uniform_category:  i.uniform_category || null,
+          size:              sizeObj,
+          education_level:   i.education_level || null,
+          quantity:          Number(i.quantity) || 0,
+          image_url:         i.image_url        || null,
+        };
+      });
+
+    } catch (uniformErr) {
+      // log แต่ไม่ crash — หน้ายังโหลดได้ แค่ไม่มีรายการชุด
+      console.error("[getProjectByIdPublic] uniform_items query failed:", uniformErr.message);
+      project.uniform_items = [];
+    }
 
     res.json(project);
+
   } catch (err) {
     next(err);
   }
@@ -131,11 +145,12 @@ export async function getProjectByIdPublic(req, res, next) {
 export async function getUniformTypes(req, res) {
   const [rows] = await db.query(
     `SELECT uniform_type_id,
-            type_name AS uniform_type_name,
+            type_name         AS uniform_type_name,
             gender,
+            uniform_category,
             size_schema
      FROM uniform_type
-     ORDER BY type_name ASC`
+     ORDER BY gender ASC, uniform_category ASC, type_name ASC`
   );
 
   res.json(rows);
@@ -327,6 +342,28 @@ export async function createStudentWithNeeds(req, res) {
         ]
       );
     }
+    // helper แปลง education_level → group
+function resolveGroup(edu) {
+  if (!edu) return null;
+  const s = edu.toString().trim();
+  if (/^อนุบาล|^kg/i.test(s))          return "อนุบาล";
+  if (/^ป\.|^ประถม|^primary/i.test(s)) return "ประถมศึกษา";
+  if (/^ม\.|^มัธยม|^secondary/i.test(s)) return "มัธยมศึกษา";
+  return null;
+}
+
+// แก้ INSERT students
+await conn.query(
+  `INSERT INTO students
+     (school_id, request_id, student_name,
+      education_level, education_level_group,
+      gender, urgency, created_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+  [school_id, request_id, student_name,
+   education_level,
+   resolveGroup(education_level),  // ← เพิ่มตรงนี้
+   genderDb, urgency || "can_wait"]
+);
 
 
     await conn.commit();

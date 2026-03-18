@@ -459,3 +459,221 @@
   text-align: center;
   max-width: 64px;
 }
+
+/* ================================================================
+   เพิ่มต่อท้าย EditProjectPage.css
+   ── Uniform Upload UI (Level-first) ──
+   ================================================================ */
+
+/* ── Step box ── */
+.epLevelStepBox,
+.epUniformStepBox {
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 10px;
+}
+.epLevelStepBox { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: none; }
+.epUniformStepBox { border-top-left-radius: 0; border-top-right-radius: 0; }
+
+.epStepLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 12px;
+}
+.epStepBadge {
+  width: 22px; height: 22px;
+  background: #29B6E8; color: #fff;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+}
+
+/* ── Level button group ── */
+.epLevelBtnGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.epLevelBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.18s;
+  min-width: 100px;
+  position: relative;
+}
+.epLevelBtn:hover { border-color: #29B6E8; background: #F0FAFF; }
+.epLevelBtnActive { border-color: #29B6E8; background: #E0F5FF; }
+.epLevelBtnEmoji  { font-size: 22px; }
+.epLevelBtnLabel  { font-size: 11px; font-weight: 600; color: #334155; text-align: center; line-height: 1.3; }
+.epLevelBtnBadge  {
+  position: absolute;
+  top: -6px; right: -6px;
+  background: #16A34A; color: #fff;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 6px; border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* ── Uniform type grid ── */
+.epUniformTypeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+/* ── Each card ── */
+.epUniCard {
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.epUniCard:hover     { border-color: #29B6E8; box-shadow: 0 2px 10px rgba(41,182,232,0.1); }
+.epUniCardHasImg     { border-color: #86EFAC; }
+.epUniCardLoading    { opacity: 0.6; pointer-events: none; }
+
+/* รูป */
+.epUniCardImg {
+  position: relative;
+  width: 100%; aspect-ratio: 1/1;
+  border-radius: 8px; overflow: hidden; background: #F1F5F9;
+}
+.epUniCardImg img   { width: 100%; height: 100%; object-fit: cover; }
+.epUniCardEmpty {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 6px; color: #94A3B8; font-size: 10px;
+}
+
+/* Spinner */
+.epUniCardSpin {
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.7);
+  display: flex; align-items: center; justify-content: center;
+}
+.epSpinner {
+  width: 22px; height: 22px;
+  border: 3px solid #E2E8F0; border-top-color: #29B6E8;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* done badge */
+.epUniCardDone {
+  position: absolute; top: 6px; right: 6px;
+  background: #16A34A; color: #fff;
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
+
+/* ชื่อ */
+.epUniCardName {
+  font-size: 11px; font-weight: 600; color: #1E293B;
+  text-align: center; line-height: 1.3;
+}
+
+/* message */
+.epUniCardMsg { font-size: 10px; text-align: center; padding: 2px 6px; border-radius: 20px; }
+.epUniCardMsg.ok   { background: #F0FDF4; color: #16A34A; }
+.epUniCardMsg.err  { background: #FEF2F2; color: #DC2626; }
+.epUniCardMsg.info { background: #EFF6FF; color: #2563EB; }
+
+/* ปุ่ม */
+.epUniCardActions { display: flex; gap: 4px; width: 100%; }
+.epUniBtn {
+  flex: 1; text-align: center; font-size: 11px; font-weight: 600;
+  padding: 5px 0; border-radius: 6px; cursor: pointer; border: none;
+  transition: opacity 0.15s;
+}
+.epUniBtnPrimary          { background: #29B6E8; color: #fff; }
+.epUniBtnPrimary:hover    { opacity: 0.85; }
+.epUniBtnDelete           { background: #FEE2E2; color: #DC2626; }
+.epUniBtnDelete:hover     { opacity: 0.85; }
+.epUniBtnDisabled         { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Summary section ── */
+.epUniformSummary { border-top: 1px solid #E2E8F0; padding-top: 14px; }
+.epUniformSummaryTitle {
+  font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 10px;
+}
+.epUniformSummaryLevel    { margin-bottom: 10px; }
+.epUniformSummaryLevelName {
+  font-size: 11px; font-weight: 600; color: #29B6E8; display: block; margin-bottom: 6px;
+}
+.epUniformSummaryImgs  { display: flex; flex-wrap: wrap; gap: 8px; }
+.epUniformSummaryThumb { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.epUniformSummaryThumb img {
+  width: 48px; height: 48px; object-fit: cover;
+  border-radius: 6px; border: 1px solid #E2E8F0;
+}
+.epUniformSummaryThumb span { font-size: 9px; color: #64748B; text-align: center; max-width: 48px; }
+.epUniformSummaryEmpty { font-size: 12px; color: #94A3B8; font-style: italic; }
+
+/* ================================================================
+   เพิ่มต่อท้าย EditProjectPage.css
+   ── กำกับประเภทชุด ──
+   ================================================================ */
+
+/* ── Gender section header ── */
+.epUniformGenderSection {
+  margin-bottom: 16px;
+}
+
+.epUniformGenderHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.epUniformGenderCount {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+/* ── ป้ายกำกับประเภทชุด (บนสุดของ card) ── */
+.epUniCardTypeBadge {
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 6px;
+  border-radius: 6px;
+  line-height: 1.3;
+}
+
+/* ── hint ใต้รูป ── */
+.epUniCardHint {
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  text-align: center;
+  line-height: 1.5;
+}
