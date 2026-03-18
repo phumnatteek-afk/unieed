@@ -1,0 +1,500 @@
+/* ===== DONATE PAGE ===== */
+
+.dnLayout {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  min-height: calc(100vh - 120px);
+  background: #FFF8E7;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+}
+
+/* LEFT */
+.dnLeft {
+  background: #FFF8E7;
+  padding: 40px 32px;
+  border-right: 1px solid #e5e7eb;
+}
+
+.dnProjectCard {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+
+.dnProjectImg {
+  width: 100%;
+  height: 260px;
+  overflow: hidden;
+  background: #eef2ff;
+}
+
+.dnProjectImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dnProjectImgPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #e5e7eb, #f3f4f6);
+}
+
+.dnProjectInfo {
+  padding: 18px 20px;
+}
+
+.dnProjectBadge {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.dnProjectTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.dnProjectSchool {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.dnProjectFulfilled {
+  font-size: 15px;
+  color: #374151;
+}
+
+.dnProjectFulfilled strong {
+  font-size: 20px;
+  color: #5285E8;
+}
+
+/* RIGHT */
+.dnRight {
+  background: #fff;
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Method tabs */
+.dnMethodTabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.dnMethodTab {
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 1.5px solid #d0e8f7;
+  background: #fff;
+  font-size: 14px;
+  font-family: 'Kanit', sans-serif;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.dnMethodTab:hover {
+  border-color: #87C7EB;
+}
+
+.dnMethodTabActive {
+  background: #5285E8;
+  border-color: #5285E8;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Step */
+.dnStep {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dnBackBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-family: 'Kanit', sans-serif;
+  padding: 0;
+  width: fit-content;
+}
+
+.dnStepTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d4ed8;
+  line-height: 1.4;
+}
+
+.dnStepTitle span {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+/* Uniform list */
+.dnUniformList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dnUniformItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px 18px;
+  transition: border-color 0.18s;
+}
+
+.dnUniformItem:hover {
+  border-color: #87C7EB;
+}
+
+.dnUniformImg {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f0f4ff;
+  flex-shrink: 0;
+}
+
+.dnUniformImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.dnUniformImgPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #dce8ff, #eef2ff);
+}
+
+.dnUniformInfo {
+  flex: 1;
+}
+
+.dnUniformName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+}
+
+.dnUniformLevel {
+  font-size: 13px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.dnUniformRemain {
+  font-size: 12px;
+  color: #5285E8;
+  margin-top: 4px;
+}
+
+/* Qty control */
+.dnQtyControl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.dnQtyBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid #d0e8f7;
+  background: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5285E8;
+  transition: all 0.15s;
+}
+
+.dnQtyBtn:hover:not(:disabled) {
+  background: #5285E8;
+  color: #fff;
+  border-color: #5285E8;
+}
+
+.dnQtyBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dnQtyNum {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Total */
+.dnTotal {
+  background: #EEF5FF;
+  border: 1.5px solid #5285E8;
+  border-radius: 12px;
+  padding: 16px 20px;
+  font-size: 16px;
+  color: #1d4ed8;
+  font-weight: 500;
+}
+
+.dnTotal strong {
+  font-size: 20px;
+}
+
+/* Actions */
+.dnStepActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dnNextBtn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-family: 'Kanit', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Form elements */
+.dnFormGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dnLabel {
+  font-size: 15px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.dnInput {
+  height: 46px;
+  border-radius: 10px;
+  border: 1.5px solid #d0e8f7;
+  padding: 0 14px;
+  font-size: 15px;
+  font-family: 'Kanit', sans-serif;
+  color: #374151;
+  outline: none;
+  transition: border-color 0.18s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dnInput:focus {
+  border-color: #5285E8;
+}
+
+.dnSelect {
+  height: 46px;
+  border-radius: 10px;
+  border: 1.5px solid #d0e8f7;
+  padding: 0 36px 0 14px;
+  font-size: 15px;
+  font-family: 'Kanit', sans-serif;
+  color: #374151;
+  appearance: none;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235285E8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 14px center;
+  cursor: pointer;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Address box */
+.dnAddressBox {
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.dnAddressText {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.7;
+  flex: 1;
+}
+
+.dnCopyBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  padding: 4px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.18s;
+}
+
+.dnCopyBtn:hover {
+  color: #5285E8;
+}
+
+/* Upload box */
+.dnUploadBox {
+  height: 100px;
+  border: 1.5px dashed #d0e8f7;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #aaa;
+  font-size: 14px;
+  font-family: 'Kanit', sans-serif;
+  overflow: hidden;
+  transition: border-color 0.18s;
+}
+
+.dnUploadBox:hover {
+  border-color: #5285E8;
+}
+
+.dnProofImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ===== Date picker with calendar icon ===== */
+.dnDateWrap {
+  position: relative;
+}
+
+.dnDateWrap .dnInput {
+  padding-right: 52px; /* เว้นที่ให้ icon */
+}
+
+.dnDateIcon {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #5285E8;
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Info box (drop-off location) */
+.dnInfoBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #FFFBF0;
+  border: 1px solid #FFBE1B;
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+
+.dnInfoLabel {
+  font-size: 12px;
+  color: #888;
+}
+
+.dnInfoVal {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+}
+
+.dnInfoSub {
+  font-size: 13px;
+  color: #666;
+}
+
+/* Submit */
+.dnSubmitBtn {
+  width: 100%;
+  height: 54px;
+  background: #FFBE1B;
+  border: none;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  font-family: 'Kanit', sans-serif;
+  transition: background 0.18s;
+  margin-top: 8px;
+}
+
+.dnSubmitBtn:hover {
+  background: #f0ad00;
+}
+
+.dnSubmitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dnCertNote {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+}
+
+.dnErr {
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .dnLayout {
+    grid-template-columns: 1fr;
+  }
+  .dnRight {
+    padding: 24px 20px;
+  }
+}

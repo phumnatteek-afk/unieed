@@ -30,6 +30,7 @@ import AdminGuard from "./routes/AdminGuard.jsx";
 import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
 
 import ProjectDetailPage from "./features/project/pages/ProjectDetailPage.jsx";
+import DonatePage from "./features/project/pages/Donatepage.jsx";
 // ส่วนหน้าเมนู
 import DonationProject from "./features/project/pages/DonationProject.jsx";
 import "./App.css";
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="/resend-verification" element={<ResendVerificationPage />} />
 
             <Route path="/projects/:requestId" element={<ProjectDetailPage />} />
+            <Route path="/donate/:requestId" element={<DonatePage />} />
             {/* School */}
             <Route path="/school/pending" element={<SchoolPendingPage />} />
 
