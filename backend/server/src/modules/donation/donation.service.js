@@ -77,9 +77,10 @@ export async function getDonationsByProject(request_id) {
   const [rows] = await db.query(
     `SELECT
        donation_id, donor_id, donor_name, donor_phone,
-       donation_date, delivery_method,
+       donation_date, donation_time, delivery_method,
        shipping_carrier, tracking_number,
-       donation_pic, quantity, status, created_at
+       donation_pic, items_snapshot,   -- ← เพิ่ม items_snapshot
+       quantity, status, condition_status, created_at
      FROM donation_record
      WHERE request_id = ?
      ORDER BY created_at DESC`,
@@ -136,3 +137,17 @@ export async function isDonationOwnedBySchool(donation_id, school_id) {
   );
   return !!rows[0];
 }
+
+// ─────────────────────────────────────────────────────────────────
+// บันทึกผลตรวจสอบสภาพ + อัปเดตสถานะเป็น approved
+// ─────────────────────────────────────────────────────────────────
+export async function verifyDonation(donation_id, condition_status) {
+  await db.query(
+    `UPDATE donation_record
+     SET status           = 'approved',
+         condition_status = ?
+     WHERE donation_id    = ?`,
+    [condition_status, donation_id]
+  );
+}
+ 

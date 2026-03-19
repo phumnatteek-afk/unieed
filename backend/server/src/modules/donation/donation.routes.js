@@ -8,6 +8,7 @@ import {
   listDonationsByProject,
   getDonationDetail,
   updateDonationStatus,
+  verifyDonation,
 } from "./donation.controller.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -49,6 +50,14 @@ r.patch(
   auth,
   requireRole(["school_admin"]),
   updateDonationStatus
+);
+
+
+r.patch(
+  "/:donationId/verify",
+  auth,
+  requireRole(["school_admin"]),
+  verifyDonation
 );
 
 export default r;

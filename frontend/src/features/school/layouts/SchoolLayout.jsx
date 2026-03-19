@@ -15,35 +15,36 @@ export default function SchoolLayout() {
         <div className="scSideLine" />
 
         <nav className="scMenu">
-          <NavLink
-            to="dashboard"
-            end
-            className={({ isActive }) => (isActive ? "scItem active" : "scItem")}
-          >
-            <span className="scMenuIcon">
-              <Icon icon="mdi:view-dashboard-outline" />
-            </span>
+          <NavLink to="dashboard" end
+            className={({ isActive }) => (isActive ? "scItem active" : "scItem")}>
+            <span className="scMenuIcon"><Icon icon="mdi:view-dashboard-outline" /></span>
             ภาพรวม (Dashboard)
           </NavLink>
 
-          <NavLink
-            to="projects/manage"
-            className={({ isActive }) => (isActive ? "scItem active" : "scItem")}
-          >
-            <span className="scMenuIcon">
-              <Icon icon="fa6-regular:pen-to-square" />
-            </span>
+          <NavLink to="projects/manage"
+            className={({ isActive }) => (isActive ? "scItem active" : "scItem")}>
+            <span className="scMenuIcon"><Icon icon="fa6-regular:pen-to-square" /></span>
             จัดการโครงการ
           </NavLink>
 
-          <NavLink
-            to="donations"
-            className={({ isActive }) => (isActive ? "scItem active" : "scItem")}
-          >
-            <span className="scMenuIcon">
-              <Icon icon="mdi:package-variant-closed" />
-            </span>
+          <NavLink to="donations"
+            className={({ isActive }) => (isActive ? "scItem active" : "scItem")}>
+            <span className="scMenuIcon"><Icon icon="mdi:package-variant-closed" /></span>
             ติดตามการบริจาค
+          </NavLink>
+
+          {/* ✅ เพิ่ม */}
+          <NavLink to="appointments"
+            className={({ isActive }) => (isActive ? "scItem active" : "scItem")}>
+            <span className="scMenuIcon"><Icon icon="mdi:calendar-clock-outline" /></span>
+            ติดตามการนัดหมาย
+          </NavLink>
+
+          {/* ✅ เพิ่ม */}
+          <NavLink to="testimonials"
+            className={({ isActive }) => (isActive ? "scItem active" : "scItem")}>
+            <span className="scMenuIcon"><Icon icon="mdi:heart-outline" /></span>
+            บันทึกความประทับใจ
           </NavLink>
         </nav>
       </aside>

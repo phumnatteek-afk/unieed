@@ -24,6 +24,8 @@ import {
   deleteUniformImage,
 } from "./school.controller.js";
 
+ import { getTestimonials, createTestimonial, updateTestimonial, patchTestimonial, deleteTestimonial } from "./school.controller.js";
+
 const r = Router();
 
 // ── School profile ────────────────────────────────────────────────────────────
@@ -74,5 +76,12 @@ r.delete(
   requireRole(["school_admin"]),
   deleteUniformImage
 );
+
+ 
+r.get("/testimonials",          auth, requireRole(["school_admin"]), getTestimonials);
+r.post("/testimonials",         auth, requireRole(["school_admin"]), upload.single("image"), createTestimonial);
+r.put("/testimonials/:id",      auth, requireRole(["school_admin"]), upload.single("image"), updateTestimonial);
+r.patch("/testimonials/:id",    auth, requireRole(["school_admin"]), patchTestimonial);
+r.delete("/testimonials/:id",   auth, requireRole(["school_admin"]), deleteTestimonial);
 
 export default r;

@@ -191,3 +191,40 @@ export async function updateDonationStatus(req, res, next) {
     next(err);
   }
 }
+
+// ── เพิ่มใน donation.controller.js ──────────────────────────────
+ 
+// PATCH /donations/:donationId/verify  (school_admin)
+// body: { condition_status: "usable"|"damaged"|"wrong_item", thank_message?: string }
+export async function verifyDonation(req, res, next) {
+  try {
+    const donation_id    = Number(req.params.donationId);
+    const school_id      = req.user.school_id;
+    const { condition_status, thank_message } = req.body;
+ 
+    const VALID = ["usable", "damaged", "wrong_item"];
+    if (!VALID.includes(condition_status))
+      return res.status(400).json({ message: "condition_status ไม่ถูกต้อง" });
+ 
+    // ตรวจสิทธิ์
+    const owned = await isDonationOwnedBySchool(donation_id, school_id);
+    if (!owned)
+      return res.status(403).json({ message: "ไม่พบรายการ หรือไม่มีสิทธิ์" });
+ 
+    // อัปเดต DB
+    await db.query(
+      `UPDATE donation_record
+       SET status           = 'approved',
+           condition_status = ?
+       WHERE donation_id    = ?`,
+      [condition_status, donation_id]
+    );
+ 
+    // TODO: ส่ง notification / email ขอบคุณผู้บริจาคด้วย thank_message
+    // สามารถเพิ่ม createNotification() ตรงนี้ในอนาคต
+ 
+    res.json({ message: "บันทึกผลตรวจสอบเรียบร้อยแล้ว" });
+  } catch (err) {
+    next(err);
+  }
+}

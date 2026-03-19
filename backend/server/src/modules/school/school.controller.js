@@ -1000,3 +1000,151 @@ export async function deleteUniformImage(req, res, next) {
     next(err);
   }
 }
+
+// GET /school/testimonials
+export async function getTestimonials(req, res, next) {
+  try {
+    const school_id = req.user.school_id;
+    const [rows] = await db.query(
+      `SELECT * FROM testimonials
+       WHERE school_id = ?
+       ORDER BY created_at DESC`,
+      [school_id]
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+}
+ 
+// POST /school/testimonials
+export async function createTestimonial(req, res, next) {
+  try {
+    const school_id = req.user.school_id;
+    const { review_title, review_text, rating, is_published, image_url: bodyImgUrl } = req.body;
+ 
+    if (!review_title?.trim()) return res.status(400).json({ message: "กรุณากรอกหัวข้อ" });
+    if (!review_text?.trim())  return res.status(400).json({ message: "กรุณากรอกความประทับใจ" });
+ 
+    let image_url        = bodyImgUrl || null;
+    let image_public_id  = null;
+ 
+    if (req.file) {
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "unieed/testimonials", resource_type: "image" },
+          (err, r) => (err ? reject(err) : resolve(r))
+        );
+        stream.end(req.file.buffer);
+      });
+      image_url       = result.secure_url;
+      image_public_id = result.public_id;
+    }
+ 
+    const [ins] = await db.query(
+  `INSERT INTO testimonials
+     (school_id, review_title, review_text,
+      image_url, image_public_id, is_published, review_date)
+   VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
+      [
+        school_id,
+    review_title.trim(),
+    review_text.trim(),
+    image_url,
+    image_public_id,
+    is_published === "1" || is_published === 1 ? 1 : 0,
+  ]
+);
+ 
+    res.status(201).json({ message: "บันทึกสำเร็จ", testimonial_id: ins.insertId });
+  } catch (err) { next(err); }
+}
+ 
+// PUT /school/testimonials/:id
+export async function updateTestimonial(req, res, next) {
+  try {
+    const school_id       = req.user.school_id;
+    const testimonial_id  = Number(req.params.id);
+    const { review_title, review_text, is_published, image_url: bodyImgUrl } = req.body;
+
+    const [rows] = await db.query(
+      "SELECT * FROM testimonials WHERE testimonial_id = ? AND school_id = ? LIMIT 1",
+      [testimonial_id, school_id]
+    );
+    if (!rows[0]) return res.status(403).json({ message: "ไม่พบหรือไม่มีสิทธิ์" });
+
+    let image_url       = bodyImgUrl || rows[0].image_url;
+    let image_public_id = rows[0].image_public_id;
+
+    if (req.file) {
+      if (image_public_id) await cloudinary.uploader.destroy(image_public_id);
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "unieed/testimonials", resource_type: "image" },
+          (err, r) => (err ? reject(err) : resolve(r))
+        );
+        stream.end(req.file.buffer);
+      });
+      image_url       = result.secure_url;
+      image_public_id = result.public_id;
+    }
+
+    await db.query(
+      `UPDATE testimonials
+       SET review_title = ?, review_text = ?,
+           image_url = ?, image_public_id = ?, is_published = ?
+       WHERE testimonial_id = ? AND school_id = ?`,
+      [
+        review_title?.trim(),
+        review_text?.trim(),
+        image_url,
+        image_public_id,
+        is_published === "1" || is_published === 1 ? 1 : 0,
+        testimonial_id,
+        school_id,
+      ]
+    );
+
+    res.json({ message: "อัปเดตสำเร็จ" });
+  } catch (err) { next(err); }
+}
+ 
+// PATCH /school/testimonials/:id  — toggle is_published
+export async function patchTestimonial(req, res, next) {
+  try {
+    const school_id      = req.user.school_id;
+    const testimonial_id = Number(req.params.id);
+    const { is_published } = req.body;
+ 
+    await db.query(
+      `UPDATE testimonials SET is_published = ?
+       WHERE testimonial_id = ? AND school_id = ?`,
+      [is_published ? 1 : 0, testimonial_id, school_id]
+    );
+ 
+    res.json({ message: "อัปเดตสถานะสำเร็จ" });
+  } catch (err) { next(err); }
+}
+ 
+// DELETE /school/testimonials/:id
+export async function deleteTestimonial(req, res, next) {
+  try {
+    const school_id      = req.user.school_id;
+    const testimonial_id = Number(req.params.id);
+ 
+    const [rows] = await db.query(
+      "SELECT image_public_id FROM testimonials WHERE testimonial_id = ? AND school_id = ? LIMIT 1",
+      [testimonial_id, school_id]
+    );
+    if (!rows[0]) return res.status(403).json({ message: "ไม่พบหรือไม่มีสิทธิ์" });
+ 
+    if (rows[0].image_public_id) {
+      await cloudinary.uploader.destroy(rows[0].image_public_id);
+    }
+ 
+    await db.query(
+      "DELETE FROM testimonials WHERE testimonial_id = ? AND school_id = ?",
+      [testimonial_id, school_id]
+    );
+ 
+    res.json({ message: "ลบสำเร็จ" });
+  } catch (err) { next(err); }
+}

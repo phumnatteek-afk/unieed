@@ -1,0 +1,75 @@
+/* ===== SchoolTestimonialPage.css ===== */
+.stPage{padding:32px 40px;font-family:'Kanit',sans-serif;background:#fff8f3;min-height:100vh}
+.stHeader{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px}
+.stTitle{font-size:22px;font-weight:700;color:#1e293b;margin:0 0 4px}
+.stSubtitle{font-size:14px;color:#94a3b8}
+.stLoading{text-align:center;padding:80px;color:#94a3b8}
+.stBtnAdd{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:12px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border:none;font-size:14px;font-weight:700;font-family:'Kanit',sans-serif;cursor:pointer;box-shadow:0 4px 14px rgba(249,115,22,.35);transition:all .15s}
+.stBtnAdd:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(249,115,22,.45)}
+.stEmpty{text-align:center;padding:80px 40px}
+.stEmptyIcon{font-size:56px;margin-bottom:16px}
+.stEmptyText{font-size:18px;font-weight:700;color:#1e293b;margin-bottom:6px}
+.stEmptySub{font-size:14px;color:#94a3b8}
+.stGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.stCard{background:#fff;border-radius:20px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.06);border:1.5px solid #ffe8d6;position:relative;overflow:hidden;transition:all .2s}
+.stCard:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.1)}
+.stCardDraft{opacity:.75;border-style:dashed}
+.stRibbon{position:absolute;top:14px;right:-6px;padding:3px 14px 3px 10px;font-size:11px;font-weight:700;border-radius:4px 0 0 4px;clip-path:polygon(0 0,100% 0,100% 100%,0 100%,6px 50%)}
+.stRibbonPub{background:#dcfce7;color:#16a34a}
+.stRibbonDraft{background:#fef3c7;color:#d97706}
+.stCardImg{border-radius:12px;overflow:hidden;margin-bottom:14px;height:160px}
+.stCardImg img{width:100%;height:100%;object-fit:cover}
+.stCardStars{display:flex;align-items:center;gap:2px;margin-bottom:10px}
+.stCardRatingLabel{font-size:12px;color:#f59e0b;font-weight:600;margin-left:6px}
+.stCardTitle{font-size:16px;font-weight:700;color:#1e293b;margin-bottom:8px;line-height:1.4}
+.stCardText{font-size:14px;color:#6b7280;line-height:1.7;margin-bottom:10px;font-style:italic}
+.stCardDate{font-size:12px;color:#94a3b8;margin-bottom:14px}
+.stCardActions{display:flex;gap:6px;flex-wrap:wrap}
+.stCardBtn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;font-family:'Kanit',sans-serif;cursor:pointer;transition:all .12s;border:1.5px solid transparent}
+.stCardBtnEdit{background:#eff6ff;color:#2563eb;border-color:#bfdbfe}
+.stCardBtnEdit:hover{background:#dbeafe}
+.stCardBtnPub{background:#dcfce7;color:#16a34a;border-color:#bbf7d0}
+.stCardBtnPub:hover{background:#bbf7d0}
+.stCardBtnUnpub{background:#fef3c7;color:#d97706;border-color:#fde68a}
+.stCardBtnUnpub:hover{background:#fde68a}
+.stCardBtnDel{background:#fee2e2;color:#dc2626;border-color:#fca5a5;margin-left:auto}
+.stCardBtnDel:hover{background:#fca5a5}
+.stOverlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px)}
+.stModal{background:#fff;border-radius:24px;padding:32px;max-width:540px;width:92%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.2);animation:stPopIn .18s ease}
+@keyframes stPopIn{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.stModalClose{position:absolute;top:14px;right:14px;background:#f1f5f9;border:none;border-radius:8px;cursor:pointer;color:#64748b;padding:5px;display:flex;align-items:center;transition:background .12s}
+.stModalClose:hover{background:#e2e8f0}
+.stModalTitle{font-size:18px;font-weight:700;color:#1e293b;margin-bottom:24px}
+.stFormSection{margin-bottom:18px}
+.stFormRow{display:flex;align-items:center;justify-content:space-between}
+.stFormLabel{display:block;font-size:14px;font-weight:600;color:#374151;margin-bottom:7px}
+.stReq{color:#ef4444}
+.stFormInput,.stFormTextarea{width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;font-family:'Kanit',sans-serif;color:#374151;outline:none;box-sizing:border-box;transition:border-color .15s;background:#f8fafc}
+.stFormInput:focus,.stFormTextarea:focus{border-color:#f97316;background:#fff}
+.stFormTextarea{resize:vertical;line-height:1.6}
+.stStarRow{display:flex;align-items:center;gap:4px}
+.stStarBtn{background:none;border:none;cursor:pointer;padding:2px;transition:transform .1s}
+.stStarBtn:hover{transform:scale(1.15)}
+.stStarLabel{font-size:14px;color:#f59e0b;font-weight:600;margin-left:8px}
+.stUploadBox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px dashed #fed7aa;border-radius:14px;padding:24px;cursor:pointer;color:#94a3b8;font-size:14px;background:#fff8f3;transition:border-color .15s;min-height:100px;overflow:hidden}
+.stUploadBox:hover{border-color:#f97316}
+.stUploadPreview{width:100%;max-height:200px;object-fit:cover;border-radius:8px}
+.stClearImg{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:12px;color:#dc2626;background:none;border:none;cursor:pointer;font-family:'Kanit',sans-serif}
+.stToggle{width:44px;height:24px;border-radius:999px;background:#e2e8f0;border:none;cursor:pointer;position:relative;transition:background .2s;padding:0;flex-shrink:0}
+.stToggleOn{background:#f97316}
+.stToggleThumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.stToggleOn .stToggleThumb{transform:translateX(20px)}
+.stErr{background:#fee2e2;color:#dc2626;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px}
+.stModalActions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+.stModalBtnGhost{padding:10px 22px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;color:#555;font-size:14px;font-family:'Kanit',sans-serif;cursor:pointer;transition:background .12s}
+.stModalBtnGhost:hover{background:#f9fafb}
+.stModalBtnPrimary{padding:10px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;font-size:14px;font-weight:700;font-family:'Kanit',sans-serif;cursor:pointer;box-shadow:0 4px 12px rgba(249,115,22,.3);transition:all .15s}
+.stModalBtnPrimary:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(249,115,22,.4)}
+.stModalBtnPrimary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.stModalBtnDanger{padding:10px 22px;border-radius:10px;border:none;background:#dc2626;color:#fff;font-size:14px;font-weight:700;font-family:'Kanit',sans-serif;cursor:pointer;transition:background .12s}
+.stModalBtnDanger:hover{background:#b91c1c}
+.stConfirmPopup{background:#fff;border-radius:20px;padding:32px;max-width:380px;width:90%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.18);animation:stPopIn .18s ease}
+.stConfirmIcon{font-size:44px;margin-bottom:12px}
+.stConfirmTitle{font-size:18px;font-weight:700;color:#1e293b;margin-bottom:8px}
+.stConfirmBody{font-size:14px;color:#64748b;margin-bottom:24px;line-height:1.6}
+@media(max-width:768px){.stPage{padding:20px 16px}.stGrid{grid-template-columns:1fr}.stModal{padding:24px 20px}}
