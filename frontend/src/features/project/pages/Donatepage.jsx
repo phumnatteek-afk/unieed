@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson, postJson } from "../../../api/http.js";
@@ -7,53 +7,61 @@ import { Icon } from "@iconify/react";
 import "../../../pages/styles/Homepage.css";
 import "../styles/DonatePage.css";
 
-// ===== Mock uniform items =====
-const MOCK_UNIFORM_ITEMS = [
-  {
-    item_id: 1,
-    name: "เสื้อนักเรียนหญิง อก 32",
-    education_level: "ประถมศึกษา",
-    image_url: null,
-    quantity_needed: 30,
-    quantity_received: 8,
-  },
-  {
-    item_id: 2,
-    name: "เสื้อนักเรียนหญิง อก 36",
-    education_level: "ประถมศึกษา",
-    image_url: null,
-    quantity_needed: 20,
-    quantity_received: 4,
-  },
-  {
-    item_id: 3,
-    name: "เสื้อนักเรียนชาย อก 36",
-    education_level: "ประถมศึกษา",
-    image_url: null,
-    quantity_needed: 20,
-    quantity_received: 0,
-  },
-];
-
 const COURIERS = ["ไปรษณีย์ไทย", "Flash Express", "J&T Express", "Kerry Express", "Lazada Logistics", "อื่นๆ"];
+
+// ===== ตรวจจับประเภทชุดจาก uniform_category (field จาก API) =====
+// uniform_category มาจาก uniform_type.uniform_category ใน DB
+// fallback ตรวจจากชื่อถ้าไม่มี category
+function detectUniformType(item) {
+  const cat = (item.uniform_category || "").toLowerCase();
+  if (cat.includes("skirt") || cat.includes("กระโปรง")) return "กระโปรง";
+  if (cat.includes("pants") || cat.includes("กางเกง") || cat.includes("trouser")) return "กางเกง";
+  if (cat.includes("shirt") || cat.includes("เสื้อ") || cat.includes("top")) return "เสื้อนักเรียน";
+
+  // fallback: ตรวจจากชื่อ
+  const name = (item.name || "").toLowerCase();
+  if (name.includes("กระโปรง")) return "กระโปรง";
+  if (name.includes("กางเกง")) return "กางเกง";
+  return "เสื้อนักเรียน";
+}
+
+// ===== แปลง size JSON → ข้อความ =====
+function formatSize(size) {
+  if (!size) return "";
+  try {
+    const obj = typeof size === "string" ? JSON.parse(size) : size;
+    const parts = [];
+    if (obj.chest) parts.push(`อก ${obj.chest}"`);
+    if (obj.waist) parts.push(`เอว ${obj.waist}"`);
+    if (obj.length) parts.push(`ยาว ${obj.length}"`);
+    return parts.length > 0 ? parts.join(" / ") : String(size);
+  } catch {
+    return String(size);
+  }
+}
+
+const TAB_ICONS = {
+  "เสื้อนักเรียน": "👔",
+  "กระโปรง": "👗",
+  "กางเกง": "👖",
+};
 
 export default function DonatePage() {
   const { token, userName, logout } = useAuth();
   const { requestId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();                                      // ✅ อยู่ใน component
-  const params = new URLSearchParams(location.search);                // ✅ อยู่ใน component
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
 
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(1);
-  const [donateMethod, setDonateMethod] = useState(                  // ✅ ประกาศครั้งเดียว รับจาก query string
-    params.get("method") || "parcel"
-  );
+  const [donateMethod, setDonateMethod] = useState(params.get("method") || "parcel");
 
   // ===== Step 1 =====
   const [quantities, setQuantities] = useState({});
   const [uniformItems, setUniformItems] = useState([]);
+  const [activeTypeTab, setActiveTypeTab] = useState("เสื้อนักเรียน");
 
   // ===== Step 2: Parcel =====
   const [courier, setCourier] = useState("");
@@ -64,12 +72,17 @@ export default function DonatePage() {
 
   // ===== Step 2: Drop-off =====
   const [appointDate, setAppointDate] = useState("");
-  const [appointHour, setAppointHour] = useState("13");             // ✅ อยู่ใน component
-  const [appointMin, setAppointMin] = useState("00");               // ✅ อยู่ใน component
+  const [appointHour, setAppointHour] = useState("13");
+  const [appointMin, setAppointMin] = useState("00");
   const [donorPhone, setDonorPhone] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
+
+  // สร้าง unique key สำหรับแต่ละ uniform item
+  // API ไม่มี item_id — ใช้ composite key: uniform_type_id + education_level + size
+  const itemKey = (item) =>
+    `${item.uniform_type_id}_${item.education_level || "all"}_${JSON.stringify(item.size || "")}`;
 
   useEffect(() => {
     (async () => {
@@ -77,23 +90,54 @@ export default function DonatePage() {
         setLoading(true);
         const data = await getJson(`/school/projects/public/${requestId}`, false);
         setProject(data);
-        setUniformItems(MOCK_UNIFORM_ITEMS);
+
+        // ดึง uniform_items จาก API จริง
+        const items = Array.isArray(data.uniform_items) ? data.uniform_items : [];
+        setUniformItems(items);
+
+        // init quantities — ใช้ composite key เพราะ API ไม่มี item_id
         const init = {};
-        MOCK_UNIFORM_ITEMS.forEach(item => { init[item.item_id] = 0; });
+        items.forEach((item) => { init[itemKey(item)] = 0; });
         setQuantities(init);
+
+        // set active tab เป็น tab แรกที่มีข้อมูล
+        if (items.length > 0) {
+          const firstType = detectUniformType(items[0]);
+          setActiveTypeTab(firstType);
+        }
       } finally {
         setLoading(false);
       }
     })();
   }, [requestId]);
 
+  // ===== grouping by type =====
+  const itemsByType = useMemo(() => {
+    const map = {};
+    uniformItems.forEach((item) => {
+      const type = detectUniformType(item);
+      if (!map[type]) map[type] = [];
+      map[type].push(item);
+    });
+    return map;
+  }, [uniformItems]);
+
+  const availableTabs = useMemo(
+    () => ["เสื้อนักเรียน", "กระโปรง", "กางเกง"].filter((t) => itemsByType[t]?.length > 0),
+    [itemsByType]
+  );
+
+  const currentItems = itemsByType[activeTypeTab] || [];
+
   const totalQty = Object.values(quantities).reduce((s, v) => s + v, 0);
 
-  const setQty = (id, val) => {
-    const item = uniformItems.find(i => i.item_id === id);
-    const maxQty = item ? Math.max(0, item.quantity_needed - item.quantity_received) : 99;
-    const clamped = Math.max(0, Math.min(Number(val) || 0, maxQty));
-    setQuantities(prev => ({ ...prev, [id]: clamped }));
+  const setQty = (key, val) => {
+    // หา item ด้วย itemKey เพราะ API ไม่ส่ง item_id
+    const item = uniformItems.find((i) => itemKey(i) === key);
+    // API ส่ง quantity = SUM(quantity_needed) รวม — ใช้เป็น cap สูงสุด
+    const maxAllowed = item ? (Number(item.quantity) || 99) : 99;
+    const clamped = Math.max(0, Math.min(Number(val) || 0, maxAllowed));
+    setQuantities((prev) => ({ ...prev, [key]: clamped }));
   };
 
   const handleProofChange = (e) => {
@@ -211,44 +255,105 @@ export default function DonatePage() {
             </button>
           </div>
 
-          {/* STEP 1: เลือกชุด */}
+          {/* ─── STEP 1: เลือกชุด ─── */}
           {step === 1 && (
             <div className="dnStep">
               <button className="dnBackBtn" onClick={() => navigate(`/projects/${requestId}`)}>
                 ← ย้อนกลับ
               </button>
-              <div className="dnStepTitle">
-                ระบุรายการที่ต้องการบริจาค<br />
-                <span>เสื้อนักเรียน</span>
-              </div>
-              <div className="dnUniformList">
-                {uniformItems.map(item => {
-                  const remaining = Math.max(0, item.quantity_needed - item.quantity_received);
-                  const qty = quantities[item.item_id] || 0;
-                  return (
-                    <div key={item.item_id} className="dnUniformItem">
-                      <div className="dnUniformImg">
-                        {item.image_url
-                          ? <img src={item.image_url} alt={item.name} />
-                          : <div className="dnUniformImgPlaceholder" />}
+
+              <div className="dnStepTitle">ระบุรายการที่ต้องการบริจาค</div>
+
+              {/* ── Type Tab Bar ── */}
+              {availableTabs.length > 0 && (
+                <div className="dnTypeTabs">
+                  {availableTabs.map((tab) => {
+                    const tabQty = (itemsByType[tab] || []).reduce(
+                      (sum, item) => sum + (quantities[itemKey(item)] || 0), 0
+                    );
+                    return (
+                      <button
+                        key={tab}
+                        className={`dnTypeTab ${activeTypeTab === tab ? "dnTypeTabActive" : ""}`}
+                        onClick={() => setActiveTypeTab(tab)}
+                      >
+                        <span className="dnTypeTabIcon">{TAB_ICONS[tab] || "👕"}</span>
+                        <span className="dnTypeTabLabel">{tab}</span>
+                        {tabQty > 0 && (
+                          <span className="dnTypeTabBadge">{tabQty}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── รายการชุดของ tab นั้น ── */}
+              {currentItems.length === 0 ? (
+                <div className="dnNoItems">ไม่มีรายการ{activeTypeTab}ในโครงการนี้</div>
+              ) : (
+                <div className="dnUniformList">
+                  {currentItems.map((item) => {
+                    const key = itemKey(item);
+                    // API ส่ง quantity = SUM(quantity_needed) — ใช้เป็นยอดที่โรงเรียนต้องการทั้งหมด
+                    const needed = Number(item.quantity) || 0;
+                    const qty = quantities[key] || 0;
+                    return (
+                      <div key={key} className="dnUniformItem">
+                        <div className="dnUniformImg">
+                          {item.image_url
+                            ? <img src={item.image_url} alt={item.name} />
+                            : <div className="dnUniformImgPlaceholder" />}
+                        </div>
+                        <div className="dnUniformInfo">
+                          <div className="dnUniformName">
+                            {item.name}
+                            {item.size && (
+                              <span className="dnUniformSize">{formatSize(item.size)}</span>
+                            )}
+                          </div>
+                          <div className="dnUniformLevel">ระดับชั้น : {item.education_level || "-"}</div>
+                          <div className="dnUniformRemain">โรงเรียนต้องการ {needed} ชิ้น</div>
+                        </div>
+                        <div className="dnQtyControl">
+                          <button
+                            className="dnQtyBtn"
+                            onClick={() => setQty(key, qty - 1)}
+                            disabled={qty <= 0}
+                          >−</button>
+                          <span className="dnQtyNum">{qty}</span>
+                          <button
+                            className="dnQtyBtn"
+                            onClick={() => setQty(key, qty + 1)}
+                            disabled={qty >= needed}
+                          >+</button>
+                        </div>
                       </div>
-                      <div className="dnUniformInfo">
-                        <div className="dnUniformName">{item.name}</div>
-                        <div className="dnUniformLevel">ระดับชั้น : {item.education_level}</div>
-                        <div className="dnUniformRemain">ต้องการอีก {remaining} ชิ้น</div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── Summary ── */}
+              <div className="dnTotalSummary">
+                <div className="dnTotalRow">
+                  {availableTabs.map((tab) => {
+                    const tabQty = (itemsByType[tab] || []).reduce(
+                      (sum, item) => sum + (quantities[itemKey(item)] || 0), 0
+                    );
+                    if (tabQty === 0) return null;
+                    return (
+                      <div key={tab} className="dnTotalChip">
+                        {TAB_ICONS[tab]} {tab} <strong>{tabQty}</strong> ชิ้น
                       </div>
-                      <div className="dnQtyControl">
-                        <button className="dnQtyBtn" onClick={() => setQty(item.item_id, qty - 1)} disabled={qty <= 0}>−</button>
-                        <span className="dnQtyNum">{qty}</span>
-                        <button className="dnQtyBtn" onClick={() => setQty(item.item_id, qty + 1)} disabled={qty >= remaining}>+</button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                <div className="dnTotal">
+                  ยอดรวมชุดบริจาคทั้งหมด : <strong>{totalQty} ชิ้น</strong>
+                </div>
               </div>
-              <div className="dnTotal">
-                ยอดรวมชุดบริจาคทั้งหมด : <strong>{totalQty} ชิ้น</strong>
-              </div>
+
               <div className="dnStepActions">
                 <button
                   className="dnNextBtn"
@@ -265,7 +370,7 @@ export default function DonatePage() {
             </div>
           )}
 
-          {/* STEP 2: Parcel */}
+          {/* ─── STEP 2: Parcel ─── */}
           {step === 2 && donateMethod === "parcel" && (
             <div className="dnStep">
               <button className="dnBackBtn" onClick={() => setStep(1)}>← ย้อนกลับ</button>
@@ -324,7 +429,7 @@ export default function DonatePage() {
             </div>
           )}
 
-          {/* STEP 2: Drop-off */}                                   {/* ✅ อยู่ในที่ถูกต้อง */}
+          {/* ─── STEP 2: Drop-off ─── */}
           {step === 2 && donateMethod === "dropoff" && (
             <div className="dnStep">
               <button className="dnBackBtn" onClick={() => setStep(1)}>← ย้อนกลับ</button>
@@ -339,10 +444,9 @@ export default function DonatePage() {
                 </div>
               </div>
 
-              {/* วันนัด พร้อม icon ปฏิทิน */}
               <div className="dnFormGroup">
                 <label className="dnLabel">วันที่ต้องการ</label>
-                <div className="dnDateWrap">                         {/* ✅ อยู่ใน dropoff section */}
+                <div className="dnDateWrap">
                   <input
                     className="dnInput"
                     type="date"
@@ -356,10 +460,9 @@ export default function DonatePage() {
                 </div>
               </div>
 
-              {/* เวลา dropdown ชั่วโมง + นาที */}
               <div className="dnFormGroup">
                 <label className="dnLabel">เวลา</label>
-                <div style={{ display: "flex", gap: "12px" }}>  {/* ✅ อยู่ใน dropoff section */}
+                <div style={{ display: "flex", gap: "12px" }}>
                   <select className="dnSelect" style={{ flex: 1 }} value={appointHour} onChange={e => setAppointHour(e.target.value)}>
                     {Array.from({ length: 24 }, (_, i) => (
                       <option key={i} value={String(i).padStart(2, "0")}>{String(i).padStart(2, "0")}</option>

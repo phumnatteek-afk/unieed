@@ -144,10 +144,88 @@
   line-height: 1.4;
 }
 
-.dnStepTitle span {
-  font-size: 18px;
+/* ===== Uniform Type Tab Bar ===== */
+.dnTypeTabs {
+  display: flex;
+  gap: 0;
+  border-radius: 14px;
+  border: 1.5px solid #e5e7eb;
+  overflow: hidden;
+  background: #f9fafb;
+}
+
+.dnTypeTab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-right: 1.5px solid #e5e7eb;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: 'Kanit', sans-serif;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.dnTypeTab:last-child {
+  border-right: none;
+}
+
+.dnTypeTab:hover:not(.dnTypeTabActive) {
+  background: #f0f8ff;
+  color: #374151;
+}
+
+.dnTypeTabActive {
+  background: #5285E8;
+  color: #fff;
   font-weight: 600;
-  color: #1d4ed8;
+}
+
+.dnTypeTabIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.dnTypeTabLabel {
+  white-space: nowrap;
+}
+
+/* Badge แสดงจำนวนที่เลือกไว้ในแต่ละ tab */
+.dnTypeTabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #FFBE1B;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dnTypeTabActive .dnTypeTabBadge {
+  background: rgba(255,255,255,0.3);
+}
+
+/* No items placeholder */
+.dnNoItems {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+  font-size: 15px;
+  background: #f9fafb;
+  border-radius: 14px;
+  border: 1.5px dashed #e5e7eb;
 }
 
 /* Uniform list */
@@ -201,6 +279,31 @@
   font-size: 16px;
   font-weight: 600;
   color: #111;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dnUniformSize {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #EBF6FC;
+  color: #29B6E8;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.dnUniformGender {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  background: #FFF0F8;
+  color: #AD1457;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .dnUniformLevel {
@@ -255,6 +358,35 @@
   color: #111;
   min-width: 24px;
   text-align: center;
+}
+
+/* ===== Total Summary ===== */
+.dnTotalSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dnTotalRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dnTotalChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #EEF5FF;
+  border: 1.5px solid #c7dcff;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 14px;
+  color: #1d4ed8;
+}
+
+.dnTotalChip strong {
+  font-weight: 700;
 }
 
 /* Total */
@@ -400,13 +532,13 @@
   object-fit: cover;
 }
 
-/* ===== Date picker with calendar icon ===== */
+/* Date picker */
 .dnDateWrap {
   position: relative;
 }
 
 .dnDateWrap .dnInput {
-  padding-right: 52px; /* เว้นที่ให้ icon */
+  padding-right: 52px;
 }
 
 .dnDateIcon {
@@ -424,7 +556,7 @@
   pointer-events: none;
 }
 
-/* Info box (drop-off location) */
+/* Info box */
 .dnInfoBox {
   display: flex;
   align-items: flex-start;
@@ -496,5 +628,11 @@
   }
   .dnRight {
     padding: 24px 20px;
+  }
+  .dnTypeTab {
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 8px;
+    font-size: 13px;
   }
 }
