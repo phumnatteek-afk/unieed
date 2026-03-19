@@ -636,3 +636,105 @@
     font-size: 13px;
   }
 }
+
+/* ===== เพิ่มเติม: Type tabs (เสื้อ / กระโปรง / กางเกง) ===== */
+.dnTypeTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.dnTypeTab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid #d0e8f7;
+  background: #fff;
+  font-size: 14px;
+  font-family: 'Kanit', sans-serif;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.18s;
+  position: relative;
+}
+
+.dnTypeTab:hover {
+  border-color: #5285E8;
+  color: #5285E8;
+}
+
+.dnTypeTabActive {
+  background: #5285E8;
+  border-color: #5285E8;
+  color: #fff;
+  font-weight: 500;
+}
+
+.dnTypeTabIcon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.dnTypeTabLabel {
+  white-space: nowrap;
+}
+
+.dnTypeTabBadge {
+  background: #FFBE1B;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.dnTypeTabActive .dnTypeTabBadge {
+  background: rgba(255,255,255,0.3);
+}
+
+/* size label ใน uniform item */
+.dnUniformSize {
+  font-size: 13px;
+  color: #888;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+/* No items message */
+.dnNoItems {
+  text-align: center;
+  color: #aaa;
+  padding: 32px;
+  font-size: 15px;
+}
+
+/* Total summary row */
+.dnTotalSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dnTotalRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dnTotalChip {
+  background: #EEF5FF;
+  border: 1px solid #c7dcff;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 13px;
+  color: #1d4ed8;
+}
+
+.dnTotalChip strong {
+  font-weight: 700;
+}
