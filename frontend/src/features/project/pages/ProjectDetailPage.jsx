@@ -15,6 +15,19 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("detail"); // "detail" | "review"
   const [selectedMethod, setSelectedMethod] = useState("parcel");
+  // เพิ่ม import และ state ตรงบนสุด
+const [activeLevel, setActiveLevel] = useState(null);
+
+// ใส่ useEffect เพื่อ set level แรกที่มีข้อมูล
+useEffect(() => {
+  if (!project?.uniform_items?.length) return;
+  const levels = [...new Set(
+    project.uniform_items
+      .map(i => i.education_level)
+      .filter(Boolean)
+  )];
+  if (levels.length > 0) setActiveLevel(levels[0]);
+}, [project]);
 
   useEffect(() => {
     (async () => {
@@ -430,64 +443,76 @@ export default function ProjectDetailPage() {
                     </div>
 
                     {/* uniform items */}
-                    {project.uniform_items?.length > 0 && (
-                      <div className="pdUniformBox">
-                        <div className="pdUniformTitle">
-                          รายละเอียดชุดที่ต้องการ
-                        </div>
-                        <div className="pdUniformSub">
-                          {project.education_level || ""}
-                        </div>
-                        <div className="pdUniformImgs">
-                          {(() => {
-                            const seen = new Set();
-                            return project.uniform_items
-                              .filter((item) => {
-                                if (
-                                  item.image_url &&
-                                  !seen.has(item.uniform_type_id)
-                                ) {
-                                  seen.add(item.uniform_type_id);
-                                  return true;
-                                }
-                                return false;
-                              })
-                              .map((item) => (
-                                <div
-                                  key={item.uniform_type_id}
-                                  className="pdUniformImgWrap"
-                                >
-                                  <img
-                                    src={item.image_url}
-                                    alt={item.name}
-                                    className="pdUniformImg"
-                                  />
-                                  <span className="pdUniformImgLabel">
-                                    {item.name}
-                                  </span>
-                                </div>
-                              ));
-                          })()}
-                        </div>
-                        <div className="pdUniformList">
-                          {project.uniform_items.map((item, i) => (
-                            <div className="pdUniformRow" key={i}>
-                              <span className="pdUniformName">
-                                {item.name}
-                                {item.size && (
-                                  <span className="pdUniformSize">
-                                    {formatSize(item.size)}
-                                  </span>
-                                )}
-                              </span>
-                              <span className="pdUniformQty">
-                                {item.quantity} ชิ้น
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+              {project.uniform_items?.length > 0 && (() => {
+  // หา levels ที่มีข้อมูลจริงๆ
+  const levels = [...new Set(
+    project.uniform_items
+      .map(i => i.education_level)
+      .filter(Boolean)
+  )];
+
+  // items ของ level ที่เลือก
+  const currentItems = project.uniform_items.filter(
+    i => i.education_level === activeLevel
+  );
+
+  return (
+    <div className="pdUniformBox">
+      <div className="pdUniformTitle">รายละเอียดชุดที่ต้องการ</div>
+
+      {/* ── Tab ระดับชั้น ── */}
+      {levels.length > 1 && (
+        <div className="pdUniformTabs">
+          {levels.map(lv => (
+            <button
+              key={lv}
+              className={`pdUniformTab ${activeLevel === lv ? "pdUniformTabActive" : ""}`}
+              onClick={() => setActiveLevel(lv)}
+            >
+              {lv}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── รูปชุด (เฉพาะ level ที่เลือก, dedup ด้วย uniform_type_id) ── */}
+      <div className="pdUniformImgs">
+        {(() => {
+          const seen = new Set();
+          return currentItems
+            .filter(item => {
+              if (item.image_url && !seen.has(item.uniform_type_id)) {
+                seen.add(item.uniform_type_id);
+                return true;
+              }
+              return false;
+            })
+            .map(item => (
+              <div key={item.uniform_type_id} className="pdUniformImgWrap">
+                <img src={item.image_url} alt={item.name} className="pdUniformImg" />
+                <span className="pdUniformImgLabel">{item.name}</span>
+              </div>
+            ));
+        })()}
+      </div>
+
+      {/* ── รายการชุด (เฉพาะ level ที่เลือก) ── */}
+      <div className="pdUniformList">
+        {currentItems.map((item, i) => (
+          <div className="pdUniformRow" key={`${item.uniform_type_id}-${i}`}>
+            <span className="pdUniformName">
+              {item.name}
+              {item.size && (
+                <span className="pdUniformSize">{formatSize(item.size)}</span>
+              )}
+            </span>
+            <span className="pdUniformQty">{item.quantity} ชิ้น</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+})()}
                   </div>
                 </div>
 

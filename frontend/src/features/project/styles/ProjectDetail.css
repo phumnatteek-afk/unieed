@@ -493,6 +493,35 @@
   font-size: 12px;
   font-weight: 500;
 }
+/* Tab ระดับชั้น */
+.pdUniformTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pdUniformTab {
+  padding: 6px 18px;
+  border-radius: 20px;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: #6b7280;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pdUniformTab:hover {
+  border-color: #29B6E8;
+  color: #29B6E8;
+}
+
+.pdUniformTabActive {
+  background: #29B6E8;
+  border-color: #29B6E8;
+  color: #fff;
+  font-weight: 600;
+}
 
 /* ===== Responsive ===== */
 @media (max-width: 900px) {
