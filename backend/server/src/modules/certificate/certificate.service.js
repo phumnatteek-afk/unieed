@@ -31,12 +31,10 @@ export function buildCertHtml({ donor_name, items_summary, project_title, issued
 <meta charset="UTF-8"/>
 <link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400&family=Charmonman:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
-@page {
-  margin: 0;
-  size: 1122px 794px; 
-}
   *{margin:0;padding:0;box-sizing:border-box}
-  body{width:1122px;height:794px;overflow:hidden;font-family:'Prompt',sans-serif;background:#fff;position:relative}
+  html, body{width: 100%;       
+  height: 100%;overflow:hidden;font-family:'Prompt',sans-serif;background:#fff;position:relative}
+  
 
   .bg{position:absolute;inset:0;background:#7bc0eb;z-index:0}
   .tri-tl{position:absolute;top:0;left:0;width:0;height:0;border-style:solid;border-width:240px 200px 0 0;border-color:#29B6E8 transparent transparent transparent;z-index:3}
@@ -117,11 +115,8 @@ export async function renderCert(html) {
     await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 60000 });
     await new Promise(r => setTimeout(r, 2500));
     const png = await page.screenshot({ type: "png", fullPage: false });
-    const pdf = await page.pdf({
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 },
-      pageRanges: "1",
+    const pdf = await page.pdf({  printBackground: true,
+        margin: { top: 0, right: 0, bottom: 0, left: 0 },
     });
     return { png, pdf };
   } finally {
