@@ -18,8 +18,8 @@ const SIZE_BY_TYPE = {
 const SIZE_RANGES = {
   อนุบาล:     { chest: ["20","22","24","26","28"], waist: ["18","20","22","24","26"] },
   ประถมศึกษา: { chest: ["26","28","30","32","34","36"], waist: ["22","24","26","28","30","32"] },
-  มัธยมต้น:   { chest: ["32","34","36","38","40","42"], waist: ["26","28","30","32","34","36"] },
-  มัธยมปลาย:  { chest: ["36","38","40","42","44","46"], waist: ["28","30","32","34","36","38"] },
+  มัธยมศึกษา:   { chest: ["32","34","36","38","40","42","46","48","50","52"], waist: ["26","28","30","32","34","36","38","40","42","44"] },
+  // มัธยมปลาย:  { chest: ["36","38","40","42","44","46"], waist: ["28","30","32","34","36","38"] },
 };
 
 const UNIFORM_TYPES = [
@@ -57,7 +57,7 @@ const UNIFORM_TYPES = [
 ];
 
 const GENDERS = ["ชาย", "หญิง"];
-const LEVELS  = ["อนุบาล", "ประถมศึกษา", "มัธยมต้น", "มัธยมปลาย"];
+const LEVELS  = ["อนุบาล", "ประถมศึกษา", "มัธยมศึกษา"];
 const CONDITIONS = ["90%", "80%", "70%", "60%", "50% ขึ้นไป"];
 
 const TYPE_COLORS = {
@@ -245,18 +245,18 @@ useEffect(() => {
       {/* ===== Header ===== */}
       <header className="topBar">
         <div className="topRow">
-          <Link to="/" className="brand">
-            <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-          </Link>
-          <nav className="navLinks">
-            <Link to="/">หน้าหลัก</Link>
-            <Link to="/projects" className="active">โครงการ</Link>
-            <a href="#market">ร้านค้า</a>
-            <a href="#about">เกี่ยวกับเรา</a>
-            <button><a href="#" className="sell">ลงขาย</a></button>
-          </nav>
-          {rightAccount()}
-        </div>
+                  <Link to="/" className="brand">
+                    <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
+                  </Link>
+                  <nav className="navLinks">
+                    <Link to="/">หน้าหลัก</Link>
+                    <Link to="/projects" className="active">โครงการ</Link>
+                    <a href="#market">ร้านค้า</a>
+                    <a href="#about">เกี่ยวกับเรา</a>
+                    <button><Link to="/sell" className="sell">ลงขาย</Link></button>
+                  </nav>
+                  {rightAccount()}
+                </div>
       </header>
 
       {/* ===== Hero Banner ===== */}
