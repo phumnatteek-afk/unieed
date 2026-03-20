@@ -653,10 +653,10 @@ export default function HomePage() {
     */}
 
           <div>
-            <button className="btnGhost" type="button">
-              ดูทั้งหมด
-            </button>
-          </div>
+  <Link className="btnGhost" to="/projects">
+    ดูทั้งหมด
+  </Link>
+</div>
         </div>
 
         {loading ? (
@@ -795,9 +795,11 @@ export default function HomePage() {
       <section id="market" className="section">
         <div className="sectionHead">
           <h3>ตลาดชุดนักเรียนมือสอง</h3>
-          <button className="btnGhost" type="button">
-            ดูทั้งหมด
-          </button>
+        <div>
+  <Link className="btnGhost" to="/market">
+    ดูทั้งหมด
+  </Link>
+</div>
         </div>
 
         {loading ? (
@@ -845,7 +847,6 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ===== Testimonials ===== */}
       {/* ===== Testimonials ===== */}
       <section className="section sectionSoftBlue">
         <div className="tsHead">

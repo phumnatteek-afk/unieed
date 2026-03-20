@@ -49,7 +49,7 @@
 
 /* ===== Search Section ===== */
 .dpSearchSection {
-  max-width: 900px;
+  max-width: 100%;
   margin: 28px auto 0;
   padding: 0 20px;
 }
@@ -57,6 +57,7 @@
 .dpSearchRow {
   display: flex;
   gap: 12px;
+  justify-content: center;
   align-items: center;
 }
 
@@ -64,8 +65,9 @@
   flex: 1;
   height: 50px;
   background: #fff;
+  max-width: 600px;
   border-radius: 999px;
-  border: 1.5px solid #d0e8f7;
+  border: 1.5px solid #5285E8;
   display: flex;
   align-items: center;
   padding: 0 18px;
@@ -80,11 +82,18 @@
   font-size: 15px;
   color: #374151;
   background: transparent;
-  font-family: 'Kanit', sans-serif;
+  font-family: 'Mitr', sans-serif;
 }
-
+.dpSearchBox input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
 .dpSearchBox input::placeholder {
-  color: #aab4be;
+  color: #b5b5b5;
+  font-size: 14px;
+  font-weight: lighter;
+  font-family: 'Mitr', sans-serif;
 }
 
 .dpSearchIcon {
@@ -96,21 +105,21 @@
   width: 50px;
   height: 50px;
   border-radius: 12px;
-  background: #5285E8;
   border: none;
-  color: #fff;
-  font-size: 18px;
+  color: #5285E8;
+  font-size: 40px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  /* transition: background 0.2s; */
   flex-shrink: 0;
 }
 
 .dpFilterBtn:hover,
 .dpFilterBtnActive {
-  background: #1d4ed8;
+  color: #7c9fff;
+  transform: none; /* ← เพิ่มตรงนี้ */
 }
 
 /* ===== Filter Panel ===== */
@@ -130,8 +139,10 @@
 .dpFilterLabel {
   font-size: 18px;
   font-weight: 600;
-  color: #1d4ed8;
+  font-family: 'Mitr';
+  color: #053f5c;
   margin-bottom: 14px;
+  margin-left: 200px;
 }
 
 .dpFilterGrid {
@@ -142,41 +153,50 @@
 }
 
 .dpFilterGroup {
+  font-size: 18px;
+  font-weight: 600;
   display: flex;
+  font-family: 'Mitr';
   flex-direction: column;
   gap: 6px;
 }
 
 .dpFilterGroupLabel {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1d4ed8;
+  font-size: 16px;
+  font-weight: 600;
+  margin-left: 200px;
+  color: #5285e8;
 }
 
 /* ประเภทชุด buttons */
 .dpTypeRow {
   display: flex;
   gap: 10px;
+  margin-left: 200px;
 }
 
 .dpTypeBtn {
+  margin-top: 10px;
   display: flex;
+  overflow: visible;
+  justify-content: center;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  border: 2px solid #d0e8f7;
-  background: #fff;
+  /* padding: 30px; */
+  border-radius: 999px;
+  border: 2px solid #b5b5b5;
+  background: #87c7eb;
   cursor: pointer;
   transition: all 0.18s;
-  min-width: 72px;
+  width: 80px;
+  height: 80px;
 }
-
+/* 
 .dpTypeBtn:hover {
-  border-color: #87C7EB;
-  background: #f0f8ff;
-}
+  border-color: #b5b5b5;
+  background: #f3f3dc;
+} */
 
 .dpTypeBtnActive {
   border-color: #5285E8;
@@ -184,16 +204,24 @@
 }
 
 .dpTypeIcon {
+  margin-top: 9px;
   font-size: 28px;
 }
 
 .dpTypeLabel {
   font-size: 12px;
-  color: #374151;
-  font-family: 'Kanit', sans-serif;
+   margin-top: 0;
+  font-weight: 400;
+  color: #5285E8;
+  font-family: 'Mitr', sans-serif;
   white-space: nowrap;
 }
-
+.dpTypeBtnWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
 .dpTypeBtnActive .dpTypeLabel {
   color: #1d4ed8;
   font-weight: 600;
@@ -211,9 +239,12 @@
   color: #374151;
   cursor: pointer;
   font-family: 'Kanit', sans-serif;
-  min-width: 130px;
+  width: 155px;
 }
-
+.dpFilterGroupNarrow {
+  align-self: flex-start;
+  margin-left: -200px;
+}
 .dpSelect:disabled {
   background-color: #f3f4f6;
   color: #aaa;
@@ -222,12 +253,15 @@
 
 .dpResetBtn {
   margin-top: 8px;
+  margin-left: auto;
+  margin-right: 240px;
   padding: 6px 18px;
   border-radius: 999px;
   border: 1px solid #e5e7eb;
   background: #fff;
   color: #888;
   font-size: 13px;
+  display: block;
   cursor: pointer;
   font-family: 'Kanit', sans-serif;
 }
@@ -238,8 +272,10 @@
 
 /* ===== Main Project List ===== */
 .dpMain {
-  max-width: 900px;
+  width: fit-content;
+  min-width: 960px;
   margin: 36px auto 60px;
+  margin-top: 40px;
   padding: 0 20px;
 }
 
@@ -251,10 +287,12 @@
 }
 
 .dpListTitle {
-  font-size: 26px;
-  font-weight: 700;
+display: flex;
+  justify-content: space-between;
+  align-items: center;
   color: #1d4ed8;
   margin: 0;
+   margin-left: 0;
 }
 
 .dpSortSelect {
@@ -273,12 +311,14 @@
 /* ===== Project Cards Grid ===== */
 .dpGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  justify-content: center;
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
 }
 
 .dpCard {
   background: #fff;
+  width: 400px;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
@@ -350,9 +390,9 @@
   font-size: 13px;
   color: #888;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .dpCardBottom {
