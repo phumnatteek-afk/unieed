@@ -4,6 +4,7 @@ import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
 import { Icon } from "@iconify/react";
+import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx"
 
 import "../../../pages/styles/Homepage.css";
 import "../styles/DonatePage.css";
@@ -231,21 +232,15 @@ setTimeout(() => setConfetti(false), 5000);
   };
 
   const rightAccount = () => {
-    if (!token) return (
-      <div className="navAuth">
-        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-        <Link className="navBtn navBtnWhite"   to="/login">เข้าสู่ระบบ</Link>
-      </div>
-    );
+  if (!token) {
     return (
       <div className="navAuth">
-        <span className="hello">
-          <span className="iconBorder"><Icon icon="fluent:person-circle-28-filled" width="30" height="30" /></span>
-          <span className="userNameText">{userName || "ผู้ใช้"}</span>
-        </span>
-        <button className="navBtn navBtnOutline" onClick={logout}>ออกจากระบบ</button>
+        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
+        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
       </div>
     );
+  }
+  return <ProfileDropdown />;
   };
 
   if (loading) return (
