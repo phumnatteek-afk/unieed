@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
@@ -23,15 +23,48 @@ const SIZE_RANGES = {
 };
 
 const UNIFORM_TYPES = [
-  { key: "เสื้อนักเรียน", icon: "👔", label: "เสื้อนักเรียน" },
-  { key: "กางเกง",       icon: "👖", label: "กางเกง" },
-  { key: "กระโปรง",     icon: "👗", label: "กระโปรง" },
+  { key: "เสื้อนักเรียน", icon: <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M34 30.2222C34 32.3085 32.3085 34 30.2222 34H3.77778C1.6915 34 0 32.3085 0 30.2222V3.77778C0 1.6915 1.6915 0 3.77778 0H30.2222C32.3085 0 34 1.6915 34 3.77778V30.2222Z" fill="white"/>
+<path d="M18.2668 33.4857C17.5698 34.1713 16.4308 34.1713 15.7347 33.4857L9.47022 27.3194C8.77417 26.6337 8.59 25.4003 9.06033 24.5767L16.1437 7.15456C16.6149 6.33194 17.3856 6.33194 17.8559 7.15456L24.9393 24.5767C25.4096 25.3993 25.2254 26.6337 24.5294 27.3184L18.2668 33.4857Z" fill="#053F5C"/>
+<path d="M16.9996 13.8535C17.8959 13.8535 18.8923 12.9544 19.7376 11.7842L17.8553 7.15456C17.384 6.33194 16.6134 6.33194 16.143 7.15456L14.2607 11.7842C15.1079 12.9544 16.1034 13.8535 16.9996 13.8535Z" fill="#292F33"/>
+<path d="M21.7228 5.45667C21.7228 7.31156 19.0868 12.1736 17.0005 12.1736C14.9143 12.1736 12.2783 7.31156 12.2783 5.45667C12.2783 3.77273 14.9143 2.83301 17.0005 2.83301C19.0868 2.83301 21.7228 3.77273 21.7228 5.45667Z" fill="#053F5C"/>
+<path d="M0 3.77778V5.90656C1.95878 8.52267 6.40239 13.2269 7.55555 13.2269C9.64183 13.2269 17.9444 3.03072 17.9444 0.944444C17.9444 0 17 0 16.0556 0H3.77778C1.6915 0 0 1.6915 0 3.77778Z" fill="#D9D9D9"/>
+<path d="M16.0547 0.944444C16.0547 3.03072 24.3573 13.2269 26.4436 13.2269C27.5967 13.2269 32.0404 8.52267 33.9991 5.90656V3.77778C33.9991 1.6915 32.3076 0 30.2214 0H17.9436C16.9991 0 16.0547 0 16.0547 0.944444Z" fill="#D9D9D9"/>
+<path d="M3.77677 0C3.5246 0 3.27999 0.0273889 3.04199 0.0746111C4.15927 1.63956 9.97421 2.83333 16.999 2.83333C24.0238 2.83333 29.8387 1.63956 30.956 0.0746111C30.718 0.0273889 30.4734 0 30.2212 0H3.77677Z" fill="#181818" fill-opacity="0.533333"/>
+</svg>
+, label: "เสื้อนักเรียน" },
+  { key: "กางเกง",       icon: <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_2847_991)">
+<path d="M29.2778 5.66656V1.84628C29.2778 1.34856 28.8736 0.944336 28.3758 0.944336H5.62417C5.12644 0.944336 4.72222 1.34856 4.72222 1.84628V5.66656L0 29.2777L13.2222 33.0554L17 23.0963L20.7778 33.0554L34 29.2777L29.2778 5.66656Z" fill="#8C5543"/>
+<path d="M4.72259 3.77783H29.2782V5.66672H4.72259V3.77783ZM13.0167 5.66672H11.0579C9.75648 9.54556 5.90126 10.7658 3.62515 11.1511L3.22754 13.1411C6.63321 12.7557 11.6331 10.8716 13.0167 5.66672Z" fill="#662113"/>
+<path d="M30.7729 13.1408L30.3753 11.1509C28.0992 10.7656 24.2449 9.54439 22.9426 5.6665H20.9838C22.3664 10.8713 27.3673 12.7555 30.7729 13.1408ZM16.0557 5.6665V25.5858L17.0001 23.0962L17.9446 25.5858V5.6665H16.0557Z" fill="#662113"/>
+<path d="M17.1407 21.7222H17V19.8333H17.1407C18.6263 19.8333 19.8333 18.6263 19.8333 17.1407V4.72217H21.7222V17.1407C21.7222 19.6671 19.6671 21.7222 17.1407 21.7222Z" fill="#662113"/>
+</g>
+<defs>
+<clipPath id="clip0_2847_991">
+<rect width="34" height="34" fill="white"/>
+</clipPath>
+</defs>
+</svg>
+, label: "กางเกง" },
+  { key: "กระโปรง",     icon:<svg width="46" height="46" viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path opacity="0.8" d="M19.1667 10.5415H26.8334L30.5901 41.5493C28.0822 41.9699 25.543 42.1763 23.0001 42.1665C20.1347 42.1665 17.6085 41.9269 15.4062 41.5493L19.1667 10.5415Z" fill="#053F5C"/>
+<path opacity="0.5" d="M11.1897 10.5415L3.98683 34.4098C3.57283 35.7821 3.98875 37.256 5.24033 38.0054C7.12633 39.1382 10.4479 40.6964 15.4063 41.5493L19.1649 10.5415H11.1897Z" fill="#053F5C"/>
+<path opacity="0.9" d="M40.7595 38.0073C42.0092 37.256 42.427 35.7821 42.013 34.4098L34.8102 10.5415H26.833L30.5897 41.5493C35.5481 40.6983 38.8697 39.1401 40.7595 38.0073Z" fill="#053F5C"/>
+<path d="M30.8755 3.8335H15.1263C13.271 3.8335 12.3433 3.8335 11.7664 4.39508C11.1895 4.95666 11.1895 5.85941 11.1895 7.66683V10.5418H34.8124V7.66683C34.8124 5.85941 34.8124 4.95666 34.2355 4.39508C33.6605 3.8335 32.7309 3.8335 30.8755 3.8335Z" fill="#053F5C"/>
+</svg>
+, label: "กระโปรง" },
 ];
 
 const GENDERS = ["ชาย", "หญิง"];
 const LEVELS  = ["อนุบาล", "ประถมศึกษา", "มัธยมต้น", "มัธยมปลาย"];
 const CONDITIONS = ["90%", "80%", "70%", "60%", "50% ขึ้นไป"];
 
+const TYPE_COLORS = {
+  "เสื้อนักเรียน": {bg: "#87c7eb", hover: "#5285E8"},
+  "กางเกง": {bg:"#E6FFBB", hover: "#5285E8"},
+  "กระโปรง": {bg:"#FFEDBF", hover: "#5285E8"},
+};
 export default function DonationProject() {
   const { token, userName, logout } = useAuth();
   const navigate = useNavigate();
@@ -48,6 +81,7 @@ export default function DonationProject() {
   const [selSize, setSelSize]       = useState("");
   const [selCond, setSelCond]       = useState("");
   const [searchQ, setSearchQ]       = useState("");
+  const [hoveredType, setHoveredType] = useState("");
 
   // ===== โหลดโครงการ =====
   useEffect(() => {
@@ -61,6 +95,29 @@ export default function DonationProject() {
       }
     })();
   }, []);
+
+ // ===== โหลด uniform_items ของแต่ละโครงการ =====
+const [projectDetails, setProjectDetails] = useState({});
+const detailsFetchedRef = useRef(false); // ← เพิ่ม ref กันยิงซ้ำ
+
+useEffect(() => {
+  if (!projects.length) return;
+  if (detailsFetchedRef.current) return; // ← กันยิงซ้ำ
+  detailsFetchedRef.current = true;
+  
+  (async () => {
+    const details = await Promise.all(
+      projects.map(p => getJson(`/school/projects/public/${p.request_id}`, false))
+    );
+    const map = {};
+    details.forEach(d => {
+      if (d?.request_id) {
+        map[d.request_id] = d.uniform_items || [];
+      }
+    });
+    setProjectDetails(map);
+  })();
+}, [projects.length]);
 
   // ===== คำนวณ search query อัตโนมัติ =====
   const autoQuery = useMemo(() => {
@@ -97,29 +154,66 @@ export default function DonationProject() {
 
   // ===== filter + sort projects =====
   const displayProjects = useMemo(() => {
-    const q = (searchQ || autoQuery).toLowerCase();
-    let list = [...projects];
+    console.log("projectDetails at filter time:", projectDetails);
+  const q = (searchQ || autoQuery).toLowerCase().trim();
+  let list = [...projects];
 
-    if (q) {
-      list = list.filter(p =>
-        (p.school_name || "").toLowerCase().includes(q) ||
-        (p.request_title || "").toLowerCase().includes(q) ||
-        (p.school_address || "").toLowerCase().includes(q)
-      );
-    }
+  if (q) {
+  const words = q.split(" ").filter(w => w.length > 0);
+  
+  list = list.filter(p => {
+    // เช็ค basic fields
+    const basicMatch = words.some(word =>
+      (p.school_name || "").toLowerCase().includes(word) ||
+      (p.request_title || "").toLowerCase().includes(word) ||
+      (p.school_address || "").toLowerCase().includes(word)
+    );
 
-    list.sort((a, b) => {
-      if (sortBy === "newest") {
-        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-      }
-      if (sortBy === "most") {
-        return (b.total_fulfilled || 0) - (a.total_fulfilled || 0);
-      }
-      return 0;
+    // เช็ค uniform_items
+    const items = projectDetails[p.request_id] || [];
+    const uniformMatch = words.some(word =>
+      items.some(item =>
+        (item.name || "").toLowerCase().includes(word) ||
+        (item.education_level || "").toLowerCase().includes(word) ||
+        (item.gender || "").toLowerCase().includes(word) ||
+        (String(item.size || "")).toLowerCase().includes(word)
+      )
+    );
+
+    return basicMatch || uniformMatch;
+  });
+}
+
+  // filter ประเภทชุด
+  if (selType) {
+    list = list.filter(p => {
+      const items = projectDetails[p.request_id] || [];
+      console.log("project:", p.request_id, "items:", items);
+      return items.some(item => (item.name || "").includes(selType));
     });
+  }
 
-    return list;
-  }, [projects, searchQ, autoQuery, sortBy]);
+  // filter ระดับชั้น
+  if (selLevel) {
+    list = list.filter(p => {
+      const items = projectDetails[p.request_id] || [];
+      return items.some(item => (item.education_level || "").includes(selLevel));
+    });
+  }
+
+  list.sort((a, b) => {
+  if (sortBy === "newest") return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  if (sortBy === "most") return (b.total_fulfilled || 0) - (a.total_fulfilled || 0);
+  if (sortBy === "urgent") {
+    const ratioA = (a.total_needed - a.total_fulfilled) / (a.student_count || 1);
+    const ratioB = (b.total_needed - b.total_fulfilled) / (b.student_count || 1);
+    return ratioB - ratioA;
+  }
+  return 0;
+});
+
+  return list;
+}, [projects, projectDetails, searchQ, autoQuery, selType, selLevel, sortBy]);
 
   // ===== reset size เมื่อเปลี่ยนประเภท/ระดับ =====
   useEffect(() => { setSelSize(""); }, [selType, selLevel]);
@@ -189,7 +283,7 @@ export default function DonationProject() {
                   setSelSize(""); setSelCond("");
                 }
               }}
-              placeholder="ค้นหาสินค้า ระบุประเภท ขนาด ที่ตามหา..."
+              placeholder="ค้นหาโครงการ ระบุประเภท ขนาด ที่ต้องการส่งต่อ..."
             />
           </div>
           <button
@@ -210,21 +304,40 @@ export default function DonationProject() {
               <div className="dpFilterGroupLabel">ประเภทชุด</div>
               <div className="dpTypeRow">
                 {UNIFORM_TYPES.map(t => (
-                  <button
-                    key={t.key}
-                    className={`dpTypeBtn ${selType === t.key ? "dpTypeBtnActive" : ""}`}
-                    onClick={() => setSelType(prev => prev === t.key ? "" : t.key)}
-                  >
-                    <span className="dpTypeIcon">{t.icon}</span>
-                    <span className="dpTypeLabel">{t.label}</span>
-                  </button>
+                 <div className="dpTypeBtnWrap">
+  <button
+  key={t.key}
+ style={{ 
+  background: selType === t.key
+    ? TYPE_COLORS[t.key]?.hover  // ← active ใช้สี hover
+    : hoveredType === t.key 
+      ? TYPE_COLORS[t.key]?.hover 
+      : TYPE_COLORS[t.key]?.bg || "#87c7eb" 
+}}
+  className={`dpTypeBtn ${selType === t.key ? "dpTypeBtnActive" : ""}`}
+  onMouseEnter={() => setHoveredType(t.key)}
+  onMouseLeave={() => setHoveredType("")}
+  onClick={() => {
+    const newType = selType === t.key ? "" : t.key;
+    setSelType(newType);
+    if (newType === "กระโปรง") setSelGender("หญิง");
+    else if (newType === "กางเกง") setSelGender("ชาย");
+    else setSelGender("");
+  }}
+>
+  <span className="dpTypeIcon">{t.icon}</span>
+</button>
+  <span className="dpTypeLabel">{t.label}</span>
+</div>
                 ))}
               </div>
             </div>
 
             {/* เพศ */}
             <div className="dpFilterGroup">
-              <div className="dpFilterGroupLabel">เพศ</div>
+              <div className="dpFilterGroup dpFilterGroupNarrow">
+                  <div className="dpFilterGroupLabel">เพศ</div>
+              </div>
               <select
                 className="dpSelect"
                 value={selGender}
@@ -237,7 +350,9 @@ export default function DonationProject() {
 
             {/* ระดับชั้น */}
             <div className="dpFilterGroup">
+              <div className="dpFilterGroup dpFilterGroupNarrow">
               <div className="dpFilterGroupLabel">ระดับชั้น</div>
+              </div>
               <select
                 className="dpSelect"
                 value={selLevel}
@@ -250,8 +365,11 @@ export default function DonationProject() {
 
             {/* ไซส์ */}
             <div className="dpFilterGroup">
+              <div className="dpFilterGroup dpFilterGroupNarrow">
               <div className="dpFilterGroupLabel">{sizeLabel}</div>
+              </div>
               <select
+              
                 className="dpSelect"
                 value={selSize}
                 onChange={e => setSelSize(e.target.value)}
@@ -264,7 +382,9 @@ export default function DonationProject() {
 
             {/* สภาพ */}
             <div className="dpFilterGroup">
+              <div className="dpFilterGroup dpFilterGroupNarrow">
               <div className="dpFilterGroupLabel">สภาพ</div>
+              </div>
               <select
                 className="dpSelect"
                 value={selCond}
@@ -293,14 +413,15 @@ export default function DonationProject() {
       <div className="dpMain">
         <div className="dpListHeader">
           <h2 className="dpListTitle">โครงการโรงเรียนขอรับบริจาคทั้งหมด</h2>
-          <select
-            className="dpSortSelect"
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-          >
-            <option value="newest">เรียงตาม : ล่าสุด</option>
-            <option value="most">เรียงตาม : ได้รับมากที่สุด</option>
-          </select>
+         <select
+          className="dpSortSelect"
+          value={sortBy}
+          onChange={e => setSortBy(e.target.value)}
+        >
+          <option value="newest">เรียงตาม : ล่าสุด</option>
+          <option value="most">เรียงตาม : ได้รับมากที่สุด</option>
+          <option value="urgent">เรียงตาม : ต้องการมากที่สุด</option>
+        </select>
         </div>
 
         {loading ? (
@@ -325,8 +446,7 @@ export default function DonationProject() {
                   <div className="dpCardTitle">{p.request_title}</div>
                   <div className="dpCardSchool">{p.school_name}</div>
                   <div className="dpCardAddr">
-                    <Icon icon="fluent:location-20-filled" width="14" />
-                    {p.school_address}
+                    <Icon icon="fluent:location-20-filled" width="14" style={{ flexShrink: 0, marginTop: "2px" }} />                    {p.school_address}
                   </div>
                   <div className="dpCardBottom">
                     <div className="dpCardFulfilled">
@@ -345,13 +465,13 @@ export default function DonationProject() {
           </div>
         )}
 
-        {displayProjects.length > 0 && (
+        {/* {displayProjects.length > 0 && (
           <div style={{ textAlign: "center", margin: "40px 0" }}>
             <button className="btnGhost" style={{ padding: "0 40px", height: "48px", fontSize: "18px" }}>
               ดูทั้งหมด
             </button>
           </div>
-        )}
+        )} */}
       </div>
 
        {/* ===== Footer ===== */}
@@ -376,7 +496,7 @@ export default function DonationProject() {
 
           <div className="footCol">
             <div className="footTitle">เมนูลัด</div>
-            <a href="#home">หน้าหลัก</a>
+            <a href="#Homepage">หน้าหลัก</a>
             <a href="#projects">โครงการ</a>
             <a href="#market">ร้านค้า</a>
             <a href="#sell">ลงขาย</a>
