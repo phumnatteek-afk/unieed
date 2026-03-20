@@ -9,6 +9,7 @@ import adminRoutes from "./modules/admin/admin.routes.js";
 import uploadRoutes from "./modules/upload/upload.routes.js";
 import homeRoutes from "./modules/home/home.routes.js";
 import donationRoutes from "./modules/donation/donation.routes.js";
+import certificateRoutes from "./modules/certificate/certificate.routes.js";
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
@@ -26,5 +27,7 @@ app.use((err, req, res, next) => {
   const status = err.status || err.http_code || 500;
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
+
+app.use("/certificates", certificateRoutes);
 
 export default app;

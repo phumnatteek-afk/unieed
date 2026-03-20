@@ -738,3 +738,83 @@
 .dnTotalChip strong {
   font-weight: 700;
 }
+
+/* ── Certificate Popup ── */
+.certOverlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+ 
+.certPopup {
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px;
+  max-width: 680px; width: 95%;
+  max-height: 90vh; overflow-y: auto;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+  animation: certPopIn 0.2s ease;
+}
+ 
+@keyframes certPopIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+ 
+.certPopupTitle {
+  font-size: 24px; font-weight: 800;
+  color: #1e293b; margin-bottom: 8px;
+}
+ 
+.certPopupName {
+  font-size: 20px; color: #29B6E8;
+  font-weight: 700; margin-bottom: 12px;
+}
+ 
+.certPopupMsg {
+  font-size: 14px; color: #64748b;
+  line-height: 1.8; margin-bottom: 20px;
+}
+ 
+.certPreview {
+  width: 100%; border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+ 
+.certPending {
+  background: #fef3c7; color: #d97706;
+  border-radius: 12px; padding: 16px 20px;
+  font-size: 14px; font-weight: 600;
+  margin-bottom: 20px; line-height: 1.6;
+}
+ 
+.certPopupActions {
+  display: flex; gap: 10px;
+  flex-wrap: wrap; justify-content: center;
+}
+ 
+.certBtnDownload {
+  padding: 10px 22px; border-radius: 10px;
+  background: #29B6E8; color: #fff;
+  font-size: 14px; font-weight: 700;
+  text-decoration: none; font-family: 'Kanit', sans-serif;
+  transition: background 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.certBtnDownload:hover { background: #1da8d8; }
+ 
+.certBtnPdf { background: #f97316; }
+.certBtnPdf:hover { background: #ea6c0a; }
+ 
+.certBtnClose {
+  padding: 10px 22px; border-radius: 10px;
+  border: 1.5px solid #e2e8f0; background: #fff;
+  color: #555; font-size: 14px;
+  font-family: 'Kanit', sans-serif; cursor: pointer;
+  transition: background 0.15s;
+}
+.certBtnClose:hover { background: #f9fafb; }
