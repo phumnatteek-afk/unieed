@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getJson } from "../api/http.js";
 import "./styles/Homepage.css";
+import ProfileDropdown from "../features/auth/pages/ProfileDropdown.jsx";
+
 
 // icon
 import { Icon } from "@iconify/react";
@@ -103,35 +105,15 @@ export default function HomePage() {
   }, [testimonials.length]);
 
   const rightAccount = () => {
-    if (!token) {
-      return (
-        <div className="navAuth">
-          <Link className="navBtn navBtnOutline" to="/register">
-            ลงทะเบียน
-          </Link>
-          <Link className="navBtn navBtnWhite" to="/login">
-            เข้าสู่ระบบ
-          </Link>
-        </div>
-      );
-    }
+  if (!token) {
     return (
       <div className="navAuth">
-        <span className="hello">
-          <span className="iconBorder">
-            <Icon
-              icon="fluent:person-circle-28-filled"
-              width="30"
-              height="30"
-            />
-          </span>
-          <span className="userNameText">{userName || "ผู้ใช้"}</span>
-        </span>
-        <button className="navBtn navBtnOutline" onClick={logout}>
-          ออกจากระบบ
-        </button>
+        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
+        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
       </div>
     );
+  }
+  return <ProfileDropdown />;
   };
 
   // ===== projects ที่ใช้ “แสดงผลจริง” (newest / random) (เพิ่ม)

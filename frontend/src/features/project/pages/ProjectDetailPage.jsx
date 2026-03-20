@@ -5,6 +5,8 @@ import { getJson } from "../../../api/http.js";
 import { Icon } from "@iconify/react";
 import "../../../pages/styles/Homepage.css";
 import "../styles/ProjectDetail.css";
+import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+
 
 export default function ProjectDetailPage() {
   const { token, userName, logout } = useAuth();
@@ -63,36 +65,16 @@ useEffect(() => {
     }
   };
 
-  const rightAccount = () => {
-    if (!token) {
-      return (
-        <div className="navAuth">
-          <Link className="navBtn navBtnOutline" to="/register">
-            ลงทะเบียน
-          </Link>
-          <Link className="navBtn navBtnWhite" to="/login">
-            เข้าสู่ระบบ
-          </Link>
-        </div>
-      );
-    }
+const rightAccount = () => {
+  if (!token) {
     return (
       <div className="navAuth">
-        <span className="hello">
-          <span className="iconBorder">
-            <Icon
-              icon="fluent:person-circle-28-filled"
-              width="30"
-              height="30"
-            />
-          </span>
-          <span className="userNameText">{userName || "ผู้ใช้"}</span>
-        </span>
-        <button className="navBtn navBtnOutline" onClick={logout}>
-          ออกจากระบบ
-        </button>
+        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
+        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
       </div>
     );
+  }
+  return <ProfileDropdown />;
   };
 
   const needed = project?.total_needed || 0;

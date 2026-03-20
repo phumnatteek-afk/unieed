@@ -4,6 +4,7 @@ import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import "../../../pages/styles/Homepage.css";
 import "../styles/PostProductPage.css";
+import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 
 // ===== ข้อมูล dropdown =====
 const CATEGORIES = ["เสื้อนักเรียน", "กางเกงนักเรียน", "กระโปรงนักเรียน"];
@@ -109,25 +110,15 @@ export default function PostProductPage() {
   };
 
   const rightAccount = () => {
-    if (!token) {
-      return (
-        <div className="navAuth">
-          <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-          <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
-        </div>
-      );
-    }
+  if (!token) {
     return (
       <div className="navAuth">
-        <span className="hello">
-          <span className="iconBorder">
-            <Icon icon="fluent:person-circle-28-filled" width="30" height="30" />
-          </span>
-          <span className="userNameText">{userName || "ผู้ใช้"}</span>
-        </span>
-        <button className="navBtn navBtnOutline" onClick={logout}>ออกจากระบบ</button>
+        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
+        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
       </div>
     );
+  }
+  return <ProfileDropdown />;
   };
 
   return (
