@@ -100,7 +100,7 @@ const rightAccount = () => {
             <Link to="/projects" className="active">
               โครงการ
             </Link>
-            <a href="#market">ร้านค้า</a>
+            <Link to="/market">ร้านค้า</Link>
             <a href="#about">เกี่ยวกับเรา</a>
             <button>
               <a href="#" className="sell">

@@ -37,6 +37,7 @@ import DonatePage from "./features/project/pages/Donatepage.jsx";
 // ส่วนหน้าเมนู
 import DonationProject from "./features/project/pages/DonationProject.jsx";
 import PostProductPage from "./features/market/pages/PostProductPage.jsx";
+import MarketPage from "./features/market/pages/MarketPage.jsx";
 import "./App.css";
 
 export default function App() {
@@ -60,6 +61,7 @@ export default function App() {
 
             <Route path="/projects/:requestId" element={<ProjectDetailPage />} />
             <Route path="/donate/:requestId" element={<DonatePage />} />
+            <Route path="/market" element={<MarketPage />} />
             <Route path="/sell" element={<PostProductPage />} />
             {/* School */}
             <Route path="/school/pending" element={<SchoolPendingPage />} />
