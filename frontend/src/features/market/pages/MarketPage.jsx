@@ -177,7 +177,6 @@ export default function MarketPage() {
             </Link>
             
           </div>
-          
         </div>
         <div className="mkHero">
             <img src="/src/unieed_pic/Banmarket1.png" className="mkHeroBg" />
