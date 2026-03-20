@@ -47,8 +47,12 @@ export async function generateCertificate(req, res, next) {
         } catch { items = []; }
 
         const items_summary = items.length > 0
-            ? items.map(i => `${i.name} ${i.quantity} ตัว`).join(", ")
-            : `ชุดนักเรียน ${donation.quantity} ชิ้น`;
+            ? items.map(i => {
+                // ตัดวงเล็บ (ไซส์) ออกจากชื่อ เช่น "เสื้อนักเรียนหญิง (อก 32")" → "เสื้อนักเรียนหญิง"
+                const name = String(i.name || "").replace(/\s*\(.*?\)\s*/g, "").trim();
+                return `${name} จำนวน ${i.quantity} ตัว`;
+            }).join(", ")
+            : `ชุดนักเรียน จำนวน ${donation.quantity} ชิ้น`;
 
         const certificate_code = genCertCode();
         const issued_at = new Date().toISOString().split("T")[0];
