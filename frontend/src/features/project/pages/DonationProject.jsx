@@ -242,7 +242,7 @@ useEffect(() => {
                   <nav className="navLinks">
                     <Link to="/">หน้าหลัก</Link>
                     <Link to="/projects" className="active">โครงการ</Link>
-                    <a href="#market">ร้านค้า</a>
+                    <Link to="/market">ร้านค้า</Link>
                     <a href="#about">เกี่ยวกับเรา</a>
                     <button><Link to="/sell" className="sell">ลงขาย</Link></button>
                   </nav>
