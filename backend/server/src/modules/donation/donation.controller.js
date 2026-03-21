@@ -6,6 +6,7 @@ import {
   getDonationById,
   setDonationStatus,
   isDonationOwnedBySchool,
+  insertFulfillment,
 } from "./donation.service.js";
 import { db } from "../../config/db.js";
 
@@ -198,33 +199,95 @@ export async function updateDonationStatus(req, res, next) {
 // body: { condition_status: "usable"|"damaged"|"wrong_item", thank_message?: string }
 export async function verifyDonation(req, res, next) {
   try {
-    const donation_id    = Number(req.params.donationId);
-    const school_id      = req.user.school_id;
+    const donation_id = Number(req.params.donationId);
+    const school_id   = req.user.school_id;
     const { condition_status, thank_message } = req.body;
- 
+
+    console.log("=== verifyDonation ===");
+    console.log("donation_id:", donation_id);
+    console.log("condition_status:", condition_status);
+
     const VALID = ["usable", "damaged", "wrong_item"];
     if (!VALID.includes(condition_status))
       return res.status(400).json({ message: "condition_status ไม่ถูกต้อง" });
- 
-    // ตรวจสิทธิ์
+
     const owned = await isDonationOwnedBySchool(donation_id, school_id);
+    console.log("owned:", owned);
     if (!owned)
       return res.status(403).json({ message: "ไม่พบรายการ หรือไม่มีสิทธิ์" });
- 
-    // อัปเดต DB
-    await db.query(
-      `UPDATE donation_record
-       SET status           = 'approved',
-           condition_status = ?
-       WHERE donation_id    = ?`,
-      [condition_status, donation_id]
+
+    const [[donation]] = await db.query(
+      `SELECT request_id, quantity, items_snapshot
+       FROM donation_record WHERE donation_id = ?`,
+      [donation_id]
     );
- 
-    // TODO: ส่ง notification / email ขอบคุณผู้บริจาคด้วย thank_message
-    // สามารถเพิ่ม createNotification() ตรงนี้ในอนาคต
- 
+    console.log("donation:", donation);
+
+    if (!donation)
+      return res.status(404).json({ message: "ไม่พบรายการบริจาค" });
+
+    let items_snapshot = [];
+    try {
+      items_snapshot = typeof donation.items_snapshot === "string"
+        ? JSON.parse(donation.items_snapshot)
+        : (donation.items_snapshot || []);
+    } catch {
+      items_snapshot = [];
+    }
+    console.log("items_snapshot:", items_snapshot);
+
+    console.log("getting connection...");
+    const conn = await db.getConnection();
+    console.log("got connection");
+    
+    try {
+      await conn.beginTransaction();
+      console.log("transaction started");
+
+      await conn.query(
+        `UPDATE donation_record
+         SET status = 'approved', condition_status = ?
+         WHERE donation_id = ?`,
+        [condition_status, donation_id]
+      );
+      console.log("updated donation_record");
+
+      if (condition_status === "usable") {
+  console.log("inserting fulfillment, items:", items_snapshot.length);
+  for (const item of items_snapshot) {
+    // ✅ เปลี่ยนมา lookup จาก student_need แทน request_item
+    const [snRows] = await conn.query(
+      `SELECT sn.student_need_id
+       FROM student_need sn
+       JOIN students st ON st.student_id = sn.student_id
+       WHERE st.request_id = ? AND sn.uniform_type_id = ?
+       LIMIT 1`,
+      [donation.request_id, item.uniform_type_id]
+    );
+    console.log("student_need_id:", snRows[0]?.student_need_id);
+
+    await conn.query(
+      `INSERT INTO fulfillment
+         (donation_id, request_id, request_item_id, quantity_fulfilled, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [donation_id, donation.request_id, snRows[0]?.student_need_id ?? null, item.quantity]
+    );
+  }
+}
+
+      await conn.commit();
+      console.log("committed");
+    } catch (err) {
+      await conn.rollback();
+      console.error("transaction error:", err.message);
+      throw err;
+    } finally {
+      conn.release();
+    }
+
     res.json({ message: "บันทึกผลตรวจสอบเรียบร้อยแล้ว" });
   } catch (err) {
+    console.error("verifyDonation error:", err.message);
     next(err);
   }
 }

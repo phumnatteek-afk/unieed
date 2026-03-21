@@ -150,4 +150,27 @@ export async function verifyDonation(donation_id, condition_status) {
     [condition_status, donation_id]
   );
 }
- 
+
+// ─────────────────────────────────────────────────────────────────
+// INSERT fulfillment เมื่อโรงเรียนยืนยันรับของ (condition = usable)
+// ─────────────────────────────────────────────────────────────────
+export async function insertFulfillment(conn, donation_id, request_id, items) {
+  for (const item of items) {
+    // lookup student_need_id จาก student_need แทน request_item
+    const [snRows] = await conn.query(
+      `SELECT sn.student_need_id
+       FROM student_need sn
+       JOIN students st ON st.student_id = sn.student_id
+       WHERE st.request_id = ? AND sn.uniform_type_id = ?
+       LIMIT 1`,
+      [request_id, item.uniform_type_id]
+    );
+
+    await conn.query(
+      `INSERT INTO fulfillment
+         (donation_id, request_id, request_item_id, quantity_fulfilled, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [donation_id, request_id, snRows[0]?.student_need_id ?? null, item.quantity]
+    );
+  }
+}

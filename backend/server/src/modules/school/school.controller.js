@@ -45,10 +45,9 @@ export async function getProjectByIdPublic(req, res, next) {
           FROM student_need sn
           JOIN students st ON st.student_id = sn.student_id
           WHERE st.request_id = dr.request_id) AS total_needed,
-         (SELECT COALESCE(SUM(sn.quantity_received), 0)
-          FROM student_need sn
-          JOIN students st ON st.student_id = sn.student_id
-          WHERE st.request_id = dr.request_id) AS total_fulfilled
+         (SELECT COALESCE(SUM(f.quantity_fulfilled), 0)
+          FROM fulfillment f
+          WHERE f.request_id = dr.request_id) AS total_fulfilled
        FROM donation_request dr
        JOIN schools s ON s.school_id = dr.school_id
        WHERE dr.request_id = ?
@@ -72,68 +71,70 @@ export async function getProjectByIdPublic(req, res, next) {
     // ── Query 2: uniform_items ────────────────────────────────
     // แยก try/catch เพื่อกันไม่ให้ crash ทั้งหน้า
     try {
-      const [items] = await db.query(
-        `SELECT
-           ut.uniform_type_id,
-           ut.type_name                                    AS name,
-           ut.gender,
-           ut.uniform_category,
-           sn.size,
-           st.education_level_group                        AS education_level,
-           SUM(sn.quantity_needed)                         AS quantity,
-           COALESCE(uti_exact.image_url, uti_all.image_url) AS image_url
-         FROM student_need sn
-         JOIN students     st  ON st.student_id     = sn.student_id
-                               AND st.request_id     = ?
-         JOIN uniform_type ut  ON ut.uniform_type_id = sn.uniform_type_id
-         LEFT JOIN uniform_type_images uti_exact
-                ON  uti_exact.uniform_type_id = sn.uniform_type_id
-                AND uti_exact.school_id       = ?
-                AND uti_exact.request_id      = ?
-                AND uti_exact.education_level = st.education_level_group
-         LEFT JOIN uniform_type_images uti_all
-                ON  uti_all.uniform_type_id  = sn.uniform_type_id
-                AND uti_all.school_id        = ?
-                AND uti_all.request_id       = ?
-                AND uti_all.education_level  IS NULL
-         GROUP BY
-           ut.uniform_type_id, ut.type_name, ut.gender,
-           ut.uniform_category,
-           sn.size, st.education_level_group,
-           uti_exact.image_url, uti_all.image_url
-         ORDER BY
-           ut.uniform_type_id ASC,
-           st.education_level_group ASC,
-           sn.size ASC`,
-        [request_id, school_id, request_id, school_id, request_id]
-      );
+  const [items] = await db.query(
+    `SELECT
+       ut.uniform_type_id,
+       ut.type_name                                    AS name,
+       ut.gender,
+       ut.uniform_category,
+       sn.size,
+       st.education_level_group                        AS education_level,
+       SUM(sn.quantity_needed)                         AS quantity,
+       CASE
+         WHEN uti_exact.image_url IS NOT NULL THEN uti_exact.image_url
+         ELSE uti_all.image_url
+       END AS image_url
+     FROM student_need sn
+     JOIN students     st  ON st.student_id     = sn.student_id
+                           AND st.request_id     = ?
+     JOIN uniform_type ut  ON ut.uniform_type_id = sn.uniform_type_id
+     LEFT JOIN uniform_type_images uti_exact
+            ON  uti_exact.uniform_type_id = sn.uniform_type_id
+            AND uti_exact.school_id       = ?
+            AND uti_exact.request_id      = ?
+            AND uti_exact.education_level = st.education_level_group
+     LEFT JOIN uniform_type_images uti_all
+            ON  uti_all.uniform_type_id  = sn.uniform_type_id
+            AND uti_all.school_id        = ?
+            AND uti_all.request_id       = ?
+            AND uti_all.education_level  IS NULL
+     GROUP BY
+       ut.uniform_type_id, ut.type_name, ut.gender,
+       ut.uniform_category,
+       sn.size, st.education_level_group,
+       uti_exact.image_url, uti_all.image_url
+     ORDER BY
+       ut.uniform_type_id ASC,
+       st.education_level_group ASC,
+       sn.size ASC`,
+    [request_id, school_id, request_id, school_id, request_id]
+  );
 
-      project.uniform_items = (items || []).map(i => {
-        let sizeObj = null;
-        if (i.size) {
-          try {
-            sizeObj = typeof i.size === "string" ? JSON.parse(i.size) : i.size;
-          } catch {
-            sizeObj = i.size;
-          }
-        }
-        return {
-          uniform_type_id:   i.uniform_type_id,
-          name:              i.name,
-          gender:            i.gender,
-          uniform_category:  i.uniform_category || null,
-          size:              sizeObj,
-          education_level:   i.education_level || null,
-          quantity:          Number(i.quantity) || 0,
-          image_url:         i.image_url        || null,
-        };
-      });
-
-    } catch (uniformErr) {
-      // log แต่ไม่ crash — หน้ายังโหลดได้ แค่ไม่มีรายการชุด
-      console.error("[getProjectByIdPublic] uniform_items query failed:", uniformErr.message);
-      project.uniform_items = [];
+  project.uniform_items = (items || []).map(i => {
+    let sizeObj = null;
+    if (i.size) {
+      try {
+        sizeObj = typeof i.size === "string" ? JSON.parse(i.size) : i.size;
+      } catch {
+        sizeObj = i.size;
+      }
     }
+    return {
+      uniform_type_id:  i.uniform_type_id,
+      name:             i.name,
+      gender:           i.gender,
+      uniform_category: i.uniform_category || null,
+      size:             sizeObj,
+      education_level:  i.education_level  || null,
+      quantity:         Number(i.quantity)  || 0,
+      image_url:        i.image_url         || null,
+    };
+  });
+
+} catch (uniformErr) {
+  console.error("[getProjectByIdPublic] uniform_items query failed:", uniformErr.message);
+  project.uniform_items = [];
+}
 
     res.json(project);
 

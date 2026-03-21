@@ -608,7 +608,9 @@ export default function HomePage() {
                 />
               </svg>
             </div>
-            <div className="statValue1">{stats.products_total || 0}</div>
+            <div className="statValue1">
+  {Number(stats.uniforms_fulfilled || 0).toLocaleString()}
+</div>
             <div className="statLabel">ชุดนักเรียนที่ส่งต่อแล้ว</div>
           </div>
 
@@ -706,10 +708,8 @@ export default function HomePage() {
 
                               <div className="projBottom">
                                 <div className="projFilled">
-                                  ยอดบริจาคปัจจุบัน{" "}
-                                  <span><b>{p.total_fulfilled || 0}</b></span>{" "}
-                                  ชิ้น
-                                </div>
+  บริจาคแล้ว <span><b>{p.total_donated || p.total_fulfilled || 0}</b></span> ชิ้น
+</div>
                                 {/* ✅ e.stopPropagation() กันไม่ให้ click ลามไปที่กล่อง */}
                                 <button
                                   className="btnSend"

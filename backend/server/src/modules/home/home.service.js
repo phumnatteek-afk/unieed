@@ -6,10 +6,16 @@ export async function getHomeData() {
     SELECT
       (SELECT COUNT(*) FROM products WHERE status='available') AS products_total,
       (SELECT COUNT(*) FROM schools WHERE verification_status='approved') AS schools_approved,
-      (SELECT COUNT(*) FROM students) AS students_total
+      (SELECT COUNT(*) FROM students) AS students_total,
+
+      -- ชุดที่ส่งต่อแล้ว = โรงเรียนยืนยันรับของแล้ว (fulfillment)
+      (SELECT COALESCE(SUM(quantity_fulfilled), 0) FROM fulfillment) AS uniforms_fulfilled,
+
+      -- ยอดบริจาคทั้งหมด = จำนวนรายการที่ผู้บริจาคบันทึกเข้ามา
+      (SELECT COUNT(*) FROM donation_record WHERE status != 'rejected') AS donations_total
   `);
 
-  // 2) Projects
+  // 2) Projects — ดึง total_donated จาก donation_record และ total_fulfilled จาก fulfillment
   const [projects] = await db.query(`
     SELECT
       dr.request_id,
@@ -21,15 +27,32 @@ export async function getHomeData() {
       dr.created_at,
       s.school_name,
       s.school_address,
-      COALESCE(SUM(ri.quantity_fulfilled), 0) AS total_fulfilled
+
+      -- ยอดบริจาคที่บันทึกเข้ามา (ผู้บริจาคส่งแล้ว)
+      COALESCE((
+        SELECT SUM(don.quantity)
+        FROM donation_record don
+        WHERE don.request_id = dr.request_id
+          AND don.status != 'rejected'
+      ), 0) AS total_donated,
+
+      -- ยอดที่โรงเรียนยืนยันรับแล้ว
+      COALESCE((
+        SELECT SUM(f.quantity_fulfilled)
+        FROM fulfillment f
+        WHERE f.request_id = dr.request_id
+      ), 0) AS total_fulfilled,
+
+      -- ความต้องการรวมทั้งหมดของ request นี้
+      COALESCE((
+        SELECT SUM(ri.quantity)
+        FROM request_item ri
+        WHERE ri.request_id = dr.request_id
+      ), 0) AS total_needed
+
     FROM donation_request dr
     JOIN schools s ON s.school_id = dr.school_id
-    LEFT JOIN request_item ri ON ri.request_id = dr.request_id
     WHERE dr.status = 'open'
-    GROUP BY
-      dr.request_id, dr.school_id, dr.request_title, dr.request_description,
-      dr.request_image_url, dr.status, dr.created_at,
-      s.school_name, s.school_address
     ORDER BY dr.created_at DESC
     LIMIT 10
   `);
