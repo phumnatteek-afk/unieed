@@ -1,46 +1,20 @@
-/* ===== DONATE PAGE ===== */
-
 .dnLayout {
   display: grid;
-  grid-template-columns: 520px 500px;  /* ← ล็อกขนาดทั้งสองคอลัมน์ */
+  grid-template-columns: 420px 1fr;
   min-height: calc(100vh - 120px);
-
-  width: fit-content;   /* ← ขนาดพอดีกับ content */
-  margin: 0 auto;       /* ← จัดกึ่งกลาง */
+  background: #FFF8E7;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
 }
 
+/* LEFT */
 .dnLeft {
   background: #FFF8E7;
   padding: 40px 32px;
   border-right: 1px solid #e5e7eb;
-  box-shadow: -100vw 0 0 100vw #FFF8E7;
-  clip-path: inset(0 0 0 -100vw); 
-}
-.dnRight {
-  background: #fff;
-  padding: 40px 48px 40px 48px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 100vw 0 0 100vw #fff;   /* ← ยื่นขวาออกไปสุด */
-  clip-path: inset(0 -100vw 0 0); 
-}
-.dnDraftBtn {
-  width: 100%;
-  box-sizing: border-box;
-  height: 54px;
-  background: #eae5e5;
-  border: 1.5px solid #a4a4a4;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #555;
-  cursor: pointer;
-  font-family: 'Kanit', sans-serif;
 }
 
-.dnDraftBtn:hover {
-  background: #d1d5db;
-}
 .dnProjectCard {
   background: #fff;
   border-radius: 16px;
@@ -111,7 +85,6 @@
 
 /* Method tabs */
 .dnMethodTabs {
-  
   display: flex;
   gap: 12px;
   margin-bottom: 28px;
@@ -126,15 +99,11 @@
   font-family: 'Kanit', sans-serif;
   color: #555;
   cursor: pointer;
-    display: inline-flex;      /* ← เพิ่ม */
-  align-items: center;       /* ← เพิ่ม */
-  gap: 8px;                  /* ← เพิ่ม */
-  box-sizing: border-box;
+  transition: all 0.18s;
 }
 
 .dnMethodTab:hover {
   border-color: #87C7EB;
-  color: #87C7EB;
 }
 
 .dnMethodTabActive {
@@ -150,9 +119,7 @@
   flex-direction: column;
   gap: 20px;
 }
-.dnBackBtn svg{
-  color: #053f5c;
-}
+
 .dnBackBtn {
   display: inline-flex;
   align-items: center;
@@ -161,7 +128,7 @@
   border: none;
   font-size: 16px;
   font-weight: 600;
-  color: #053f5c;
+  color: #1d4ed8;
   cursor: pointer;
   font-family: 'Kanit', sans-serif;
   padding: 0;
@@ -170,8 +137,8 @@
 
 .dnStepTitle {
   font-size: 20px;
-  font-weight: 600;
-  color: #053f5c;
+  font-weight: 700;
+  color: #1d4ed8;
   line-height: 1.4;
 }
 
@@ -319,6 +286,8 @@
 .dnUniformSize {
   display: inline-block;
   padding: 2px 8px;
+  background: #EBF6FC;
+  color: #29B6E8;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
@@ -482,31 +451,7 @@
 .dnInput:focus {
   border-color: #5285E8;
 }
-.dnUniformSize{
-  margin-left: 12px;
-  background: #FFBE1B;
-  color: #fff;
-}
-.dnSummaryTitle{
-  margin-top: 20px;
-  font-weight: 700;
-}
-.dnSummaryRow{
-  margin-top: 10px;
-  font-size: 16px;
-  font-weight: 500;
-}
-.dnInput::placeholder {
-  color: #aaa !important;
-  opacity: 1 !important;
-  -webkit-text-fill-color: #aaa;
-}
-.dnTotal{
-  margin-top: 10px;
-  background: #5285E8;
-  color: #ffff;
-  border: none;
-}
+
 .dnSelect {
   height: 46px;
   border-radius: 10px;
@@ -606,13 +551,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: auto;  /* ← เปลี่ยนจาก none เป็น auto */
-  cursor: pointer;       /* ← เพิ่ม cursor pointer */
+  pointer-events: none;
 }
 
-.dnDateIcon:hover {
-  background: #3d6bc7;   /* ← เพิ่ม hover effect */
-}
 /* Info box */
 .dnInfoBox {
   display: flex;
@@ -650,9 +591,9 @@
   font-size: 20px;
   font-weight: 600;
   color: #fff;
-  box-sizing: border-box;
   cursor: pointer;
   font-family: 'Kanit', sans-serif;
+  transition: background 0.18s;
   margin-top: 8px;
 }
 
@@ -757,14 +698,11 @@
 /* size label ใน uniform item */
 .dnUniformSize {
   font-size: 13px;
-  color: #fff;
+  color: #888;
   font-weight: 400;
-  margin-left: 9px;
+  margin-left: 4px;
 }
 
-.dnSummaryQty{
-  margin-left: 8px;
-}
 /* No items message */
 .dnNoItems {
   text-align: center;
