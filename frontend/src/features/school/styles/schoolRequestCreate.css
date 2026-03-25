@@ -1,9 +1,9 @@
 /* ── schoolRequestCreate.css — Unieed ──────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@500;600;700&display=swap');
 
 :root {
-  --c-blue:      #29B6E8;
-  --c-blue-dk:   #0E8BB5;
+  --c-blue:      #87c7eb;
+  --c-blue-dk:   #5285e8;
   --c-blue-lt:   #E0F7FF;
   --c-blue-mid:  #B3E5FC;
   --c-gold:      #F5A623;
@@ -22,7 +22,7 @@
   background: var(--c-bg);
   display: flex; gap: 32px;
   padding: 36px 40px;
-  font-family: 'Sarabun', sans-serif;
+  font-family: 'Kanit', sans-serif;
   box-sizing: border-box;
 }
 
@@ -48,10 +48,9 @@
 }
 .srcHeaderIcon {
   width: 52px; height: 52px; border-radius: 16px;
-  background: linear-gradient(135deg, var(--c-blue) 0%, var(--c-blue-dk) 100%);
+  background: #87c7eb ;
   display: flex; align-items: center; justify-content: center;
   font-size: 26px;
-  box-shadow: 0 6px 20px rgba(41,182,232,0.35);
   flex-shrink: 0;
 }
 .srcTitle {
@@ -74,7 +73,7 @@
   font-size: 12px; font-weight: 700;
 }
 .srcStepActive .srcStepNum {
-  background: var(--c-blue); color: white;
+  background: #87c7eb; color: white;
   box-shadow: 0 2px 8px rgba(41,182,232,0.4);
 }
 .srcStepActive span { font-weight: 600; color: var(--c-text); font-size: 13px; }
@@ -85,7 +84,7 @@
 .srcStepPending span { color: var(--c-text-sub); font-size: 13px; }
 .srcStepLine {
   flex: 1; height: 2px;
-  background: linear-gradient(90deg, var(--c-blue-mid), var(--c-border));
+  background: #87c7eb;
   margin: 0 16px;
   border-radius: 2px;
 }
@@ -124,7 +123,7 @@
   border: 1.5px solid var(--c-border);
   border-radius: 10px; padding: 11px 14px;
   font-size: 14px; color: var(--c-text);
-  font-family: 'Sarabun', sans-serif;
+  font-family: 'Kanit', sans-serif;
   transition: border-color 0.15s, box-shadow 0.15s;
   width: 100%; box-sizing: border-box;
 }
@@ -173,7 +172,7 @@
   background: none; border: none; cursor: pointer;
   color: #EF4444; font-size: 12px; font-weight: 500;
   padding: 2px 0; text-decoration: underline;
-  font-family: 'Sarabun', sans-serif;
+  font-family: 'Kanit', sans-serif;
 }
 
 /* ── Submit button ───────────────────────────────────────── */
