@@ -101,24 +101,31 @@ export default function DonationProject() {
 const [projectDetails, setProjectDetails] = useState({});
 const detailsFetchedRef = useRef(false); // ← เพิ่ม ref กันยิงซ้ำ
 
+// ปรับปรุง useEffect ส่วนโหลดรายละเอียด
 useEffect(() => {
-  if (!projects.length) return;
-  if (detailsFetchedRef.current) return; // ← กันยิงซ้ำ
-  detailsFetchedRef.current = true;
+  if (projects.length === 0 || detailsFetchedRef.current) return;
   
-  (async () => {
-    const details = await Promise.all(
-      projects.map(p => getJson(`/school/projects/public/${p.request_id}`, false))
-    );
+  detailsFetchedRef.current = true;
+
+  const fetchDetails = async () => {
     const map = {};
-    details.forEach(d => {
-      if (d?.request_id) {
-        map[d.request_id] = d.uniform_items || [];
+    // ใช้ for loop แทน Promise.all เพื่อไม่ให้ยิงพร้อมกันทีเดียว 20-30 request
+    // หรือถ้าจะใช้ Promise.all ควรส่งเป็น batch
+    for (const p of projects) {
+      try {
+        const d = await getJson(`/school/projects/public/${p.request_id}`, false);
+        if (d?.request_id) {
+          map[d.request_id] = d.uniform_items || [];
+        }
+      } catch (err) {
+        console.error(`Failed to fetch ID: ${p.request_id}`, err);
       }
-    });
+    }
     setProjectDetails(map);
-  })();
-}, [projects.length]);
+  };
+
+  fetchDetails();
+}, [projects]);
 
   // ===== คำนวณ search query อัตโนมัติ =====
   const autoQuery = useMemo(() => {
@@ -218,6 +225,58 @@ useEffect(() => {
 
   // ===== reset size เมื่อเปลี่ยนประเภท/ระดับ =====
   useEffect(() => { setSelSize(""); }, [selType, selLevel]);
+  // ── Random section ที่จะแสดง (สุ่มทุก session) ──
+const [shownSection] = useState(() => {
+  const saved = sessionStorage.getItem("dpShownSection");
+  if (saved) return saved;
+  const pick = Math.random() < 0.5 ? "urgent" : "zero";
+  sessionStorage.setItem("dpShownSection", pick);
+  return pick;
+});
+
+// ── urgent projects (sort by ต้องการมากที่สุด) ──
+const urgentProjects = useMemo(() => {
+  return [...projects]
+    .sort((a, b) => {
+      const ratioA = (a.total_needed - a.total_fulfilled) / (a.student_count || 1);
+      const ratioB = (b.total_needed - b.total_fulfilled) / (b.student_count || 1);
+      return ratioB - ratioA;
+    })
+    .slice(0, 10);
+}, [projects]);
+
+// ── zero projects (ยังไม่ได้รับบริจาคเลย) ──
+// ── zero projects (ยังไม่ได้รับบริจาคเลย) ──
+const zeroProjects = useMemo(() => {
+  return projects.filter(p => 
+    (p.total_fulfilled || 0) === 0 && 
+    (p.total_needed || 0) > 0  // ← มั่นใจว่าเป็นโครงการจริงๆ ที่ต้องการของ
+  ).slice(0, 10);
+}, [projects]);
+// ── slider state ──
+const [slideIndex, setSlideIndex] = useState(0);
+const slideList = useMemo(() => {
+  const zeros = projects.filter(p => (p.total_fulfilled || 0) === 0 && (p.total_needed || 0) > 0);
+  
+  if (zeros.length > 0) return zeros.slice(0, 10);
+  return urgentProjects; // fallback
+}, [projects, urgentProjects]);
+
+const sectionTitle = useMemo(() => {
+  const zeros = projects.filter(p => (p.total_fulfilled || 0) === 0 && (p.total_needed || 0) > 0);
+  return zeros.length > 0 
+    ? "💙 โรงเรียนยังไม่ได้รับบริจาคเลย" 
+    : "🚨 โรงเรียนเหล่านี้ต้องการจำนวนมาก";
+}, [projects]);
+
+// ── auto slide ──
+useEffect(() => {
+  if (!slideList.length) return;
+  const timer = setInterval(() => {
+    setSlideIndex(i => (i + 1) % slideList.length);
+  }, 3000);
+  return () => clearInterval(timer);
+}, [slideList.length]);
 
   const rightAccount = () => {
   if (!token) {
@@ -400,6 +459,73 @@ useEffect(() => {
         </div>
       </div>
 
+          {/* ===== Random Section ===== */}
+{!loading && slideList.length > 0 && (
+  <div className="dpUrgentSection">
+   <h2 className="dpSectionTitle"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="currentColor" d="M20 17q.86 0 1.45.6t.58 1.4L14 22l-7-2v-9h1.95l7.27 2.69q.78.31.78 1.12q0 .47-.34.82t-.86.37H13l-1.75-.67l-.33.94L13 17zM16 3.23Q17.06 2 18.7 2q1.36 0 2.3 1t1 2.3q0 1.03-1 2.46t-1.97 2.39T16 13q-2.08-1.89-3.06-2.85t-1.97-2.39T10 5.3q0-1.36.97-2.3t2.34-1q1.6 0 2.69 1.23M.984 11H5v11H.984z"/></svg> ร่วมเติมเต็มโอกาส... ให้เด็กๆ ที่รอคอย</h2>
+  <p className="dpSectionSub">ส่งต่อชุดนักเรียนของคุณ เพื่อก้าวต่อไปที่สดใสของน้องๆ</p>
+    <div className="dpSliderWrapper">
+      <div className="dpSlider">
+        <div
+          className="dpSliderTrack"
+          style={{ transform: `translateX(-${slideIndex * 100}%)` }}
+        >
+          {slideList.map(p => (
+            <div
+              key={p.request_id}
+              className="dpSliderCard"
+              onClick={() => navigate(`/projects/${p.request_id}`)}
+            >
+             <div className="dpSliderCardImg">
+  {p.request_image_url
+    ? <img src={p.request_image_url} alt={p.request_title} />
+    : <div className="dpSliderCardImgPlaceholder" />}
+  
+  {/* แสดงเฉพาะเงื่อนไข "บริจาคเป็นคนแรก" เมื่อยอดเป็น 0 เท่านั้น */}
+  {Number(p.total_fulfilled || 0) === 0 && (
+    <div className="dpSliderCardNeed first-donor">
+       ✨ เริ่มต้นการแบ่งปันเป็นคนแรก!
+    </div>
+  )}
+</div>
+              <div className="dpSliderCardBody">
+                <div className="dpSliderCardTitle">{p.request_title}</div>
+                <div className="dpSliderCardSchool">{p.school_name}</div>
+                <div className="dpSliderCardAddr">
+                  <Icon icon="fluent:location-20-filled" width="14" />
+                  {p.school_address}
+                </div>
+                {/* {shownSection === "urgent" && (
+                  <div className="dpSliderCardNeed">
+                    ต้องการอีก {Math.max((p.total_needed || 0) - (p.total_fulfilled || 0), 0)} ชิ้น
+                  </div>
+                )} */}
+                
+                <button
+                  className="dpSliderCardBtn"
+                  onClick={e => { e.stopPropagation(); navigate(`/projects/${p.request_id}`); }}
+                >
+                  ส่งต่อเลย
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Dots */}
+      <div className="dpSliderDots">
+        {slideList.map((_, i) => (
+          <button
+            key={i}
+            className={`dpSliderDot ${i === slideIndex ? "dpSliderDotActive" : ""}`}
+            onClick={() => setSlideIndex(i)}
+          />
+        ))}
+      </div>
+    </div>
+  </div>
+)}
       {/* ===== Project List ===== */}
       <div className="dpMain">
         <div className="dpListHeader">
