@@ -304,7 +304,8 @@
 }
 
 /* ── additions for support chips + 3-col toggle ─────────── */
-.smToggleGroup3 { display: flex; gap: 6px; }
+.smToggleGroup3 {  grid-template-columns: repeat(4, 1fr); 
+}
 .smToggleGroup3 .smToggleBtn { flex: 1; }
 
 .smSupportGroup {

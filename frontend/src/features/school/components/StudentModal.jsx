@@ -186,17 +186,19 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
               <div className="smField">
                 <label className="smLabel">ระดับชั้น <span className="smReq">*</span></label>
                 <div className="smToggleGroup smToggleGroup3">
+                  
                   {[
-                    { v: "อนุบาล",     l: "อนุบาล"  },
-                    { v: "ประถมศึกษา", l: "ประถม"   },
-                    { v: "มัธยมศึกษา", l: "มัธยม"   },
-                  ].map(({ v, l }) => (
-                    <button key={v} type="button"
-                      className={`smToggleBtn ${education_level === v ? "smToggleActive" : ""}`}
-                      onClick={() => setGrade(v)}>
-                      {l}
-                    </button>
-                  ))}
+  { v: "อนุบาล",       l: "อนุบาล"   },
+  { v: "ประถมศึกษา",   l: "ประถม"    },
+  { v: "มัธยมตอนต้น",  l: "ม.ต้น"   },
+  { v: "มัธยมตอนปลาย", l: "ม.ปลาย"  },
+].map(({ v, l }) => (
+  <button key={v} type="button"
+    className={`smToggleBtn ${education_level === v ? "smToggleActive" : ""}`}
+    onClick={() => setGrade(v)}>
+    {l}
+  </button>
+))}
                 </div>
               </div>
 

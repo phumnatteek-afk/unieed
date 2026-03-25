@@ -18,17 +18,22 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState("detail"); // "detail" | "review"
   const [selectedMethod, setSelectedMethod] = useState("parcel");
   // เพิ่ม import และ state ตรงบนสุด
+  const LEVEL_ORDER = [
+  "อนุบาล",
+  "ประถมศึกษา",
+  "มัธยมตอนต้น",
+  "มัธยมตอนปลาย",
+];
 const [activeLevel, setActiveLevel] = useState(null);
 
 // ใส่ useEffect เพื่อ set level แรกที่มีข้อมูล
 useEffect(() => {
   if (!project?.uniform_items?.length) return;
-  const levels = [...new Set(
-    project.uniform_items
-      .map(i => i.education_level)
-      .filter(Boolean)
-  )];
-  if (levels.length > 0) setActiveLevel(levels[0]);
+  const available = new Set(
+    project.uniform_items.map(i => i.education_level).filter(Boolean)
+  );
+  const first = LEVEL_ORDER.find(lv => available.has(lv));
+  if (first) setActiveLevel(first);
 }, [project]);
 
   useEffect(() => {
@@ -427,11 +432,10 @@ const rightAccount = () => {
                     {/* uniform items */}
               {project.uniform_items?.length > 0 && (() => {
   // หา levels ที่มีข้อมูลจริงๆ
-  const levels = [...new Set(
-    project.uniform_items
-      .map(i => i.education_level)
-      .filter(Boolean)
-  )];
+  const available = new Set(
+  project.uniform_items.map(i => i.education_level).filter(Boolean)
+);
+const levels = LEVEL_ORDER.filter(lv => available.has(lv));
 
   // items ของ level ที่เลือก
   const currentItems = project.uniform_items.filter(

@@ -277,12 +277,12 @@ export async function listProjectStudents(req, res, next) {
 function resolveGroup(edu) {
   if (!edu) return null;
   const s = edu.toString().trim();
-  if (/^อนุบาล/i.test(s))  return "อนุบาล";
-  if (/^ประถม/i.test(s))    return "ประถมศึกษา";
-  if (/^มัธยม/i.test(s))    return "มัธยมศึกษา";
+  if (/อนุบาล|kg|kindergarten/i.test(s))                  return "อนุบาล";
+  if (/^ป\.|ประถม|primary|^[Pp]\d/i.test(s))              return "ประถมศึกษา";
+  if (/^ม\.[4-6]|มัธยมปลาย|ม\.ปลาย|^[Mm][4-6]/i.test(s)) return "มัธยมตอนปลาย";
+  if (/^ม\.|มัธยม|secondary|^[Mm]\d/i.test(s))            return "มัธยมตอนต้น";
   return null;
 }
-
 export async function createStudentWithNeeds(req, res) {
   const request_id = Number(req.params.request_id);
   const school_id = req.user.school_id;

@@ -7,5 +7,11 @@ export default defineConfig({
     host: true,
     port: 5173,
     allowedHosts: ["draven-achronychous-hazel.ngrok-free.dev"],
-  }
+    proxy: {                                    // ← เพิ่มตรงนี้
+      "/market": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+      },
+    },
+  },
 })

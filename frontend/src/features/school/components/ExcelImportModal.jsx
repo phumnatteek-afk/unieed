@@ -4,9 +4,9 @@ import { schoolRequestSvc } from "../services/schoolRequest.service.js";
 import "../styles/excelImport.css";
 
 // ── map ภาษาไทย → ค่า DB ─────────────────────────────────
-const MAP_GENDER   = { "ชาย": "male", "หญิง": "female" };
-const MAP_URGENCY  = { "เร่งด่วนมาก": "very_urgent", "เร่งด่วน": "urgent", "รอได้": "can_wait" };
-const MAP_SUPPORT  = { "รับครั้งเดียว": "one_time", "รับต่อเนื่อง": "recurring" };
+const MAP_GENDER = { "ชาย": "male", "หญิง": "female" };
+const MAP_URGENCY = { "เร่งด่วนมาก": "very_urgent", "เร่งด่วน": "urgent", "รอได้": "can_wait" };
+const MAP_SUPPORT = { "รับครั้งเดียว": "one_time", "รับต่อเนื่อง": "recurring" };
 
 function mapVal(dict, val) {
   const v = String(val ?? "").trim();
@@ -29,19 +29,19 @@ function parseRows(ws) {
     const name = String(r[1] ?? "").trim(); // col B = index 1
     if (!name) continue;
 
-    const gender          = mapVal(MAP_GENDER,  r[2]);  // C
+    const gender = mapVal(MAP_GENDER, r[2]);  // C
     const education_level = String(r[3] ?? "").trim();  // D
-    const urgency         = mapVal(MAP_URGENCY, r[4]);  // E
-    const support_mode    = mapVal(MAP_SUPPORT, r[5]);  // F
-    const support_years   = support_mode === "recurring"
+    const urgency = mapVal(MAP_URGENCY, r[4]);  // E
+    const support_mode = mapVal(MAP_SUPPORT, r[5]);  // F
+    const support_years = support_mode === "recurring"
       ? Math.max(1, parseInt(r[6]) || 1)                // G
       : null;
 
     // ── needs จาก H-O (index 7-14) ─────────────────────
     // H=7 I=8 J=9 K=10 L=11 M=12 N=13 O=14
     const needDefs = [
-      { typeId: 1, sizeKey: "chest", sizeIdx: 7,  qtyIdx: 8  }, // เสื้อชาย
-      { typeId: 3, sizeKey: "waist", sizeIdx: 9,  qtyIdx: 10 }, // กางเกงชาย
+      { typeId: 1, sizeKey: "chest", sizeIdx: 7, qtyIdx: 8 }, // เสื้อชาย
+      { typeId: 3, sizeKey: "waist", sizeIdx: 9, qtyIdx: 10 }, // กางเกงชาย
       { typeId: 2, sizeKey: "chest", sizeIdx: 11, qtyIdx: 12 }, // เสื้อหญิง
       { typeId: 4, sizeKey: "waist", sizeIdx: 13, qtyIdx: 14 }, // กระโปรงหญิง
     ];
@@ -49,14 +49,14 @@ function parseRows(ws) {
     const needs = [];
     for (const def of needDefs) {
       const sizeVal = String(r[def.sizeIdx] ?? "").trim();
-      const qty     = parseInt(r[def.qtyIdx]) || 0;
+      const qty = parseInt(r[def.qtyIdx]) || 0;
       if (sizeVal && qty > 0) {
         needs.push({
-          uniform_type_id  : def.typeId,
-          size             : JSON.stringify({ [def.sizeKey]: sizeVal }),
-          quantity_needed  : qty,
+          uniform_type_id: def.typeId,
+          size: JSON.stringify({ [def.sizeKey]: sizeVal }),
+          quantity_needed: qty,
           quantity_received: 0,
-          status           : "pending",
+          status: "pending",
           support_mode,
           support_years,
         });
@@ -72,21 +72,22 @@ function parseRows(ws) {
 // ── validate student ─────────────────────────────────────
 function validate(s) {
   const errs = [];
-  if (!["male","female"].includes(s.gender))
+  if (!["male", "female"].includes(s.gender))
     errs.push(`เพศไม่ถูกต้อง: "${s.gender}" (ใส่ ชาย หรือ หญิง)`);
-  if (!["ประถมศึกษา","มัธยมศึกษา"].includes(s.education_level))
-    errs.push(`ระดับชั้นไม่ถูกต้อง: "${s.education_level}"`);
-  if (!["very_urgent","urgent","can_wait"].includes(s.urgency))
+  // ✅ แก้ — เพิ่มทุกค่าที่รองรับ
+  if (!["อนุบาล", "ประถมศึกษา", "มัธยมตอนต้น", "มัธยมตอนปลาย"].includes(s.education_level))
+    errs.push(`ระดับชั้นไม่ถูกต้อง: "${s.education_level}" (ใส่ อนุบาล / ประถมศึกษา / มัธยมตอนต้น / มัธยมตอนปลาย)`);
+  if (!["very_urgent", "urgent", "can_wait"].includes(s.urgency))
     errs.push(`ความเร่งด่วนไม่ถูกต้อง: "${s.urgency}"`);
   return errs;
 }
 
 export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
   const inputRef = useRef();
-  const [step, setStep]         = useState("idle"); // idle | preview | importing | done
+  const [step, setStep] = useState("idle"); // idle | preview | importing | done
   const [students, setStudents] = useState([]);
-  const [errors, setErrors]     = useState([]);     // validation errors
-  const [result, setResult]     = useState(null);   // { created, updated, failed }
+  const [errors, setErrors] = useState([]);     // validation errors
+  const [result, setResult] = useState(null);   // { created, updated, failed }
   const [importErr, setImportErr] = useState("");
 
   if (!open) return null;
@@ -110,10 +111,10 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const wb   = XLSX.read(ev.target.result, { type: "array" });
-        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const wb = XLSX.read(ev.target.result, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
         const parsed = parseRows(ws);
-        const errs   = [];
+        const errs = [];
         parsed.forEach((s, i) => {
           const ve = validate(s);
           if (ve.length) errs.push({ index: i + 1, name: s.student_name, errors: ve });
@@ -166,11 +167,11 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
         if (dup) {
           // UPDATE — นักเรียนมีอยู่แล้ว อัปเดต urgency + needs
           await schoolRequestSvc.updateStudent(requestId, dup.student_id, {
-            student_name   : s.student_name,
-            gender         : s.gender,
+            student_name: s.student_name,
+            gender: s.gender,
             education_level: s.education_level,
-            urgency        : s.urgency,
-            needs          : s.needs,
+            urgency: s.urgency,
+            needs: s.needs,
           });
           updated++;
         } else {
@@ -190,8 +191,8 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
     if (created > 0 || updated > 0) onDone?.();
   };
 
-  const validCount   = students.length - errors.length;
-  const hasErrors    = errors.length > 0;
+  const validCount = students.length - errors.length;
+  const hasErrors = errors.length > 0;
 
   return (
     <div className="eiOverlay" onMouseDown={handleClose}>
@@ -283,7 +284,7 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                           <td>{s.education_level}</td>
                           <td>{
                             s.urgency === "very_urgent" ? "เร่งด่วนมาก" :
-                            s.urgency === "urgent"      ? "เร่งด่วน" : "รอได้"
+                              s.urgency === "urgent" ? "เร่งด่วน" : "รอได้"
                           }</td>
                           <td>{s.needs[0]?.support_mode === "recurring"
                             ? `ต่อเนื่อง ${s.needs[0].support_years} ปี`

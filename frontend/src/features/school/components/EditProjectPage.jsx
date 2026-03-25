@@ -8,9 +8,10 @@ const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
 // ── ระดับชั้นที่รองรับ ────────────────────────────────────────────────────────
 const EDUCATION_LEVELS = [
-  { value: "อนุบาล",     label: "อนุบาล",                 emoji: "🧒" },
-  { value: "ประถมศึกษา", label: "ประถมศึกษา (ป.1–ป.6)",   emoji: "👦" },
-  { value: "มัธยมศึกษา", label: "มัธยมศึกษา (ม.1–ม.6)",   emoji: "🎓" },
+  { value: "อนุบาล",      label: "อนุบาล",              emoji: "🧒" },
+  { value: "ประถมศึกษา",  label: "ประถมศึกษา (ป.1–ป.6)", emoji: "👦" },
+  { value: "มัธยมตอนต้น", label: "มัธยมตอนต้น (ม.1–ม.3)", emoji: "🎒" },
+  { value: "มัธยมตอนปลาย",label: "มัธยมตอนปลาย (ม.4–ม.6)", emoji: "🎓" },
 ];
 function getCategoryIcon(category) {
   switch (category) {
