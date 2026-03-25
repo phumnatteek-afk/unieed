@@ -22,15 +22,17 @@
     rgba(0,0,0,0.45) 100%
   );
 }
-
 .dpHeroContent {
   position: absolute;
   bottom: 40px;
-  left: 60px;
+  left: 0;
+  right: 0;
   background: rgba(198, 230, 180, 0.88);
-  border-radius: 12px;
-  padding: 18px 28px;
-  max-width: 480px;
+  border-radius: 12px 0 0 0;
+  padding: 18px 28px 18px 60px;
+  max-width: 500px;
+  margin-right: auto;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 60px) 100%, 0 100%);  /* ← เหลี่ยมคม */
 }
 
 .dpHeroTitle {
@@ -254,8 +256,9 @@
 .dpResetBtn {
   margin-top: 8px;
   margin-left: auto;
-  margin-right: 240px;
+  margin-right: 200px;
   padding: 6px 18px;
+  font-weight: 500;
   border-radius: 999px;
   border: 1px solid #e5e7eb;
   background: #fff;
@@ -440,5 +443,148 @@ display: flex;
 
   .dpFilterGrid {
     flex-direction: column;
+  }
+}
+/* ===== Slider Sections (Section 1 & 2) ===== */
+.dpUrgentSection,
+.dpNoFulfillmentSection {
+  max-width: 100%;
+  margin: 60px auto;
+  padding: 0 20px;
+}
+
+.dpSectionTitle {
+  font-size: 26px;
+  font-weight: 700;
+  color: #053f5c;
+  margin: 0 0 24px;
+  text-align: center;
+}
+
+.dpSliderWrapper {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.dpSlider {
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.dpSliderTrack {
+  display: flex;
+  transition: transform 0.5s ease;
+}
+
+.dpSliderCard {
+  min-width: 100%;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.dpSliderCardImg {
+  width: 100%;
+  height: 240px;
+  overflow: hidden;
+  background: #eef2ff;
+}
+
+.dpSliderCardImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dpSliderCardImgPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #e5e7eb, #f3f4f6);
+}
+
+.dpSliderCardBody {
+  padding: 20px;
+}
+
+.dpSliderCardTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.dpSliderCardSchool {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.dpSliderCardAddr {
+  font-size: 13px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.dpSliderCardNeed {
+  font-size: 16px;
+  color: #dd2e44;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.dpSliderCardBtn {
+  width: 100%;
+  height: 42px;
+  background: #5285E8;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Kanit', sans-serif;
+  transition: background 0.18s;
+}
+
+.dpSliderCardBtn:hover {
+  background: #3d6bc7;
+}
+
+/* Slider dots */
+.dpSliderDots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dpSliderDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background: #d0e8f7;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.dpSliderDotActive {
+  background: #5285E8;
+}
+
+@media (max-width: 640px) {
+  .dpSliderWrapper {
+    max-width: 100%;
+  }
+  
+  .dpSliderCard {
+    border-radius: 12px;
   }
 }

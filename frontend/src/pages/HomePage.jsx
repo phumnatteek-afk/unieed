@@ -387,7 +387,7 @@ export default function HomePage() {
       {/* ===== Hero ===== */}
       <section id="home" className="hero">
         <div className="searchRow">
-          <div className="searchBox">
+          {/* <div className="searchBox">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -396,7 +396,7 @@ export default function HomePage() {
             <button className="searchBtn" type="button" aria-label="search">
               <FontAwesomeIcon icon={faMagnifyingGlass} />
             </button>
-          </div>
+          </div> */}
         </div>
 
         <div className="heroInner">
