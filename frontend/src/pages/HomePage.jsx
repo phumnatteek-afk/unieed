@@ -708,7 +708,7 @@ export default function HomePage() {
 
                               <div className="projBottom">
                                 <div className="projFilled">
-  บริจาคแล้ว <span><b>{p.total_donated || p.total_fulfilled || 0}</b></span> ชิ้น
+  บริจาคแล้ว <span><b>{p.total_fulfilled || 0}</b></span> ชิ้น
 </div>
                                 {/* ✅ e.stopPropagation() กันไม่ให้ click ลามไปที่กล่อง */}
                                 <button
