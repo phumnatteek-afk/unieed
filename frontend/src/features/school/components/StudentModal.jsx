@@ -33,20 +33,20 @@ function parseSize(rawSize) {
 
 const URGENCY_OPTIONS = [
   { value: "very_urgent", label: "เร่งด่วนมาก", color: "#EF4444", bg: "#FEF2F2", dot: "#EF4444" },
-  { value: "urgent",      label: "เร่งด่วน",     color: "#F59E0B", bg: "#FFFBEB", dot: "#F59E0B" },
-  { value: "can_wait",    label: "รอได้",          color: "#29B6E8", bg: "#E0F7FF", dot: "#29B6E8" },
+  { value: "urgent", label: "เร่งด่วน", color: "#F59E0B", bg: "#FFFBEB", dot: "#F59E0B" },
+  { value: "can_wait", label: "รอได้", color: "#29B6E8", bg: "#E0F7FF", dot: "#29B6E8" },
 ];
 
 export default function StudentModal({ open, onClose, onSave, uniformTypes = [], initial }) {
   const isEdit = !!initial;
-  const [student_name, setName]             = useState("");
-  const [education_level, setGrade]         = useState("ประถมศึกษา");
-  const [gender, setGender]                 = useState("female");
-  const [urgency, setUrgency]               = useState("can_wait");
-  const [support_mode, setSupportMode]      = useState("one_time");
-  const [support_years, setSupportYears]    = useState(1);
-  const [needs, setNeeds]                   = useState([emptyNeed()]);
-  const [activeNeed, setActiveNeed]         = useState(0);
+  const [student_name, setName] = useState("");
+  const [education_level, setGrade] = useState("ประถมศึกษา");
+  const [gender, setGender] = useState("female");
+  const [urgency, setUrgency] = useState("can_wait");
+  const [support_mode, setSupportMode] = useState("one_time");
+  const [support_years, setSupportYears] = useState(1);
+  const [needs, setNeeds] = useState([emptyNeed()]);
+  const [activeNeed, setActiveNeed] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -61,12 +61,12 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
       setSupportYears(Number(firstNeed?.support_years || 1));
       const ns = Array.isArray(initial.needs) && initial.needs.length
         ? initial.needs.map((n) => ({
-            uniform_type_id: n.uniform_type_id ?? "",
-            size: parseSize(n.size),
-            quantity_needed: Number(n.quantity_needed || 1),
-            quantity_received: Number(n.quantity_received || 0),
-            status: n.status || "pending",
-          }))
+          uniform_type_id: n.uniform_type_id ?? "",
+          size: parseSize(n.size),
+          quantity_needed: Number(n.quantity_needed || 1),
+          quantity_received: Number(n.quantity_received || 0),
+          status: n.status || "pending",
+        }))
         : [emptyNeed()];
       setNeeds(ns);
       setActiveNeed(0);
@@ -125,6 +125,7 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
 
   const selectedUrgency = URGENCY_OPTIONS.find((o) => o.value === urgency);
 
+  const displayTypes = uniformTypes.filter(u => u.is_default === 1);
   return (
     <div className="smOverlay" onMouseDown={onClose}>
       <div className="smModal" onMouseDown={(e) => e.stopPropagation()}>
@@ -170,7 +171,7 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
                 <label className="smLabel">เพศ <span className="smReq">*</span></label>
                 <div className="smToggleGroup">
                   {[
-                    { v: "male",   l: "ชาย",  icon: "mdi:human-male"   },
+                    { v: "male", l: "ชาย", icon: "mdi:human-male" },
                     { v: "female", l: "หญิง", icon: "mdi:human-female" },
                   ].map(({ v, l, icon }) => (
                     <button key={v} type="button"
@@ -186,19 +187,19 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
               <div className="smField">
                 <label className="smLabel">ระดับชั้น <span className="smReq">*</span></label>
                 <div className="smToggleGroup smToggleGroup3">
-                  
+
                   {[
-  { v: "อนุบาล",       l: "อนุบาล"   },
-  { v: "ประถมศึกษา",   l: "ประถม"    },
-  { v: "มัธยมตอนต้น",  l: "ม.ต้น"   },
-  { v: "มัธยมตอนปลาย", l: "ม.ปลาย"  },
-].map(({ v, l }) => (
-  <button key={v} type="button"
-    className={`smToggleBtn ${education_level === v ? "smToggleActive" : ""}`}
-    onClick={() => setGrade(v)}>
-    {l}
-  </button>
-))}
+                    { v: "อนุบาล", l: "อนุบาล" },
+                    { v: "ประถมศึกษา", l: "ประถม" },
+                    { v: "มัธยมตอนต้น", l: "ม.ต้น" },
+                    { v: "มัธยมตอนปลาย", l: "ม.ปลาย" },
+                  ].map(({ v, l }) => (
+                    <button key={v} type="button"
+                      className={`smToggleBtn ${education_level === v ? "smToggleActive" : ""}`}
+                      onClick={() => setGrade(v)}>
+                      {l}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -228,8 +229,8 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
                 </label>
                 <div className="smSupportGroup">
                   {[
-                    { v: "one_time",  l: "รับครั้งเดียว",  icon: "mdi:gift-outline"   },
-                    { v: "recurring", l: "รับต่อเนื่อง",    icon: "mdi:calendar-sync"  },
+                    { v: "one_time", l: "รับครั้งเดียว", icon: "mdi:gift-outline" },
+                    { v: "recurring", l: "รับต่อเนื่อง", icon: "mdi:calendar-sync" },
                   ].map(({ v, l, icon }) => (
                     <button key={v} type="button"
                       className={`smSupportChip ${support_mode === v ? "smSupportChipActive" : ""}`}
@@ -271,9 +272,11 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
             {needs.length > 1 && (
               <div className="smNeedTabs">
                 {needs.map((n, idx) => {
-                  const typeName = uniformTypes.find(
+                  const found = uniformTypes.find(
                     (u) => Number(u.uniform_type_id) === Number(n.uniform_type_id)
-                  )?.uniform_type_name;
+                  );
+
+                  const typeName = found?.uniform_type_name || found?.type_name || "ไม่ระบุ";
                   return (
                     <button
                       key={idx} type="button"
@@ -302,9 +305,9 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
                         value={n.uniform_type_id}
                         onChange={(e) => updateNeed(idx, { uniform_type_id: Number(e.target.value) || "", size: {} })}
                       >
-                        <option value="">{uniformTypes.length === 0 ? "กำลังโหลด..." : "— เลือกประเภทชุด —"}</option>
-                        {uniformTypes.map((u) => (
-                          <option key={u.uniform_type_id} value={u.uniform_type_id}>{u.uniform_type_name}</option>
+                        <option value="">{displayTypes.length === 0 ? "กำลังโหลด..." : "— เลือกประเภทชุด —"}</option>
+                        {displayTypes.map((u) => (
+                          <option key={u.uniform_type_id} value={u.uniform_type_id}>{u.type_name || u.uniform_type_name}</option>
                         ))}
                       </select>
                     </div>

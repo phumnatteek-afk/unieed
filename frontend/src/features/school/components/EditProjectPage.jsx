@@ -6,25 +6,23 @@ import "../styles/EditProjectPage.css";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
-// ── ระดับชั้นที่รองรับ ────────────────────────────────────────────────────────
 const EDUCATION_LEVELS = [
-  { value: "อนุบาล",      label: "อนุบาล",              emoji: "🧒" },
-  { value: "ประถมศึกษา",  label: "ประถมศึกษา (ป.1–ป.6)", emoji: "👦" },
-  { value: "มัธยมตอนต้น", label: "มัธยมตอนต้น (ม.1–ม.3)", emoji: "🎒" },
-  { value: "มัธยมตอนปลาย",label: "มัธยมตอนปลาย (ม.4–ม.6)", emoji: "🎓" },
+  { value: "อนุบาล",       label: "อนุบาล",               emoji: "🧒" },
+  { value: "ประถมศึกษา",   label: "ประถมศึกษา (ป.1–ป.6)",  emoji: "👦" },
+  { value: "มัธยมตอนต้น",  label: "มัธยมตอนต้น (ม.1–ม.3)", emoji: "🎒" },
+  { value: "มัธยมตอนปลาย", label: "มัธยมตอนปลาย (ม.4–ม.6)",emoji: "🎓" },
 ];
-function getCategoryIcon(category) {
-  switch (category) {
-    case "เสื้อ":        return "👔";
-    case "กางเกง":       return "👖";
-    case "กระโปรง":      return "👗";
-    case "อื่นๆ":  return "🎒";
-    default:             return "👕";
-  }
-}
+
+// หมวดหมู่หลัก 4 ตัว (ตรงกับ category_item ใน DB)
+const MAIN_CATEGORIES = [
+  { id: 1, name: "เสื้อนักเรียนชาย",    gender: "male",   icon: "👔", color: "#1D4ED8", bg: "#EFF6FF" },
+  { id: 3, name: "กางเกงนักเรียนชาย",   gender: "male",   icon: "👖", color: "#1D4ED8", bg: "#EFF6FF" },
+  { id: 2, name: "เสื้อนักเรียนหญิง",   gender: "female", icon: "👗", color: "#BE185D", bg: "#FDF2F8" },
+  { id: 4, name: "กระโปรงนักเรียนหญิง", gender: "female", icon: "👗", color: "#BE185D", bg: "#FDF2F8" },
+];
 
 function projectStatusMeta(status) {
-  switch (String(status||"").toLowerCase()) {
+  switch (String(status || "").toLowerCase()) {
     case "open":   return { label: "กำลังเปิดรับบริจาค", dotClass: "dotGreen"  };
     case "closed": return { label: "ปิดรับบริจาคแล้ว",   dotClass: "dotGray"   };
     case "paused": return { label: "พักโครงการชั่วคราว",  dotClass: "dotYellow" };
@@ -33,8 +31,8 @@ function projectStatusMeta(status) {
   }
 }
 
-// previewKey: "typeId__level" หรือ "typeId__null"
-const pKey = (typeId, level) => `${typeId}__${level ?? "null"}`;
+// key: "categoryId__level"
+const cKey = (catId, level) => `${catId}__${level ?? "null"}`;
 
 export default function EditProjectPage() {
   const { id } = useParams();
@@ -49,29 +47,141 @@ export default function EditProjectPage() {
   const [loading,     setLoading]     = useState(true);
   const [err,         setErr]         = useState("");
 
-  // uniform image states
-  const [uniformTypes,     setUniformTypes]     = useState([]);
-  const [previews,         setPreviews]         = useState({});   // { pKey: url }
-  const [uploadingMap,     setUploadingMap]     = useState({});   // { pKey: bool }
-  const [msgMap,           setMsgMap]           = useState({});   // { pKey: string }
-  const [activeLevel,      setActiveLevel]      = useState(EDUCATION_LEVELS[0].value);
+  // state ต่อ card: { preview, isCustom, customTypeName, uploading, msg }
+  const [cardState,   setCardState]   = useState({});
+  const [activeLevel, setActiveLevel] = useState(EDUCATION_LEVELS[0].value);
+
+  // typeOptions ต่อ category_id (dropdown ใน modal)
+  const [typeOptions, setTypeOptions] = useState({}); // { catId: [type_name, ...] }
+
+  // modal state
+  const [modalOpen,   setModalOpen]   = useState(false);
+  const [modalCat,    setModalCat]    = useState(null);  // MAIN_CATEGORIES item
+  const [modalImg,    setModalImg]    = useState(null);  // file object
+  const [modalImgUrl, setModalImgUrl] = useState(null);  // blob preview
+  const [modalTypeSel,setModalTypeSel]= useState("");    // dropdown
+  const [modalTypeIn, setModalTypeIn] = useState("");    // free text
 
   const formattedDate = project?.created_at
-    ? new Date(project.created_at).toLocaleDateString("th-TH", { year:"numeric", month:"short", day:"numeric" })
+    ? new Date(project.created_at).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
     : "-";
   const canSave = !!title.trim() && !uploading;
 
   const loadProject = () => getJson(`/school/projects/${id}`, true);
 
+  // โหลด cardState จาก public endpoint
+  const loadCardState = async () => {
+    const pub = await getJson(`/school/projects/public/${id}`, false);
+    const cs = {};
+    for (const item of pub?.uniform_items || []) {
+      const cat = MAIN_CATEGORIES.find(c =>
+        c.gender === item.gender &&
+        ((c.id === 1 && item.uniform_category === "เสื้อ" && item.gender === "male") ||
+          (c.id === 3 && item.uniform_category === "กางเกง") ||
+          (c.id === 2 && item.uniform_category === "เสื้อ" && item.gender === "female") ||
+          (c.id === 4 && item.uniform_category === "กระโปรง"))
+      );
+      if (!cat || !item.education_level) continue;
+      const k = cKey(cat.id, item.education_level);
+
+      // ✅ isCustom = โรงเรียนมี row ใน uniform_type_images (มี uniform_subtype_name ≠ null)
+      // uniform_subtype_name จาก query = ถ้าไม่มี school custom จะ fallback เป็น ut.type_name
+      // ดังนั้นเช็คว่า subtype_name ≠ type_name (name) เพื่อรู้ว่าโรงเรียนกรอกมาเอง
+      const hasCustomSubtype = !!(
+        item.uniform_subtype_name &&
+        item.uniform_subtype_name.trim() !== "" &&
+        item.uniform_subtype_name !== item.name
+      );
+      const isSchoolImage = !!(
+  item.uniform_subtype_name &&
+  item.uniform_subtype_name.trim() !== ""
+);
+
+if (!cs[k] || isSchoolImage) {
+  cs[k] = {
+    preview:        item.image_url || null,
+    isCustom:       isSchoolImage,
+    customTypeName: item.uniform_subtype_name || item.name || "",
+    uploading:      false,
+    msg:            "",
+    // ✅ ถ้ามี quantity > 0 ให้ใช้ type_id นั้นเป็นหลัก (มาจาก student_need จริงๆ)
+    uniformTypeId:  item.quantity > 0 
+      ? item.uniform_type_id 
+      : (cs[k]?.uniformTypeId || item.uniform_type_id),
+  };
+}
+  }
+  setCardState(cs);
+};
+
+//   const map = {};
+
+// for (const t of (types || [])) {
+//   if (!map[t.category_id]) map[t.category_id] = [];
+
+//   // กันซ้ำโดยเช็ค id
+//   if (!map[t.category_id].some(x => x.id === t.uniform_type_id)) {
+//     map[t.category_id].push({
+//       id: t.uniform_type_id,
+//       name: t.type_name
+//     });
+//   }
+// }
+//       setTypeOptions(map);
+  
+useEffect(() => {
+  async function loadTypes() {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${BASE}/school/uniform-types`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" }
+      });
+
+      const data = await res.json();
+
+      const map = {};
+
+for (const cat of MAIN_CATEGORIES) {
+  map[cat.id] = [];
+
+  for (const t of (data || [])) {
+    const isMatch =
+      t.gender === cat.gender &&
+      (
+        (cat.id === 1 && t.uniform_category === "เสื้อ") ||
+        (cat.id === 2 && t.uniform_category === "เสื้อ") ||
+        (cat.id === 3 && t.uniform_category === "กางเกง") ||
+        (cat.id === 4 && t.uniform_category === "กระโปรง")
+      );
+
+    if (
+  isMatch &&
+  !map[cat.id].some(x => x.name === t.type_name)
+) {
+      map[cat.id].push({
+        id: t.uniform_type_id,
+        name: t.type_name
+      });
+    }
+  }
+}
+
+      setTypeOptions(map);
+
+    } catch (err) {
+      console.error("loadTypes error:", err);
+    }
+  }
+
+  loadTypes();
+}, []);
   useEffect(() => {
     if (!id) return;
     (async () => {
       try {
         setErr(""); setLoading(true);
-        const [data, types] = await Promise.all([
-          loadProject(),
-          getJson("/school/uniform-types", true),
-        ]);
+        const [data] = await Promise.all([loadProject()]);
         if (!data) { setErr("ไม่พบโครงการ"); return; }
 
         setProject(data);
@@ -79,24 +189,20 @@ export default function EditProjectPage() {
         setDescription(data.request_description || "");
         setImage(data.request_image_url || "");
         setStatus(data.status || "open");
-        setUniformTypes(types || []);
 
-        // โหลดรูปชุดที่เคยอัปไว้แล้ว
-        const pub = await getJson(`/school/projects/public/${id}`, false);
-        const map = {};
-        for (const item of pub?.uniform_items || []) {
-          if (item.image_url) {
-            const k = pKey(item.uniform_type_id, item.education_level);
-            if (!map[k]) map[k] = item.image_url;
-          }
-        }
-        setPreviews(map);
+        // โหลดรูปชุดนักเรียน
+        await loadCardState();
       } catch (e) {
         setErr(e?.data?.message || e.message || "โหลดข้อมูลไม่สำเร็จ");
       } finally { setLoading(false); }
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line
   }, [id]);
+
+  // useEffect(() => {
+  //   if (activeLevel) loadTypeOptions(activeLevel);
+  // // eslint-disable-next-line
+  // }, [activeLevel]);
 
   // upload รูปโครงการหลัก
   const uploadProjectImage = async (file) => {
@@ -106,7 +212,7 @@ export default function EditProjectPage() {
       const fd = new FormData(); fd.append("image", file);
       const token = localStorage.getItem("token");
       const res = await fetch(`${BASE}/school/projects/${id}/image`, {
-        method:"POST", headers:{ Authorization: token ? `Bearer ${token}` : "" }, body: fd,
+        method: "POST", headers: { Authorization: token ? `Bearer ${token}` : "" }, body: fd,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Upload failed");
@@ -115,70 +221,152 @@ export default function EditProjectPage() {
     finally { setUploading(false); }
   };
 
-  // upload รูปชุด
-  const uploadUniformImage = async (file, uniform_type_id, level) => {
-    if (!file?.type.startsWith("image/")) return;
-    const k = pKey(uniform_type_id, level);
-    setPreviews(p => ({ ...p, [k]: URL.createObjectURL(file) }));
-    setUploadingMap(p => ({ ...p, [k]: true }));
-    setMsgMap(p => ({ ...p, [k]: "กำลังอัปโหลด..." }));
-    try {
-      const fd = new FormData(); fd.append("image", file);
-      if (level) fd.append("education_level", level);
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${BASE}/school/projects/${id}/uniform-images/${uniform_type_id}`, {
-        method:"POST", headers:{ Authorization: token ? `Bearer ${token}` : "" }, body: fd,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Upload failed");
-      setPreviews(p => ({ ...p, [k]: data.image_url }));
-      setMsgMap(p => ({ ...p, [k]: "✅ อัปโหลดสำเร็จ" }));
-    } catch (e) {
-      setMsgMap(p => ({ ...p, [k]: `❌ ${e.message||"อัปโหลดไม่สำเร็จ"}` }));
-    } finally { setUploadingMap(p => ({ ...p, [k]: false })); }
-  };
-
-  // ลบรูปชุด
-  const deleteUniformImage = async (uniform_type_id, level) => {
-    if (!window.confirm(`ลบรูปชุด${level ? ` (${level})` : ""}?`)) return;
-    const k = pKey(uniform_type_id, level);
-    setMsgMap(p => ({ ...p, [k]: "กำลังลบ..." }));
-    try {
-      const token = localStorage.getItem("token");
-      const qs = level ? `?education_level=${encodeURIComponent(level)}` : "";
-      const res = await fetch(`${BASE}/school/projects/${id}/uniform-images/${uniform_type_id}${qs}`, {
-        method:"DELETE", headers:{ Authorization: token ? `Bearer ${token}` : "" },
-      });
-      if (!res.ok) throw new Error("ลบไม่สำเร็จ");
-      setPreviews(p => { const n={...p}; delete n[k]; return n; });
-      setMsgMap(p => ({ ...p, [k]: "" }));
-    } catch (e) { setMsgMap(p => ({ ...p, [k]: `❌ ${e.message}` })); }
-  };
-
   const onSave = async () => {
     if (!canSave) return;
     try {
       setErr("");
       await request(`/school/projects/${id}`, {
-        method:"PUT",
-        body:{ request_title:title.trim(), request_description:description||null, request_image_url:image||null, status },
-        auth:true,
+        method: "PUT",
+        body: { request_title: title.trim(), request_description: description || null, request_image_url: image || null, status },
+        auth: true,
       });
       alert("บันทึกสำเร็จ");
       const fresh = await loadProject();
-      setProject(fresh); setStatus(fresh?.status||status); setImage(fresh?.request_image_url||image);
-    } catch (e) { setErr(e?.data?.message||e.message||"บันทึกไม่สำเร็จ"); }
+      setProject(fresh); setStatus(fresh?.status || status); setImage(fresh?.request_image_url || image);
+      await loadCardState();
+    } catch (e) { setErr(e?.data?.message || e.message || "บันทึกไม่สำเร็จ"); }
   };
 
-  if (loading) return <div className="epPage"><div className="epLeft">กำลังโหลด...</div><div className="epRight"/></div>;
+  // ── เปิด modal แก้ไข ─────────────────────────────────────────────────────
+  const openModal = (cat) => {
+    setModalCat(cat);
+    const k = cKey(cat.id, activeLevel);
+    const s = cardState[k] || {};
+    setModalImg(null);
+    setModalImgUrl(s.preview || null);
+    // ✅ restore uniformTypeId ที่เคย save ไว้ ให้ dropdown ถูกต้อง
+    setModalTypeSel(s.uniformTypeId ? s.uniformTypeId : "");
+    setModalTypeIn(s.customTypeName || "");
+    setModalOpen(true);
+  };
+
+  const closeModal = () => setModalOpen(false);
+
+  const onModalFileChange = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setModalImg(f);
+    setModalImgUrl(URL.createObjectURL(f));
+    e.target.value = "";
+  };
+
+  // ── บันทึกจาก modal ──────────────────────────────────────────────────────
+  const saveModal = async () => {
+    if (!modalCat) return;
+    const k = cKey(modalCat.id, activeLevel);
+    const options = typeOptions[modalCat.id] || [];
+    const selected = options.find(x => x.id === Number(modalTypeSel));
+
+    const typeName =
+      modalTypeIn.trim() ||
+      selected?.name ||
+      modalCat.name;
+
+    // ถ้ามีรูปใหม่ → upload
+    if (modalImg) {
+      // ✅ หา typeId: ใช้จาก dropdown ที่เลือก หรือ uniformTypeId เดิมใน cardState หรือ id แรกของ category
+       const existingTypeId = cardState[k]?.uniformTypeId;
+    const selectedTypeId = existingTypeId
+      ? Number(existingTypeId)
+      : modalTypeSel
+      ? Number(modalTypeSel)
+      : options[0]?.id;
+
+    if (!selectedTypeId) {
+      alert("กรุณาเลือก type จาก dropdown");
+      return;
+    }
+
+      setCardState(prev => ({ ...prev, [k]: { ...prev[k], uploading: true, msg: "กำลังอัปโหลด..." } }));
+      try {
+        const fd = new FormData();
+        fd.append("image", modalImg);
+        fd.append("education_level", activeLevel);
+        fd.append("category_id", modalCat.id);
+        fd.append("custom_type_name", typeName);
+
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${BASE}/school/projects/${id}/uniform-images/${selectedTypeId}`, {
+          method: "POST",
+          headers: { Authorization: token ? `Bearer ${token}` : "" },
+          body: fd,
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "Upload failed");
+
+        setCardState(prev => ({
+          ...prev,
+          [k]: { preview: data.image_url,
+            preview: `${data.image_url}?t=${Date.now()}`, isCustom: true, customTypeName: typeName, uploading: false, msg: "", uniformTypeId: selectedTypeId },
+        }));
+      } catch (e) {
+        setCardState(prev => ({ ...prev, [k]: { ...prev[k], uploading: false, msg: `❌ ${e.message}` } }));
+      }
+    } else {
+      // ไม่มีรูปใหม่ แค่อัปเดต type name และ typeId (ถ้าเปลี่ยน dropdown)
+      const existingTypeId = cardState[k]?.uniformTypeId;
+      const updatedTypeId = modalTypeSel ? Number(modalTypeSel) : existingTypeId;
+      setCardState(prev => ({
+        ...prev,
+        [k]: {
+          ...(prev[k] || {}),
+          customTypeName: typeName,
+          isCustom: !!prev[k]?.preview,
+          uniformTypeId: updatedTypeId,
+        },
+      }));
+    }
+    setModalOpen(false);
+  };
+
+  // ── reset card ────────────────────────────────────────────────────────────
+  const resetCard = async (cat) => {
+    if (!window.confirm(`รีเซ็ตกลับไปใช้รูป default ของ "${cat.name}"?`)) return;
+    const k = cKey(cat.id, activeLevel);
+    // ✅ ใช้ uniformTypeId จริงที่บันทึกไว้ใน cardState (ไม่ใช่ cat.id ซึ่งเป็น MAIN_CATEGORIES index)
+    const uniformTypeId = cardState[k]?.uniformTypeId;
+    if (!uniformTypeId) {
+      setCardState(prev => { const n = { ...prev }; delete n[k]; return n; });
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const qs = `?education_level=${encodeURIComponent(activeLevel)}`;
+      const res = await fetch(`${BASE}/school/projects/${id}/uniform-images/${uniformTypeId}${qs}`, {
+        method: "DELETE", headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+      if (!res.ok) throw new Error("ลบไม่สำเร็จ");
+      // ✅ reload จาก DB เพื่อให้ state sync กับข้อมูลจริง (ได้รูป default กลับมา)
+      await loadCardState();
+    } catch (e) {
+      setCardState(prev => ({ ...prev, [k]: { ...prev[k], msg: `❌ ${e.message}` } }));
+    }
+  };
+
+  // นับจำนวน card ที่มีรูปแล้วต่อ level
+  const countCustomByLevel = (level) =>
+    MAIN_CATEGORIES.filter(c => cardState[cKey(c.id, level)]?.isCustom).length;
+
+  if (loading) return <div className="epPage"><div className="epLeft">กำลังโหลด...</div><div className="epRight" /></div>;
   if (err && !project) return (
     <div className="epPage">
       <div className="epLeft">
         <h2>แก้ไขข้อมูลโครงการ</h2>
         <div className="epError">{err}</div>
-        <div className="epActions"><button className="epBtn epBtnGhost" onClick={()=>navigate(-1)}>ย้อนกลับ</button></div>
+        <div className="epActions"><button className="epBtn epBtnGhost" onClick={() => navigate(-1)}>ย้อนกลับ</button></div>
       </div>
-      <div className="epRight"/>
+      <div className="epRight" />
     </div>
   );
 
@@ -191,264 +379,145 @@ export default function EditProjectPage() {
 
         <div className="epField">
           <label>ชื่อโรงเรียน</label>
-          <input value={project?.school_name||""} disabled />
+          <input value={project?.school_name || ""} disabled />
         </div>
         <div className="epField">
           <label>ที่อยู่โรงเรียน</label>
-          <textarea value={project?.school_address||""} disabled />
+          <textarea value={project?.school_address || ""} disabled />
         </div>
         <div className="epField">
           <label>ชื่อโครงการ</label>
-          <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="เช่น ขอรับบริจาคชุดนักเรียน ปี 2569" />
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="เช่น ขอรับบริจาคชุดนักเรียน ปี 2569" />
         </div>
         <div className="epField">
           <label>รายละเอียด</label>
-          <textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="อธิบายรายละเอียดโครงการ..." />
+          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="อธิบายรายละเอียดโครงการ..." />
         </div>
         <div className="epField">
           <label>รูปภาพโครงการ</label>
           <input type="file" accept="image/*" disabled={uploading}
-            onChange={e=>{const f=e.target.files?.[0]; if(f) uploadProjectImage(f);}} />
-          <div className="epHint">{uploading?"กำลังอัปโหลดรูป...":"เลือกไฟล์รูปเพื่ออัปโหลด (เก็บใน Cloudinary)"}</div>
-          <div style={{marginTop:10}}>
-            <label style={{display:"block",fontWeight:700,fontSize:13,color:"#334155",marginBottom:8}}>หรือวางลิงก์รูป (URL)</label>
-            <input value={image} onChange={e=>setImage(e.target.value)} placeholder="https://..." />
+            onChange={e => { const f = e.target.files?.[0]; if (f) uploadProjectImage(f); }} />
+          <div className="epHint">{uploading ? "กำลังอัปโหลดรูป..." : "เลือกไฟล์รูปเพื่ออัปโหลด (เก็บใน Cloudinary)"}</div>
+          <div style={{ marginTop: 10 }}>
+            <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#334155", marginBottom: 8 }}>หรือวางลิงก์รูป (URL)</label>
+            <input value={image} onChange={e => setImage(e.target.value)} placeholder="https://..." />
           </div>
         </div>
 
-        {/* ════ อัปโหลดรูปชุดนักเรียน ════ */}
-        {uniformTypes.length > 0 && (
-          <div className="epField">
-            <label className="epUniformLabel">
-              รูปภาพชุดนักเรียน
-              <span className="epUniformLabelSub">
-                อัปโหลดรูปชุดแยกตามระดับชั้น เพื่อให้ผู้บริจาคเห็นว่าชุดหน้าตาเป็นอย่างไร
-              </span>
-            </label>
+        {/* ════════════════════════════════════════════════════════════
+            อัปโหลดรูปชุดนักเรียน — แสดงตามหมวดหมู่หลัก
+        ════════════════════════════════════════════════════════════ */}
+        <div className="epField">
+          <label className="epUniformLabel">
+            รูปภาพชุดนักเรียน
+            <span className="epUniformLabelSub">
+              แต่ละหมวดหมู่มีรูป default ให้ — กด "แก้ไข" เพื่อเปลี่ยนรูปและระบุ type ของโรงเรียน
+            </span>
+          </label>
 
-            {/* Step 1: เลือกระดับชั้น */}
-            <div className="epLevelStepBox">
-              <div className="epStepLabel">
-                <span className="epStepBadge">1</span>
-                เลือกระดับชั้นที่ต้องการอัปรูปชุด
+          {/* Step 1: เลือกระดับชั้น */}
+          <div className="epLevelStepBox">
+            <div className="epStepLabel">
+              <span className="epStepBadge">1</span>
+              เลือกระดับชั้น
+            </div>
+            <div className="epLevelBtnGroup">
+              {EDUCATION_LEVELS.map(lv => {
+                const cnt = countCustomByLevel(lv.value);
+                return (
+                  <button key={lv.value} type="button"
+                    className={`epLevelBtn ${activeLevel === lv.value ? "epLevelBtnActive" : ""}`}
+                    onClick={() => setActiveLevel(lv.value)}
+                  >
+                    <span className="epLevelBtnEmoji">{lv.emoji}</span>
+                    <span className="epLevelBtnLabel">{lv.label}</span>
+                    {cnt > 0 && <span className="epLevelBtnBadge">{cnt} แก้ไขแล้ว</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Step 2: grid หมวดหมู่หลัก */}
+          <div className="epUniformStepBox">
+            <div className="epStepLabel">
+              <span className="epStepBadge">2</span>
+              แก้ไขรูปและ type สำหรับระดับ
+              <strong style={{ color: "#29B6E8", marginLeft: 6 }}>
+                {EDUCATION_LEVELS.find(l => l.value === activeLevel)?.label}
+              </strong>
+            </div>
+
+            {/* ── ชาย ── */}
+            <div className="epUniformGenderSection">
+              <div className="epUniformGenderHeader" style={{ background: "#EFF6FF", color: "#1D4ED8" }}>
+                <span>👦</span><span>ชุดนักเรียนชาย</span>
+                <span className="epUniformGenderCount">
+                  {MAIN_CATEGORIES.filter(c => c.gender === "male" && cardState[cKey(c.id, activeLevel)]?.isCustom).length}
+                  /{MAIN_CATEGORIES.filter(c => c.gender === "male").length} แก้ไขแล้ว
+                </span>
               </div>
-              <div className="epLevelBtnGroup">
-                {EDUCATION_LEVELS.map(lv => {
-                  const uploaded = uniformTypes.filter(t => previews[pKey(t.uniform_type_id, lv.value)]).length;
-                  return (
-                    <button
-                      key={lv.value}
-                      type="button"
-                      className={`epLevelBtn ${activeLevel === lv.value ? "epLevelBtnActive" : ""}`}
-                      onClick={() => setActiveLevel(lv.value)}
-                    >
-                      <span className="epLevelBtnEmoji">{lv.emoji}</span>
-                      <span className="epLevelBtnLabel">{lv.label}</span>
-                      {uploaded > 0 && (
-                        <span className="epLevelBtnBadge">{uploaded} รูป</span>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="epUniformTypeGrid">
+                {MAIN_CATEGORIES.filter(c => c.gender === "male").map(cat => (
+                  <CategoryCard key={cat.id} cat={cat} level={activeLevel}
+                    state={cardState[cKey(cat.id, activeLevel)] || {}}
+                    onEdit={() => openModal(cat)} onReset={() => resetCard(cat)} />
+                ))}
               </div>
             </div>
 
-            {/* Step 2: อัปรูปแต่ละประเภทชุด */}
-            <div className="epUniformStepBox">
-              <div className="epStepLabel">
-                <span className="epStepBadge">2</span>
-                อัปโหลดรูปชุดสำหรับระดับ
-                <strong style={{ color: "#29B6E8", marginLeft: 6 }}>
-                  {EDUCATION_LEVELS.find(l => l.value === activeLevel)?.label}
-                </strong>
+            {/* ── หญิง ── */}
+            <div className="epUniformGenderSection">
+              <div className="epUniformGenderHeader" style={{ background: "#FDF2F8", color: "#BE185D" }}>
+                <span>👧</span><span>ชุดนักเรียนหญิง</span>
+                <span className="epUniformGenderCount">
+                  {MAIN_CATEGORIES.filter(c => c.gender === "female" && cardState[cKey(c.id, activeLevel)]?.isCustom).length}
+                  /{MAIN_CATEGORIES.filter(c => c.gender === "female").length} แก้ไขแล้ว
+                </span>
               </div>
+              <div className="epUniformTypeGrid">
+                {MAIN_CATEGORIES.filter(c => c.gender === "female").map(cat => (
+                  <CategoryCard key={cat.id} cat={cat} level={activeLevel}
+                    state={cardState[cKey(cat.id, activeLevel)] || {}}
+                    onEdit={() => openModal(cat)} onReset={() => resetCard(cat)} />
+                ))}
+              </div>
+            </div>
 
-              {/* ── แยก grid ตาม gender ── */}
-              {[
-                {
-                  genderKey: "male",
-                  genderLabel: "ชุดนักเรียนชาย",
-                  genderColor: "#1D4ED8",
-                  genderBg: "#EFF6FF",
-                  genderEmoji: "👦",
-                  types: uniformTypes.filter(t => t.gender === "male"),
-                },
-                {
-                  genderKey: "female",
-                  genderLabel: "ชุดนักเรียนหญิง",
-                  genderColor: "#BE185D",
-                  genderBg: "#FDF2F8",
-                  genderEmoji: "👧",
-                  types: uniformTypes.filter(t => t.gender === "female"),
-                },
-                {
-                  genderKey: "other",
-                  genderLabel: "อื่นๆ",
-                  genderColor: "#374151",
-                  genderBg: "#F3F4F6",
-                  genderEmoji: "👕",
-                  types: uniformTypes.filter(t => t.gender !== "male" && t.gender !== "female"),
-                },
-              ]
-                .filter(g => g.types.length > 0)
-                .map(g => (
-                  <div key={g.genderKey} className="epUniformGenderSection">
-                    {/* หัวข้อ gender */}
-                    <div
-                      className="epUniformGenderHeader"
-                      style={{ background: g.genderBg, color: g.genderColor }}
-                    >
-                      <span>{g.genderEmoji}</span>
-                      <span>{g.genderLabel}</span>
-                      <span className="epUniformGenderCount">
-                        {g.types.filter(t => previews[pKey(t.uniform_type_id, activeLevel)]).length}
-                        /{g.types.length} รูป
-                      </span>
-                    </div>
-
-                    {/* Cards */}
-                    <div className="epUniformTypeGrid">
-                      {g.types.map(t => {
-                        const k       = pKey(t.uniform_type_id, activeLevel);
-                        const preview = previews[k];
-                        const isUp    = uploadingMap[k];
-                        const msg     = msgMap[k];
-                        const inputId = `uf-${t.uniform_type_id}-${activeLevel}`;
-
+            {/* Summary */}
+            <div className="epUniformSummary">
+              <div className="epUniformSummaryTitle">สรุปที่แก้ไขแล้วทุกระดับชั้น</div>
+              {EDUCATION_LEVELS.map(lv => {
+                const done = MAIN_CATEGORIES.filter(c => cardState[cKey(c.id, lv.value)]?.isCustom);
+                if (!done.length) return null;
+                return (
+                  <div key={lv.value} className="epUniformSummaryLevel">
+                    <span className="epUniformSummaryLevelName">{lv.emoji} {lv.label}</span>
+                    <div className="epUniformSummaryImgs">
+                      {done.map(cat => {
+                        const s = cardState[cKey(cat.id, lv.value)];
                         return (
-                          <div
-                            key={t.uniform_type_id}
-                            className={`epUniCard ${isUp ? "epUniCardLoading" : ""} ${preview ? "epUniCardHasImg" : ""}`}
-                          >
-                            {/* ── ป้ายกำกับประเภทชุด (เด่นชัด) ── */}
-                            <div
-  className="epUniCardTypeBadge"
-  style={{ background: g.genderBg, color: g.genderColor }}
->
-  {getCategoryIcon(t.uniform_category)} {t.type_name}
-</div>
-
-                            {/* รูป */}
-                            <div className="epUniCardImg">
-                              {preview
-                                ? <img src={preview} alt={t.type_name} />
-                                : <div className="epUniCardEmpty">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                                      <path
-                                        d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"
-                                        stroke="#cbd5e1"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </svg>
-                                    <span>ยังไม่มีรูป</span>
-                                  </div>}
-                              {isUp && (
-                                <div className="epUniCardSpin">
-                                  <div className="epSpinner" />
-                                </div>
-                              )}
-                              {preview && !isUp && (
-                                <div className="epUniCardDone">✓</div>
-                              )}
-                            </div>
-
-                            {/* ── hint บอก gender+ประเภท ── */}
-                            <div className="epUniCardHint">
-                              {g.genderEmoji} {t.type_name}
-                              <br />
-                              <span style={{ color: "#94A3B8", fontSize: 10 }}>
-                                {activeLevel}
-                              </span>
-                            </div>
-
-                            {/* message */}
-                            {msg && (
-                              <div
-                                className={`epUniCardMsg ${
-                                  msg.startsWith("✅") ? "ok"
-                                  : msg.startsWith("❌") ? "err"
-                                  : "info"
-                                }`}
-                              >
-                                {msg}
-                              </div>
-                            )}
-
-                            {/* ปุ่ม */}
-                            <div className="epUniCardActions">
-                              <label
-                                htmlFor={inputId}
-                                className={`epUniBtn epUniBtnPrimary ${isUp ? "epUniBtnDisabled" : ""}`}
-                              >
-                                {isUp ? "กำลังอัป..." : preview ? "เปลี่ยนรูป" : "อัปโหลด"}
-                              </label>
-                              <input
-                                id={inputId}
-                                type="file"
-                                accept="image/*"
-                                disabled={isUp}
-                                style={{ display: "none" }}
-                                onChange={e => {
-                                  const f = e.target.files?.[0];
-                                  if (f) uploadUniformImage(f, t.uniform_type_id, activeLevel);
-                                  e.target.value = "";
-                                }}
-                              />
-                              {preview && !isUp && (
-                                <button
-                                  type="button"
-                                  className="epUniBtn epUniBtnDelete"
-                                  onClick={() => deleteUniformImage(t.uniform_type_id, activeLevel)}
-                                >
-                                  ลบ
-                                </button>
-                              )}
-                            </div>
+                          <div key={cat.id} className="epUniformSummaryThumb">
+                            <img src={s.preview} alt={cat.name} />
+                            <span>{s.customTypeName || cat.name}</span>
                           </div>
                         );
                       })}
                     </div>
                   </div>
-                ))}
-
-              {/* Summary: รูปที่อัปแล้วในทุก level */}
-              <div className="epUniformSummary">
-                <div className="epUniformSummaryTitle">สรุปรูปที่อัปโหลดแล้วทุกระดับชั้น</div>
-                {EDUCATION_LEVELS.map(lv => {
-                  const items = uniformTypes
-                    .map(t => ({ t, url: previews[pKey(t.uniform_type_id, lv.value)] }))
-                    .filter(x => x.url);
-                  if (!items.length) return null;
-                  return (
-                    <div key={lv.value} className="epUniformSummaryLevel">
-                      <span className="epUniformSummaryLevelName">
-                        {lv.emoji} {lv.label}
-                      </span>
-                      <div className="epUniformSummaryImgs">
-                        {items.map(({ t, url }) => (
-                          <div key={t.uniform_type_id} className="epUniformSummaryThumb">
-                            <img src={url} alt={t.type_name} />
-                            <span>{t.type_name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-                {Object.keys(previews).length === 0 && (
-                  <div className="epUniformSummaryEmpty">ยังไม่มีรูปที่อัปโหลด</div>
-                )}
-              </div>
+                );
+              })}
+              {MAIN_CATEGORIES.every(c => !cardState[cKey(c.id, activeLevel)]?.isCustom) && (
+                <div className="epUniformSummaryEmpty">ยังใช้รูป default ทั้งหมด</div>
+              )}
             </div>
           </div>
-        )}
+        </div>
 
         <div className="epActions">
-          <button className="epBtn epBtnGhost" onClick={()=>navigate(-1)} disabled={uploading}>ย้อนกลับ</button>
+          <button className="epBtn epBtnGhost" onClick={() => navigate(-1)} disabled={uploading}>ย้อนกลับ</button>
           <button className="epBtn epBtnPrimary" disabled={!canSave} onClick={onSave}>
-            {uploading?"กำลังอัปโหลด...":"บันทึก"}
+            {uploading ? "กำลังอัปโหลด..." : "บันทึก"}
           </button>
         </div>
       </div>
@@ -462,14 +531,157 @@ export default function EditProjectPage() {
               {image ? <img src={image} alt="" /> : <div className="coverPlaceholder" />}
             </div>
             <div className="cardBody">
-              <div className="cardSchool">{project?.school_name||"-"}</div>
-              <div className="cardTitle">{title||"ชื่อโครงการ"}</div>
-              <div className="cardDesc">{description||"รายละเอียดโครงการจะแสดงตรงนี้..."}</div>
-              <div className="cardAddr">ที่ตั้ง: {project?.school_address||"-"}</div>
+              <div className="cardSchool">{project?.school_name || "-"}</div>
+              <div className="cardTitle">{title || "ชื่อโครงการ"}</div>
+              <div className="cardDesc">{description || "รายละเอียดโครงการจะแสดงตรงนี้..."}</div>
+              <div className="cardAddr">ที่ตั้ง: {project?.school_address || "-"}</div>
               <div className="cardMeta"><span>สร้างเมื่อ: {formattedDate}</span></div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          Modal แก้ไข type + รูป
+      ═══════════════════════════════════════════════════════════════ */}
+      {modalOpen && modalCat && (
+        <div className="epModalOverlay" onClick={closeModal}>
+          <div className="epModal" onClick={e => e.stopPropagation()}>
+            <div className="epModalHead">
+              <div>
+                <div className="epModalTitle">แก้ไข: {modalCat.name}</div>
+                <div className="epModalSub">
+                  {EDUCATION_LEVELS.find(l => l.value === activeLevel)?.label}
+                </div>
+              </div>
+              <button className="epModalClose" onClick={closeModal}>×</button>
+            </div>
+
+            <div className="epModalBody">
+              {/* รูป default ปัจจุบัน */}
+              <div className="epModalDefaultStrip">
+                <div className="epModalDefaultIcon">{modalCat.icon}</div>
+                <div className="epModalDefaultInfo">
+                  <div className="epModalDefaultTitle">{modalCat.name}</div>
+                  <div className="epModalDefaultSub">หมวดหมู่หลักของระบบ</div>
+                </div>
+                <span className="epModalDefaultBadge">default</span>
+              </div>
+
+              {/* Upload zone */}
+              <label className="epModalUploadZone" htmlFor="modal-file">
+                {modalImgUrl
+                  ? <img src={modalImgUrl} alt="preview" className="epModalPreviewImg" />
+                  : (
+                    <div className="epModalUploadEmpty">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"
+                          stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <span>คลิกเพื่ออัปโหลดรูปของโรงเรียน</span>
+                      <span className="epModalUploadHint">JPG, PNG ไม่เกิน 5MB</span>
+                    </div>
+                  )}
+              </label>
+              <input id="modal-file" type="file" accept="image/*"
+                style={{ display: "none" }} onChange={onModalFileChange} />
+
+              {/* Type name */}
+              <div className="epModalFieldLabel">
+                ชื่อ type ของโรงเรียน
+                <span className="epModalFieldPill">เลือกจาก dropdown หรือกรอกเอง</span>
+              </div>
+
+              {/* Dropdown จาก seed data */}
+              {typeOptions[modalCat.id]?.length > 0 && (
+                <select className="epModalSelect"
+                  value={modalTypeSel}
+                  onChange={e => {
+  const selectedId = Number(e.target.value);
+  const selected = typeOptions[modalCat.id].find(x => x.id === selectedId);
+
+  setModalTypeSel(selectedId);
+  setModalTypeIn(selected?.name || "");
+}}
+                >
+                  <option value="">— เลือก type ที่มีในระบบ —</option>
+                  {typeOptions[modalCat.id].map(opt => (
+  <option key={opt.id} value={opt.id}>
+    {opt.name}
+  </option>
+))}
+                </select>
+              )}
+
+              <div className="epModalOrDivider">หรือกรอกเอง</div>
+
+              <input className="epModalInput"
+                placeholder={`เช่น คอฮาวาย, ทรงตรง, รุ่นพิเศษ...`}
+                value={modalTypeIn}
+                onChange={e => { setModalTypeIn(e.target.value); setModalTypeSel(""); }}
+              />
+              <p className="epModalNote">ชื่อที่กรอกจะแสดงใต้รูปบนหน้าโครงการสาธารณะ</p>
+            </div>
+
+            <div className="epModalFoot">
+              <button className="epBtn epBtnGhost" onClick={closeModal}>ยกเลิก</button>
+              <button className="epBtn epBtnPrimary" onClick={saveModal}>บันทึก</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── CategoryCard component ──────────────────────────────────────────────────
+function CategoryCard({ cat, level, state, onEdit, onReset }) {
+  const displayName = state.customTypeName || cat.name;
+  return (
+    <div className={`epUniCard ${state.isCustom ? "epUniCardCustom" : ""} ${state.uploading ? "epUniCardLoading" : ""}`}>
+      {/* รูป */}
+      <div className="epUniCardImg">
+        {state.preview
+          ? <img src={state.preview} alt={displayName} />
+          : (
+            <div className="epUniCardEmpty">
+              <span style={{ fontSize: 28 }}>{cat.icon}</span>
+              <span>ยังไม่มีรูป</span>
+            </div>
+          )}
+        {/* badge */}
+        <span className="epUniCardBadge" style={{
+          background: state.isCustom ? "#29B6E8" : "#94A3B8", color: "#fff"
+        }}>
+          {state.isCustom ? "รูปโรงเรียน" : "default"}
+        </span>
+        {state.uploading && <div className="epUniCardSpin"><div className="epSpinner" /></div>}
+      </div>
+
+      {/* ชื่อ type ใต้รูป */}
+      <div className="epUniCardTypeName">
+        {cat.icon} <span>{displayName}</span>
+      </div>
+      <div className="epUniCardSubCat" style={{ color: "#94A3B8", fontSize: 10, padding: "0 10px 4px" }}>
+        {cat.name} · {level}
+      </div>
+
+      {state.msg && (
+        <div className={`epUniCardMsg ${state.msg.startsWith("❌") ? "err" : "info"}`}>
+          {state.msg}
+        </div>
+      )}
+
+      <div className="epUniCardActions">
+        <button type="button" className="epUniBtn epUniBtnPrimary" onClick={onEdit}
+          disabled={state.uploading}>
+          {state.uploading ? "กำลังบันทึก..." : "✏️ แก้ไข"}
+        </button>
+        {state.isCustom && !state.uploading && (
+          <button type="button" className="epUniBtn epUniBtnGhost" onClick={onReset}>
+            reset
+          </button>
+        )}
       </div>
     </div>
   );

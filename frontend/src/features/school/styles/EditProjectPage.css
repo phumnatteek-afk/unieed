@@ -677,3 +677,299 @@
   text-align: center;
   line-height: 1.5;
 }
+
+
+/* ── เพิ่มใน EditProjectPage.css ── */
+
+/* Modal overlay */
+.epModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 16px;
+}
+
+.epModal {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.epModalHead {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #F1F5F9;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.epModalTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.epModalSub {
+  font-size: 12px;
+  color: #94A3B8;
+  margin-top: 2px;
+}
+
+.epModalClose {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #F1F5F9;
+  color: #64748B;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.epModalBody {
+  padding: 20px 24px;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* default strip */
+.epModalDefaultStrip {
+  background: #F8FAFC;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.epModalDefaultIcon {
+  font-size: 28px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+}
+
+.epModalDefaultInfo {
+  flex: 1;
+}
+
+.epModalDefaultTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.epModalDefaultSub {
+  font-size: 11px;
+  color: #94A3B8;
+  margin-top: 2px;
+}
+
+.epModalDefaultBadge {
+  padding: 3px 10px;
+  background: #E2E8F0;
+  border-radius: 6px;
+  font-size: 10px;
+  color: #64748B;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Upload zone */
+.epModalUploadZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #CBD5E1;
+  border-radius: 14px;
+  min-height: 140px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+  overflow: hidden;
+}
+
+.epModalUploadZone:hover {
+  border-color: #29B6E8;
+  background: #F0FBFF;
+}
+
+.epModalUploadEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #94A3B8;
+  padding: 20px;
+}
+
+.epModalUploadEmpty span {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.epModalUploadHint {
+  font-size: 11px !important;
+  color: #CBD5E1 !important;
+  font-weight: 400 !important;
+}
+
+.epModalPreviewImg {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+}
+
+/* Fields */
+.epModalFieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.epModalFieldPill {
+  padding: 2px 8px;
+  background: #F1F5F9;
+  border-radius: 6px;
+  font-size: 10px;
+  color: #64748B;
+  font-weight: 400;
+}
+
+.epModalSelect,
+.epModalInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  font-family: "Kanit", sans-serif;
+  font-size: 13px;
+  color: #374151;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+  margin-bottom: 10px;
+}
+
+.epModalSelect:focus,
+.epModalInput:focus {
+  border-color: #29B6E8;
+}
+
+.epModalOrDivider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #CBD5E1;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+
+.epModalOrDivider::before,
+.epModalOrDivider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #E2E8F0;
+}
+
+.epModalNote {
+  font-size: 11px;
+  color: #94A3B8;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.epModalFoot {
+  padding: 14px 24px 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  border-top: 1px solid #F1F5F9;
+}
+
+/* Card custom state */
+.epUniCardCustom {
+  border-color: #29B6E8 !important;
+}
+
+.epUniCardBadge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.epUniCardTypeName {
+  padding: 8px 10px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.epUniBtn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-family: "Kanit", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.epUniBtnPrimary {
+  background: #29B6E8;
+  color: #fff;
+  flex: 1;
+}
+
+.epUniBtnPrimary:hover:not(:disabled) {
+  background: #0EA5D4;
+}
+
+.epUniBtnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.epUniBtnGhost {
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+}
+
+.epUniBtnGhost:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FCA5A5;
+}

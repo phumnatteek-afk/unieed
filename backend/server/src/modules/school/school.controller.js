@@ -1,7 +1,7 @@
 import { getSchoolMe } from "./school.service.js";
 import { db } from "../../config/db.js";
 import { cloudinary } from "../../config/cloudinary.js"; // ปรับ path ตามจริง
-
+ 
 export async function schoolMe(req, res, next) {
   try {
     const user_id = req.user.user_id; // ต้องมาจาก middleware auth
@@ -12,11 +12,11 @@ export async function schoolMe(req, res, next) {
     next(err);
   }
 }
-
+ 
 export async function getProjectByIdPublic(req, res, next) {
   try {
     const request_id = Number(req.params.request_id);
-
+ 
     // ── Query 1: ข้อมูลหลัก ──────────────────────────────────
     const [rows] = await db.query(
       `SELECT
@@ -54,62 +54,88 @@ export async function getProjectByIdPublic(req, res, next) {
        LIMIT 1`,
       [request_id]
     );
-
+ 
     if (!rows[0]) return res.json(null);
-
+ 
     const project = {
       ...rows[0],
-      school_address:  rows[0].school_full_address,
-      total_needed:    Number(rows[0].total_needed)    || 0,
+      school_address: rows[0].school_full_address,
+      total_needed: Number(rows[0].total_needed) || 0,
       total_fulfilled: Number(rows[0].total_fulfilled) || 0,
-      student_count:   Number(rows[0].student_count)   || 0,
-      uniform_items:   [],   // ✅ default ก่อน กัน undefined
+      student_count: Number(rows[0].student_count) || 0,
+      uniform_items: [],   // ✅ default ก่อน กัน undefined
     };
-
+ 
     const { school_id } = project;
-
+ 
     // ── Query 2: uniform_items ────────────────────────────────
     // แยก try/catch เพื่อกันไม่ให้ crash ทั้งหน้า
     try {
   const [items] = await db.query(
     `SELECT
        ut.uniform_type_id,
-       ut.type_name                                    AS name,
+       ut.type_name AS name,
        ut.gender,
        ut.uniform_category,
        sn.size,
-       st.education_level_group                        AS education_level,
-       SUM(sn.quantity_needed)                         AS quantity,
-       CASE
-         WHEN uti_exact.image_url IS NOT NULL THEN uti_exact.image_url
-         ELSE uti_all.image_url
-       END AS image_url
+       st.education_level_group AS education_level,
+       SUM(sn.quantity_needed) AS quantity,
+       MAX(
+         CASE
+           WHEN uti_exact.image_url IS NOT NULL THEN uti_exact.image_url
+           WHEN uti_all.image_url IS NOT NULL THEN uti_all.image_url
+           WHEN uti_sys.image_url IS NOT NULL THEN uti_sys.image_url
+           WHEN ut.default_image_url IS NOT NULL THEN ut.default_image_url
+         END
+       ) AS image_url,
+       MAX(
+         CASE
+           WHEN uti_exact.uniform_subtype_name IS NOT NULL 
+                AND uti_exact.uniform_subtype_name != ''
+             THEN uti_exact.uniform_subtype_name
+           WHEN uti_all.uniform_subtype_name IS NOT NULL 
+                AND uti_all.uniform_subtype_name != ''
+             THEN uti_all.uniform_subtype_name
+           ELSE NULL
+         END
+       ) AS uniform_subtype_name
      FROM student_need sn
-     JOIN students     st  ON st.student_id     = sn.student_id
-                           AND st.request_id     = ?
-     JOIN uniform_type ut  ON ut.uniform_type_id = sn.uniform_type_id
+     JOIN students st ON st.student_id = sn.student_id
+                       AND st.request_id = ?
+     JOIN uniform_type ut ON ut.uniform_type_id = sn.uniform_type_id
      LEFT JOIN uniform_type_images uti_exact
-            ON  uti_exact.uniform_type_id = sn.uniform_type_id
-            AND uti_exact.school_id       = ?
-            AND uti_exact.request_id      = ?
-            AND uti_exact.education_level = st.education_level_group
+       ON uti_exact.uniform_type_id = sn.uniform_type_id
+       AND uti_exact.school_id = ?
+       AND uti_exact.request_id = ?
+       AND uti_exact.education_level = st.education_level_group
      LEFT JOIN uniform_type_images uti_all
-            ON  uti_all.uniform_type_id  = sn.uniform_type_id
-            AND uti_all.school_id        = ?
-            AND uti_all.request_id       = ?
-            AND uti_all.education_level  IS NULL
+       ON uti_all.uniform_type_id = sn.uniform_type_id
+       AND uti_all.school_id = ?
+       AND uti_all.request_id = ?
+       AND uti_all.education_level IS NULL
+     LEFT JOIN uniform_type_images uti_sys
+  ON uti_sys.uniform_type_id = sn.uniform_type_id
+  AND uti_sys.school_id IS NULL
+  AND uti_sys.request_id IS NULL
+  AND uti_sys.education_level = CASE
+    WHEN st.education_level_group IN ('อนุบาล','kg','Kindergarten') THEN 'อนุบาล'
+    WHEN st.education_level_group REGEXP '^ป\\.|ประถม' THEN 'ประถมศึกษา'
+    WHEN st.education_level_group REGEXP '^ม\\.[4-6]|มัธยมปลาย' THEN 'มัธยมตอนปลาย'
+    WHEN st.education_level_group REGEXP '^ม\\.|มัธยม' THEN 'มัธยมตอนต้น'
+    ELSE st.education_level_group
+  END
      GROUP BY
        ut.uniform_type_id, ut.type_name, ut.gender,
        ut.uniform_category,
-       sn.size, st.education_level_group,
-       uti_exact.image_url, uti_all.image_url
+       sn.size, st.education_level_group
      ORDER BY
        ut.uniform_type_id ASC,
        st.education_level_group ASC,
        sn.size ASC`,
     [request_id, school_id, request_id, school_id, request_id]
   );
-
+ 
+  // 🔹 map จาก student_need
   project.uniform_items = (items || []).map(i => {
     let sizeObj = null;
     if (i.size) {
@@ -119,56 +145,145 @@ export async function getProjectByIdPublic(req, res, next) {
         sizeObj = i.size;
       }
     }
+ 
     return {
-      uniform_type_id:  i.uniform_type_id,
-      name:             i.name,
-      gender:           i.gender,
+      uniform_type_id: i.uniform_type_id,
+      name: i.name,
+      // ✅ uniform_subtype_name = ชื่อที่โรงเรียนกรอก (NULL ถ้าใช้ default)
+      uniform_subtype_name: i.uniform_subtype_name || null,
+      gender: i.gender,
       uniform_category: i.uniform_category || null,
-      size:             sizeObj,
-      education_level:  i.education_level  || null,
-      quantity:         Number(i.quantity)  || 0,
-      image_url:        i.image_url         || null,
+      size: sizeObj,
+      education_level: i.education_level || null,
+      quantity: Number(i.quantity) || 0,
+      image_url: i.image_url || null,
     };
   });
-
+ 
+  // ✅ FIX สำคัญ: ดึง uniform_type_images ของโรงเรียนนี้มา merge เสมอ
+  // เพื่อให้แสดงรูปที่โรงเรียน upload แม้ยังไม่มีนักเรียนใน request นี้
+  // หรือ type นั้นไม่ได้อยู่ใน student_need
+  const [schoolImgs] = await db.query(
+    `SELECT
+       uti.uniform_type_id,
+       uti.education_level,
+       uti.image_url,
+       uti.uniform_subtype_name,
+       ut.type_name AS name,
+       ut.gender,
+       ut.uniform_category
+     FROM uniform_type_images uti
+     JOIN uniform_type ut ON ut.uniform_type_id = uti.uniform_type_id
+     WHERE uti.school_id = ? AND uti.request_id = ?`,
+    [school_id, request_id]
+  );
+ 
+  // merge: ถ้า uniform_type_id + education_level ยังไม่มีใน items → เพิ่ม
+  // ถ้ามีแล้ว → update image_url + uniform_subtype_name ด้วยของโรงเรียน
+  // ✅ FIX: key ต้องรวม size ด้วย ไม่งั้น type เดียวกันแต่คนละไซส์จะ overwrite กัน
+  const itemKey = (typeId, level, size) => {
+    const sizeStr = size
+      ? (typeof size === "string" ? size : JSON.stringify(size))
+      : "null";
+    return `${typeId}__${level ?? "null"}__${sizeStr}`;
+  };
+  const itemMap = new Map(
+    project.uniform_items.map(i => [itemKey(i.uniform_type_id, i.education_level, i.size), i])
+  );
+ 
+  for (const img of schoolImgs) {
+    // schoolImgs ไม่มี size → update ทุก item ที่ตรง type+level (อาจมีหลาย size)
+    for (const [, existing] of itemMap) {
+      if (
+        existing.uniform_type_id === img.uniform_type_id &&
+        (existing.education_level ?? null) === (img.education_level ?? null)
+      ) {
+        existing.image_url = img.image_url;
+        existing.uniform_subtype_name = img.uniform_subtype_name || null;
+      }
+    }
+  }
+ 
+  project.uniform_items = [...itemMap.values()];
+ 
 } catch (uniformErr) {
   console.error("[getProjectByIdPublic] uniform_items query failed:", uniformErr.message);
   project.uniform_items = [];
 }
-
+ 
     res.json(project);
-
+ 
   } catch (err) {
     next(err);
   }
 }
-
+ 
+// export async function getUniformTypes(req, res) {
+//   const [rows] = await db.query(
+//     `SELECT uniform_type_id,
+//             type_name         AS uniform_type_name,
+//             gender,
+//             uniform_category,
+//             size_schema,
+//             category_id
+//      FROM uniform_type
+//      ORDER BY gender ASC, uniform_category ASC, type_name ASC`
+//   );
+ 
+//   res.json(rows);
+// }
 export async function getUniformTypes(req, res) {
+  const { education_level, context } = req.query; 
+ 
+ 
+  // ดึง education_levels จาก uniform_type แล้ว filter
   const [rows] = await db.query(
     `SELECT uniform_type_id,
-            type_name         AS uniform_type_name,
+            type_name,
+            type_name AS uniform_type_name,
             gender,
             uniform_category,
-            size_schema
+            size_schema,
+            category_id,
+            education_levels,
+            is_default,
+            default_image_url
      FROM uniform_type
      ORDER BY gender ASC, uniform_category ASC, type_name ASC`
   );
-
-  res.json(rows);
+ 
+  // filter ฝั่ง JS ตาม education_level ที่ส่งมา
+  let filtered = education_level
+    ? rows.filter(r => {
+      if (!r.education_levels) return true; // ถ้าไม่มี levels = ใช้ได้ทุกระดับ
+      try {
+        const levels = typeof r.education_levels === "string"
+          ? JSON.parse(r.education_levels)
+          : r.education_levels;
+        return Array.isArray(levels)
+          ? levels.includes(education_level)
+          : true;
+      } catch { return true; }
+    })
+    : rows;
+    if (context === "student_need") {
+    filtered = filtered.filter(r => r.is_default === 1);
+  }
+ 
+  res.json(filtered);
 }
-
-
-
+ 
+ 
 export async function listProjectStudents(req, res, next) {
   try {
     const request_id = Number(req.params.request_id);
-
+ 
     if (!req.user?.school_id) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-
+ 
     const school_id = req.user.school_id;
-
+ 
     // 1️⃣ ดึง students
     const [students] = await db.query(
       `SELECT student_id,
@@ -185,14 +300,14 @@ export async function listProjectStudents(req, res, next) {
        ORDER BY created_at DESC`,
       [school_id, request_id]
     );
-
+ 
     if (!students.length) {
       return res.json([]);
     }
-
+ 
     // 2️⃣ ดึง needs
     const ids = students.map((s) => s.student_id);
-
+ 
     const [needs] = await db.query(
       `SELECT sn.student_need_id,
               sn.student_id,
@@ -214,10 +329,10 @@ export async function listProjectStudents(req, res, next) {
        ORDER BY sn.student_need_id DESC`,
       [school_id, ids]
     );
-
+ 
     // 3️⃣ รวมข้อมูล
     const byStudent = new Map();
-
+ 
     for (const s of students) {
       byStudent.set(s.student_id, {
         ...s,
@@ -225,41 +340,41 @@ export async function listProjectStudents(req, res, next) {
         summary: null,
       });
     }
-
+ 
     for (const n of needs) {
       if (byStudent.has(n.student_id)) {
         byStudent.get(n.student_id).needs.push(n);
       }
     }
-
+ 
     // 4️⃣ คำนวณ summary
     for (const s of students) {
       const box = byStudent.get(s.student_id);
-
+ 
       const totalItems = box.needs.length;
-
+ 
       const totalNeedQty = box.needs.reduce(
         (sum, x) => sum + (Number(x.quantity_needed) || 0),
         0
       );
-
+ 
       const receivedQty = box.needs.reduce(
         (sum, x) => sum + (Number(x.quantity_received) || 0),
         0
       );
-
+ 
       let fulfillStatus = "pending";
-
+ 
       if (totalNeedQty > 0 && receivedQty >= totalNeedQty) {
         fulfillStatus = "fulfilled";
       } else if (receivedQty > 0 && receivedQty < totalNeedQty) {
         fulfillStatus = "partial";
       }
-
+ 
       const hasRecurring = box.needs.some(
         (x) => x.support_mode === "recurring"
       );
-
+ 
       box.summary = {
         totalItems,
         receivedText: `${receivedQty}/${totalNeedQty || 0}`,
@@ -267,9 +382,9 @@ export async function listProjectStudents(req, res, next) {
         supportLabel: hasRecurring ? "รับต่อเนื่อง" : "รับครั้งเดียว",
       };
     }
-
+ 
     return res.json(students.map((s) => byStudent.get(s.student_id)));
-
+ 
   } catch (err) {
     next(err);
   }
@@ -277,33 +392,49 @@ export async function listProjectStudents(req, res, next) {
 function resolveGroup(edu) {
   if (!edu) return null;
   const s = edu.toString().trim();
-  if (/อนุบาล|kg|kindergarten/i.test(s))                  return "อนุบาล";
-  if (/^ป\.|ประถม|primary|^[Pp]\d/i.test(s))              return "ประถมศึกษา";
-  if (/^ม\.[4-6]|มัธยมปลาย|ม\.ปลาย|^[Mm][4-6]/i.test(s)) return "มัธยมตอนปลาย";
-  if (/^ม\.|มัธยม|secondary|^[Mm]\d/i.test(s))            return "มัธยมตอนต้น";
+  if (/อนุบาล|kg|kindergarten/i.test(s)) return "อนุบาล";
+  if (/^ป\.|ประถม|primary|^[Pp]\d/i.test(s)) return "ประถมศึกษา";
+  // ✅ check ปลายก่อน ต้น
+  if (/มัธยมตอนปลาย|มัธยมปลาย|ม\.ปลาย|^ม\.[4-6]|^[Mm][4-6]/i.test(s)) return "มัธยมตอนปลาย";
+  if (/มัธยมตอนต้น|มัธยม|secondary|^ม\.|^[Mm]\d/i.test(s)) return "มัธยมตอนต้น";
   return null;
 }
 export async function createStudentWithNeeds(req, res) {
   const request_id = Number(req.params.request_id);
   const school_id = req.user.school_id;
   const { student_name, education_level, gender, urgency, needs } = req.body;
-
+ 
   const genderDb =
-    gender === "ชาย"  ? "male"   :
-    gender === "หญิง" ? "female" :
-    gender;
-
+    gender === "ชาย" ? "male" :
+      gender === "หญิง" ? "female" :
+        gender;
+ 
   if (!student_name || !education_level || !gender) {
     return res.status(400).json({ message: "กรอกข้อมูลนักเรียนให้ครบ" });
   }
   if (!Array.isArray(needs) || needs.length === 0) {
     return res.status(400).json({ message: "ต้องเพิ่มอย่างน้อย 1 รายการความต้องการ" });
   }
-
+ 
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
-
+ 
+    // ✅ FIX: เช็คชื่อซ้ำในโครงการเดียวกัน
+    const [dupCheck] = await conn.query(
+      `SELECT student_id FROM students
+       WHERE school_id = ? AND request_id = ? AND student_name = ?
+       LIMIT 1`,
+      [school_id, request_id, student_name.trim()]
+    );
+    if (dupCheck[0]) {
+      await conn.rollback();
+      conn.release();
+      return res.status(409).json({
+        message: `มีนักเรียนชื่อ "${student_name.trim()}" ในโครงการนี้อยู่แล้ว`,
+      });
+    }
+ 
     const [ins] = await conn.query(
       `INSERT INTO students
          (school_id, request_id, student_name,
@@ -317,21 +448,21 @@ export async function createStudentWithNeeds(req, res) {
         genderDb, urgency || "can_wait",
       ]
     );
-
+ 
     const student_id = ins.insertId;
-
+ 
     for (const n of needs) {
       if (!n.uniform_type_id || !n.size || !n.quantity_needed) {
         throw Object.assign(new Error("ข้อมูลความต้องการไม่ครบ"), { status: 400 });
       }
-
+ 
       const needQty = Number(n.quantity_needed);
       const recvQty = Math.max(0, Math.min(Number(n.quantity_received || 0), needQty));
       const status =
         recvQty >= needQty ? "fulfilled" :
-        recvQty > 0        ? "partial"   :
-                             "pending";
-
+          recvQty > 0 ? "partial" :
+            "pending";
+ 
       await conn.query(
         `INSERT INTO student_need
            (school_id, student_id, uniform_type_id, size,
@@ -347,7 +478,7 @@ export async function createStudentWithNeeds(req, res) {
         ]
       );
     }
-
+ 
     await conn.commit();
     res.json({ message: "created", student_id });
   } catch (e) {
@@ -357,32 +488,32 @@ export async function createStudentWithNeeds(req, res) {
     conn.release();
   }
 }
-
+ 
 export async function updateStudentWithNeeds(req, res) {
   const request_id = Number(req.params.request_id);
   const school_id = req.user.school_id;
   const student_id = Number(req.params.student_id);
   const { student_name, education_level, gender, urgency, needs } = req.body;
-
+ 
   const genderDb =
     gender === "ชาย" ? "male" :
       gender === "หญิง" ? "female" :
         gender;
-
-
-
+ 
+ 
+ 
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
-
+ 
     // check ownership
     const [check] = await conn.query(
       `SELECT student_id FROM students WHERE student_id=? AND school_id=? AND request_id=? LIMIT 1`,
       [student_id, school_id, request_id]
     );
     if (!check[0]) return res.status(404).json({ message: "ไม่พบนักเรียน" });
-
-     await conn.query(
+ 
+    await conn.query(
       `UPDATE students
        SET student_name          = ?,
            education_level       = ?,
@@ -391,32 +522,32 @@ export async function updateStudentWithNeeds(req, res) {
            urgency               = ?
        WHERE student_id = ? AND school_id = ?`,
       [student_name,
-       education_level,
-       resolveGroup(education_level),  // ← เพิ่มตรงนี้
-       genderDb, urgency,
-       student_id, school_id]
+        education_level,
+        resolveGroup(education_level),  // ← เพิ่มตรงนี้
+        genderDb, urgency,
+        student_id, school_id]
     );
-
+ 
     // strategy: ลบ needs เดิม แล้ว insert ใหม่ (ง่าย + กัน mismatch)
     await conn.query(
       `DELETE FROM student_need WHERE student_id=? AND school_id=?`,
       [student_id, school_id]
     );
-
-
+ 
+ 
     if (!Array.isArray(needs) || needs.length === 0) {
       throw Object.assign(new Error("ต้องมีอย่างน้อย 1 รายการความต้องการ"), { status: 400 });
     }
     for (const n of needs) {
-
+ 
       const needQty = Number(n.quantity_needed);
       const recvQty = Math.max(0, Math.min(Number(n.quantity_received || 0), needQty));
-
+ 
       const status =
         recvQty >= needQty ? "fulfilled" :
           recvQty > 0 ? "partial" :
             "pending";
-
+ 
       await conn.query(
         `INSERT INTO student_need
       (school_id, student_id, uniform_type_id, size,
@@ -436,8 +567,8 @@ export async function updateStudentWithNeeds(req, res) {
         ]
       );
     }
-
-
+ 
+ 
     await conn.commit();
     res.json({ message: "updated" });
   } catch (e) {
@@ -447,25 +578,25 @@ export async function updateStudentWithNeeds(req, res) {
     conn.release();
   }
 }
-
+ 
 export async function deleteStudent(req, res) {
   const request_id = Number(req.params.request_id);
   const school_id = req.user.school_id;
   const student_id = Number(req.params.student_id);
-
+ 
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
-
+ 
     const [check] = await conn.query(
       `SELECT student_id FROM students WHERE student_id=? AND school_id=? AND request_id=? LIMIT 1`,
       [student_id, school_id, request_id]
     );
     if (!check[0]) return res.status(404).json({ message: "ไม่พบนักเรียน" });
-
+ 
     await conn.query(`DELETE FROM student_need WHERE student_id=? AND school_id=?`, [student_id, school_id]);
     await conn.query(`DELETE FROM students WHERE student_id=? AND school_id=?`, [student_id, school_id]);
-
+ 
     await conn.commit();
     res.json({ message: "deleted" });
   } catch (e) {
@@ -475,23 +606,23 @@ export async function deleteStudent(req, res) {
     conn.release();
   }
 }
-
+ 
 export async function createProject(req, res, next) {
   try {
     const school_id = req.user?.school_id;
     if (!school_id) return res.status(401).json({ message: "Unauthorized" });
-
+ 
     const {
       request_title,
       request_description,
       request_image_url,
       request_image_public_id,
     } = req.body;
-
+ 
     if (!request_title?.trim()) {
       return res.status(400).json({ message: "กรุณากรอกชื่อโครงการ" });
     }
-
+ 
     const [result] = await db.query(
       `INSERT INTO donation_request
         (school_id, request_title, request_description, request_image_url, request_image_public_id, status, created_at)
@@ -504,17 +635,17 @@ export async function createProject(req, res, next) {
         request_image_public_id || null,
       ]
     );
-
+ 
     return res.json({ request_id: result.insertId });
   } catch (err) {
     next(err);
   }
 }
-
+ 
 export async function listSchoolProjects(req, res, next) {
   try {
     const school_id = req.user.school_id;
-
+ 
     const [rows] = await db.query(
       `SELECT request_id, request_title, status, created_at
        FROM donation_request
@@ -522,17 +653,17 @@ export async function listSchoolProjects(req, res, next) {
        ORDER BY created_at DESC`,
       [school_id]
     );
-
+ 
     res.json(rows);
   } catch (err) {
     next(err);
   }
 }
-
+ 
 export async function getLatestProject(req, res, next) {
   try {
     const school_id = req.user.school_id;
-
+ 
     const [rows] = await db.query(
       `SELECT request_id, request_title, request_description, request_image_url, request_image_public_id, status, created_at
        FROM donation_request
@@ -541,7 +672,7 @@ export async function getLatestProject(req, res, next) {
        LIMIT 1`,
       [school_id]
     );
-
+ 
     res.json(rows[0] || null);
   } catch (err) {
     next(err);
@@ -552,7 +683,7 @@ export async function getProjectById(req, res, next) {
   try {
     const school_id = req.user.school_id;
     const request_id = Number(req.params.request_id);
-
+ 
     const [rows] = await db.query(
       `SELECT dr.request_id,
               dr.request_title,
@@ -568,37 +699,37 @@ export async function getProjectById(req, res, next) {
        WHERE dr.request_id=? AND dr.school_id=? LIMIT 1`,
       [request_id, school_id]
     );
-
+ 
     res.json(rows[0] || null);
   } catch (err) {
     next(err);
   }
 }
-
+ 
 // update แก้ไขโครงการ
 export async function updateProject(req, res, next) {
   try {
     const school_id = req.user.school_id;
     const request_id = Number(req.params.request_id);
-
+ 
     const {
       request_title,
       request_description,
       request_image_url,
       status,
     } = req.body;
-
+ 
     // เช็คว่าเป็นโครงการของโรงเรียนนี้จริงไหม
     const [check] = await db.query(
       `SELECT request_id FROM donation_request
        WHERE request_id=? AND school_id=? LIMIT 1`,
       [request_id, school_id]
     );
-
+ 
     if (!check[0]) {
       return res.status(404).json({ message: "ไม่พบโครงการ" });
     }
-
+ 
     await db.query(
       `UPDATE donation_request
        SET request_title=?,
@@ -615,36 +746,36 @@ export async function updateProject(req, res, next) {
         school_id,
       ]
     );
-
+ 
     res.json({ message: "updated" });
   } catch (err) {
     next(err);
   }
 }
-
+ 
 export async function uploadProjectImage(req, res, next) {
   try {
     const school_id = req.user.school_id;
     const request_id = Number(req.params.request_id);
-
+ 
     if (!req.file) return res.status(400).json({ message: "No file" });
-
+ 
     // check ownership
     const [chk] = await db.query(
       `SELECT request_id FROM donation_request WHERE request_id=? AND school_id=? LIMIT 1`,
       [request_id, school_id]
     );
     if (!chk[0]) return res.status(404).json({ message: "ไม่พบโครงการ" });
-
+ 
     // upload to cloudinary (dataUri)
     const b64 = Buffer.from(req.file.buffer).toString("base64");
     const dataUri = `data:${req.file.mimetype};base64,${b64}`;
-
+ 
     const up = await cloudinary.uploader.upload(dataUri, {
       folder: "unieed/projects",
       resource_type: "image",
     });
-
+ 
     // update DB
     await db.query(
       `UPDATE donation_request
@@ -652,14 +783,14 @@ export async function uploadProjectImage(req, res, next) {
        WHERE request_id=? AND school_id=?`,
       [up.secure_url, up.public_id, request_id, school_id]
     );
-
+ 
     return res.json({ url: up.secure_url, public_id: up.public_id });
   } catch (err) {
     next(err);
   }
 }
-
-
+ 
+ 
 // ── Export นักเรียนทั้งหมดในโครงการเป็น Excel ────────────
 // GET /school/projects/:request_id/students/export
 // ใช้ library: exceljs  →  npm install exceljs
@@ -667,7 +798,7 @@ export async function exportStudentsExcel(req, res, next) {
   try {
     const request_id = Number(req.params.request_id);
     const school_id = req.user.school_id;
-
+ 
     // 1) ดึง project title
     const [projRows] = await db.query(
       `SELECT request_title FROM donation_request
@@ -676,7 +807,7 @@ export async function exportStudentsExcel(req, res, next) {
     );
     if (!projRows[0]) return res.status(404).json({ message: "ไม่พบโครงการ" });
     const projectTitle = projRows[0].request_title;
-
+ 
     // 2) ดึง students
     const [students] = await db.query(
       `SELECT student_id, student_name, gender, education_level, urgency, created_at
@@ -685,7 +816,7 @@ export async function exportStudentsExcel(req, res, next) {
        ORDER BY created_at ASC`,
       [school_id, request_id]
     );
-
+ 
     // 3) ดึง needs
     const ids = students.map((s) => s.student_id);
     let needsMap = new Map();
@@ -703,12 +834,12 @@ export async function exportStudentsExcel(req, res, next) {
         needsMap.get(n.student_id).push(n);
       }
     }
-
+ 
     // 4) สร้าง Excel ด้วย exceljs
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("รายชื่อนักเรียน");
-
+ 
     // สีธีม Unieed
     const BLUE = "FF29B6E8";
     const BLUE_DARK = "FF0E8BB5";
@@ -720,14 +851,14 @@ export async function exportStudentsExcel(req, res, next) {
     const WHITE = "FFFFFFFF";
     const GRAY = "FFF4F8FB";
     const SUPP_BG = "FFD6EEF8";
-
+ 
     const thinBorder = {
       top: { style: "thin", color: { argb: "FFC8E8F5" } },
       left: { style: "thin", color: { argb: "FFC8E8F5" } },
       bottom: { style: "thin", color: { argb: "FFC8E8F5" } },
       right: { style: "thin", color: { argb: "FFC8E8F5" } },
     };
-
+ 
     // ── Row 1: Title ──────────────────────────────────────
     ws.mergeCells("A1:O1");
     const r1 = ws.getCell("A1");
@@ -736,7 +867,7 @@ export async function exportStudentsExcel(req, res, next) {
     r1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE } };
     r1.alignment = { horizontal: "center", vertical: "middle" };
     ws.getRow(1).height = 40;
-
+ 
     // ── Row 2: Export date ────────────────────────────────
     ws.mergeCells("A2:O2");
     const r2 = ws.getCell("A2");
@@ -748,7 +879,7 @@ export async function exportStudentsExcel(req, res, next) {
     r2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_DARK } };
     r2.alignment = { horizontal: "center", vertical: "middle" };
     ws.getRow(2).height = 18;
-
+ 
     // ── Row 3: Section labels ─────────────────────────────
     ws.mergeCells("A3:G3");
     const s3a = ws.getCell("A3");
@@ -756,14 +887,14 @@ export async function exportStudentsExcel(req, res, next) {
     s3a.font = { name: "Arial", bold: true, size: 9, color: { argb: WHITE } };
     s3a.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_DARK } };
     s3a.alignment = { horizontal: "center", vertical: "middle" };
-
+ 
     ws.mergeCells("H3:K3");
     const s3b = ws.getCell("H3");
     s3b.value = "👦  ชุดนักเรียนชาย";
     s3b.font = { name: "Arial", bold: true, size: 9, color: { argb: WHITE } };
     s3b.fill = { type: "pattern", pattern: "solid", fgColor: { argb: MALE_HD } };
     s3b.alignment = { horizontal: "center", vertical: "middle" };
-
+ 
     ws.mergeCells("L3:O3");
     const s3c = ws.getCell("L3");
     s3c.value = "👧  ชุดนักเรียนหญิง";
@@ -771,7 +902,7 @@ export async function exportStudentsExcel(req, res, next) {
     s3c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: FEM_HD } };
     s3c.alignment = { horizontal: "center", vertical: "middle" };
     ws.getRow(3).height = 18;
-
+ 
     // ── Row 4: Column headers ─────────────────────────────
     const headers = [
       { col: "A", label: "#", bg: BLUE, fg: WHITE },
@@ -799,17 +930,17 @@ export async function exportStudentsExcel(req, res, next) {
       c.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
       c.border = thinBorder;
     }
-
+ 
     // ── Rows 5+: Data ─────────────────────────────────────
     // map urgency / gender → ภาษาไทย
     const URGENCY_TH = { very_urgent: "เร่งด่วนมาก", urgent: "เร่งด่วน", can_wait: "รอได้" };
     const GENDER_TH = { male: "ชาย", female: "หญิง" };
-
+ 
     students.forEach((s, idx) => {
       const rowNum = idx + 5;
       const bg = idx % 2 === 0 ? GRAY : WHITE;
       const needs = needsMap.get(s.student_id) || [];
-
+ 
       // หา need ตาม uniform_type_id
       const getNeed = (typeId) => needs.find((n) => n.uniform_type_id === typeId);
       const getSize = (need, key) => {
@@ -819,17 +950,17 @@ export async function exportStudentsExcel(req, res, next) {
           return obj?.[key] ?? "";
         } catch { return ""; }
       };
-
+ 
       // support_mode — ใช้จาก need แรกที่มี
       const firstNeed = needs[0];
       const supportMode = firstNeed?.support_mode === "recurring" ? "รับต่อเนื่อง" : "รับครั้งเดียว";
       const supportYears = firstNeed?.support_mode === "recurring" ? (firstNeed.support_years || 1) : "";
-
+ 
       const n1 = getNeed(1); // เสื้อชาย
       const n3 = getNeed(3); // กางเกงชาย
       const n2 = getNeed(2); // เสื้อหญิง
       const n4 = getNeed(4); // กระโปรงหญิง
-
+ 
       const rowData = [
         idx + 1,
         s.student_name,
@@ -847,7 +978,7 @@ export async function exportStudentsExcel(req, res, next) {
         getSize(n4, "waist"),
         n4?.quantity_needed || "",
       ];
-
+ 
       const cols = "ABCDEFGHIJKLMNO".split("");
       rowData.forEach((val, ci) => {
         const colLetter = cols[ci];
@@ -858,7 +989,7 @@ export async function exportStudentsExcel(req, res, next) {
           : isFemale ? (idx % 2 === 0 ? "FFFCE4EC" : "FFFFF0F5")
             : isSupport ? (idx % 2 === 0 ? "FFD6EEF8" : "FFE4F4FB")
               : bg;
-
+ 
         const c = ws.getCell(`${colLetter}${rowNum}`);
         c.value = val === "" ? null : val;
         c.font = { name: "Arial", size: 10 };
@@ -868,13 +999,13 @@ export async function exportStudentsExcel(req, res, next) {
       });
       ws.getRow(rowNum).height = 21;
     });
-
+ 
     // ── Column widths ─────────────────────────────────────
     const widths = [5, 26, 8, 14, 16, 14, 9, 11, 9, 11, 9, 11, 9, 11, 9];
     "ABCDEFGHIJKLMNO".split("").forEach((col, i) => {
       ws.getColumn(col).width = widths[i];
     });
-
+ 
     // ── Summary row ───────────────────────────────────────
     const lastRow = students.length + 5;
     ws.mergeCells(`A${lastRow}:G${lastRow}`);
@@ -884,21 +1015,21 @@ export async function exportStudentsExcel(req, res, next) {
     sumCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_DARK } };
     sumCell.alignment = { horizontal: "right", vertical: "middle" };
     ws.getRow(lastRow).height = 24;
-
+ 
     // ── Stream response ───────────────────────────────────
     const safeName = projectTitle.replace(/[^\u0E00-\u0E7Fa-zA-Z0-9_-]/g, "_");
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(`unieed_${safeName}.xlsx`)}`);
-
+ 
     await wb.xlsx.write(res);
     res.end();
   } catch (err) {
     next(err);
   }
 }
-
+ 
 // school.controller.js
-
+ 
 export async function uploadUniformImage(req, res, next) {
   try {
     const school_id = req.user.school_id;
@@ -906,11 +1037,14 @@ export async function uploadUniformImage(req, res, next) {
     const uniform_type_id = Number(req.params.uniform_type_id);
     // ✅ รับ education_level จาก body (multipart)
     const education_level = req.body?.education_level || null;
-
+    const custom_type_name = req.body.custom_type_name || null;
+    if (custom_type_name && typeof custom_type_name !== "string") {
+      return res.status(400).json({ message: "Invalid type name" });
+    }
     if (!req.file) {
       return res.status(400).json({ message: "ไม่พบไฟล์รูปภาพ" });
     }
-
+ 
     // ตรวจสิทธิ์
     const [projRows] = await db.query(
       `SELECT request_id FROM donation_request
@@ -920,7 +1054,7 @@ export async function uploadUniformImage(req, res, next) {
     if (!projRows[0]) {
       return res.status(403).json({ message: "ไม่มีสิทธิ์จัดการโครงการนี้" });
     }
-
+ 
     // ลบรูปเดิมที่ตรง education_level เดียวกัน
     const [existing] = await db.query(
       `SELECT image_public_id FROM uniform_type_images
@@ -932,7 +1066,7 @@ export async function uploadUniformImage(req, res, next) {
     if (existing[0]?.image_public_id) {
       await cloudinary.uploader.destroy(existing[0].image_public_id);
     }
-
+ 
     // Upload Cloudinary
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
@@ -940,33 +1074,35 @@ export async function uploadUniformImage(req, res, next) {
           folder: "uniform",
           public_id: `school_${school_id}_req_${request_id}_type_${uniform_type_id}${education_level ? `_${education_level}` : ""}`,
           overwrite: true,
+          invalidate: true,
           resource_type: "image",
         },
         (err, result) => (err ? reject(err) : resolve(result))
       );
       stream.end(req.file.buffer);
     });
-
+ 
     // ✅ Upsert พร้อม education_level
     await db.query(
       `INSERT INTO uniform_type_images
-         (school_id, request_id, uniform_type_id, education_level, image_url, image_public_id)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         image_url       = VALUES(image_url),
-         image_public_id = VALUES(image_public_id),
-         updated_at      = NOW()`,
+(school_id, request_id, uniform_type_id, education_level, image_url, image_public_id, uniform_subtype_name)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+  image_url = VALUES(image_url),
+  image_public_id = VALUES(image_public_id),
+  uniform_subtype_name = VALUES(uniform_subtype_name),
+  updated_at = NOW()`,
       [school_id, request_id, uniform_type_id, education_level,
-        result.secure_url, result.public_id]
+        result.secure_url, result.public_id, custom_type_name]
     );
-
+ 
     res.json({ image_url: result.secure_url, image_public_id: result.public_id });
   } catch (err) {
     next(err);
   }
 }
-
-
+ 
+ 
 export async function deleteUniformImage(req, res, next) {
   try {
     const school_id = req.user.school_id;
@@ -974,7 +1110,7 @@ export async function deleteUniformImage(req, res, next) {
     const uniform_type_id = Number(req.params.uniform_type_id);
     // ✅ รับ education_level จาก query string
     const education_level = req.query?.education_level || null;
-
+ 
     const [rows] = await db.query(
       `SELECT image_public_id FROM uniform_type_images
        WHERE school_id = ? AND request_id = ? AND uniform_type_id = ?
@@ -982,26 +1118,26 @@ export async function deleteUniformImage(req, res, next) {
        LIMIT 1`,
       [school_id, request_id, uniform_type_id, education_level, education_level]
     );
-
+ 
     if (!rows[0]) {
       return res.status(404).json({ message: "ไม่พบรูปภาพ" });
     }
-
+ 
     await cloudinary.uploader.destroy(rows[0].image_public_id);
-
+ 
     await db.query(
       `DELETE FROM uniform_type_images
        WHERE school_id = ? AND request_id = ? AND uniform_type_id = ?
          AND (education_level = ? OR (education_level IS NULL AND ? IS NULL))`,
       [school_id, request_id, uniform_type_id, education_level, education_level]
     );
-
+ 
     res.json({ message: "ลบรูปภาพสำเร็จ" });
   } catch (err) {
     next(err);
   }
 }
-
+ 
 // GET /school/testimonials
 export async function getTestimonials(req, res, next) {
   try {
@@ -1023,10 +1159,10 @@ export async function createTestimonial(req, res, next) {
     const { review_title, review_text, rating, is_published, image_url: bodyImgUrl } = req.body;
  
     if (!review_title?.trim()) return res.status(400).json({ message: "กรุณากรอกหัวข้อ" });
-    if (!review_text?.trim())  return res.status(400).json({ message: "กรุณากรอกความประทับใจ" });
+    if (!review_text?.trim()) return res.status(400).json({ message: "กรุณากรอกความประทับใจ" });
  
-    let image_url        = bodyImgUrl || null;
-    let image_public_id  = null;
+    let image_url = bodyImgUrl || null;
+    let image_public_id = null;
  
     if (req.file) {
       const result = await new Promise((resolve, reject) => {
@@ -1036,24 +1172,24 @@ export async function createTestimonial(req, res, next) {
         );
         stream.end(req.file.buffer);
       });
-      image_url       = result.secure_url;
+      image_url = result.secure_url;
       image_public_id = result.public_id;
     }
  
     const [ins] = await db.query(
-  `INSERT INTO testimonials
+      `INSERT INTO testimonials
      (school_id, review_title, review_text,
       image_url, image_public_id, is_published, review_date)
    VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
       [
         school_id,
-    review_title.trim(),
-    review_text.trim(),
-    image_url,
-    image_public_id,
-    is_published === "1" || is_published === 1 ? 1 : 0,
-  ]
-);
+        review_title.trim(),
+        review_text.trim(),
+        image_url,
+        image_public_id,
+        is_published === "1" || is_published === 1 ? 1 : 0,
+      ]
+    );
  
     res.status(201).json({ message: "บันทึกสำเร็จ", testimonial_id: ins.insertId });
   } catch (err) { next(err); }
@@ -1062,19 +1198,19 @@ export async function createTestimonial(req, res, next) {
 // PUT /school/testimonials/:id
 export async function updateTestimonial(req, res, next) {
   try {
-    const school_id       = req.user.school_id;
-    const testimonial_id  = Number(req.params.id);
+    const school_id = req.user.school_id;
+    const testimonial_id = Number(req.params.id);
     const { review_title, review_text, is_published, image_url: bodyImgUrl } = req.body;
-
+ 
     const [rows] = await db.query(
       "SELECT * FROM testimonials WHERE testimonial_id = ? AND school_id = ? LIMIT 1",
       [testimonial_id, school_id]
     );
     if (!rows[0]) return res.status(403).json({ message: "ไม่พบหรือไม่มีสิทธิ์" });
-
-    let image_url       = bodyImgUrl || rows[0].image_url;
+ 
+    let image_url = bodyImgUrl || rows[0].image_url;
     let image_public_id = rows[0].image_public_id;
-
+ 
     if (req.file) {
       if (image_public_id) await cloudinary.uploader.destroy(image_public_id);
       const result = await new Promise((resolve, reject) => {
@@ -1084,10 +1220,10 @@ export async function updateTestimonial(req, res, next) {
         );
         stream.end(req.file.buffer);
       });
-      image_url       = result.secure_url;
+      image_url = result.secure_url;
       image_public_id = result.public_id;
     }
-
+ 
     await db.query(
       `UPDATE testimonials
        SET review_title = ?, review_text = ?,
@@ -1103,7 +1239,7 @@ export async function updateTestimonial(req, res, next) {
         school_id,
       ]
     );
-
+ 
     res.json({ message: "อัปเดตสำเร็จ" });
   } catch (err) { next(err); }
 }
@@ -1111,7 +1247,7 @@ export async function updateTestimonial(req, res, next) {
 // PATCH /school/testimonials/:id  — toggle is_published
 export async function patchTestimonial(req, res, next) {
   try {
-    const school_id      = req.user.school_id;
+    const school_id = req.user.school_id;
     const testimonial_id = Number(req.params.id);
     const { is_published } = req.body;
  
@@ -1128,7 +1264,7 @@ export async function patchTestimonial(req, res, next) {
 // DELETE /school/testimonials/:id
 export async function deleteTestimonial(req, res, next) {
   try {
-    const school_id      = req.user.school_id;
+    const school_id = req.user.school_id;
     const testimonial_id = Number(req.params.id);
  
     const [rows] = await db.query(

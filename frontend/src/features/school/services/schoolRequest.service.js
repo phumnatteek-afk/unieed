@@ -1,9 +1,13 @@
 import { request } from "../../../api/http.js";
 
 export const schoolRequestSvc = {
+  // getUniformTypes() {
+  //   return request("/school/uniform-types", { auth: true });
+  // },
   getUniformTypes() {
-    return request("/school/uniform-types", { auth: true });
-  },
+  return request("/school/uniform-types?context=student_need", { auth: true });
+},
+
   listStudents(requestId) {
     return request(`/school/projects/${requestId}/students`, { auth: true });
   },
