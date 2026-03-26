@@ -236,15 +236,25 @@ export default function SchoolRequestManagePage() {
       {/* ══ STAT CARDS ═══════════════════════════════════ */}
       <div className="pm-stats">
         {[
-          { label: "นักเรียนทั้งหมด",  value: stats.total,      accent: "blue",   icon: "mdi:account-group" },
-          { label: "เร่งด่วนมาก",       value: stats.veryUrgent, accent: "red",    icon: "mdi:alert" },
-          { label: "ส่งมอบสำเร็จ",      value: stats.fulfilled,  accent: "green",  icon: "mdi:check-circle" },
-          { label: "รอส่งมอบ",          value: stats.pending,    accent: "orange", icon: "mdi:clock-outline" },
+          { label: "เร่งด่วนมาก",       value: stats.veryUrgent, accent: "red",    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="currentColor" d="M17.66 11.2c-.23-.3-.51-.56-.77-.82c-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32c-2.59 2.08-3.61 5.75-2.39 8.9c.04.1.08.2.08.33c0 .22-.15.42-.35.5c-.23.1-.47.04-.66-.12a.6.6 0 0 1-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5c.14.6.41 1.2.71 1.73c1.08 1.73 2.95 2.97 4.96 3.22c2.14.27 4.43-.12 6.07-1.6c1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26m-3.16 6.3c-.28.24-.74.5-1.1.6c-1.12.4-2.24-.16-2.9-.82c1.19-.28 1.9-1.16 2.11-2.05c.17-.8-.15-1.46-.28-2.23c-.12-.74-.1-1.37.17-2.06c.19.38.39.76.63 1.06c.77 1 1.98 1.44 2.24 2.8c.04.14.06.28.06.43c.03.82-.33 1.72-.93 2.27"/></svg>'},
+          { label: "รอส่งมอบ",          value: stats.pending,    accent: "orange", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0-18 0"/><path d="M12 7v5l3 3"/></g></svg>' },
+          { label: "ส่งมอบสำเร็จ",      value: stats.fulfilled,  accent: "green",  icon: '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="currentColor" d="M20 7h-1.21c.13-.41.21-.9.21-1.5C19 3.57 17.43 2 15.5 2c-1.62 0-2.7 1.48-3.4 3.09C11.41 3.58 10.27 2 8.5 2C6.57 2 5 3.57 5 5.5c0 .6.08 1.09.21 1.5H4c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2v7c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2m-4.5-3c.83 0 1.5.67 1.5 1.5C17 7 16.37 7 16 7h-2.48c.51-1.58 1.25-3 1.98-3M7 5.5C7 4.67 7.67 4 8.5 4c.89 0 1.71 1.53 2.2 3H8c-.37 0-1 0-1-1.5M4 9h7v2H4zm2 11v-7h5v7zm12 0h-5v-7h5zm-5-9V9.08s.01-.06.02-.08H20v2z"/></svg>' },
+          { label: "นักเรียนทั้งหมด",  value: stats.total, accent: "blue", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M2.5 6L8 4l5.5 2L11 7.5V9s-.667-.5-3-.5S5 9 5 9V7.5zm0 0v4"/><path d="M11 8.5v.889c0 1.718-1.343 3.111-3 3.111s-3-1.393-3-3.111V8.5m10.318 2.53s.485-.353 2.182-.353s2.182.352 2.182.352m-4.364 0V10L13.5 9l4-1.5l4 1.5l-1.818 1v1.03m-4.364 0v.288a2.182 2.182 0 1 0 4.364 0v-.289M4.385 15.926c-.943.527-3.416 1.602-1.91 2.947C3.211 19.53 4.03 20 5.061 20h5.878c1.03 0 1.85-.47 2.586-1.127c1.506-1.345-.967-2.42-1.91-2.947c-2.212-1.235-5.018-1.235-7.23 0M16 20h3.705c.773 0 1.387-.376 1.939-.902c1.13-1.076-.725-1.936-1.432-2.357A5.34 5.34 0 0 0 16 16.214"/></g></svg>' },
         ].map((s, i) => (
           <div className={`pm-stat-card pm-stat-${s.accent}`} key={i}
                style={{ animationDelay: `${i * 60}ms` }}>
             <div className="pm-stat-icon-wrap">
-              <Icon icon={s.icon} width="20" />
+              {s.icon.includes('<svg') ? (
+    /* กรณีเป็น SVG String: ให้ฉีด HTML เข้าไปตรงๆ */
+    <div 
+      className="custom-svg-icon"
+      style={{ width: '30px', height: '30px', display: 'flex' }}
+      dangerouslySetInnerHTML={{ __html: s.icon }} 
+    />
+  ) : (
+    /* กรณีเป็นชื่อไอคอน mdi:... แบบเดิม: ให้ใช้คอมโพเนนต์ Icon */
+    <Icon icon={s.icon} width="20" />
+  )}
             </div>
             <div className="pm-stat-body">
               <div className="pm-stat-value">{s.value}</div>
@@ -260,16 +270,32 @@ export default function SchoolRequestManagePage() {
         {/* ── Toolbar ────────────────────────────────── */}
         <div className="pm-toolbar">
           <div className="pm-toolbar-left">
-            <div className="pm-search-wrap">
-              <Icon icon="mdi:magnify" className="pm-search-icon" width="18" />
-              <input
-                className="pm-search"
-                value={q} onChange={(e) => setQ(e.target.value)}
-                placeholder="ค้นหาชื่อนักเรียน..."
-              />
-              {q && <button className="pm-search-clear" onClick={() => setQ("")} type="button">✕</button>}
-            </div>
+  {/* 1. สร้างกลุ่มใหม่ครอบช่องค้นหาและปุ่มล้างตัวกรอง */}
+  <div className="pm-search-group">
+    <div className="pm-search-wrap">
+      <Icon icon="mdi:magnify" className="pm-search-icon" width="18" />
+      <input
+        className="pm-search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="ค้นหาชื่อนักเรียน..."
+      />
+      {q && (
+        <button className="pm-search-clear" onClick={() => setQ("")} type="button">✕</button>
+      )}
+    </div>
 
+    {/* 2. ย้ายปุ่มล้างตัวกรองมาไว้ตรงนี้ (นอก wrap แต่อยู่ใน group) */}
+    {(q || grade || status || urgFilter) && (
+      <button 
+        className="pm-clear-filters"
+        onClick={() => { setQ(""); setGrade(""); setStatus(""); setUrgFilter(""); }}
+        type="button"
+      >
+        ล้างตัวกรอง
+      </button>
+    )}
+            </div>
             <select className="pm-filter-sel" value={grade} onChange={(e) => setGrade(e.target.value)}>
               <option value="">ทุกระดับชั้น</option>
               <option value="อนุบาล">อนุบาล</option>
@@ -291,13 +317,7 @@ export default function SchoolRequestManagePage() {
               <option value="can_wait">รอได้</option>
             </select>
 
-            {(q || grade || status || urgFilter) && (
-              <button className="pm-clear-filters"
-                onClick={() => { setQ(""); setGrade(""); setStatus(""); setUrgFilter(""); }}
-                type="button">
-                ล้างตัวกรอง
-              </button>
-            )}
+           
           </div>
 
           <div className="pm-toolbar-right">
@@ -334,7 +354,7 @@ export default function SchoolRequestManagePage() {
           </div>
         ) : !filtered.length ? (
           <div className="pm-empty">
-            <div className="pm-empty-icon">🔍</div>
+            <div className="pm-empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0s.41-1.08 0-1.49zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14"/></svg></div>
             <div className="pm-empty-text">
               {rows.length === 0 ? "ยังไม่มีนักเรียนในโครงการนี้" : "ไม่พบผลลัพธ์ที่ตรงกับตัวกรอง"}
             </div>
