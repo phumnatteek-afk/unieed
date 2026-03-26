@@ -1,8 +1,9 @@
-// donation.routes.js
 import { Router } from "express";
-import multer     from "multer";
-import { auth }        from "../../middleware/auth.js";
+import multer from "multer";
+
+import { auth } from "../../middleware/auth.js";
 import { requireRole } from "../../middleware/requireRole.js";
+
 import {
   createDonation,
   listDonationsByProject,
@@ -11,21 +12,36 @@ import {
   verifyDonation,
 } from "./donation.controller.js";
 
+// ✅ import schedule controller เพิ่ม
+import {
+  getScheduleForDonor,
+  getMySchedule,
+  saveMySchedule,
+} from "./donation_schedule.controller.js";
+
 const upload = multer({ storage: multer.memoryStorage() });
 const r = Router();
 
-// ── POST /donations/:requestId  (login optional) ──────────────────
+// ─────────────────────────────────────────
+// 🟢 CREATE DONATION
+// POST /donations/:requestId
+// ─────────────────────────────────────────
 r.post(
   "/:requestId",
   (req, _res, next) => {
-    if (req.headers.authorization?.startsWith("Bearer ")) return auth(req, _res, next);
+    if (req.headers.authorization?.startsWith("Bearer ")) {
+      return auth(req, _res, next);
+    }
     next();
   },
   upload.single("image"),
   createDonation
 );
 
-// ── GET /donations/project/:requestId  (school_admin) ─────────────
+// ─────────────────────────────────────────
+// 🟢 LIST DONATIONS (school_admin)
+// GET /donations/project/:requestId
+// ─────────────────────────────────────────
 r.get(
   "/project/:requestId",
   auth,
@@ -33,18 +49,16 @@ r.get(
   listDonationsByProject
 );
 
-// ── GET /donations/:donationId  (school_admin) ────────────────────
-// r.get(
-//   "/:donationId",
-//   auth,
-//   requireRole(["school_admin"]),
-//   getDonationDetail
-// );
-
-// ----------------------
-// ✅ แก้เป็น — ทุกคนที่ login ได้ดู (controller จัดการสิทธิ์เอง)
+// ─────────────────────────────────────────
+// 🟢 GET DONATION DETAIL (login required)
+// GET /donations/:donationId
+// ─────────────────────────────────────────
 r.get("/:donationId", auth, getDonationDetail);
-// ── PATCH /donations/:donationId/status  (school_admin) ───────────
+
+// ─────────────────────────────────────────
+// 🟢 UPDATE STATUS (school_admin)
+// PATCH /donations/:donationId/status
+// ─────────────────────────────────────────
 r.patch(
   "/:donationId/status",
   auth,
@@ -52,12 +66,40 @@ r.patch(
   updateDonationStatus
 );
 
-
+// ─────────────────────────────────────────
+// 🟢 VERIFY DONATION (school_admin)
+// PATCH /donations/:donationId/verify
+// ─────────────────────────────────────────
 r.patch(
   "/:donationId/verify",
   auth,
   requireRole(["school_admin"]),
   verifyDonation
+);
+
+// ==================================================
+// 🎯 SCHEDULE ROUTES (แก้ path ให้ถูก)
+// ==================================================
+
+// public
+// GET /donations/schedule/request/:requestId
+r.get("/schedule/request/:requestId", getScheduleForDonor);
+
+// school_admin
+// GET /donations/schedule/mine
+r.get(
+  "/schedule/mine",
+  auth,
+  requireRole(["school_admin"]),
+  getMySchedule
+);
+
+// PUT /donations/schedule/mine
+r.put(
+  "/schedule/mine",
+  auth,
+  requireRole(["school_admin"]),
+  saveMySchedule
 );
 
 export default r;

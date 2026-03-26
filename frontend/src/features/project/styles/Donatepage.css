@@ -878,3 +878,195 @@
   transition: background 0.15s;
 }
 .certBtnClose:hover { background: #f9fafb; }
+
+
+Additions · CSS
+Copy
+
+/* ─────────────────────────────────────────────────────────────
+   เพิ่มเข้าไปใน DonatePage.css
+   ───────────────────────────────────────────────────────────── */
+ 
+/* ── Schedule info banner (donor side) ── */
+.dnScheduleBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+ 
+.dnScheduleBannerNone {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 9px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #6b7280;
+}
+ 
+/* ── Mini calendar ── */
+.dnCalWrap {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 4px;
+}
+ 
+.dnCalNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+ 
+.dnCalNavBtn {
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: #555;
+  display: flex;
+  align-items: center;
+  transition: background 0.15s;
+}
+.dnCalNavBtn:hover { background: #e9f0fb; }
+ 
+.dnCalMonthLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+ 
+.dnCalGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+ 
+.dnCalDayLabel {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 3px 0 6px;
+  font-weight: 500;
+}
+ 
+.dnCalCell {
+  font-size: 13px;
+  text-align: center;
+  padding: 7px 2px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  color: #334155;
+  line-height: 1;
+}
+ 
+.dnCalEnabled:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+ 
+.dnCalDisabled {
+  color: #cbd5e1;
+  background: #f1f5f9;
+  cursor: not-allowed;
+  border-radius: 8px;
+}
+ 
+.dnCalToday {
+  border: 1.5px solid #f59e0b;
+  color: #b45309;
+  font-weight: 600;
+}
+ 
+.dnCalActive {
+  background: #2563eb !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+ 
+.dnCalLegend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+ 
+.dnCalLegendItem {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+ 
+.dnCalLegendClosed {
+  background: #e2e8f0;
+}
+ 
+/* ── Time slots ── */
+.dnTimeSlots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+ 
+.dnTimeSlot {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+ 
+.dnTimeSlot:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+ 
+.dnTimeSlotActive {
+  background: #2563eb !important;
+  color: #fff !important;
+  border-color: #1d4ed8 !important;
+  font-weight: 600;
+}
+ 
+/* ── Appointment summary pill ── */
+.dnAppointSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #1e40af;
+  margin-bottom: 12px;
+}
+ 
+/* ── Label hint ── */
+.dnLabelHint {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 400;
+  margin-left: 4px;
+}
+ 

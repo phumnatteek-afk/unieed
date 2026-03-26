@@ -301,13 +301,26 @@ export default function ProjectDetailPage() {
   };
 
   const handleDonate = () => {
-    const items = Object.entries(donateQty)
-      .filter(([, v]) => v > 0)
-      .map(([k, v]) => ({ key: k, qty: v }));
-    navigate(`/donate/${requestId}?method=${selectedMethod}`, {
-      state: { donateItems: items },
-    });
-  };
+  const items = Object.entries(donateQty)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => {
+      // k คือ itemKey เช่น "5_ประถมศึกษา_30"
+      // ต้อง lookup กลับหา item เพื่อเอา uniform_type_id
+      const item = project.uniform_items.find(i => itemKey(i) === k);
+      if (!item) return null;
+      return {
+        uniform_type_id: item.uniform_type_id,
+        education_level: item.education_level,
+        size:            item.size,
+        qty:             v,
+      };
+    })
+    .filter(Boolean);
+
+  navigate(`/donate/${requestId}?method=${selectedMethod}`, {
+    state: { donateItems: items },
+  });
+};
 
   return (
     <div className="homePage">
