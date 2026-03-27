@@ -1,13 +1,28 @@
 // DonatePage.jsx
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
 import { Icon } from "@iconify/react";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import QRCode from "https://esm.sh/qrcode@1.5.3"; 
 
 import "../../../pages/styles/Homepage.css";
 import "../styles/DonatePage.css";
+
+// ─── palette (match existing Unieed brand) ───────────────
+const C = {
+  blue:    "#29B6E8",
+  yellow:  "#FFBE1B",
+  navy:    "#378ADD",
+  green:   "#16a34a",
+  red:     "#DD2E44",
+  bg:      "#F7F8FA",
+  white:   "#FFFFFF",
+  text:    "#1a1a2e",
+  sub:     "#6b7280",
+  border:  "#E5E7EB",
+};
 
 const COURIERS = ["ไปรษณีย์ไทย", "Flash Express", "J&T Express", "Kerry Express", "Lazada Logistics", "อื่นๆ"];
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
@@ -17,6 +32,60 @@ const TH_MONTHS_FULL  = ["มกราคม","กุมภาพันธ์","
   "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 const TH_DAYS = ["อา","จ","อ","พ","พฤ","ศ","ส"];
 const DAY_INDEX_TO_KEY = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+
+async function compressImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1000; // ปรับความกว้างสูงสุดแค่ 1000px พอ (ประหยัดเน็ต)
+        const scaleSize = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scaleSize;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          resolve(new File([blob], file.name, { type: "image/jpeg" }));
+        }, "image/jpeg", 0.7); // คุณภาพ 70% ชัดพอสำหรับหลักฐาน
+      };
+    };
+  });
+}
+// ─── tiny helpers ─────────────────────────────────────────
+function formatThaiDate(dateStr) {
+  if (!dateStr) return "—";
+  const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  const d = new Date(dateStr);
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`;
+}
+
+function genDonationId() {
+  const now = new Date();
+  const d = `${now.getFullYear().toString().slice(2)}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}`;
+  const r = Math.floor(Math.random()*900+100);
+  return `DON-${d}-${r}`;
+}
+
+// ─── QR Canvas hook ───────────────────────────────────────
+function useQRCanvas(text, size=200) {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    // ใส่ timeout เล็กน้อยเพื่อให้มั่นใจว่าหน้าจอวาด Canvas เสร็จก่อนสั่ง gen QR
+    const t = setTimeout(() => {
+      if (!canvasRef.current || !text) return;
+      QRCode.toCanvas(canvasRef.current, text, {
+        width: size, margin: 1,
+        color: { dark:"#1a1a2e", light:"#ffffff" }
+      }, (err)=>{ if(err) console.error(err); });
+    }, 100);
+    return () => clearTimeout(t);
+  }, [text, size]);
+  return canvasRef;
+}
 
 function formatSize(size) {
   if (!size) return "";
@@ -205,6 +274,7 @@ export default function DonatePage() {
   const [appointTime,  setAppointTime]  = useState(""); // "HH:MM"
   const [donorPhone,   setDonorPhone]   = useState("");
 
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [err,        setErr]        = useState("");
   const [draftSaved, setDraftSaved] = useState(false);
@@ -214,7 +284,8 @@ export default function DonatePage() {
   // const [certPopup, setCertPopup] = useState(false);
   // const [confetti,  setConfetti]  = useState(false);
   // เพิ่ม:
-const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [step, setStep] = useState("form");
+
 
   // ============ บันทึก/โหลดร่าง ============
   const handleSaveDraft = () => {
@@ -329,7 +400,13 @@ const [submitSuccess, setSubmitSuccess] = useState(false);
     if (donateMethod === "parcel") {
       fd.append("shipping_carrier", courier);
       fd.append("tracking_number",  trackingNo.trim());
-      if (proofImage) fd.append("image", proofImage);
+      if (proofImage) {
+        const smallImg = await compressImage(proofImage); // บีบอัดก่อน append
+        fd.append("image", smallImg);
+      }
+      // fd.append("shipping_carrier", courier);
+      // fd.append("tracking_number",  trackingNo.trim());
+      // if (proofImage) fd.append("image", proofImage);
     } else {
       fd.append("donor_phone",  donorPhone.trim());
       fd.append("appoint_time", appointTime || "00:00");
@@ -344,7 +421,7 @@ const [submitSuccess, setSubmitSuccess] = useState(false);
     if (!res.ok) throw new Error(data?.message || "เกิดข้อผิดพลาด");
  
     // ✨ ไม่ออก cert ที่นี่อีกต่อไป — แสดง success 
-    setSubmitSuccess(true);     // ← state ใหม่ (เพิ่มในส่วน [2])
+    setStep("confirm");     // ← state ใหม่ (เพิ่มในส่วน [2])
   } catch (e) {
     setErr(e.message || "เกิดข้อผิดพลาด");
   } finally {
@@ -449,6 +526,63 @@ const [submitSuccess, setSubmitSuccess] = useState(false);
             </div>
           )}
         </div>
+  
+          {/* ── Pop-up 1: สรุปรายการก่อนยืนยัน ── */}
+{/* ── Pop-up 1: สรุปรายการก่อนยืนยัน ── */}
+{step === "confirm" && (
+  <div style={S.overlay}>
+    <div style={S.modalContainer}>
+      <ConfirmationSummaryPage 
+        donorName={donorName}
+        projectTitle={project?.request_title}
+        schoolName={project?.school_name}
+        schoolAddress={project?.school_full_address || project?.school_address}
+        
+        // ✨ ส่วนที่ปรับปรุง: ส่งข้อมูลตามวิธีที่เลือก
+        donateMethod={donateMethod} 
+        courier={courier}
+        trackingNo={trackingNo}
+        appointDate={appointDate}
+        appointTime={appointTime}
+        donorPhone={donorPhone}
+        
+        selectedItems={selectedItems.map(it => ({ name: it.name, qty: it.quantity }))}
+        totalQty={totalQty}
+        onBack={() => setStep("form")} 
+        onConfirm={() => {
+          // ไม่ว่าจะเป็น parcel หรือ dropoff ให้ไปหน้า QR เหมือนกัน
+          setStep("qr_label");
+        }}
+      />
+    </div>
+  </div>
+)}
+
+    {/* ── Pop-up 2: QR Label (ปรับใหม่ให้เป็น Pop-up) ── */}
+    {step === "qr_label" && (
+  <div style={S.overlay}>
+    <div style={S.modalContainer}>
+      <QRLabelPage 
+        donateMethod={donateMethod} // สำคัญมาก
+        donorName={donorName}
+        projectTitle={project?.request_title}
+        schoolName={project?.school_name}
+        courier={courier}
+        trackingNo={trackingNo}
+        appointDate={appointDate} // สำหรับดึงไปโชว์ในป้าย
+        appointTime={appointTime} // สำหรับดึงไปโชว์ในป้าย
+        donorPhone={donorPhone}   // สำหรับดึงไปโชว์ในป้าย
+        selectedItems={selectedItems.map(it => ({ name: it.name, qty: it.quantity }))}
+        totalQty={totalQty}
+        onViewProject={() => {
+          setSubmitSuccess(true);
+          setStep("form");
+        }}
+      />
+    </div>
+  </div>
+)}
+    
 
         {/* RIGHT */}
         <div className="dnRight">
@@ -691,7 +825,7 @@ const [submitSuccess, setSubmitSuccess] = useState(false);
         }}>
           🏅 <strong>ใบประกาศนียบัตร</strong>จะถูกออกให้อัตโนมัติ
           <br />
-          เมื่อโรงเรียน<strong>ยืนยันรับของ</strong>แล้ว
+          เมื่อโรงเรียน<strong>ยืนยันรับของ / ยืนยันการนัดหมาย</strong>แล้ว
           <br />
           คุณจะได้รับ <strong>notification</strong> แจ้งเตือนทันที
         </span>
@@ -710,3 +844,803 @@ const [submitSuccess, setSubmitSuccess] = useState(false);
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════
+// 1. CONFIRMATION SUMMARY PAGE
+// ═══════════════════════════════════════════════════════════
+// export function ConfirmationSummaryPage({
+//   donorName="สมชาย ใจดี",
+//   projectTitle="ชุดนักเรียนเพื่อน้อง ปี 2568",
+//   schoolName="โรงเรียนบ้านทนองแสง",
+//   donateMethod, // รับเพิ่ม
+//   courier,      // สำหรับ parcel
+//   trackingNo,   // สำหรับ parcel
+//   appointDate,  // สำหรับ dropoff
+//   appointTime,  // สำหรับ dropoff
+//   donorPhone,   // สำหรับ dropoff
+//   schoolAddress="อ.เมือง จ.ขอนแก่น",
+//   courier="Flash Express",
+//   trackingNo="TH12345678XX",
+//   donationDate="2026-03-27",
+//   selectedItems=[
+//     { name:"เสื้อเชิ้ตขาวชาย ป.1-3 (อก 30\")", qty:2 },
+//     { name:"กางเกงนักเรียนชาย (เอว 24\")", qty:1 },
+//     { name:"เสื้อเชิ้ตขาวหญิง ป.4-6 (อก 32\")", qty:2 },
+//   ],
+//   totalQty=5,
+//   onConfirm=()=>{},
+//   onBack=()=>{},
+// }) {
+// แก้ไขบรรทัดประมาณ 760+ (จุดที่ประกาศฟังก์ชัน)
+export function ConfirmationSummaryPage({
+  donorName,
+  projectTitle,
+  schoolName,
+  schoolAddress,
+  donateMethod, // รับเพิ่ม
+  courier,      // สำหรับ parcel
+  trackingNo,   // สำหรับ parcel
+  appointDate,  // สำหรับ dropoff
+  appointTime,  // สำหรับ dropoff
+  donorPhone,   // สำหรับ dropoff
+  selectedItems = [],
+  totalQty = 0,
+  onConfirm = () => {},
+  onBack = () => {},
+}) {
+  const [confirming, setConfirming] = useState(false);
+
+  const handleConfirm = async () => {
+    setConfirming(true);
+    await new Promise(r => setTimeout(r, 600));
+    onConfirm();
+  };
+
+  return (
+    <div style={{ ...S.page, background: "transparent", padding: 0, minHeight: "auto", display: "block" }}>
+      <div style={{ ...S.card, margin: "0 auto" }}>
+        
+        {/* Header */}
+        <div style={S.cardHeader}>
+          <div style={S.headerIcon}>
+            <Icon icon="fluent:document-checkmark-20-filled" width="22" color="#fff" />
+          </div>
+          <div>
+            <div style={S.headerTitle}>สรุปรายการบริจาค</div>
+            <div style={S.headerSub}>โครงการ: {projectTitle}</div>
+          </div>
+        </div>
+
+        {/* School destination */}
+        <Section label="โรงเรียนปลายทาง">
+          <Row label="โรงเรียน" value={schoolName} />
+          <Row label="ที่อยู่" value={schoolAddress} />
+        </Section>
+
+        {/* ✨ Delivery method (ปรับปรุงการแสดงผล) */}
+        <Section label="ช่องทางการส่งต่อ">
+          <div style={S.methodBadge}>
+            <Icon icon={donateMethod === "parcel" ? "lucide:truck" : "lucide:package-check"} width="16" />
+            {donateMethod === "parcel" ? "จัดส่งพัสดุ" : "นำส่งด้วยตนเอง (Drop-off)"}
+          </div>
+
+          {donateMethod === "parcel" ? (
+            <>
+              <Row label="ขนส่ง" value={courier} />
+              <Row label="เลข Tracking" value={trackingNo} mono />
+              <Row label="วันที่ส่ง" value={formatThaiDate(new Date())} />
+            </>
+          ) : (
+            <>
+              <Row label="วันนัดหมาย" value={formatThaiDate(appointDate)} />
+              <Row label="เวลานัดหมาย" value={appointTime ? `${appointTime} น.` : "ไม่ระบุ"} />
+              <Row label="เบอร์ติดต่อ" value={donorPhone} />
+            </>
+          )}
+        </Section>
+
+        {/* Items */}
+        <Section label={`รายการชุดนักเรียน (${selectedItems.length} รายการ)`}>
+          <div style={S.itemList}>
+            {selectedItems.map((item, i) => (
+              <div key={i} style={S.itemRow}>
+                <span style={S.itemName}>{item.name}</span>
+                <span style={S.itemQty}>{item.qty} ชิ้น</span>
+              </div>
+            ))}
+          </div>
+          <div style={S.totalRow}>
+            <span style={S.totalLabel}>รวมทั้งหมด</span>
+            <span style={S.totalVal}>{totalQty} ชิ้น</span>
+          </div>
+        </Section>
+
+        {/* Donor info */}
+        <Section label="ข้อมูลผู้บริจาค">
+          <Row label="ชื่อ" value={donorName} />
+        </Section>
+
+        {/* Notice (ปรับตามเงื่อนไข) */}
+        <div style={S.notice}>
+          <Icon icon="fluent:info-20-filled" width="16" style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            {donateMethod === "parcel" 
+              ? "หลังยืนยันแล้ว ระบบจะสร้าง QR Label สำหรับปริ้นแปะหน้ากล่องพัสดุ"
+              : "กรุณานำชุดนักเรียนไปส่งตามวันและเวลาที่คุณนัดหมายไว้กับทางโรงเรียน"
+            }
+          </span>
+        </div>
+
+        {/* Buttons */}
+        <div style={S.btnRow}>
+          <button style={S.btnBack} onClick={onBack} type="button">← กลับแก้ไข</button>
+          <button style={{ ...S.btnConfirm, opacity: confirming ? 0.7 : 1 }}
+            onClick={handleConfirm} disabled={confirming} type="button">
+            {confirming ? <><Spinner /> กำลังยืนยัน...</> : "ยืนยันการส่งต่อ →"}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 2. QR LABEL PAGE  (after confirm)
+// ═══════════════════════════════════════════════════════════
+export function QRLabelPage({
+  donationId,
+  donorName = "สมชาย ใจดี",
+  projectTitle = "ชุดนักเรียนเพื่อน้อง ปี 2568",
+  schoolName = "โรงเรียนบ้านทนองแสง",
+  donateMethod, // รับค่าเพื่อเช็คประเภท
+  courier,      // ข้อมูลสำหรับ Parcel
+  trackingNo,   // ข้อมูลสำหรับ Parcel
+  appointDate,  // ข้อมูลสำหรับ Drop-off
+  appointTime,  // ข้อมูลสำหรับ Drop-off
+  donorPhone,   // ข้อมูลสำหรับ Drop-off
+  selectedItems = [],
+  totalQty = 5,
+  baseUrl = "http://localhost:5173/login",
+  onViewProject = () => {},
+}) {
+  const printRef = useRef(null);
+  const id = donationId || genDonationId();
+  const qrUrl = `${baseUrl}/confirm/${id}`;
+  const qrRef = useQRCanvas(qrUrl, 110);
+
+  const isDropoff = donateMethod === "dropoff";
+
+  // ... (ฟังก์ชัน handlePrint คงเดิม) ...
+  const handlePrint = () => {
+    const w = window.open("", "_blank", "width=400,height=500");
+    w.document.write(`
+      <html><head><title>QR Label - ${id}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Sarabun',sans-serif; }
+        .label { width:378px; height:378px; padding:12px; border:2px dashed #ccc; }
+        .brand { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+        .brandName { font-size:16px; font-weight:700; color:#29B6E8; }
+        .pill { background:${isDropoff ? "#16a34a" : "#DD2E44"}; color:#fff; font-size:9px; padding:2px 6px; border-radius:20px; }
+        .project { font-size:10px; color:#666; margin-bottom:8px; }
+        .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:8px; }
+        .field label { font-size:9px; color:#999; }
+        .field span { font-size:11px; font-weight:600; display:block; }
+        .divider { border:none; border-top:1px solid #eee; margin:6px 0; }
+        .items-title { font-size:9px; color:#999; margin-bottom:4px; }
+        .item { display:flex; justify-content:space-between; font-size:10px; padding:1px 0; }
+        .total { font-size:11px; font-weight:700; text-align:right; margin-top:2px; }
+        .qr-area { display:flex; gap:8px; align-items:flex-start; margin-top:8px; }
+        .qr-canvas { border:1px solid #eee; border-radius:6px; }
+        .steps { font-size:9px; color:#666; }
+        .steps li { margin:2px 0; }
+        .footer { font-size:8px; color:#bbb; margin-top:8px; display:flex; justify-content:space-between; }
+      </style></head><body>
+      ${printRef.current?.innerHTML || ""}
+      </body></html>
+    `);
+    w.document.close(); w.focus();
+    setTimeout(() => { w.print(); w.close(); }, 400);
+  };
+
+  return (
+    <div style={{ ...S.page, background: "transparent", padding: 0, minHeight: "auto", display: "block" }}>
+      <div style={{ ...S.card, margin: "0 auto", maxWidth: 480 }}>
+        
+        <div style={S.qrPageTitle}>
+          {isDropoff 
+            ? "รหัสนัดหมาย (แสดงให้เจ้าหน้าที่สแกนผ่านมือถือ)" 
+            : "ปริ้น QR Label แปะบนกล่องพัสดุ"}
+        </div>
+
+        <div ref={printRef}>
+          <div style={{ ...S.label, border: isDropoff ? `2px solid ${C.blue}` : "2px dashed #CBD5E0" }}>
+            <div style={S.labelBrand}>
+              <span style={S.labelBrandName}>Unieed</span>
+              <span style={{ ...S.labelPill, background: isDropoff ? C.green : C.red }}>
+                {isDropoff ? "นัดหมายส่งมอบ" : "จัดส่งพัสดุ"}
+              </span>
+            </div>
+            <div style={S.labelProject}>โครงการ: {projectTitle}</div>
+
+            <div style={S.labelGrid}>
+              <div>
+                <div style={S.labelFieldLabel}>โรงเรียนปลายทาง</div>
+                <div style={S.labelFieldVal}>{schoolName}</div>
+              </div>
+              <div>
+                <div style={S.labelFieldLabel}>ผู้บริจาค</div>
+                <div style={S.labelFieldVal}>{donorName}</div>
+              </div>
+
+              {/* ✨ ส่วนที่แสดงต่างกันตามเงื่อนไข ✨ */}
+              <div>
+                <div style={S.labelFieldLabel}>{isDropoff ? "วันที่นัดหมาย" : "ขนส่ง"}</div>
+                <div style={S.labelFieldVal}>
+                  {isDropoff 
+                    ? `${formatThaiDate(appointDate)} ${appointTime ? `(${appointTime} น.)` : ""}` 
+                    : courier}
+                </div>
+              </div>
+              <div>
+                <div style={S.labelFieldLabel}>{isDropoff ? "ข้อมูลติดต่อ" : "TRACKING"}</div>
+                <div style={{ ...S.labelFieldVal, fontFamily: isDropoff ? "inherit" : "monospace", fontSize: 12, fontWeight: 700 }}>
+                  {isDropoff ? donorPhone : trackingNo}
+                </div>
+              </div>
+            </div>
+
+            <hr style={S.labelDivider} />
+            <div style={S.labelItemsTitle}>รายการ ({totalQty} ชิ้น)</div>
+            {selectedItems.map((it, i) => (
+              <div key={i} style={S.labelItemRow}>
+                <span>{it.name}</span>
+                <span style={{ fontWeight: 600 }}>×{it.qty}</span>
+              </div>
+            ))}
+            <hr style={S.labelDivider} />
+
+            <div style={S.labelQRArea}>
+              <canvas ref={qrRef} style={S.labelCanvas} />
+              <div style={S.labelSteps}>
+                <div style={S.labelStepsTitle}>{isDropoff ? "วิธีแจ้งรับของ" : "วิธีใช้ QR"}</div>
+                <div style={S.labelStep}>{isDropoff ? "1. เดินทางไปโรงเรียนตามนัด" : "1. ปริ้นและแปะ QR หน้ากล่อง"}</div>
+                <div style={S.labelStep}>{isDropoff ? "2. ยื่นหน้านี้ให้เจ้าหน้าที่สแกน" : "2. เมื่อพัสดุถึง ครูจะสแกน"}</div>
+                <div style={S.labelStep}>3. ระบบจะยืนยันการรับของ</div>
+                <div style={S.labelStep}>4. คุณจะได้รับใบเกียรติบัตรทันที</div>
+              </div>
+            </div>
+
+            <div style={S.labelFooter}>
+              <span>unieed.com/confirm/{id}</span>
+              <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{id}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+          {/* ปุ่มยังคงอยู่ทั้งคู่ตามต้องการ แต่ปรับขนาด flex เล็กน้อย */}
+          <button style={{ ...S.btnPrint, flex: 1 }} onClick={handlePrint} type="button">
+            <Icon icon="fluent:print-20-filled" width="18" /> ปริ้น QR Code
+          </button>
+          <button style={{ flex: 1.5, padding: "12px", background: "#F0FDF4", color: "#16a34a", border: "1px solid #16a34a", borderRadius: "12px", fontWeight: "600" }} onClick={onViewProject} type="button">
+            ดูผลการส่งต่อ →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 3. SCHOOL SCAN PAGE  (เมื่อโรงเรียนสแกน QR)
+// ═══════════════════════════════════════════════════════════
+export function SchoolScanPage({
+  donationId="DON-250327-001",
+  isLoggedIn=false,         // ← ถ้า false จะแสดง login gate
+  schoolEmail="",
+  donorName="สมชาย ใจดี",
+  courier="Flash Express",
+  trackingNo="TH12345678XX",
+  donationDate="2026-03-27",
+  status="pending",         // "pending" | "confirmed"
+  selectedItems=[
+    { name:"เสื้อเชิ้ตขาวชาย ป.1-3", qty:2 },
+    { name:"กางเกงนักเรียนชาย", qty:1 },
+    { name:"เสื้อเชิ้ตขาวหญิง ป.4-6", qty:2 },
+  ],
+  totalQty=5,
+  onConfirm=()=>{},
+  onReport=()=>{},
+}) {
+  const [localStatus, setLocalStatus] = useState(status);
+  const [confirming, setConfirming]   = useState(false);
+  const [loggedIn, setLoggedIn]       = useState(isLoggedIn);
+  const [email, setEmail]             = useState(schoolEmail);
+  const [pw, setPw]                   = useState("");
+  const [loginErr, setLoginErr]       = useState("");
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (!email.includes("@")) return setLoginErr("อีเมลไม่ถูกต้อง");
+    if (pw.length < 4)         return setLoginErr("รหัสผ่านสั้นเกินไป");
+    setLoginErr("");
+    setLoggedIn(true);
+  };
+
+  const handleConfirm = async () => {
+    setConfirming(true);
+    await new Promise(r=>setTimeout(r,800));
+    setLocalStatus("confirmed");
+    setConfirming(false);
+    onConfirm();
+  };
+
+  return (
+    <div style={S.scanPage}>
+
+      {/* top bar */}
+      <div style={S.scanTopbar}>
+        <span style={S.scanBrand}>Unieed</span>
+        <span style={S.scanSchoolBadge}>โรงเรียนบ้านทนองแสง</span>
+      </div>
+
+      <div style={S.scanCard}>
+
+        {!loggedIn ? (
+          /* ── Login gate ─────────────────────── */
+          <div style={{padding:"24px 0"}}>
+            <div style={S.scanLoginTitle}>เข้าสู่ระบบโรงเรียน</div>
+            <div style={S.scanLoginSub}>กรุณาใช้อีเมลที่ลงทะเบียนโรงเรียนเพื่อดูรายละเอียดการบริจาค</div>
+            <form onSubmit={handleLogin} style={{marginTop:20}}>
+              <input style={S.scanInput} type="email" placeholder="อีเมลโรงเรียน"
+                value={email} onChange={e=>setEmail(e.target.value)} required/>
+              <input style={{...S.scanInput, marginTop:10}} type="password" placeholder="รหัสผ่าน"
+                value={pw} onChange={e=>setPw(e.target.value)} required/>
+              {loginErr && <div style={S.scanErr}>{loginErr}</div>}
+              <button style={S.btnConfirm} type="submit">เข้าสู่ระบบ</button>
+            </form>
+          </div>
+        ) : (
+          /* ── Donation detail ─────────────────── */
+          <>
+            <div style={S.scanHeaderRow}>
+              <div style={S.scanDocId}>รายการบริจาคที่ได้รับ</div>
+              <div style={S.scanIdChip}>{donationId} · {formatThaiDate(donationDate)}</div>
+            </div>
+
+            {/* meta */}
+            <div style={S.scanMeta}>
+              <ScanRow label="ผู้บริจาค" value={donorName}/>
+              <ScanRow label="ขนส่ง" value={courier}/>
+              <ScanRow label="Tracking" value={trackingNo} mono/>
+              <ScanRow label="สถานะ" value={
+                localStatus === "confirmed"
+                  ? <span style={S.badgeGreen}>ยืนยันแล้ว ✓</span>
+                  : <span style={S.badgeOrange}>รอยืนยัน</span>
+              }/>
+            </div>
+
+            <div style={S.scanDivider}/>
+
+            {/* items table */}
+            <div style={S.scanTableTitle}>รายการ</div>
+            <div style={S.scanTable}>
+              <div style={S.scanTableHead}>
+                <span>รายการ</span><span>จำนวน</span>
+              </div>
+              {selectedItems.map((it,i)=>(
+                <div key={i} style={S.scanTableRow}>
+                  <span>{it.name}</span>
+                  <span style={{fontWeight:600}}>{it.qty} ชิ้น</span>
+                </div>
+              ))}
+              <div style={S.scanTableTotal}>
+                <span>รวม</span><span style={{fontWeight:700}}>{totalQty} ชิ้น</span>
+              </div>
+            </div>
+
+            {/* actions */}
+            {localStatus !== "confirmed" ? (
+              <div style={{display:"flex", flexDirection:"column", gap:10, marginTop:20}}>
+                <button style={{...S.btnConfirm, opacity:confirming?0.7:1}}
+                  onClick={handleConfirm} disabled={confirming} type="button">
+                  {confirming ? <><Spinner/> กำลังยืนยัน...</> : "ยืนยันรับของแล้ว ✓"}
+                </button>
+                <button style={S.btnReport} onClick={onReport} type="button">แจ้งปัญหา</button>
+              </div>
+            ) : (
+              <div style={S.scanSuccess}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke={C.green} strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M22 4L12 14.01l-3-3" stroke={C.green} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <div style={{fontWeight:600, color:C.green}}>ยืนยันรับของเรียบร้อยแล้ว</div>
+                <div style={{fontSize:12, color:C.sub}}>ผู้บริจาคจะได้รับแจ้งเตือนและใบเกียรติบัตรโดยอัตโนมัติ</div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 4. NOTIFICATION ITEM  (ใน NotificationBell)
+// ═══════════════════════════════════════════════════════════
+export function DonationNotificationItem({
+  donationId="DON-250327-001",
+  schoolName="โรงเรียนบ้านทนองแสง",
+  totalQty=5,
+  donationDate="2026-03-27",
+  isRead=false,
+  isExpanded=false,
+  onToggle=()=>{},
+  baseUrl="http://localhost:5173/login",
+}) {
+  const qrUrl = `${baseUrl}/confirm/${donationId}`;
+  const qrRef = useQRCanvas(isExpanded ? qrUrl : null, 90);
+
+  return (
+    <div style={{...S.notifItem, background: isRead?"#fff":"#f0f7ff"}}
+      onClick={onToggle}>
+
+      {/* icon */}
+      <div style={{...S.notifIcon, background: isRead?"#e5e7eb":"#dbeafe"}}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            stroke={isRead?"#6b7280":C.navy} strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </div>
+
+      {/* content */}
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{...S.notifTitle, fontWeight: isRead?500:700}}>
+          ส่งรายการบริจาคเรียบร้อย!
+        </div>
+        <div style={S.notifSub}>
+          {schoolName} · {totalQty} ชิ้น · DON-{donationId?.replace("DON-","")}
+        </div>
+        <div style={S.notifTime}>{formatThaiDate(donationDate)}</div>
+
+        {/* expanded QR */}
+        {isExpanded && (
+          <div style={S.notifQRExpand} onClick={e=>e.stopPropagation()}>
+            <canvas ref={qrRef} style={S.notifQRCanvas}/>
+            <div style={S.notifQRInfo}>
+              <div style={{fontWeight:600, fontSize:12, marginBottom:2}}>QR สำหรับปริ้นแปะกล่อง</div>
+              <div style={{fontSize:11, color:C.sub, marginBottom:6}}>โรงเรียนสแกนเพื่อยืนยันรับของ</div>
+              <div style={{fontFamily:"monospace", fontSize:10, color:C.navy, background:"#eff6ff",
+                padding:"2px 6px", borderRadius:4}}>{donationId}</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* unread dot */}
+      {!isRead && <div style={S.unreadDot}/>}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEMO: shows all screens in one page
+// ═══════════════════════════════════════════════════════════
+export function DonationFlowDemo() {
+  const [screen, setScreen] = useState("confirm");  // confirm | qr | school | notif
+  const [notifExpanded, setNotifExpanded] = useState(false);
+
+  const donationId = "DON-250327-001";
+  const sharedProps = {
+    donationId,
+    donorName:"สมชาย ใจดี",
+    projectTitle:"ชุดนักเรียนเพื่อน้อง ปี 2568",
+    schoolName:"โรงเรียนบ้านทนองแสง",
+    schoolAddress:"อ.เมือง จ.ขอนแก่น",
+    courier:"Flash Express",
+    trackingNo:"TH12345678XX",
+    donationDate:"2026-03-27",
+    selectedItems:[
+      { name:"เสื้อเชิ้ตขาวชาย ป.1-3 (อก 30\")", qty:2 },
+      { name:"กางเกงนักเรียนชาย (เอว 24\")", qty:1 },
+      { name:"เสื้อเชิ้ตขาวหญิง ป.4-6 (อก 32\")", qty:2 },
+    ],
+    totalQty:5,
+  };
+
+  return (
+    <div style={{fontFamily:"'Kanit', sans-serif", minHeight:"100vh", background:"#F0F4F8"}}>
+      {/* font */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        * { box-sizing:border-box; }
+        input, select, button { font-family:'Sarabun',sans-serif; }
+        button { cursor:pointer; transition: opacity .15s, transform .1s; }
+        button:active { transform: scale(0.98); }
+      `}</style>
+
+      {/* Tab nav */}
+      <div style={S.tabNav}>
+        {[
+          {key:"confirm", label:"① สรุปก่อนยืนยัน"},
+          {key:"qr",      label:"② QR Label"},
+          {key:"school",  label:"③ โรงเรียนสแกน"},
+          {key:"notif",   label:"④ Notification"},
+        ].map(t=>(
+          <button key={t.key} style={{...S.tab, ...(screen===t.key?S.tabActive:{})}}
+            onClick={()=>setScreen(t.key)} type="button">{t.label}</button>
+        ))}
+      </div>
+
+      {screen==="confirm" && (
+        <ConfirmationSummaryPage
+          {...sharedProps}
+          onConfirm={()=>setScreen("qr")}
+          onBack={()=>alert("กลับไปแก้ไข")}
+        />
+      )}
+
+      {screen==="qr" && (
+        <QRLabelPage
+          {...sharedProps}
+          baseUrl="http://localhost:5173/login"
+          // baseUrl="https://unieed.com"
+          onViewProject={()=>setScreen("school")}
+        />
+      )}
+
+      {screen==="school" && (
+        <SchoolScanPage
+          {...sharedProps}
+          isLoggedIn={false}
+          onConfirm={()=>alert("บันทึกลง DB แล้ว! แจ้งเตือนผู้บริจาค")}
+          onReport={()=>alert("ส่งรายงานปัญหา")}
+        />
+      )}
+
+      {screen==="notif" && (
+        <div style={{maxWidth:400, margin:"40px auto", background:"#fff", borderRadius:16,
+          boxShadow:"0 4px 24px rgba(0,0,0,.08)", overflow:"hidden"}}>
+          <div style={{padding:"16px 20px", borderBottom:`1px solid ${C.border}`,
+            fontWeight:700, fontSize:15}}>การแจ้งเตือน
+            <span style={{marginLeft:8, background:C.blue, color:"#fff", fontSize:11,
+              padding:"2px 8px", borderRadius:20}}>1 ใหม่</span>
+          </div>
+          <DonationNotificationItem
+            {...sharedProps}
+            isRead={false}
+            isExpanded={notifExpanded}
+            onToggle={()=>setNotifExpanded(p=>!p)}
+            baseUrl="http://localhost:5173/login"
+          />
+          <div style={{padding:"12px 20px", textAlign:"center"}}>
+            <a href="#" style={{fontSize:13, color:C.navy}}>ดูประวัติการบริจาคทั้งหมด →</a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Reusable sub-components ──────────────────────────────
+function Section({ label, children }) {
+  return (
+    <div style={S.section}>
+      <div style={S.sectionLabel}>{label}</div>
+      {children}
+    </div>
+  );
+}
+function Row({ label, value, mono=false }) {
+  return (
+    <div style={S.row}>
+      <span style={S.rowLabel}>{label}</span>
+      <span style={{...S.rowVal, ...(mono?{fontFamily:"monospace",fontWeight:600}:{})}}>{value}</span>
+    </div>
+  );
+}
+function ScanRow({ label, value, mono=false }) {
+  return (
+    <div style={S.scanRow}>
+      <span style={S.scanRowLabel}>{label}</span>
+      <span style={{...S.scanRowVal, ...(mono?{fontFamily:"monospace",fontWeight:700,letterSpacing:.5}:{})}}>{value}</span>
+    </div>
+  );
+}
+function Spinner() {
+  return <span style={{display:"inline-block", width:14, height:14, border:"2px solid rgba(255,255,255,.4)",
+    borderTopColor:"#fff", borderRadius:"50%", animation:"spin .7s linear infinite",
+    marginRight:6, verticalAlign:"middle"}}/>
+}
+
+// ─── Styles ───────────────────────────────────────────────
+const S = {
+  page: { minHeight:"100vh", background:C.bg, display:"flex", alignItems:"flex-start",
+          justifyContent:"center", padding:"32px 16px", paddingBottom:60 },
+  card: { background:C.white, borderRadius:20, boxShadow:"0 4px 32px rgba(0,0,0,.08)",
+          padding:"28px 28px", width:"100%", maxWidth:520 },
+
+  // card header
+  cardHeader: { display:"flex", alignItems:"flex-start", gap:14, marginBottom:20,
+    paddingBottom:20, borderBottom:`1px solid ${C.border}` },
+  headerIcon: { width:40, height:40, borderRadius:12, background:C.blue,
+    display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
+  headerTitle: { fontWeight:700, fontSize:17, color:C.text },
+  headerSub:   { fontSize:13, color:C.sub, marginTop:3 },
+
+  // section
+  section: { marginBottom:20 },
+  sectionLabel: { fontSize:12, fontWeight:600, color:C.sub, textTransform:"uppercase",
+    letterSpacing:.6, marginBottom:10, paddingBottom:6, borderBottom:`1px solid ${C.border}` },
+  row: { display:"flex", justifyContent:"space-between", alignItems:"baseline",
+    padding:"5px 0", gap:8 },
+  rowLabel: { fontSize:13, color:C.sub, flexShrink:0 },
+  rowVal:   { fontSize:13, color:C.text, textAlign:"right" },
+
+  // items
+  itemList: { display:"flex", flexDirection:"column", gap:6 },
+  itemRow:  { display:"flex", justifyContent:"space-between", alignItems:"center",
+    background:"#F7F8FA", borderRadius:8, padding:"8px 12px" },
+  itemName: { fontSize:13, color:C.text },
+  itemQty:  { fontSize:13, fontWeight:600, color:C.navy, background:"#EFF6FF",
+    padding:"2px 10px", borderRadius:20 },
+  totalRow: { display:"flex", justifyContent:"space-between", marginTop:10,
+    paddingTop:10, borderTop:`1px solid ${C.border}` },
+  totalLabel: { fontSize:14, color:C.sub },
+  totalVal:   { fontSize:15, fontWeight:700, color:C.text },
+
+  // method badge
+  methodBadge: { display:"inline-flex", alignItems:"center", gap:8, background:"#EFF6FF",
+    padding:"7px 14px", borderRadius:10, fontSize:13, fontWeight:600, color:C.navy, marginBottom:12 },
+  methodIcon: { display:"flex" },
+
+  // notice
+  notice: { display:"flex", alignItems:"flex-start", gap:10, background:"#FFFBEB",
+    border:`1.5px solid ${C.yellow}`, borderRadius:10, padding:"10px 14px",
+    fontSize:12.5, color:"#92400e", marginBottom:20, lineHeight:1.5 },
+
+  // buttons
+  btnRow:     { display:"flex", gap:12 },
+  btnBack:    { flex:1, padding:"12px", background:"#F3F4F6", color:C.text,
+    border:"none", borderRadius:12, fontSize:14, fontWeight:600 },
+  btnConfirm: { flex:2, padding:"13px", background:C.blue, color:"#fff",
+    border:"none", borderRadius:12, fontSize:14, fontWeight:700,
+    display:"flex", alignItems:"center", justifyContent:"center", gap:6, cursor:"pointer" },
+  btnReport:  { padding:"12px", background:"#FEF2F2", color:"#dc2626",
+    border:"none", borderRadius:12, fontSize:14, fontWeight:600, width:"100%" },
+
+  // ── QR Label ───────────────────────────────────────────
+  qrPageTitle: { fontSize:15, fontWeight:700, color:C.text, marginBottom:20,
+    paddingBottom:16, borderBottom:`1px solid ${C.border}` },
+
+  label: { border:"2px dashed #CBD5E0", borderRadius:14, padding:"16px",
+    width:"100%", maxWidth:378, fontFamily:"'Kanit',sans-serif", flex:1 },
+  labelBrand: { display:"flex", alignItems:"center", gap:8, marginBottom:8 },
+  labelBrandName: { fontSize:18, fontWeight:800, color:C.blue },
+  labelPill:  { background:C.red, color:"#fff", fontSize:9, padding:"2px 8px",
+    borderRadius:20, fontWeight:600 },
+  labelProject: { fontSize:11, color:C.sub, marginBottom:12 },
+
+  labelGrid: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 },
+  labelFieldLabel: { fontSize:9, color:"#9CA3AF", marginBottom:1 },
+  labelFieldVal:   { fontSize:12, fontWeight:600, color:C.text },
+
+  labelDivider: { border:"none", borderTop:`1px solid ${C.border}`, margin:"10px 0" },
+  labelItemsTitle: { fontSize:9, color:C.sub, marginBottom:5, textTransform:"uppercase", letterSpacing:.5 },
+  labelItemRow: { display:"flex", justifyContent:"space-between", fontSize:11,
+    color:C.text, padding:"2px 0" },
+
+  labelQRArea: { display:"flex", gap:12, alignItems:"flex-start", marginTop:10 },
+  labelCanvas: { borderRadius:8, border:`1px solid ${C.border}`, flexShrink:0 },
+  labelSteps:  { flex:1 },
+  labelStepsTitle: { fontSize:10, fontWeight:700, color:C.text, marginBottom:4 },
+  labelStep:       { fontSize:10, color:C.sub, marginBottom:3 },
+
+  labelFooter: { display:"flex", justifyContent:"space-between", marginTop:10,
+    fontSize:9, color:"#C0C0C0" },
+
+  btnPrint: { flex:1, display:"flex", alignItems:"center", justifyContent:"center",
+    gap:8, padding:"12px", background:C.blue, color:"#fff", border:"none",
+    borderRadius:12, fontSize:14, fontWeight:700 },
+  btnViewProject: { flex:1, padding:"12px", background:"#F0FDF4", color:C.green,
+    border:`1.5px solid ${C.green}`, borderRadius:12, fontSize:14, fontWeight:600 },
+
+  // ── School Scan ────────────────────────────────────────
+  scanPage: { minHeight:"100vh", background:"#F7F8FA",
+    display:"flex", flexDirection:"column", alignItems:"center" },
+  scanTopbar: { width:"100%", background:C.blue, padding:"14px 24px",
+    display:"flex", alignItems:"center", justifyContent:"space-between" },
+  scanBrand:       { color:"#fff", fontSize:20, fontWeight:800 },
+  scanSchoolBadge: { background:"rgba(255,255,255,.2)", color:"#fff",
+    fontSize:13, padding:"4px 12px", borderRadius:20 },
+  scanCard: { width:"100%", maxWidth:400, background:"#fff", borderRadius:20,
+    padding:"24px", margin:"24px 16px", boxShadow:"0 4px 24px rgba(0,0,0,.08)" },
+
+  scanLoginTitle: { fontSize:20, fontWeight:700, color:C.text, textAlign:"center" },
+  scanLoginSub:   { fontSize:13, color:C.sub, textAlign:"center", marginTop:6, lineHeight:1.5 },
+  scanInput: { width:"100%", padding:"12px 14px", border:`1.5px solid ${C.border}`,
+    borderRadius:10, fontSize:14, color:C.text, outline:"none", display:"block" },
+  scanErr: { fontSize:12, color:C.red, marginTop:6 },
+
+  scanHeaderRow: { marginBottom:16 },
+  scanDocId:   { fontSize:16, fontWeight:700, color:C.text },
+  scanIdChip:  { fontSize:12, color:C.sub, marginTop:2 },
+
+  scanMeta: { background:"#F7F8FA", borderRadius:12, padding:"14px 16px",
+    display:"flex", flexDirection:"column", gap:0 },
+  scanRow:      { display:"flex", justifyContent:"space-between", alignItems:"center",
+    padding:"5px 0", borderBottom:`1px solid #EFEFEF` },
+  scanRowLabel: { fontSize:13, color:C.sub },
+  scanRowVal:   { fontSize:13, color:C.text, fontWeight:500 },
+
+  scanDivider: { border:"none", borderTop:`1px solid ${C.border}`, margin:"16px 0" },
+  scanTableTitle: { fontSize:13, fontWeight:700, color:C.text, marginBottom:8 },
+  scanTable: { border:`1px solid ${C.border}`, borderRadius:10, overflow:"hidden" },
+  scanTableHead: { display:"flex", justifyContent:"space-between", padding:"8px 14px",
+    background:"#F7F8FA", fontSize:12, fontWeight:600, color:C.sub },
+  scanTableRow:  { display:"flex", justifyContent:"space-between", padding:"10px 14px",
+    fontSize:13, color:C.text, borderTop:`1px solid ${C.border}` },
+  scanTableTotal: { display:"flex", justifyContent:"space-between", padding:"10px 14px",
+    background:"#F0F9FF", borderTop:`2px solid ${C.blue}`, fontSize:14, color:C.text },
+
+  badgeGreen:  { background:"#D1FAE5", color:C.green, padding:"2px 10px",
+    borderRadius:20, fontSize:12, fontWeight:600 },
+  badgeOrange: { background:"#FEF3C7", color:"#B45309", padding:"2px 10px",
+    borderRadius:20, fontSize:12, fontWeight:600 },
+
+  scanSuccess: { display:"flex", flexDirection:"column", alignItems:"center", gap:8,
+    padding:"24px", background:"#F0FDF4", borderRadius:12, marginTop:16, textAlign:"center" },
+
+  // ── Notification item ──────────────────────────────────
+  notifItem: { display:"flex", alignItems:"flex-start", gap:12, padding:"14px 20px",
+    borderBottom:`1px solid ${C.border}`, cursor:"pointer", transition:"background .15s" },
+  notifIcon:  { width:36, height:36, borderRadius:10, display:"flex",
+    alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:2 },
+  notifTitle: { fontSize:13.5, color:C.text, marginBottom:2 },
+  notifSub:   { fontSize:12, color:C.sub, marginBottom:2 },
+  notifTime:  { fontSize:11, color:"#9CA3AF" },
+
+  notifQRExpand: { display:"flex", gap:12, alignItems:"center", marginTop:12,
+    background:"#F0F7FF", borderRadius:10, padding:"12px",
+    border:`1px solid #BFDBFE` },
+  notifQRCanvas: { borderRadius:6, border:`1px solid ${C.border}`, flexShrink:0 },
+  notifQRInfo:   { flex:1 },
+
+  unreadDot: { width:8, height:8, borderRadius:"50%", background:C.blue,
+    flexShrink:0, marginTop:6 },
+
+  // ── Tab nav ────────────────────────────────────────────
+  tabNav: { display:"flex", gap:4, padding:"16px 20px", background:"#fff",
+    borderBottom:`1px solid ${C.border}`, overflowX:"auto",
+    flexWrap:"wrap", justifyContent:"center" },
+  tab: { padding:"8px 16px", border:"none", background:"transparent", borderRadius:8,
+    fontSize:13, color:C.sub, fontWeight:500 },
+  tabActive: { background:C.blue, color:"#fff", fontWeight:700 },
+  overlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: "rgba(0, 0, 0, 0.6)", // พื้นหลังมืด
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2000,
+    padding: "20px",
+  },
+  modalContainer: {
+    width: "100%",
+    maxWidth: "520px",
+    // maxHeight: "90vh",
+    // overflowY: "auto",
+    borderRadius: "20px",
+  position: "relative",
+  background: "transparent",
+    borderRadius: "20px",
+    position: "relative",
+  },
+};
