@@ -210,9 +210,11 @@ export default function DonatePage() {
   const [draftSaved, setDraftSaved] = useState(false);
 
   // Certificate popup
-  const [certData,  setCertData]  = useState(null);
-  const [certPopup, setCertPopup] = useState(false);
-  const [confetti,  setConfetti]  = useState(false);
+  // const [certData,  setCertData]  = useState(null);
+  // const [certPopup, setCertPopup] = useState(false);
+  // const [confetti,  setConfetti]  = useState(false);
+  // เพิ่ม:
+const [submitSuccess, setSubmitSuccess] = useState(false);
 
   // ============ บันทึก/โหลดร่าง ============
   const handleSaveDraft = () => {
@@ -297,70 +299,58 @@ export default function DonatePage() {
   };
 
   const handleSubmit = async () => {
-    setErr("");
-    if (!donorName.trim()) return setErr("กรุณากรอกชื่อผู้บริจาค");
+  setErr("");
+  if (!donorName.trim()) return setErr("กรุณากรอกชื่อผู้บริจาค");
+  if (donateMethod === "parcel") {
+    if (!courier)           return setErr("กรุณาเลือกบริการขนส่ง");
+    if (!trackingNo.trim()) return setErr("กรุณากรอกเลขพัสดุ");
+  } else {
+    if (!appointDate)       return setErr("กรุณาเลือกวันนัดหมาย");
+    if (!donorPhone.trim()) return setErr("กรุณากรอกเบอร์ติดต่อ");
+    if (donorPhone.length < 9 || donorPhone.length > 10)
+      return setErr("เบอร์โทรต้องมี 9-10 หลัก");
+    if (donorPhone.length === 9 && !donorPhone.startsWith("02"))
+      return setErr("เบอร์ 9 หลักต้องขึ้นต้นด้วย 02");
+  }
+  if (selectedItems.length === 0) return setErr("ไม่พบรายการที่เลือก กรุณากลับไปเลือกใหม่");
+ 
+  try {
+    setSubmitting(true);
+    const fd = new FormData();
+    fd.append("donor_name",      donorName.trim());
+    fd.append("delivery_method", donateMethod);
+    fd.append("donation_date",
+      donateMethod === "dropoff"
+        ? appointDate
+        : new Date().toISOString().split("T")[0]
+    );
+    fd.append("items", JSON.stringify(selectedItems));
+ 
     if (donateMethod === "parcel") {
-      if (!courier)           return setErr("กรุณาเลือกบริการขนส่ง");
-      if (!trackingNo.trim()) return setErr("กรุณากรอกเลขพัสดุ");
+      fd.append("shipping_carrier", courier);
+      fd.append("tracking_number",  trackingNo.trim());
+      if (proofImage) fd.append("image", proofImage);
     } else {
-      if (!appointDate)       return setErr("กรุณาเลือกวันนัดหมาย");
-      if (!donorPhone.trim()) return setErr("กรุณากรอกเบอร์ติดต่อ");
-      if (donorPhone.length < 9 || donorPhone.length > 10)
-        return setErr("เบอร์โทรต้องมี 9-10 หลัก");
-      if (donorPhone.length === 9 && !donorPhone.startsWith("02"))
-        return setErr("เบอร์ 9 หลักต้องขึ้นต้นด้วย 02");
+      fd.append("donor_phone",  donorPhone.trim());
+      fd.append("appoint_time", appointTime || "00:00");
     }
-    if (selectedItems.length === 0) return setErr("ไม่พบรายการที่เลือก กรุณากลับไปเลือกใหม่");
-
-    try {
-      setSubmitting(true);
-      const fd = new FormData();
-      fd.append("donor_name",      donorName.trim());
-      fd.append("delivery_method", donateMethod);
-      fd.append("donation_date",
-        donateMethod === "dropoff"
-          ? appointDate
-          : new Date().toISOString().split("T")[0]
-      );
-      fd.append("items", JSON.stringify(selectedItems));
-
-      if (donateMethod === "parcel") {
-        fd.append("shipping_carrier", courier);
-        fd.append("tracking_number",  trackingNo.trim());
-        if (proofImage) fd.append("image", proofImage);
-      } else {
-        fd.append("donor_phone",  donorPhone.trim());
-        // ส่ง appointTime ถ้าเลือกไว้ มิฉะนั้น fallback "00:00"
-        fd.append("appoint_time", appointTime || "00:00");
-      }
-
-      const res  = await fetch(`${BASE}/donations/${requestId}`, {
-        method:  "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body:    fd,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "เกิดข้อผิดพลาด");
-
-      const certRes = await fetch(`${BASE}/certificates/generate`, {
-        method:  "POST",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ donation_id: data.donation_id }),
-      });
-      const cert = certRes.ok ? await certRes.json() : null;
-      setCertData(cert);
-      setCertPopup(true);
-      setConfetti(true);
-      setTimeout(() => setConfetti(false), 5000);
-    } catch (e) {
-      setErr(e.message || "เกิดข้อผิดพลาด");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+ 
+    const res  = await fetch(`${BASE}/donations/${requestId}`, {
+      method:  "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body:    fd,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || "เกิดข้อผิดพลาด");
+ 
+    // ✨ ไม่ออก cert ที่นี่อีกต่อไป — แสดง success 
+    setSubmitSuccess(true);     // ← state ใหม่ (เพิ่มในส่วน [2])
+  } catch (e) {
+    setErr(e.message || "เกิดข้อผิดพลาด");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const rightAccount = () => {
     if (!token) return (
@@ -679,38 +669,44 @@ export default function DonatePage() {
       </div>
 
       {/* Certificate Popup */}
-      {certPopup && (
-        <div className="certOverlay">
-          {confetti && <ConfettiEffect />}
-          <div className="certPopup">
-            <div className="certPopupTitle">🎉 ขอบคุณที่ร่วมส่งต่อ!</div>
-            <div className="certPopupName">{donorName}</div>
-            <div className="certPopupMsg">
-              ขอบคุณที่เข้าร่วมเป็นส่วนหนึ่งของการส่งมอบคุณค่าให้กับเด็กๆ
-              ผ่านแพลตฟอร์ม Unieed ทางแพลตฟอร์มขอมอบใบประกาศนียบัตร
-              ฉบับนี้เพื่อเป็นเกียรติให้แก่ผู้บริจาค
-            </div>
-            {certData?.certificate_url && (
-              <img src={certData.certificate_url} alt="certificate" className="certPreview" />
-            )}
-            <div className="certPopupActions">
-              {certData?.certificate_url && (
-                <a href={certData.certificate_url} download="certificate.png" className="certBtnDownload">
-                  ⬇ ดาวน์โหลด PNG
-                </a>
-              )}
-              {certData?.pdf_url && (
-                <a href={certData.pdf_url} target="_blank" rel="noreferrer" className="certBtnDownload certBtnPdf">
-                  ⬇ ดาวน์โหลด PDF
-                </a>
-              )}
-              <button className="certBtnClose" onClick={() => { setCertPopup(false); navigate(`/projects/${requestId}`); }}>
-                ปิด
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {submitSuccess && (
+  <div className="certOverlay">
+    <ConfettiEffect />
+    <div className="certPopup">
+      <div className="certPopupTitle">✅ ส่งรายการเรียบร้อย!</div>
+      <div className="certPopupName">{donorName}</div>
+      <div className="certPopupMsg">
+        ขอบคุณที่ร่วมส่งต่อโอกาสให้เด็กๆ ผ่าน Unieed
+        <br /><br />
+        <span style={{
+          display: "inline-block",
+          background: "#eff6ff",
+          border: "1px solid #bfdbfe",
+          borderRadius: "10px",
+          padding: "10px 14px",
+          fontSize: "13px",
+          color: "#1e40af",
+          lineHeight: 1.7,
+          textAlign: "left",
+        }}>
+          🏅 <strong>ใบประกาศนียบัตร</strong>จะถูกออกให้อัตโนมัติ
+          <br />
+          เมื่อโรงเรียน<strong>ยืนยันรับของ</strong>แล้ว
+          <br />
+          คุณจะได้รับ <strong>notification</strong> แจ้งเตือนทันที
+        </span>
+      </div>
+      <div className="certPopupActions">
+        <button
+          className="certBtnClose"
+          onClick={() => { setSubmitSuccess(false); navigate(`/projects/${requestId}`); }}
+        >
+          รับทราบ
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

@@ -11,7 +11,7 @@ import homeRoutes        from "./modules/home/home.routes.js";
 import donationRoutes    from "./modules/donation/donation.routes.js";
 import certificateRoutes from "./modules/certificate/certificate.routes.js";
 import marketRoutes      from "./modules/Market/Market.routes.js";
-
+import notificationRouter from "./modules/notification/notifications.router.js";
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
@@ -32,6 +32,7 @@ app.use((err, req, res, next) => {
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
 
+app.use("/notifications", notificationRouter); // ← register
 
 
 export default app;

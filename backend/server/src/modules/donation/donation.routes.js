@@ -9,7 +9,7 @@ import {
   listDonationsByProject,
   getDonationDetail,
   updateDonationStatus,
-  verifyDonation,
+//   verifyDonation,
 } from "./donation.controller.js";
 
 // ✅ import schedule controller เพิ่ม
@@ -18,6 +18,8 @@ import {
   getMySchedule,
   saveMySchedule,
 } from "./donation_schedule.controller.js";
+
+import { verifyAndIssueCertificate } from "../certificate/certificate.controller.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const r = Router();
@@ -66,7 +68,6 @@ r.patch(
   updateDonationStatus
 );
 
-// ─────────────────────────────────────────
 // 🟢 VERIFY DONATION (school_admin)
 // PATCH /donations/:donationId/verify
 // ─────────────────────────────────────────
@@ -74,12 +75,9 @@ r.patch(
   "/:donationId/verify",
   auth,
   requireRole(["school_admin"]),
-  verifyDonation
+  verifyAndIssueCertificate 
 );
 
-// ==================================================
-// 🎯 SCHEDULE ROUTES (แก้ path ให้ถูก)
-// ==================================================
 
 // public
 // GET /donations/schedule/request/:requestId
@@ -101,5 +99,7 @@ r.put(
   requireRole(["school_admin"]),
   saveMySchedule
 );
+
+// 
 
 export default r;

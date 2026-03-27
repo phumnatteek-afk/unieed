@@ -4,17 +4,12 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { getJson } from "../api/http.js";
 import "./styles/Homepage.css";
 import ProfileDropdown from "../features/auth/pages/ProfileDropdown.jsx";
+import NotificationBell from "./NotificationBell.jsx";
 
 
 // icon
 import { Icon } from "@iconify/react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faMagnifyingGlass,
-  faPhone,
-  faEnvelope,
-} from "@fortawesome/free-solid-svg-icons";
-import { faFacebook, faLine } from "@fortawesome/free-brands-svg-icons";
+
 <link
   rel="stylesheet"
   href="https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css"
@@ -113,8 +108,13 @@ export default function HomePage() {
       </div>
     );
   }
-  return <ProfileDropdown />;
-  };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <NotificationBell />
+      <ProfileDropdown />
+    </div>
+  );
+};
 
   // ===== projects ที่ใช้ “แสดงผลจริง” (newest / random) (เพิ่ม)
   const displayProjects = useMemo(() => {
@@ -708,8 +708,15 @@ export default function HomePage() {
 
                               <div className="projBottom">
                                 <div className="projFilled">
-  บริจาคแล้ว <span><b>{p.total_donated || p.total_fulfilled || 0}</b></span> ชิ้น
+  {/* บริจาคแล้ว <span><b>{p.total_donated || p.total_fulfilled || 0}</b></span> ชิ้น */}
+  <div className="projFilled">
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+  ส่งถึงโรงเรียนแล้ว <span><b>{p.total_fulfilled || 0}</b></span> ชุด
 </div>
+</div>
+
                                 {/* ✅ e.stopPropagation() กันไม่ให้ click ลามไปที่กล่อง */}
                                 <button
                                   className="btnSend"

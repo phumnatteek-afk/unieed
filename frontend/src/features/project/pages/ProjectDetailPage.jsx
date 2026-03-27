@@ -115,11 +115,11 @@ export default function ProjectDetailPage() {
 
     // levels — เฉพาะที่โรงเรียนขอมา (มี quantity > 0 หรือมีรูป school custom)
     const levels = [...new Set(
-  allItems
-    .filter(i => i.quantity > 0)
-    .map(i => i.education_level)
-    .filter(Boolean)
-)];
+      allItems
+        .filter(i => i.quantity > 0)
+        .map(i => i.education_level)
+        .filter(Boolean)
+    )];
 
     // กรองตาม level ก่อน
     const levelItems = activeLevel
@@ -301,26 +301,26 @@ export default function ProjectDetailPage() {
   };
 
   const handleDonate = () => {
-  const items = Object.entries(donateQty)
-    .filter(([, v]) => v > 0)
-    .map(([k, v]) => {
-      // k คือ itemKey เช่น "5_ประถมศึกษา_30"
-      // ต้อง lookup กลับหา item เพื่อเอา uniform_type_id
-      const item = project.uniform_items.find(i => itemKey(i) === k);
-      if (!item) return null;
-      return {
-        uniform_type_id: item.uniform_type_id,
-        education_level: item.education_level,
-        size:            item.size,
-        qty:             v,
-      };
-    })
-    .filter(Boolean);
+    const items = Object.entries(donateQty)
+      .filter(([, v]) => v > 0)
+      .map(([k, v]) => {
+        // k คือ itemKey เช่น "5_ประถมศึกษา_30"
+        // ต้อง lookup กลับหา item เพื่อเอา uniform_type_id
+        const item = project.uniform_items.find(i => itemKey(i) === k);
+        if (!item) return null;
+        return {
+          uniform_type_id: item.uniform_type_id,
+          education_level: item.education_level,
+          size: item.size,
+          qty: v,
+        };
+      })
+      .filter(Boolean);
 
-  navigate(`/donate/${requestId}?method=${selectedMethod}`, {
-    state: { donateItems: items },
-  });
-};
+    navigate(`/donate/${requestId}?method=${selectedMethod}`, {
+      state: { donateItems: items },
+    });
+  };
 
   return (
     <div className="homePage">
@@ -362,7 +362,9 @@ export default function ProjectDetailPage() {
                 <div className="pdProgressBlock">
                   <div className="pdProgressTopRow">
                     <span className="pdProgressCount">
-                      ยอดบริจาคปัจจุบัน: <strong>{fulfilled}</strong> / {needed} ชุด
+                      {/* ยอดบริจาคปัจจุบัน: <strong>{fulfilled}</strong> / {needed} ชุด */}
+
+                      ยอดที่โรงเรียนยืนยันรับแล้ว: <strong>{fulfilled}</strong> / {needed} ชุด
                     </span>
                     <span className="pdProgressPct">{pct}%</span>
                   </div>

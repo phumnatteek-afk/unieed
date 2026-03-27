@@ -7,45 +7,45 @@ import "../styles/Schooldonationpage.css";
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
 const TRACKING_URLS = {
-  "ไปรษณีย์ไทย":     (no) => `https://track.thailandpost.co.th/?trackNumber=${no}`,
-  "Flash Express":    (no) => `https://www.flashexpress.co.th/tracking/?se=${no}`,
+  "ไปรษณีย์ไทย": (no) => `https://track.thailandpost.co.th/?trackNumber=${no}`,
+  "Flash Express": (no) => `https://www.flashexpress.co.th/tracking/?se=${no}`,
 
   // ✅ แก้ J&T — URL จริงคือ /service/track?waybillNo=
-  "J&T Express":      (no) => `https://www.jtexpress.co.th/service/track?waybillNo=${no}`,
+  "J&T Express": (no) => `https://www.jtexpress.co.th/service/track?waybillNo=${no}`,
 
   // ✅ แก้ Kerry — เว็บ th.kerryexpress.com เปลี่ยน path แล้ว ใช้ /th/track/?track=
   "Kerry Express": (no) => `https://th.kex-express.com/th/track/?track=${no}`,
 
-  "Lazada Logistics": ()   => `https://www.lazada.co.th/helpcenter/`,
+  "Lazada Logistics": () => `https://www.lazada.co.th/helpcenter/`,
 };
 
 const CONDITION_OPTIONS = [
-  { value: "usable",     label: "ใช้งานได้",    color: "#16a34a", bg: "#dcfce7" },
+  { value: "usable", label: "ใช้งานได้", color: "#16a34a", bg: "#dcfce7" },
   { value: "wrong_item", label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" },
-  { value: "damaged",    label: "เสียหาย",       color: "#dc2626", bg: "#fee2e2" },
+  { value: "damaged", label: "เสียหาย", color: "#dc2626", bg: "#fee2e2" },
 ];
 
 const STATUS_META = {
-  pending:  { label: "รอตรวจสอบ", color: "#d97706", bg: "#fef3c7" },
+  pending: { label: "รอตรวจสอบ", color: "#d97706", bg: "#fef3c7" },
   approved: { label: "ได้รับแล้ว", color: "#16a34a", bg: "#dcfce7" },
-  rejected: { label: "ปฏิเสธ",    color: "#dc2626", bg: "#fee2e2" },
+  rejected: { label: "ปฏิเสธ", color: "#dc2626", bg: "#fee2e2" },
 };
 
 const CONDITION_META = {
-  usable:     { label: "ใช้งานได้",    color: "#16a34a", bg: "#dcfce7" },
+  usable: { label: "ใช้งานได้", color: "#16a34a", bg: "#dcfce7" },
   wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" },
-  damaged:    { label: "เสียหาย",      color: "#dc2626", bg: "#fee2e2" },
+  damaged: { label: "เสียหาย", color: "#dc2626", bg: "#fee2e2" },
 };
 
-const TH_MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-const TH_DAYS   = ["อา","จ","อ","พ","พฤ","ศ","ส"];
+const TH_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+const TH_DAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
 const formatDate = (raw) => {
   if (!raw) return "-";
   const d = new Date(raw);
   if (isNaN(d.getTime())) return "-";
   const local = new Date(d.getTime() + 7 * 60 * 60 * 1000);
-  return local.toLocaleDateString("th-TH", { day:"2-digit", month:"2-digit", year:"numeric" });
+  return local.toLocaleDateString("th-TH", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
 const parseItems = (snapshot) => {
@@ -56,22 +56,22 @@ const parseItems = (snapshot) => {
 
 // ── Mini Calendar component ────────────────────────────────────────
 function MiniCalendar({ markedDate }) {
-  const target  = markedDate ? new Date(markedDate) : new Date();
-  const year    = target.getFullYear();
-  const month   = target.getMonth();
-  const marked  = markedDate
-    ? `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,"0")}-${String(target.getDate()).padStart(2,"0")}`
+  const target = markedDate ? new Date(markedDate) : new Date();
+  const year = target.getFullYear();
+  const month = target.getMonth();
+  const marked = markedDate
+    ? `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`
     : null;
 
-  const firstDay  = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
   const isMarked = (d) => {
     if (!d || !marked) return false;
-    const key = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     return key === marked;
   };
 
@@ -97,19 +97,19 @@ function MiniCalendar({ markedDate }) {
 export default function SchoolDonationPage() {
   const { token } = useAuth();
 
-  const [donations,    setDonations]    = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [expandedRow,  setExpandedRow]  = useState(null);
-  const [search,       setSearch]       = useState("");
+  const [donations, setDonations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [search, setSearch] = useState("");
   const [filterMethod, setFilterMethod] = useState("all");
 
   // popups
   const [confirmPopup, setConfirmPopup] = useState(null);
-  const [verifyPopup,  setVerifyPopup]  = useState(null);
-  const [apptPopup,    setApptPopup]    = useState(null);
-  const [thankMsg,     setThankMsg]     = useState("");
-  const [condition,    setCondition]    = useState("");
-  const [verifying,    setVerifying]    = useState(false);
+  const [verifyPopup, setVerifyPopup] = useState(null);
+  const [apptPopup, setApptPopup] = useState(null);
+  const [thankMsg, setThankMsg] = useState("");
+  const [condition, setCondition] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -117,9 +117,9 @@ export default function SchoolDonationPage() {
     try {
       setLoading(true);
       const projRes = await fetch(`${BASE}/school/projects/latest`, { headers });
-      const proj    = await projRes.json();
+      const proj = await projRes.json();
       if (!proj?.request_id) { setDonations([]); return; }
-      const res  = await fetch(`${BASE}/donations/project/${proj.request_id}`, { headers });
+      const res = await fetch(`${BASE}/donations/project/${proj.request_id}`, { headers });
       const data = await res.json();
       setDonations(Array.isArray(data) ? data : []);
     } catch (e) { console.error(e); }
@@ -129,11 +129,11 @@ export default function SchoolDonationPage() {
   useEffect(() => { loadDonations(); }, []);
 
   const summary = useMemo(() => ({
-    usable:     donations.filter(d => d.condition_status === "usable").length,
+    usable: donations.filter(d => d.condition_status === "usable").length,
     wrong_item: donations.filter(d => d.condition_status === "wrong_item").length,
-    damaged:    donations.filter(d => d.condition_status === "damaged").length,
-    approved:   donations.filter(d => d.status === "approved").length,
-    pending:    donations.filter(d => d.status === "pending").length,
+    damaged: donations.filter(d => d.condition_status === "damaged").length,
+    approved: donations.filter(d => d.status === "approved").length,
+    pending: donations.filter(d => d.status === "pending").length,
   }), [donations]);
 
   const filtered = useMemo(() => donations.filter(d => {
@@ -145,8 +145,8 @@ export default function SchoolDonationPage() {
   }), [donations, filterMethod, search]);
 
   const openTracking = (carrier, trackingNo) => {
-    const fn  = TRACKING_URLS[carrier];
-    const url = fn ? fn(trackingNo) : `https://www.google.com/search?q=${encodeURIComponent(carrier+" tracking "+trackingNo)}`;
+    const fn = TRACKING_URLS[carrier];
+    const url = fn ? fn(trackingNo) : `https://www.google.com/search?q=${encodeURIComponent(carrier + " tracking " + trackingNo)}`;
     window.open(url, "_blank");
   };
 
@@ -169,12 +169,20 @@ export default function SchoolDonationPage() {
       await fetch(`${BASE}/donations/${verifyPopup.donation_id}/verify`, {
         method: "PATCH",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ condition_status: condition, thank_message: thankMsg }),
+        body: JSON.stringify({
+          condition_status: condition,
+          thank_message: thankMsg,   // ← ส่ง thank_message ให้ backend ด้วย
+        }),
       });
-      setVerifyPopup(null); setCondition(""); setThankMsg("");
+      setVerifyPopup(null);
+      setCondition("");
+      setThankMsg("");
       loadDonations();
-    } catch (e) { console.error(e); }
-    finally { setVerifying(false); }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const openVerifyPopup = (donation) => {
@@ -192,27 +200,27 @@ export default function SchoolDonationPage() {
 
       {/* Summary cards */}
       <div className="sdSummaryRow">
-        <div className="sdSummaryCard" style={{ borderColor:"#2563eb" }}>
+        <div className="sdSummaryCard" style={{ borderColor: "#2563eb" }}>
           <span className="sdSummaryLabel">ใช้งานได้</span>
-          <span className="sdSummaryVal" style={{ color:"#2563eb" }}>{summary.usable}</span>
+          <span className="sdSummaryVal" style={{ color: "#2563eb" }}>{summary.usable}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor:"#d97706" }}>
+        <div className="sdSummaryCard" style={{ borderColor: "#d97706" }}>
           <span className="sdSummaryLabel">รายการไม่ตรง</span>
-          <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.wrong_item}</span>
+          <span className="sdSummaryVal" style={{ color: "#d97706" }}>{summary.wrong_item}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor:"#dc2626" }}>
+        <div className="sdSummaryCard" style={{ borderColor: "#dc2626" }}>
           <span className="sdSummaryLabel">เสียหาย</span>
-          <span className="sdSummaryVal" style={{ color:"#dc2626" }}>{summary.damaged}</span>
+          <span className="sdSummaryVal" style={{ color: "#dc2626" }}>{summary.damaged}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor:"#16a34a" }}>
-          <span className="sdSummaryDot" style={{ background:"#16a34a" }} />
+        <div className="sdSummaryCard" style={{ borderColor: "#16a34a" }}>
+          <span className="sdSummaryDot" style={{ background: "#16a34a" }} />
           <span className="sdSummaryLabel">ได้รับแล้ว</span>
-          <span className="sdSummaryVal" style={{ color:"#16a34a" }}>{summary.approved}</span>
+          <span className="sdSummaryVal" style={{ color: "#16a34a" }}>{summary.approved}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor:"#d97706" }}>
-          <span className="sdSummaryDot" style={{ background:"#d97706" }} />
+        <div className="sdSummaryCard" style={{ borderColor: "#d97706" }}>
+          <span className="sdSummaryDot" style={{ background: "#d97706" }} />
           <span className="sdSummaryLabel">รอตรวจสอบ</span>
-          <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.pending}</span>
+          <span className="sdSummaryVal" style={{ color: "#d97706" }}>{summary.pending}</span>
         </div>
       </div>
 
@@ -224,10 +232,10 @@ export default function SchoolDonationPage() {
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="sdFilterGroup">
-          {[["all","ทั้งหมด"],["parcel","จัดส่งพัสดุ"],["dropoff","Drop-Off"]].map(([v,l]) => (
+          {[["all", "ทั้งหมด"], ["parcel", "จัดส่งพัสดุ"], ["dropoff", "Drop-Off"]].map(([v, l]) => (
             <label key={v} className="sdRadio">
               <input type="radio" name="method" value={v}
-                checked={filterMethod===v} onChange={() => setFilterMethod(v)} />
+                checked={filterMethod === v} onChange={() => setFilterMethod(v)} />
               {l}
             </label>
           ))}
@@ -251,13 +259,13 @@ export default function SchoolDonationPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} style={{ textAlign:"center", padding:"48px", color:"#94a3b8" }}>กำลังโหลด...</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: "center", padding: "48px", color: "#94a3b8" }}>กำลังโหลด...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={8} style={{ textAlign:"center", padding:"48px", color:"#94a3b8" }}>ยังไม่มีรายการ</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: "center", padding: "48px", color: "#94a3b8" }}>ยังไม่มีรายการ</td></tr>
             ) : filtered.map(d => {
-              const isExpanded    = expandedRow === d.donation_id;
-              const items         = parseItems(d.items_snapshot);
-              const statusMeta    = STATUS_META[d.status]    || STATUS_META.pending;
+              const isExpanded = expandedRow === d.donation_id;
+              const items = parseItems(d.items_snapshot);
+              const statusMeta = STATUS_META[d.status] || STATUS_META.pending;
               const conditionMeta = d.condition_status ? CONDITION_META[d.condition_status] : null;
 
               return (
@@ -267,7 +275,7 @@ export default function SchoolDonationPage() {
                     onClick={() => setExpandedRow(isExpanded ? null : d.donation_id)}
                   >
                     {/* วันที่ */}
-                    <td style={{ whiteSpace:"nowrap", fontSize:13 }}>{formatDate(d.created_at)}</td>
+                    <td style={{ whiteSpace: "nowrap", fontSize: 13 }}>{formatDate(d.created_at)}</td>
 
                     {/* ผู้บริจาค */}
                     <td className="sdDonorName">{d.donor_name}</td>
@@ -293,9 +301,9 @@ export default function SchoolDonationPage() {
                             <Icon icon="mdi:calendar-clock" width="14" />
                             <span>Drop-Off</span>
                           </div>
-                          <span style={{ fontSize:12, color:"#64748b" }}>
+                          <span style={{ fontSize: 12, color: "#64748b" }}>
                             {formatDate(d.donation_date)}
-                            {d.donation_time ? ` ${String(d.donation_time).slice(0,5)} น.` : ""}
+                            {d.donation_time ? ` ${String(d.donation_time).slice(0, 5)} น.` : ""}
                           </span>
                         </div>
                       )}
@@ -316,14 +324,14 @@ export default function SchoolDonationPage() {
                           ดูการนัด
                         </button>
                       ) : (
-                        <span style={{ color:"#cbd5e1", fontSize:13 }}>ไม่มี</span>
+                        <span style={{ color: "#cbd5e1", fontSize: 13 }}>ไม่มี</span>
                       )}
                     </td>
 
                     {/* รายการ */}
                     <td>
                       <span className="sdItemCount">
-      
+
                         {items.length} รายการ · {d.quantity} ชิ้น
                       </span>
                     </td>
@@ -331,7 +339,7 @@ export default function SchoolDonationPage() {
                     {/* สถานะ */}
                     <td>
                       <span className="sdBadge"
-                        style={{ color:statusMeta.color, background:statusMeta.bg }}>
+                        style={{ color: statusMeta.color, background: statusMeta.bg }}>
                         {d.status === "approved" && <Icon icon="mdi:check" width="13" />}
                         {statusMeta.label}
                       </span>
@@ -341,10 +349,10 @@ export default function SchoolDonationPage() {
                     <td>
                       {conditionMeta ? (
                         <span className="sdBadge"
-                          style={{ color:conditionMeta.color, background:conditionMeta.bg }}>
+                          style={{ color: conditionMeta.color, background: conditionMeta.bg }}>
                           {conditionMeta.label}
                         </span>
-                      ) : <span style={{ color:"#e2e8f0" }}>—</span>}
+                      ) : <span style={{ color: "#e2e8f0" }}>—</span>}
                     </td>
 
                     {/* จัดการ */}
@@ -352,10 +360,7 @@ export default function SchoolDonationPage() {
                       <div className="sdActions">
                         {d.status === "pending" && (
                           <>
-                            <button className="sdBtnConfirm"
-                              onClick={() => setConfirmPopup(d)}>
-                              ยืนยัน
-                            </button>
+                            <button className="sdBtnConfirm" onClick={() => openVerifyPopup(d)}>ยืนยัน</button>
                             <button className="sdBtnVerify"
                               onClick={() => openVerifyPopup(d)}>
                               ตรวจสอบ
@@ -382,7 +387,7 @@ export default function SchoolDonationPage() {
                       <td colSpan={8}>
                         <div className="sdExpandInner">
                           {items.length === 0 ? (
-                            <span style={{ color:"#94a3b8", fontSize:13 }}>ไม่มีข้อมูลรายการ</span>
+                            <span style={{ color: "#94a3b8", fontSize: 13 }}>ไม่มีข้อมูลรายการ</span>
                           ) : items.map((item, i) => (
                             <div key={i} className="sdExpandItem">
                               <span className="sdExpandDot" />
@@ -414,7 +419,7 @@ export default function SchoolDonationPage() {
               ระบบจะส่งคำขอบคุณถึง <strong>{confirmPopup.donor_name}</strong> โดยอัตโนมัติ
               และบันทึกสถานะเป็น "ได้รับแล้ว"
             </div>
-            <div className="sdPopupActions" style={{ justifyContent:"center" }}>
+            <div className="sdPopupActions" style={{ justifyContent: "center" }}>
               <button className="sdPopupBtnGhost" onClick={() => setConfirmPopup(null)}>ยกเลิก</button>
               <button className="sdPopupBtnPrimary" onClick={() => handleConfirm(confirmPopup)}>ยืนยัน</button>
             </div>
@@ -429,46 +434,80 @@ export default function SchoolDonationPage() {
             <button className="sdPopupClose" onClick={() => setVerifyPopup(null)}>
               <Icon icon="mdi:close" width="18" />
             </button>
-            <div className="sdPopupTitle">ตรวจสอบรายการบริจาค</div>
-            <div className="sdPopupSubtitle">จาก {verifyPopup.donor_name} · {formatDate(verifyPopup.created_at)}</div>
+            <div className="sdPopupTitle">ยืนยันรับบริจาค + ออกใบประกาศนียบัตร</div>
+            <div className="sdPopupSubtitle">
+              จาก {verifyPopup.donor_name} · {formatDate(verifyPopup.created_at)}
+            </div>
 
+            {/* ── ข้อความขอบคุณ ── */}
             <div className="sdVerifySection">
               <label className="sdVerifyLabel">
                 <Icon icon="mdi:message-text-outline" width="16" />
-                ข้อความขอบคุณ (แก้ไขได้)
+                ข้อความขอบคุณ (ส่งให้ผู้บริจาคพร้อมใบประกาศ)
               </label>
-              <textarea className="sdVerifyTextarea" rows={4}
-                value={thankMsg} onChange={e => setThankMsg(e.target.value)} />
+              <textarea
+                className="sdVerifyTextarea"
+                rows={4}
+                value={thankMsg}
+                onChange={e => setThankMsg(e.target.value)}
+              />
             </div>
 
+            {/* ── สภาพชุด ── */}
             <div className="sdVerifySection">
               <label className="sdVerifyLabel">
                 <Icon icon="mdi:tshirt-crew-outline" width="16" />
                 ประเมินสภาพชุดที่ได้รับ
-                <span style={{ color:"#ef4444" }}> *</span>
+                <span style={{ color: "#ef4444" }}> *</span>
               </label>
               <div className="sdConditionGroup">
                 {CONDITION_OPTIONS.map(opt => (
-                  <button key={opt.value}
-                    className={`sdConditionBtn ${condition===opt.value ? "sdConditionActive":""}`}
-                    style={condition===opt.value
-                      ? { background:opt.bg, borderColor:opt.color, color:opt.color }
-                      : {}}
-                    onClick={() => setCondition(opt.value)}>
+                  <button
+                    key={opt.value}
+                    className={`sdConditionBtn ${condition === opt.value ? "sdConditionActive" : ""}`}
+                    style={
+                      condition === opt.value
+                        ? { background: opt.bg, borderColor: opt.color, color: opt.color }
+                        : {}
+                    }
+                    onClick={() => setCondition(opt.value)}
+                  >
                     {opt.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="sdVerifyNote">
-              * สถานะจะถูกบันทึกเป็น "ได้รับแล้ว" และระบบจะส่งข้อความขอบคุณให้ผู้บริจาค
+            {/* ── note ── */}
+            <div className="sdVerifyNote" style={{
+              background: "#eff6ff",
+              border: "0.5px solid #bfdbfe",
+              borderRadius: "8px",
+              padding: "10px 12px",
+              fontSize: "12px",
+              color: "#1e40af",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "8px",
+              marginBottom: "16px",
+            }}>
+              <Icon icon="mdi:certificate-outline" width="16" style={{ flexShrink: 0, marginTop: "1px" }} />
+              <span>
+                เมื่อยืนยัน ระบบจะ<strong> ออกใบประกาศนียบัตรอัตโนมัติ</strong>{" "}
+                และส่ง notification พร้อมข้อความขอบคุณให้ผู้บริจาคทันที
+              </span>
             </div>
+
             <div className="sdPopupActions">
-              <button className="sdPopupBtnGhost" onClick={() => setVerifyPopup(null)}>ยกเลิก</button>
-              <button className="sdPopupBtnPrimary" onClick={handleVerify}
-                disabled={verifying || !condition}>
-                {verifying ? "กำลังบันทึก..." : "ยืนยัน"}
+              <button className="sdPopupBtnGhost" onClick={() => setVerifyPopup(null)}>
+                ยกเลิก
+              </button>
+              <button
+                className="sdPopupBtnPrimary"
+                onClick={handleVerify}
+                disabled={verifying || !condition}
+              >
+                {verifying ? "กำลังบันทึก..." : "ยืนยัน + ออกใบประกาศ"}
               </button>
             </div>
           </div>
@@ -504,7 +543,7 @@ export default function SchoolDonationPage() {
                   {apptPopup.donation_time && (
                     <div className="sdScheduleTime">
                       <Icon icon="mdi:clock" width="15" color="#7c3aed" />
-                      <span>เวลา {String(apptPopup.donation_time).slice(0,5)} น.</span>
+                      <span>เวลา {String(apptPopup.donation_time).slice(0, 5)} น.</span>
                     </div>
                   )}
                   <div className="sdScheduleDetail">
@@ -547,9 +586,9 @@ export default function SchoolDonationPage() {
               <button className="sdPopupBtnGhost" onClick={() => setApptPopup(null)}>ปิด</button>
               {apptPopup.status === "pending" && (
                 <button className="sdPopupBtnPrimary" onClick={() => {
-                  setApptPopup(null);
-                  setConfirmPopup(apptPopup);
-                }}>
+  setApptPopup(null);
+  openVerifyPopup(apptPopup);  // ← ไปใช้ verify path → insert fulfillment
+}}>
                   ยืนยันรับ
                 </button>
               )}
