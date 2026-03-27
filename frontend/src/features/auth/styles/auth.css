@@ -47,7 +47,7 @@ html, body, #root {
 /* ---------- Card: 2-column container ---------- */
 .lgCard {
   width: 900px;
-  height: 680px;
+  height: 740px;
   max-width: 960px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -360,12 +360,14 @@ html, body, #root {
   background: rgba(239,68,68,.08);
   border: 1px solid rgba(239,68,68,.25);
   color: #b42318;
+  margin-top: -20px;
 }
 
 .lgAlert--success {
   background: #f0fdf4;
   color: #15803d;
   border: 1px solid #bbf7d0;
+  margin-top: -20px;
 }
 
 .lgAlert--warning {
@@ -505,7 +507,7 @@ html, body, #root {
   margin:0;
   font-size:16px;
   font-weight:700;
-  color:#3b74dc;
+  color:#5285e8;
 }
 
 .rsField{
@@ -574,13 +576,13 @@ html, body, #root {
 
 .rsBtn:active{ transform:translateY(1px); }
 .rsBtn:hover{
-  color: #3b74dc;
+  color: #5285e8;
   background-color: #fff;
-  border: 1px solid #3b74dc;
+  border: 1px solid #5285e8;
 }
 
 .rsBtn--primary{
-  background:linear-gradient(180deg, #4f86e6, #3b74dc);
+  background:linear-gradient(180deg, #4f86e6, #5285e8);
   color:#fff;
   box-shadow:0 10px 20px rgba(79,134,230,.22);
 }
