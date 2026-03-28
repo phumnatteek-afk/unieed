@@ -42,7 +42,9 @@ const sizeObj = {};
 if (item.sizes?.chest)  sizeObj.chest  = item.sizes.chest;
 if (item.sizes?.waist)  sizeObj.waist  = item.sizes.waist;
 if (item.sizes?.length) sizeObj.length = item.sizes.length;
-const sizeStr = JSON.stringify(sizeObj);
+const sizeStr = Object.keys(sizeObj).length > 0 
+  ? JSON.stringify(sizeObj) 
+  : null;
 
 
       // ถ้ากรอกชื่อโรงเรียนแต่ไม่เจอใน DB เพิ่มลงใน description
@@ -50,19 +52,21 @@ const sizeStr = JSON.stringify(sizeObj);
 
       const [result] = await conn.execute(
   `INSERT INTO products
-    (seller_id, uniform_type_id, custom_type_name, product_title,
+    (seller_id, uniform_type_id, category_id, gender, custom_type_name, product_title,
      product_description, size, level, school_name, condition_percent, condition_label,
      price, quantity, status)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')`,
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')`,
   [
     sellerId,
     item.uniform_type_id || null,
+    item.category_id     || null,   // ← เพิ่ม
+    item.gender          || null,   // ← เพิ่ม
     item.type_name?.trim() || null,
     title,
     description,
     sizeStr,
     item.level || '',
-    item.school_name?.trim() || null,   // ← เพิ่ม
+    item.school_name?.trim() || null,
     parseInt(item.condition) || 80,
     item.conditionLabel || '',
     parseFloat(item.price),
@@ -148,10 +152,12 @@ const getProducts = async ({ search, uniform_type_id, level, min_price, max_pric
     `SELECT
        p.product_id, p.product_title, p.size, p.level,
        p.condition_percent, p.condition_label, p.price, p.status, p.created_at,
+       p.quantity, p.school_name, p.custom_type_name,
+       COALESCE(p.category_id, ci.category_id) AS category_id,
+       COALESCE(p.gender, ut.gender) AS gender,
        COALESCE(ut.type_name, p.custom_type_name) AS type_name,
        ut.uniform_type_id,
-       ut.gender,
-       ci.category_name, ci.category_id,
+       ci.category_name,
        u.user_name AS seller_name,
        GROUP_CONCAT(pi.image_url ORDER BY pi.sort_order SEPARATOR '|||') AS image_urls
      FROM products p
@@ -162,7 +168,8 @@ const getProducts = async ({ search, uniform_type_id, level, min_price, max_pric
      ${whereSQL}
      GROUP BY p.product_id, p.product_title, p.size, p.level,
               p.condition_percent, p.condition_label, p.price, p.status, p.created_at,
-              ut.type_name, p.custom_type_name, ut.uniform_type_id,ut.gender,
+              p.quantity, p.category_id, p.gender, p.school_name, p.custom_type_name,
+              ut.type_name, ut.uniform_type_id, ut.gender,
               ci.category_name, ci.category_id, u.user_name
      ORDER BY ${orderBy}
      LIMIT ${limitNum} OFFSET ${offset}`,
@@ -189,15 +196,18 @@ const getProducts = async ({ search, uniform_type_id, level, min_price, max_pric
 // ─────────────────────────────────────────────────────────
 const getProductById = async (id) => {
   const [[product]] = await db.execute(
-    `SELECT p.*, 
+    `SELECT p.*,
             COALESCE(ut.type_name, p.custom_type_name) AS type_name,
-            ut.uniform_type_id, ci.category_name, ci.category_id,
-            s.school_name, u.user_name AS seller_name, u.user_phone AS seller_phone
+            ut.uniform_type_id,
+            ut.gender,
+            ci.category_name,
+            COALESCE(p.category_id, ci.category_id) AS category_id,
+            u.user_name AS seller_name,
+            u.user_phone AS seller_phone
      FROM products p
-     JOIN users         u  ON u.user_id          = p.seller_id
-     LEFT JOIN uniform_type  ut ON ut.uniform_type_id  = p.uniform_type_id
-     LEFT JOIN category_item ci ON ci.category_id      = ut.category_id
-     LEFT JOIN schools  s  ON s.school_id         = p.school_id
+     LEFT JOIN users        u  ON u.user_id         = p.seller_id
+     LEFT JOIN uniform_type ut ON ut.uniform_type_id = p.uniform_type_id
+     LEFT JOIN category_item ci ON ci.category_id   = ut.category_id
      WHERE p.product_id = ?`,
     [id]
   );

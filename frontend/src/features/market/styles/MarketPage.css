@@ -301,10 +301,11 @@
 
 /* Carousel wrapper */
 .mkCarouselWrap {
-  display: flex;
+  /* display: flex;
   flex-direction: column;
   gap: 6px;
-  width: 100%;
+  width: 100%; */
+  position: relative;
 }
 
 /* รูปหลัก */
@@ -369,3 +370,16 @@
 
 .mkCardImgLink { display: block; text-decoration: none; }
 .mkCardBodyLink { display: block; text-decoration: none; color: inherit; }
+
+.mkStockBadge {
+  position: absolute;
+  /* bottom: 8px; */
+  top: 8px;
+  right: 8px;
+  background: rgba(33, 144, 255, 0.55);
+  color: #fff;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  z-index: 2;
+}

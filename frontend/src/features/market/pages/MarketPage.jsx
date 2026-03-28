@@ -22,51 +22,58 @@ const SORT_OPTIONS = [
 const LEVELS = ["","อนุบาล","ประถมศึกษา","มัธยมต้น","มัธยมปลาย"];
 
 // ── Image Carousel ────────────────────────────────────
-function CardCarousel({ images = [], title }) {
+function CardCarousel({ images = [], title, quantity }) {
+  console.log('CardCarousel quantity:', quantity, 'images:', images.length);
   const [idx, setIdx] = useState(0);
   useEffect(() => setIdx(0), [images]);
 
-  if (!images.length) return <div className="mkCardThumbPlaceholder" />;
+  // ← ย้าย badge ออกมานอก เพื่อแสดงแม้ไม่มีรูป
+  const stockBadge = quantity > 0 && (
+    <span className="mkStockBadge">{quantity} ชิ้น</span>
+  );
+
+  if (!images.length) return (
+    <div className="mkCarouselWrap">
+      <div className="mkCarouselMain" style={{ position: 'relative' }}>
+        <div className="mkCardThumbPlaceholder" />
+        {stockBadge}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="mkCarouselWrap">
-      {/* รูปหลัก */}
-      <div className="mkCarouselMain">
+    <div className="mkCarouselWrap" style={{ position: 'relative' }}>
+       {quantity > 0 && (
+      <span className="mkStockBadge">{quantity} ชิ้น</span>
+    )}
+      <div className="mkCarouselMain" >
+      
         <img
           src={images[idx]?.image_url}
           alt={title}
           className="mkCarouselImg"
           loading="lazy"
         />
+        {stockBadge}
         {images.length > 1 && (
           <>
             <button className="mkCarouselArrow mkCarouselArrowLeft"
-              onClick={e => { 
-                e.preventDefault(); 
-                e.stopPropagation(); 
-              setIdx(i => (i - 1 + images.length) % images.length); }}>
-            <Icon icon="mdi:chevron-left"  className="arrow-icon" />
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setIdx(i => (i - 1 + images.length) % images.length); }}>
+              <Icon icon="mdi:chevron-left" />
             </button>
             <button className="mkCarouselArrow mkCarouselArrowRight"
-              onClick={e => { e.preventDefault();
-              e.stopPropagation(); setIdx(i => (i + 1) % images.length); }}>
-              <Icon icon="mdi:chevron-right"  className="arrow-icon"/>
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setIdx(i => (i + 1) % images.length); }}>
+              <Icon icon="mdi:chevron-right" />
             </button>
           </>
         )}
       </div>
-
-      {/* thumbnail แถวล่าง — แสดงเฉพาะเมื่อมีรูปมากกว่า 1 */}
       {images.length > 1 && (
         <div className="mkCarouselThumbs">
           {images.map((img, i) => (
-            <div
-              key={i}
+            <div key={i}
               className={`mkCarouselThumb${i === idx ? ' mkCarouselThumbActive' : ''}`}
-              onClick={e => { e.preventDefault(); 
-              e.stopPropagation();
-              setIdx(i); }}
-            >
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setIdx(i); }}>
               <img src={img.image_url} alt={`${title} ${i + 1}`} loading="lazy" />
             </div>
           ))}
@@ -83,11 +90,11 @@ function SizeDisplay({ size, categoryId }) {
     const cid  = Number(categoryId);
     const parts = [];
     if (cid === 1) {
-      if (s.chest)  parts.push({ label: 'อก',  val: s.chest });
-      if (s.length) parts.push({ label: 'ยาว', val: s.length });
+      if (s.chest  && s.chest  !== '0') parts.push({ label: 'อก',  val: s.chest });
+      if (s.length && s.length !== '0') parts.push({ label: 'ยาว', val: s.length });
     } else {
-      if (s.waist)  parts.push({ label: 'เอว', val: s.waist });
-      if (s.length) parts.push({ label: 'ยาว', val: s.length });
+      if (s.waist  && s.waist  !== '0') parts.push({ label: 'เอว', val: s.waist });
+      if (s.length && s.length !== '0') parts.push({ label: 'ยาว', val: s.length });
     }
     if (!parts.length) return null;
     return (
@@ -123,21 +130,24 @@ function ProductCard({ product }) {
       : [];
 
   const categoryLabel = (() => {
-    const cid = Number(product.category_id);
-    if (cid === 1) return product.gender === 'male' ? 'เสื้อนักเรียนชาย' : 'เสื้อนักเรียนหญิง';
-    if (cid === 2) return 'กางเกงนักเรียน';
-    if (cid === 3) return 'กระโปรงนักเรียน';
-    return 'ชุดนักเรียน';
-  })();
+  const cid = Number(product.category_id);
+  if (cid === 1) return product.gender === 'male' ? 'เสื้อนักเรียนชาย' : 'เสื้อนักเรียนหญิง';
+  if (cid === 2) return 'กางเกงนักเรียน';
+  if (cid === 3) return 'กระโปรงนักเรียน';
+  if (cid === 4) return 'ชุดนักเรียน';
+  return 'ชุดนักเรียน';
+})();
 
-  const typePart     = product.type_name?.trim();
-  const displayTitle = `${categoryLabel}${typePart ? ': ' + typePart : ''}`;
+const typePart = product.type_name?.trim() || product.custom_type_name?.trim();
+const displayTitle = typePart
+  ? `${categoryLabel}: ${typePart}`
+  : categoryLabel;
 
   return (
     <div className="mkCard">
       {/* carousel ไม่มี Link ห่อ → กดลูกศรไม่เด้ง */}
       <div className="mkCardThumb">
-        <CardCarousel images={images} title={displayTitle} />
+        <CardCarousel images={images} title={displayTitle} quantity={product.quantity} />
       </div>
       {/* body คลิกแล้วไปหน้าสินค้า */}
       <div

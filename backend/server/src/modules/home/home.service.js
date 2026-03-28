@@ -64,30 +64,33 @@ export async function getHomeData() {
   // 3) Products (เอารูปแรก)
   const [products] = await db.query(`
   SELECT
-    p.product_id,
-    p.product_title,
-    p.size,
-    p.level,
-    p.condition_percent,
-    p.condition_label,
-    p.price,
-    COALESCE(ut.type_name, p.custom_type_name) AS type_name,
-    ut.gender,
-    ci.category_id,
-    ci.category_name,
-    p.school_name,
-    GROUP_CONCAT(pi.image_url ORDER BY pi.sort_order SEPARATOR '|||') AS image_urls
-  FROM products p
-  LEFT JOIN uniform_type ut ON ut.uniform_type_id = p.uniform_type_id
-  LEFT JOIN category_item ci ON ci.category_id = ut.category_id
-  LEFT JOIN product_images pi ON pi.product_id = p.product_id
-  WHERE p.status = 'available'
-  GROUP BY p.product_id, p.product_title, p.size, p.level,
-           p.condition_percent, p.condition_label, p.price,
-           ut.type_name, p.custom_type_name, ut.gender,
-           ci.category_id, ci.category_name, p.school_name
-  ORDER BY RAND()
-  LIMIT 4
+  p.product_id,
+  p.product_title,
+  p.size,
+  p.level,
+  p.condition_percent,
+  p.condition_label,
+  p.price,
+  p.quantity,
+  p.school_name,
+  p.custom_type_name,
+  COALESCE(ut.type_name, p.custom_type_name) AS type_name,
+  COALESCE(p.gender, ut.gender) AS gender,
+  COALESCE(p.category_id, ci.category_id) AS category_id,
+  ci.category_name,
+  GROUP_CONCAT(pi.image_url ORDER BY pi.sort_order SEPARATOR '|||') AS image_urls
+FROM products p
+LEFT JOIN uniform_type ut ON ut.uniform_type_id = p.uniform_type_id
+LEFT JOIN category_item ci ON ci.category_id = ut.category_id
+LEFT JOIN product_images pi ON pi.product_id = p.product_id
+WHERE p.status = 'available'
+GROUP BY p.product_id, p.product_title, p.size, p.level,
+         p.condition_percent, p.condition_label, p.price, p.quantity,
+         p.school_name, p.custom_type_name, p.category_id, p.gender,
+         ut.type_name, ut.gender,
+         ci.category_id, ci.category_name
+ORDER BY RAND()
+LIMIT 4
 `);
 
 // แปลง image_urls เป็น array

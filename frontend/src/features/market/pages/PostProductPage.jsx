@@ -18,14 +18,13 @@ const SIZE_LABELS = { chest: "อก", waist: "เอว", length: "ยาว" }
 // category_id: 1=เสื้อ, 2=กางเกง, 3=กระโปรง, 4=อื่นๆ
 // filter uniformTypes ด้วย category_id + gender ที่มาจาก DB จริง
 const MAIN_CATEGORIES = [
-  { key: "shirt_m", category_id: 1, gender: "male", label: "เสื้อ (ชาย)", icon: "mdi:tshirt-crew", sizeKeys: ["chest"] },
-  { key: "shirt_f", category_id: 1, gender: "female", label: "เสื้อ (หญิง)", icon: "mdi:tshirt-crew-outline", sizeKeys: ["chest"] },
-  { key: "pants_m", category_id: 2, gender: "male", label: "กางเกง", icon: "mdi:hanger", sizeKeys: ["waist", "length"] },
-  { key: "skirt_f", category_id: 3, gender: "female", label: "กระโปรง", icon: "mdi:skirt", sizeKeys: ["waist", "length"] },
-  { key: "other", category_id: 4, gender: null, label: "อื่นๆ", icon: "mdi:dots-horizontal-circle-outline", sizeKeys: ["chest"] },
+  { key: "shirt_m", category_id: 1, gender: "male",   label: "เสื้อ (ชาย)",  icon: "mdi:tshirt-crew",         sizeKeys: ["chest", "length"] }, // ← เพิ่ม length
+  { key: "shirt_f", category_id: 1, gender: "female", label: "เสื้อ (หญิง)", icon: "mdi:tshirt-crew-outline",  sizeKeys: ["chest", "length"] }, // ← เพิ่ม length
+  { key: "pants_m", category_id: 2, gender: "male",   label: "กางเกง",       icon: "mdi:hanger",               sizeKeys: ["waist", "length"] },
+  { key: "skirt_f", category_id: 3, gender: "female", label: "กระโปรง",      icon: "mdi:skirt",                sizeKeys: ["waist", "length"] },
+  { key: "other",   category_id: 4, gender: null,     label: "อื่นๆ",        icon: "mdi:dots-horizontal-circle-outline", sizeKeys: ["chest"] },
 ];
-
-const LEVELS = ["อนุบาล", "ประถมศึกษา", "มัธยมต้น", "มัธยมปลาย"];
+const LEVELS = ["", "ทุกระดับชั้น", "อนุบาล", "ประถมศึกษา", "มัธยมต้น", "มัธยมปลาย"];
 const CONDITION_PERCENTS = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
 const CONDITION_LABELS = ["มีตำหนิ", "พอใช้ได้", "สภาพดี", "สภาพดีมาก", "ใหม่มาก"];
 const MAX_IMAGES = 4;
@@ -37,9 +36,9 @@ const makeItem = () => ({
   uniform_type_id: null,
   custom_type_name: "",
   school_name: "",
-  level: "ประถมศึกษา",
-  sizes: { chest: "32", waist: "26", length: "22" },
-  condition: "80",
+  level: "",
+  sizes: { chest: "0", waist: "0", length: "0" },
+  condition: "100",
   conditionLabel: "สภาพดี",
   price: "",
   quantity: 1,
@@ -148,6 +147,7 @@ export default function PostProductPage() {
           if (item.sizes.waist) sizeObj.waist = item.sizes.waist;
           if (item.sizes.length) sizeObj.length = item.sizes.length;
         }
+        const sizes = Object.keys(sizeObj).length > 0 ? sizeObj : null;
 
         return {
           uniform_type_id: item.uniform_type_id,
