@@ -6,15 +6,15 @@ import {
   deleteProduct       as svcDelete,
   searchSchools       as svcSearchSchools,
   getUniformTypes     as svcGetTypes,
+  getUniformTypesBySchool as svcGetTypesBySchool,
 } from "./Market.service.js";
 
 // ─────────────────────────────────────────────────────────
 // POST /api/market/batch
 // multipart/form-data:
-//   school_id      : number | ""
-//   items          : JSON string []
-//   item0_images   : File[] (max 4)
-//   item1_images   : File[] ...
+//   items        : JSON string []  (แต่ละ item มี school_name แทน global school_id)
+//   item0_images : File[] (max 4)
+//   item1_images : ...
 // ─────────────────────────────────────────────────────────
 const batchCreateProducts = async (req, res) => {
   let items;
@@ -32,9 +32,7 @@ const batchCreateProducts = async (req, res) => {
       items,
       files:    req.files,
       sellerId: req.user.user_id,
-      schoolId: req.body.school_id ? parseInt(req.body.school_id) : null,
     });
-
     res.status(201).json({
       message:  `ลงขายสำเร็จ ${result.created.length} รายการ`,
       products: result.created,
@@ -42,8 +40,7 @@ const batchCreateProducts = async (req, res) => {
     });
   } catch (err) {
     console.error('[Market.batchCreate]', err);
-    const status = err.status || 500;
-    res.status(status).json({ message: err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่' });
+    res.status(err.status || 500).json({ message: err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่' });
   }
 };
 
@@ -55,23 +52,15 @@ const batchCreateProducts = async (req, res) => {
 const getProducts = async (req, res) => {
   try {
     const {
-      search         = '',
-      uniform_type_id,
-      level,
-      min_price,
-      max_price,
-      school_id,
-      sort           = 'newest',
-      page           = 1,
-      limit          = 12,
+      search = '', uniform_type_id, level,
+      min_price, max_price, school_id,
+      sort = 'newest', page = 1, limit = 12,
     } = req.query;
+    console.log('query params:', { page, limit, sort }); 
 
     const data = await svcGetProducts({
-      search, uniform_type_id, level,
-      min_price, max_price, school_id,
-      sort, page, limit,
+      search, uniform_type_id, level, min_price, max_price, school_id, sort, page, limit,
     });
-
     res.json(data);
   } catch (err) {
     console.error('[Market.getProducts]', err);
@@ -98,16 +87,11 @@ const getProductById = async (req, res) => {
 // ─────────────────────────────────────────────────────────
 const deleteProduct = async (req, res) => {
   try {
-    await svcDelete(
-      req.params.id,
-      req.user.user_id,
-      req.user.role
-    );
+    await svcDelete(req.params.id, req.user.user_id, req.user.role);
     res.json({ message: 'ลบสินค้าสำเร็จ' });
   } catch (err) {
     console.error('[Market.deleteProduct]', err);
-    const status = err.status || 500;
-    res.status(status).json({ message: err.message || 'เกิดข้อผิดพลาด' });
+    res.status(err.status || 500).json({ message: err.message || 'เกิดข้อผิดพลาด' });
   }
 };
 
@@ -126,6 +110,7 @@ const searchSchools = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────
 // GET /api/market/uniform-types
+// ส่ง category_id + gender ครบ ให้ frontend filter ได้
 // ─────────────────────────────────────────────────────────
 const getUniformTypes = async (req, res) => {
   try {
@@ -137,6 +122,21 @@ const getUniformTypes = async (req, res) => {
   }
 };
 
+const getUniformTypesBySchool = async (req, res) => {
+  try {
+    const schoolId = Number(req.params.school_id);
+    if (!schoolId) {
+      return res.status(400).json({ message: "school_id required" });
+    }
+
+    const rows = await svcGetTypesBySchool(schoolId);
+    res.json(rows);
+  } catch (err) {
+    console.error("[Market.getUniformTypesBySchool]", err);
+    res.status(500).json({ message: "เกิดข้อผิดพลาด" });
+  }
+};
+
 export {
   batchCreateProducts,
   getProducts,
@@ -144,4 +144,5 @@ export {
   deleteProduct,
   searchSchools,
   getUniformTypes,
+  getUniformTypesBySchool,
 };

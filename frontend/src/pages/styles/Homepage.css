@@ -831,318 +831,169 @@ height: 430px;
 #market {
   margin-top: 50px;
   padding: 0 50px 40px;
-
-  /* background-color: #fff; */
 }
+
 .grid3 {
   width: 100%;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  /* padding: 12px 30px; */
-  justify-items: center;
-  align-items: center;
-  
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
 }
 
 .productCard {
   background: #fff;
-  width: 300px;
-  height: 470px;
-  border: 0.001px solid#d9d9d9;
-  border-radius: 14px;
+  width: 100%;
+  border: 0.5px solid #f0f4f8;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
-  padding: 12px 0;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  transition: transform 0.18s, box-shadow 0.18s;
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+  color: inherit;
+}
+.productCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(82,133,232,0.13);
 }
 
 .pThumb {
   width: 100%;
-  height: 290px;
+  aspect-ratio: 1 / 1;
   background: #f1f5f9;
-  border: 10px solid#fff;
+  overflow: hidden;
 }
-
 .pThumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.3s;
+}
+.productCard:hover .pThumb img {
+  transform: scale(1.04);
 }
 
 .pBody {
-  padding: 10px 12px;
+  padding: 12px 14px 14px;
   color: #000;
-  margin-left: 5px;
 }
 
 .pTitle {
-  font-size: 19px;
+  font-size: 15px;
   font-weight: 500;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #111827;
 }
 
-.pMeta span {
-  background-color: #FAF0CA;
-  padding: 2px 10px;
-  border-radius: 40px;
-  margin-right: 5px;
-  font-weight: 200;
-  font-size: 14px;
-  margin-top: 10px;
+.pSchool {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
+/* Meta rows แบบ MarketPage */
+.pMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.pMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.pMetaLabel {
+  color: #888;
+  min-width: 44px;
+  flex-shrink: 0;
+}
+.pMetaVal {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #111827;
+  flex-wrap: wrap;
+}
+.pMetaSep {
+  color: #bbb;
+  font-size: 11px;
+  margin: 0 2px;
+}
+.pBadgeLevel {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #E6F1FB;
+  color: #0C447C;
+}
+.pBadgeCond {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #FAEEDA;
+  color: #633806;
+}
+
+.pDivider {
+  height: 0.5px;
+  background: #e5e7eb;
+  margin: 10px 0;
 }
 
 .pBottom {
-  margin-top: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .pPrice {
-  font-size: 26px;
-  font-weight: 400;
+  font-size: 22px;
+  font-weight: 500;
   color: #5285E8;
+}
+.pPrice span {
+  font-size: 13px;
+  font-weight: 400;
+  color: #888;
+  margin-left: 2px;
 }
 
 .cartBtn {
-  width: 50px;
-  height: 50px;
-  border-radius: 999px;
-  border: 0;
-  background: #fbbf24;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: #FFBE1B;
   cursor: pointer;
   color: #fff;
-  margin-right: 8px ;
-}
-
-.cartBtn i {
-  text-align: center;
-  justify-content: center;
-  font-size: 26px;
-
-}
-
-.tsWrap {
-  max-width: 100%;
-  margin: 0 auto;
   display: flex;
-  gap: 10px;
   align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background 0.18s;
+  flex-shrink: 0;
 }
+.cartBtn:hover { background: #f0ad00; }
 
-.tsCard {
-  flex: 1;
-  /* background:#fff; */
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 1.1fr .9fr;
-  min-height: 220px;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
-  will-change: transform;
-  transition: transform 240ms ease;
+@media (max-width: 1024px) {
+  .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
-.tsCard:hover {
-  transform: translateY(-1px);
+@media (max-width: 480px) {
+  .grid3 { grid-template-columns: 1fr; }
+  #market { padding: 0 20px 40px; }
 }
-
-.thumb img,
-.pThumb img,
-.tsRight img {
-  width: 100%;
-  max-height: 500px;
-  object-fit: cover;
-  /* ⭐ โฟกัสด้านบน (เหมือนรูปเด็กใน Figma) */
-  object-position: 50% 20%;
-  display: block;
-}
-
-.tsRight {
-  overflow: hidden;
-  border-radius: 16px;
-}
-
-.tsRight img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scale(1.15);
-  object-position: center center;
-
-  transition: transform 0.4s ease;
-}
-
-
-
-/* ===== TESTIMONIALS (match Figma) ===== */
-/* ==================== */
-
-
-.sectionSoftBlue{
-  /* background:#fff; */
-  padding:80px 0;
-}
-
-/* Header */
-.tsHead{
-  max-width:1100px;
-  margin:0 auto 30px;
-  padding:0 20px;
-  display:flex;
-  align-items:center;
-  gap:18px;
-}
-
-.tsQuoteMark{
-  font-size:80px;
-  font-weight:900;
-  line-height:1;
-  color:#1d4ed8;
-  transform:translateY(-6px);
-}
-
-.tsTitle{
-  font-size:38px;
-  font-weight:700;
-  letter-spacing:-0.02em;
-  margin:0;
-  flex:1;
-  color:#1d4ed8;
-}
-
-.tsControls{
-  display:flex;
-  gap:16px;
-}
-
-.tsNav{
-  width:50px;
-  height:50px;
-  border-radius:999px;
-  background:transparent;
-  border:2px solid #5285E8;
-  color:#1d4ed8;
-  font-size:26px;
-  display:grid;
-  place-items:center;
-  cursor:pointer;
-  transition:.2s ease;
-}
-
-.tsNav:hover{ transform:scale(1.06); }
-.tsNav:active{ transform:scale(.98); }
-
-/* Stage (3 cards) */
-.tsStage{
-  max-width:1100px;
-  margin:0 auto;
-  padding:0 20px;
-  display:grid;
-  grid-template-columns: 1fr 1.25fr 1fr;
-  gap:24px;
-  align-items:stretch;
-}
-
-/* Card base */
-.tsCard{
-  background:#ffffff;
-  border-radius:22px;
-  box-shadow:0 20px 45px rgba(0,0,0,.08);
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  transition:.3s ease;
-}
-
-/* Center is emphasized */
-.tsCardMain{
-  transform:scale(1.05);
-  z-index:2;
-}
-
-.tsCardSide{
-  opacity:.35;
-  transform:scale(.95);
-}
-
-/* Image on top (fixed height = same size) */
-.tsImageWrap{
-  width:100%;
-  height:220px;           /* ปรับได้ เช่น 200/240 */
-  overflow:hidden;
-  background:#f1f5f9;
-}
-
-.tsImageWrap img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  object-position:center 30%;
-  display:block;
-  transition:.4s ease;
-}
-
-.tsCardMain .tsImageWrap img{
-  transform:scale(1.05);
-}
-
-.tsImgPlaceholder{
-  width:100%;
-  height:100%;
-  background:linear-gradient(135deg,#e5e7eb,#f3f4f6);
-}
-
-/* Content */
-.tsCardInner{
-  padding:26px;
-  display:flex;
-  flex-direction:column;
-  text-align:center;
-  flex:1;
-}
-
-.tsTextQuote{
-  font-size:16px;
-  line-height:1.8;
-  color:#475569;
-  font-style:italic;
-  margin-top:12px;
-
-  overflow:hidden;
-  display:-webkit-box;
-  -webkit-line-clamp:6;
-  -webkit-box-orient:vertical;
-}
-
-.tsName{
-  margin-top:18px;
-  font-weight:700;
-  color:#1d4ed8;
-  font-size:18px;
-}
-
-.tsSub{
-  margin-top:6px;
-  font-size:14px;
-  color:#94a3b8;
-}
-
-/* Responsive */
-@media (max-width: 980px){
-  .tsTitle{ font-size:28px; }
-  .tsQuoteMark{ font-size:60px; }
-
-  .tsStage{ grid-template-columns: 1fr; }
-  .tsCardSide{ display:none; }
-  .tsCardMain{ transform:scale(1); }
-
-  .tsImageWrap{ height:200px; }
-}
-
 
 /* ===== FOOTER ===== */
 .footer {

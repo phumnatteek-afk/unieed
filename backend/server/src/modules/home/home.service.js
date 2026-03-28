@@ -63,28 +63,40 @@ export async function getHomeData() {
 
   // 3) Products (เอารูปแรก)
   const [products] = await db.query(`
-    SELECT
-      p.product_id,
-      p.product_title,
-      p.size AS size_label,
-      p.\`condition\`,
-      p.condition_percent,
-      p.price,
-      pi.image_url AS cover_image
-    FROM products p
-    LEFT JOIN (
-      SELECT t.product_id, t.image_url
-      FROM product_images t
-      JOIN (
-        SELECT product_id, MIN(image_id) AS min_image_id
-        FROM product_images
-        GROUP BY product_id
-      ) x ON x.product_id = t.product_id AND x.min_image_id = t.image_id
-    ) pi ON pi.product_id = p.product_id
-    WHERE p.status='available'
-    ORDER BY p.created_at DESC
-    LIMIT 12
-  `);
+  SELECT
+    p.product_id,
+    p.product_title,
+    p.size,
+    p.level,
+    p.condition_percent,
+    p.condition_label,
+    p.price,
+    COALESCE(ut.type_name, p.custom_type_name) AS type_name,
+    ut.gender,
+    ci.category_id,
+    ci.category_name,
+    p.school_name,
+    GROUP_CONCAT(pi.image_url ORDER BY pi.sort_order SEPARATOR '|||') AS image_urls
+  FROM products p
+  LEFT JOIN uniform_type ut ON ut.uniform_type_id = p.uniform_type_id
+  LEFT JOIN category_item ci ON ci.category_id = ut.category_id
+  LEFT JOIN product_images pi ON pi.product_id = p.product_id
+  WHERE p.status = 'available'
+  GROUP BY p.product_id, p.product_title, p.size, p.level,
+           p.condition_percent, p.condition_label, p.price,
+           ut.type_name, p.custom_type_name, ut.gender,
+           ci.category_id, ci.category_name, p.school_name
+  ORDER BY RAND()
+  LIMIT 4
+`);
+
+// แปลง image_urls เป็น array
+const productsWithImages = products.map(p => ({
+  ...p,
+  images: p.image_urls
+    ? p.image_urls.split('|||').map(url => ({ image_url: url }))
+    : [],
+}));
 
   // 4) Testimonials (FIX)
 const [testimonials] = await db.query(`
@@ -102,6 +114,5 @@ const [testimonials] = await db.query(`
   ORDER BY t.review_date DESC
   LIMIT 10
 `);
-
-  return { stats, projects, products, testimonials };
+return { stats, projects, products: productsWithImages, testimonials };
 }

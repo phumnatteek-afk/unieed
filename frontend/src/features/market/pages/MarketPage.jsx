@@ -1,7 +1,7 @@
 // src/features/market/pages/MarketPage.jsx
 // ── API endpoint เปลี่ยนจาก /api/products → /api/market
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
@@ -29,71 +29,169 @@ function CardCarousel({ images = [], title }) {
   if (!images.length) return <div className="mkCardThumbPlaceholder" />;
 
   return (
-    <div className="mkCarousel" onMouseLeave={() => setIdx(0)}>
-      <img
-        src={images[idx]?.image_url || images[0]?.image_url}
-        alt={title}
-        className="mkCarouselImg"
-        loading="lazy"
-      />
+    <div className="mkCarouselWrap">
+      {/* รูปหลัก */}
+      <div className="mkCarouselMain">
+        <img
+          src={images[idx]?.image_url}
+          alt={title}
+          className="mkCarouselImg"
+          loading="lazy"
+        />
+        {images.length > 1 && (
+          <>
+            <button className="mkCarouselArrow mkCarouselArrowLeft"
+              onClick={e => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+              setIdx(i => (i - 1 + images.length) % images.length); }}>
+            <Icon icon="mdi:chevron-left"  className="arrow-icon" />
+            </button>
+            <button className="mkCarouselArrow mkCarouselArrowRight"
+              onClick={e => { e.preventDefault();
+              e.stopPropagation(); setIdx(i => (i + 1) % images.length); }}>
+              <Icon icon="mdi:chevron-right"  className="arrow-icon"/>
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* thumbnail แถวล่าง — แสดงเฉพาะเมื่อมีรูปมากกว่า 1 */}
       {images.length > 1 && (
-        <>
-          <div className="mkCarouselDots">
-            {images.map((_, i) => (
-              <span
-                key={i}
-                className={`mkCarouselDot${i === idx ? " mkCarouselDotActive" : ""}`}
-                onMouseEnter={() => setIdx(i)}
-              />
-            ))}
-          </div>
-          <button className="mkCarouselArrow mkCarouselArrowLeft"
-            onClick={e => { e.stopPropagation(); setIdx(i => (i - 1 + images.length) % images.length); }}>
-            <Icon icon="mdi:chevron-left" />
-          </button>
-          <button className="mkCarouselArrow mkCarouselArrowRight"
-            onClick={e => { e.stopPropagation(); setIdx(i => (i + 1) % images.length); }}>
-            <Icon icon="mdi:chevron-right" />
-          </button>
-        </>
+        <div className="mkCarouselThumbs">
+          {images.map((img, i) => (
+            <div
+              key={i}
+              className={`mkCarouselThumb${i === idx ? ' mkCarouselThumbActive' : ''}`}
+              onClick={e => { e.preventDefault(); 
+              e.stopPropagation();
+              setIdx(i); }}
+            >
+              <img src={img.image_url} alt={`${title} ${i + 1}`} loading="lazy" />
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
 }
-
 // ── Product Card ──────────────────────────────────────
-function ProductCard({ product }) {
-  const images = product.images || (product.cover_image ? [{ image_url: product.cover_image }] : []);
-  return (
-    <Link to={`/market/${product.product_id}`} className="mkCard">
-      <div className="mkCardThumb">
-        <CardCarousel images={images} title={product.product_title} />
+function SizeDisplay({ size, categoryId }) {
+  if (!size) return null;
+  try {
+    const s    = JSON.parse(size);
+    const cid  = Number(categoryId);
+    const parts = [];
+    if (cid === 1) {
+      if (s.chest)  parts.push({ label: 'อก',  val: s.chest });
+      if (s.length) parts.push({ label: 'ยาว', val: s.length });
+    } else {
+      if (s.waist)  parts.push({ label: 'เอว', val: s.waist });
+      if (s.length) parts.push({ label: 'ยาว', val: s.length });
+    }
+    if (!parts.length) return null;
+    return (
+      <div className="mkMetaRow">
+        <span className="mkMetaLabel">ขนาด</span>
+        <span className="mkMetaVal">
+          {parts.map((p, i) => (
+            <span key={i}>
+              {i > 0 && <span className="mkMetaSep">|</span>}
+              {p.label} {p.val}
+            </span>
+          ))}
+        </span>
       </div>
-      <div className="mkCardBody">
-        <div className="mkCardTitle">{product.product_title}</div>
+    );
+  } catch {
+    return (
+      <div className="mkMetaRow">
+        <span className="mkMetaLabel">ขนาด</span>
+        <span className="mkMetaVal">{size}</span>
+      </div>
+    );
+  }
+}
+
+function ProductCard({ product }) {
+  const navigate = useNavigate();
+
+  const images = product.images?.length
+    ? product.images
+    : product.cover_image
+      ? [{ image_url: product.cover_image }]
+      : [];
+
+  const categoryLabel = (() => {
+    const cid = Number(product.category_id);
+    if (cid === 1) return product.gender === 'male' ? 'เสื้อนักเรียนชาย' : 'เสื้อนักเรียนหญิง';
+    if (cid === 2) return 'กางเกงนักเรียน';
+    if (cid === 3) return 'กระโปรงนักเรียน';
+    return 'ชุดนักเรียน';
+  })();
+
+  const typePart     = product.type_name?.trim();
+  const displayTitle = `${categoryLabel}${typePart ? ': ' + typePart : ''}`;
+
+  return (
+    <div className="mkCard">
+      {/* carousel ไม่มี Link ห่อ → กดลูกศรไม่เด้ง */}
+      <div className="mkCardThumb">
+        <CardCarousel images={images} title={displayTitle} />
+      </div>
+      {/* body คลิกแล้วไปหน้าสินค้า */}
+      <div
+        className="mkCardBody"
+        onClick={() => navigate(`/market/${product.product_id}`)}
+        style={{ cursor: 'pointer' }}
+      >
+        <div className="mkCardTitle">{displayTitle}</div>
         {product.school_name && (
           <div className="mkCardSchool">
             <Icon icon="mdi:school-outline" /> {product.school_name}
           </div>
         )}
-        <div className="mkCardMeta">
-          {product.level             && <span>{product.level}</span>}
-          {product.size              && <span>{product.size}</span>}
-          {product.condition_percent && <span>สภาพ {product.condition_percent}%</span>}
+        <div className="mkMeta">
+          {product.level && (
+            <div className="mkMetaRow">
+              <span className="mkMetaLabel">ระดับ</span>
+              <span className="mkMetaVal">
+                <span className="mkBadgeLevel">{product.level}</span>
+              </span>
+            </div>
+          )}
+          <SizeDisplay size={product.size} categoryId={product.category_id} />
+          {(product.condition_percent || product.condition_label) && (
+            <div className="mkMetaRow">
+              <span className="mkMetaLabel">สภาพ</span>
+              <span className="mkMetaVal">
+                <span className="mkBadgeCond">
+                  {[
+                    product.condition_percent ? `${product.condition_percent}%` : null,
+                    product.condition_label
+                  ].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+            </div>
+          )}
         </div>
+        <div className="mkCardDivider" />
         <div className="mkCardBottom">
           <div className="mkCardPrice">
             {Number(product.price).toLocaleString()}<span> บาท</span>
           </div>
-          <button className="mkCartBtn" onClick={e => e.preventDefault()} aria-label="เพิ่มลงตะกร้า">
+          <button
+            className="mkCartBtn"
+            onClick={e => e.stopPropagation()}
+            aria-label="เพิ่มลงตะกร้า"
+          >
             <Icon icon="mdi:cart-plus" />
           </button>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
-
 // ── Main Page ─────────────────────────────────────────
 export default function MarketPage() {
   const { token }  = useAuth();
@@ -135,12 +233,12 @@ export default function MarketPage() {
         ...(maxPrice      && { max_price: maxPrice }),
       });
 
-      const res  = await fetch(`/market?${params}`);    // ← endpoint ใหม่
+      const res  = await fetch(`/api/market?${params}`)    // ← endpoint ใหม่
       const data = await res.json();
 
-      setProducts(p === 1 ? data.products : prev => [...prev, ...data.products]);
-      setTotalPages(data.pagination.pages);
-      setTotalCount(data.pagination.total);
+      setProducts(p === 1 ? (data.products || []) : prev => [...prev, ...(data.products || [])]);
+setTotalPages(data.pagination?.pages || 1);
+setTotalCount(data.pagination?.total || 0);
       setPage(p);
     } catch (e) {
       console.error(e);

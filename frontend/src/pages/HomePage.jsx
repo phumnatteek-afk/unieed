@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getJson } from "../api/http.js";
 import "./styles/Homepage.css";
+import "../features/market/styles/MarketPage.css"
 import ProfileDropdown from "../features/auth/pages/ProfileDropdown.jsx";
 import NotificationBell from "./NotificationBell.jsx";
 
@@ -793,48 +794,100 @@ export default function HomePage() {
         </div>
 
         {loading ? (
-          <div className="muted">กำลังโหลด…</div>
-        ) : (
-          <div className="grid3">
-            {products.map((x) => (
-              <div className="productCard" key={x.product_id}>
-                <div className="pThumb">
-                  {x.cover_image ? (
-                    <img src={x.cover_image} alt={x.product_title} />
-                  ) : (
-                    <div className="thumbPlaceholder" />
-                  )}
-                </div>
+  <div className="muted">กำลังโหลด…</div>
+) : (
+  <div className="grid3">
+    {products.map((x) => {
+      // สร้าง title จาก category
+      const categoryLabel = (() => {
+        const cid = Number(x.category_id);
+        if (cid === 1) return x.gender === 'male' ? 'เสื้อนักเรียนชาย' : 'เสื้อนักเรียนหญิง';
+        if (cid === 2) return 'กางเกงนักเรียน';
+        if (cid === 3) return 'กระโปรงนักเรียน';
+        return 'ชุดนักเรียน';
+      })();
+      const typePart     = x.type_name?.trim();
+      const displayTitle = `${categoryLabel}${typePart ? ': ' + typePart : ''}`;
 
-                <div className="pBody">
-                  <div className="pTitle">{x.product_title}</div>
-                  <div className="pMeta">
-                    <span>ขนาด: {x.size_label || "-"} </span>
-                    <span>
-                      สภาพ:{" "}
-                      <span className="condPct"> {x.condition_percent} %</span>
-                      {""}
-                      {x.condition || "-"}
-                    </span>
-                  </div>
+      // แปลง size
+      const sizeText = (() => {
+        if (!x.size) return null;
+        try {
+          const s = JSON.parse(x.size);
+          const cid = Number(x.category_id);
+          const parts = [];
+          if (cid === 1) {
+            if (s.chest)  parts.push(`อก ${s.chest}`);
+            if (s.length) parts.push(`ยาว ${s.length}`);
+          } else {
+            if (s.waist)  parts.push(`เอว ${s.waist}`);
+            if (s.length) parts.push(`ยาว ${s.length}`);
+          }
+          return parts.join(' | ') || null;
+        } catch { return x.size; }
+      })();
 
-                  <div className="pBottom">
-                    <div className="pPrice">
-                      {Number(x.price || 0).toLocaleString()} บาท
-                    </div>
-                    <button className="cartBtn" type="button" aria-label="cart">
-                      <i class="fi fi-rr-shopping-cart-add"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+      const condText = [
+        x.condition_percent ? `${x.condition_percent}%` : null,
+        x.condition_label || null,
+      ].filter(Boolean).join(' · ');
 
-            {!products.length && (
-              <div className="muted">ยังไม่มีสินค้าในระบบ</div>
+      return (
+        <Link to={`/market/${x.product_id}`} key={x.product_id} className="mkCard" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <div className="mkCardThumb">
+            {x.images?.length ? (
+              <img src={x.images[0].image_url} alt={displayTitle} className="mkCarouselImg" />
+            ) : (
+              <div className="mkCardThumbPlaceholder" />
             )}
           </div>
-        )}
+          <div className="mkCardBody">
+            <div className="mkCardTitle">{displayTitle}</div>
+            {x.school_name && (
+              <div className="mkCardSchool">
+                <Icon icon="mdi:school-outline" /> {x.school_name}
+              </div>
+            )}
+            <div className="mkMeta">
+              {x.level && (
+                <div className="mkMetaRow">
+                  <span className="mkMetaLabel">ระดับ</span>
+                  <span className="mkMetaVal">
+                    <span className="mkBadgeLevel">{x.level}</span>
+                  </span>
+                </div>
+              )}
+              {sizeText && (
+                <div className="mkMetaRow">
+                  <span className="mkMetaLabel">ขนาด</span>
+                  <span className="mkMetaVal">{sizeText}</span>
+                </div>
+              )}
+              {condText && (
+                <div className="mkMetaRow">
+                  <span className="mkMetaLabel">สภาพ</span>
+                  <span className="mkMetaVal">
+                    <span className="mkBadgeCond">{condText}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="mkCardDivider" />
+            <div className="mkCardBottom">
+              <div className="mkCardPrice">
+                {Number(x.price).toLocaleString()}<span> บาท</span>
+              </div>
+              <button className="mkCartBtn" onClick={e => e.preventDefault()} type="button">
+                <Icon icon="mdi:cart-plus" />
+              </button>
+            </div>
+          </div>
+        </Link>
+      );
+    })}
+    {!products.length && <div className="muted">ยังไม่มีสินค้าในระบบ</div>}
+  </div>
+)}
       </section>
 
       {/* ===== Testimonials ===== */}

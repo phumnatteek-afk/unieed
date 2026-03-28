@@ -23,7 +23,7 @@ app.use("/upload",       uploadRoutes);
 app.use("/",             homeRoutes);
 app.use("/donations",    donationRoutes);
 app.use("/certificates", certificateRoutes);
-app.use("/market",   marketRoutes);
+app.use("/api/market", marketRoutes);
 
 app.use(errorHandler);
 app.use((err, req, res, next) => {

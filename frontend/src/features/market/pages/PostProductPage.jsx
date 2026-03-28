@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from "react";
+// frontend/src/modules/market/pages/PostProductPage.jsx
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
@@ -6,77 +7,71 @@ import "../../../pages/styles/Homepage.css";
 import "../styles/PostProductPage.css";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 
-const UNIFORM_TYPES = [
-  { uniform_type_id: 1, type_name: "เสื้อนักเรียนชาย",     sizes: ["chest"] },
-  { uniform_type_id: 2, type_name: "เสื้อนักเรียนหญิง",    sizes: ["chest"] },
-  { uniform_type_id: 3, type_name: "กางเกงนักเรียนชาย",   sizes: ["waist","length"] },
-  { uniform_type_id: 4, type_name: "กระโปรงนักเรียนหญิง", sizes: ["waist","length"] },
+// ── Static constants ──────────────────────────────────────────────────────────
+const SIZE_OPTIONS = {
+  chest: ["22", "24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44", "46"],
+  waist: ["16", "18", "20", "22", "24", "26", "28", "30", "32", "34", "36", "38"],
+  length: ["14", "16", "18", "20", "22", "24", "26", "28", "30", "32"],
+};
+const SIZE_LABELS = { chest: "อก", waist: "เอว", length: "ยาว" };
+
+// category_id: 1=เสื้อ, 2=กางเกง, 3=กระโปรง, 4=อื่นๆ
+// filter uniformTypes ด้วย category_id + gender ที่มาจาก DB จริง
+const MAIN_CATEGORIES = [
+  { key: "shirt_m", category_id: 1, gender: "male", label: "เสื้อ (ชาย)", icon: "mdi:tshirt-crew", sizeKeys: ["chest"] },
+  { key: "shirt_f", category_id: 1, gender: "female", label: "เสื้อ (หญิง)", icon: "mdi:tshirt-crew-outline", sizeKeys: ["chest"] },
+  { key: "pants_m", category_id: 2, gender: "male", label: "กางเกง", icon: "mdi:hanger", sizeKeys: ["waist", "length"] },
+  { key: "skirt_f", category_id: 3, gender: "female", label: "กระโปรง", icon: "mdi:skirt", sizeKeys: ["waist", "length"] },
+  { key: "other", category_id: 4, gender: null, label: "อื่นๆ", icon: "mdi:dots-horizontal-circle-outline", sizeKeys: ["chest"] },
 ];
 
-const SIZE_OPTIONS = {
-  chest:  ["26","28","30","32","34","36","38","40","42","44","46"],
-  waist:  ["18","20","22","24","26","28","30","32","34","36","38"],
-  length: ["16","18","20","22","24","26","28","30","32"],
-};
-const SIZE_LABELS      = { chest: "อก", waist: "เอว", length: "ยาว" };
-const LEVELS           = ["อนุบาล","ประถมศึกษา","มัธยมต้น","มัธยมปลาย"];
-const CONDITIONS       = ["10","20","30","40","50","60","70","80","90","100"];
-const CONDITION_LABELS = ["มีตำหนิ","พอใช้ได้","สภาพดี","สภาพดีมาก","ใหม่มาก"];
-const MAX_IMAGES       = 4;
+const LEVELS = ["อนุบาล", "ประถมศึกษา", "มัธยมต้น", "มัธยมปลาย"];
+const CONDITION_PERCENTS = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
+const CONDITION_LABELS = ["มีตำหนิ", "พอใช้ได้", "สภาพดี", "สภาพดีมาก", "ใหม่มาก"];
+const MAX_IMAGES = 4;
 
 const makeItem = () => ({
-  _id:             Math.random().toString(36).slice(2),
-  uniform_type_id: 1,
-  level:           "ประถมศึกษา",
-  sizes:           { chest: "32", waist: "26", length: "22" },
-  condition:       "80",
-  conditionLabel:  "สภาพดีมาก",
-  price:           "",
-  quantity:        1,
-  description:     "",
-  images:          [],
+  _id: Math.random().toString(36).slice(2),
+  category_id: 1,
+  gender: "male",
+  uniform_type_id: null,
+  custom_type_name: "",
+  school_name: "",
+  level: "ประถมศึกษา",
+  sizes: { chest: "32", waist: "26", length: "22" },
+  condition: "80",
+  conditionLabel: "สภาพดี",
+  price: "",
+  quantity: 1,
+  description: "",
+  images: [],
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
 export default function PostProductPage() {
   const { token, updateRole } = useAuth();
   const navigate = useNavigate();
 
-  const [schoolQuery, setSchoolQuery] = useState("");
-  const [schoolId,    setSchoolId]    = useState(null);
-  const [schoolSuggs, setSchoolSuggs] = useState([]);
-  const [showSugg,    setShowSugg]    = useState(false);
+  // ── Uniform types from API ────────────────────────────────────────────────
+  // ดึง /api/market/uniform-types ครั้งเดียว ได้ครบทุก type พร้อม category_id + gender
+  const [uniformTypes, setUniformTypes] = useState([]);
+  const [typesLoading, setTypesLoading] = useState(true);
 
-  const [items,      setItems]      = useState([makeItem()]);
-  const [openIdx,    setOpenIdx]    = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const [err,        setErr]        = useState("");
-
-  const fileInputRefs = useRef({});
-
-  // ── School autocomplete ───────────────────────────────
-  const fetchSchools = useCallback(async (q) => {
-    if (!q.trim()) { setSchoolSuggs([]); return; }
-    try {
-      const res  = await fetch(`/market/schools/search?search=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      setSchoolSuggs(data);
-      setShowSugg(true);
-    } catch { /* silent */ }
+  useEffect(() => {
+    fetch("/api/market/uniform-types")
+      .then(r => r.json())
+      .then(rows => setUniformTypes(Array.isArray(rows) ? rows : []))
+      .catch(() => { })
+      .finally(() => setTypesLoading(false));
   }, []);
 
-  const handleSchoolInput = (e) => {
-    setSchoolQuery(e.target.value);
-    setSchoolId(null);
-    fetchSchools(e.target.value);
-  };
+  // ── Items ─────────────────────────────────────────────────────────────────
+  const [items, setItems] = useState([makeItem()]);
+  const [openIdx, setOpenIdx] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState("");
+  const fileInputRefs = useRef({});
 
-  const selectSchool = (s) => {
-    setSchoolId(s.school_id);
-    setSchoolQuery(s.school_name);
-    setShowSugg(false);
-  };
-
-  // ── Item helpers ──────────────────────────────────────
   const updateItem = (idx, patch) =>
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
 
@@ -88,19 +83,21 @@ export default function PostProductPage() {
   const removeItem = (idx) => {
     items[idx].images.forEach(img => img?.url && URL.revokeObjectURL(img.url));
     setItems(prev => prev.filter((_, i) => i !== idx));
-    setOpenIdx(prev => Math.max(0, prev >= idx ? prev - 1 : prev));
+    setOpenIdx(prev => (prev >= idx ? Math.max(0, prev - 1) : prev));
   };
 
-  // ── Image helpers ─────────────────────────────────────
+  const handleCategoryChange = (idx, catId, gender) => {
+    updateItem(idx, { category_id: catId, gender, uniform_type_id: null, custom_type_name: "" });
+  };
+
+  // ── Images ────────────────────────────────────────────────────────────────
   const handleFileDrop = (itemIdx, files) => {
-    const item      = items[itemIdx];
-    const remaining = MAX_IMAGES - item.images.length;
+    const remaining = MAX_IMAGES - items[itemIdx].images.length;
     if (remaining <= 0) return;
     const toAdd = Array.from(files).slice(0, remaining).map(file => ({
-      file,
-      url: URL.createObjectURL(file),
+      file, url: URL.createObjectURL(file),
     }));
-    updateItem(itemIdx, { images: [...item.images, ...toAdd] });
+    updateItem(itemIdx, { images: [...items[itemIdx].images, ...toAdd] });
   };
 
   const removeImage = (itemIdx, imgIdx) => {
@@ -108,57 +105,82 @@ export default function PostProductPage() {
     updateItem(itemIdx, { images: items[itemIdx].images.filter((_, i) => i !== imgIdx) });
   };
 
-  const triggerFileInput = (itemIdx) => {
+  const triggerFileInput = (itemIdx) =>
     fileInputRefs.current[`item_${itemIdx}`]?.click();
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const getSizeKeys = (catId, gender) =>
+    MAIN_CATEGORIES.find(c => c.category_id === catId && (c.gender === gender || c.gender === null))?.sizeKeys || ["chest"];
+
+  const getItemSummary = (item) => {
+    const typeObj = uniformTypes.find(t => t.uniform_type_id === item.uniform_type_id);
+    const sizeKeys = getSizeKeys(item.category_id, item.gender);
+    const sizeStr = sizeKeys.map(k => `${SIZE_LABELS[k]}${item.sizes[k]}`).join(" / ");
+    const typeName = item.custom_type_name?.trim() || typeObj?.type_name || "ยังไม่เลือกประเภท";
+    return { typeName, sizeStr };
   };
 
-  // ── Submit ────────────────────────────────────────────
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     setErr("");
     for (let i = 0; i < items.length; i++) {
-      if (!items[i].price || isNaN(Number(items[i].price)))
-        return setErr(`กรุณากรอกราคาในรายการที่ ${i + 1}`);
+      const it = items[i];
+      if (!it.uniform_type_id && !it.custom_type_name?.trim())
+        return setErr(`รายการที่ ${i + 1}: กรุณาเลือกหรือกรอกประเภทชุด`);
+      if (!it.price || isNaN(Number(it.price)))
+        return setErr(`รายการที่ ${i + 1}: กรุณากรอกราคา`);
     }
     setSubmitting(true);
     try {
       const formData = new FormData();
-      if (schoolId) formData.append("school_id", schoolId);
-
       const itemsMeta = items.map(item => {
-        const typeObj = UNIFORM_TYPES.find(t => t.uniform_type_id === item.uniform_type_id);
+        const typeObj = uniformTypes.find(t => t.uniform_type_id === item.uniform_type_id);
+
+        // filter size ตาม category
+        const sizeObj = {};
+        const cid = Number(item.category_id);
+        if (cid === 1) {
+          // เสื้อ → อก + ยาว
+          if (item.sizes.chest) sizeObj.chest = item.sizes.chest;
+          if (item.sizes.length) sizeObj.length = item.sizes.length;
+        } else {
+          // กางเกง / กระโปรง / อื่นๆ → เอว + ยาว
+          if (item.sizes.waist) sizeObj.waist = item.sizes.waist;
+          if (item.sizes.length) sizeObj.length = item.sizes.length;
+        }
+
         return {
           uniform_type_id: item.uniform_type_id,
-          type_name:       typeObj?.type_name || "",
-          level:           item.level,
-          sizes:           item.sizes,
-          condition:       item.condition,
-          conditionLabel:  item.conditionLabel,
-          price:           item.price,
-          quantity:        item.quantity,
-          description:     item.description,
+          type_name: item.custom_type_name?.trim() || typeObj?.type_name || "",
+          school_name: item.school_name || "",
+          level: item.level,
+          category_id: item.category_id,
+          gender: item.gender,
+          sizes: sizeObj,
+          condition: item.condition,
+          conditionLabel: item.conditionLabel,
+          price: item.price,
+          quantity: item.quantity,
+          description: item.description,
         };
       });
       formData.append("items", JSON.stringify(itemsMeta));
-
       items.forEach((item, i) => {
         item.images.forEach(img => {
           if (img?.file) formData.append(`item${i}_images`, img.file);
         });
       });
 
-      const res  = await fetch("/market/batch", {
-        method:  "POST",
+      const res = await fetch("/api/market/batch", {
+        method: "POST",
         headers: { Authorization: `Bearer ${token}` },
-        body:    formData,
+        body: formData,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "เกิดข้อผิดพลาด");
 
       if (data.newRole && typeof updateRole === "function") updateRole(data.newRole);
-
-      navigate("/market", {
-        state: { successMsg: `ลงขายสำเร็จ ${data.products.length} รายการ! 🎉` },
-      });
+      navigate("/market", { state: { successMsg: `ลงขายสำเร็จ ${data.products.length} รายการ! 🎉` } });
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -166,24 +188,22 @@ export default function PostProductPage() {
     }
   };
 
-  const getTypeSizeKeys = (typeId) =>
-    UNIFORM_TYPES.find(x => x.uniform_type_id === typeId)?.sizes || ["chest"];
-
   const getRightAccount = () => {
     if (!token)
       return (
         <div className="navAuth">
           <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-          <Link className="navBtn navBtnWhite"   to="/login">เข้าสู่ระบบ</Link>
+          <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
         </div>
       );
     return <ProfileDropdown />;
   };
 
+  // ══════════════════════════════════════════════════════════════════════════
   return (
     <div className="homePage">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <header className="topBar">
         <div className="topRow">
           <Link to="/" className="brand">
@@ -200,295 +220,353 @@ export default function PostProductPage() {
         </div>
       </header>
 
-      <div style={{ background:"#87C7EB", height:"8px", width:"100vw", marginLeft:"calc(-50vw + 50%)" }} />
+      <div className="ppAccentBar" />
 
-      {/* ── Main ── */}
+      {/* Main */}
       <div className="ppWrapper">
-        <h1 className="ppPageTitle">สร้างรายการสินค้า</h1>
 
-        {/* Section 1 */}
-        <div className="ppCard">
-          <section className="ppSection">
-            <div className="ppSectionNo">1</div>
-            <div className="ppSectionBody">
-              <p className="ppSectionTitle">ข้อมูลหลัก</p>
-              <div className="ppRow">
-                <label className="ppLabel">โรงเรียน</label>
-                <div className="ppAutocompleteWrap">
-                  <input
-                    className="ppInput"
-                    placeholder="ค้นหาชื่อโรงเรียน..."
-                    value={schoolQuery}
-                    onChange={handleSchoolInput}
-                    onFocus={() => schoolSuggs.length && setShowSugg(true)}
-                    onBlur={() => setTimeout(() => setShowSugg(false), 200)}
-                  />
-                  {schoolId && (
-                    <span className="ppSchoolCheck">
-                      <Icon icon="mdi:check-circle" style={{ color:"#22c55e" }} />
-                    </span>
-                  )}
-                  {showSugg && schoolSuggs.length > 0 && (
-                    <ul className="ppSuggList">
-                      {schoolSuggs.map(s => (
-                        <li key={s.school_id} onMouseDown={() => selectSchool(s)}>
-                          <span>{s.school_name}</span>
-                          {s.province && <small>{s.province}</small>}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-              <p className="ppHint">
-                <Icon icon="mdi:information-outline" />
-                สินค้าทุกรายการในโพสต์นี้จะผูกกับโรงเรียนเดียวกัน
-              </p>
-            </div>
-          </section>
+        <div className="ppPageHeader">
+          <h1 className="ppPageTitle">สร้างรายการขาย</h1>
+          <p className="ppPageSub">แต่ละรายการจะแสดงเป็นการ์ดแยกกันในหน้าตลาด</p>
         </div>
 
-        {/* Section 2 */}
-        <div className="ppCard">
-          <section className="ppSection">
-            <div className="ppSectionNo">2</div>
-            <div className="ppSectionBody">
-              <div className="ppSectionTitleRow">
-                <p className="ppSectionTitle">รายการสินค้า ({items.length} รายการ)</p>
-              </div>
+        <div className="ppItemsArea">
 
-              {items.map((item, idx) => {
-                const isOpen   = openIdx === idx;
-                const typeObj  = UNIFORM_TYPES.find(t => t.uniform_type_id === item.uniform_type_id);
-                const sizeKeys = getTypeSizeKeys(item.uniform_type_id);
+          {items.map((item, idx) => {
+            const isOpen = openIdx === idx;
+            const sizeKeys = getSizeKeys(item.category_id, item.gender);
+            const summary = getItemSummary(item);
 
-                return (
-                  <div key={item._id} className={`ppItemCard ${isOpen ? "ppItemCardOpen" : ""}`}>
+            // filter ตาม category_id + gender จาก API จริง
+            // const filteredTypes = uniformTypes.filter(t =>
+            //   t.category_id === item.category_id &&
+            //   (item.gender === null || t.gender === item.gender || !t.gender)
+            // );
 
-                    {/* Header */}
-                    <div className="ppItemHeader" onClick={() => setOpenIdx(isOpen ? -1 : idx)}>
-                      <span className="ppItemLabel">รายการที่ {idx + 1} — {typeObj?.type_name}</span>
-                      <div className="ppItemHeaderRight">
-                        {items.length > 1 && (
-                          <button
-                            className="ppRemoveBtn"
-                            onClick={e => { e.stopPropagation(); removeItem(idx); }}
-                          >ลบ</button>
-                        )}
-                        <Icon icon={isOpen ? "mdi:chevron-up" : "mdi:chevron-down"} className="ppItemChevron" />
+            const filteredTypes = (() => {
+              // 1. filter ตาม category + gender + เอาเฉพาะ subtype
+              const filtered = uniformTypes.filter(t =>
+                t.category_id === item.category_id &&
+                (item.gender === null || t.gender === item.gender || !t.gender)
+              );
+
+              // 2. remove duplicate (กันชื่อซ้ำ)
+              const uniqueMap = new Map();
+              filtered.forEach(t => {
+                const key = t.type_name.trim();
+                if (!uniqueMap.has(key)) {
+                  uniqueMap.set(key, t);
+                }
+              });
+
+              const uniqueList = Array.from(uniqueMap.values());
+
+              // 3. sort ภาษาไทย (สำคัญมาก)
+              uniqueList.sort((a, b) =>
+                a.type_name.localeCompare(b.type_name, "th")
+              );
+
+              return uniqueList;
+            })();
+
+
+            return (
+              <div key={item._id} className={`ppItemCard ${isOpen ? "ppItemCardOpen" : ""}`}>
+
+                {/* Card header */}
+                <div className="ppItemHeader" onClick={() => setOpenIdx(isOpen ? -1 : idx)}>
+                  <div className="ppItemHeaderLeft">
+                    <div className="ppItemNumBadge">{idx + 1}</div>
+                    <div>
+                      {isOpen ? (
+                        <span className="ppItemLabel">รายการที่ {idx + 1}</span>
+                      ) : (
+                        <>
+                          <div className="ppItemSummaryName">{summary.typeName}</div>
+                          <div className="ppItemSummaryMeta">
+                            {summary.sizeStr}
+                            {item.price && ` · ${Number(item.price).toLocaleString()} บาท`}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ppItemHeaderRight">
+                    {items.length > 1 && (
+                      <button
+                        className="ppRemoveBtn"
+                        onClick={e => { e.stopPropagation(); removeItem(idx); }}
+                      >
+                        <Icon icon="mdi:trash-can-outline" />
+                      </button>
+                    )}
+                    <Icon icon={isOpen ? "mdi:chevron-up" : "mdi:chevron-down"} className="ppItemChevron" />
+                  </div>
+                </div>
+
+                {/* Card body */}
+                {isOpen && (
+                  <div className="ppItemBody">
+
+                    {/* รูปภาพ */}
+                    <div className="ppFieldBlock">
+                      <label className="ppFieldLabel">
+                        รูปภาพสินค้า
+                        <span className="ppImgCount">{item.images.length}/{MAX_IMAGES}</span>
+                        <span className="ppOptionalBadge">ภาพแรก = ภาพปก</span>
+                      </label>
+                      {item.images.length === 0 ? (
+                        <div
+                          className="ppDropZone"
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={e => { e.preventDefault(); handleFileDrop(idx, e.dataTransfer.files); }}
+                          onClick={() => triggerFileInput(idx)}
+                        >
+                          <Icon icon="mdi:image-plus-outline" className="ppDropIcon" />
+                          <span className="ppDropText">คลิกหรือลากรูปมาวาง</span>
+                          <small className="ppDropHint">JPG / PNG / WEBP ไม่เกิน 5MB ต่อภาพ</small>
+                        </div>
+                      ) : (
+                        <div className="ppImgRow">
+                          {item.images.map((img, imgIdx) => (
+                            <div key={imgIdx} className={`ppImgSlot ${imgIdx === 0 ? "ppImgCover" : ""}`}>
+                              <img src={img.url} alt="" className="ppImgPreview" />
+                              {imgIdx === 0 && <span className="ppCoverBadge">ปก</span>}
+                              <button
+                                className="ppImgRemove"
+                                onClick={e => { e.stopPropagation(); removeImage(idx, imgIdx); }}
+                              >
+                                <Icon icon="mdi:close" />
+                              </button>
+                            </div>
+                          ))}
+                          {item.images.length < MAX_IMAGES && (
+                            <div className="ppImgAddSlot" onClick={() => triggerFileInput(idx)}>
+                              <Icon icon="mdi:plus" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <input
+                        type="file" accept="image/*" multiple style={{ display: "none" }}
+                        ref={el => fileInputRefs.current[`item_${idx}`] = el}
+                        onChange={e => handleFileDrop(idx, e.target.files)}
+                      />
+                    </div>
+
+                    <div className="ppDivider" />
+
+                    {/* หมวดหมู่ */}
+                    <div className="ppFieldBlock">
+                      <label className="ppFieldLabel">หมวดหมู่</label>
+                      <div className="ppCatTabs">
+                        {MAIN_CATEGORIES.map(cat => {
+                          const isActive = item.category_id === cat.category_id && item.gender === cat.gender;
+                          return (
+                            <button
+                              key={cat.key}
+                              className={`ppCatTab ${isActive ? "ppCatTabActive" : ""}`}
+                              onClick={() => handleCategoryChange(idx, cat.category_id, cat.gender)}
+                            >
+                              <Icon icon={cat.icon} />
+                              {cat.label}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Body (open) */}
-                    {isOpen ? (
-                      <div className="ppItemBody">
-
-                        {/* รูปภาพ */}
-                        <div className="ppImgSection">
-                          <label className="ppImgLabel">
-                            รูปภาพสินค้า
-                            <span className="ppImgCount">{item.images.length}/{MAX_IMAGES}</span>
-                            <small>(ภาพแรก = ภาพปกบนการ์ด)</small>
-                          </label>
-                          <div
-                            className="ppImgDropZone"
-                            onDragOver={e => e.preventDefault()}
-                            onDrop={e => { e.preventDefault(); handleFileDrop(idx, e.dataTransfer.files); }}
-                            onClick={() => item.images.length < MAX_IMAGES && triggerFileInput(idx)}
+                    {/* ประเภทชุด — dropdown จาก API + กรอกเอง */}
+                    <div className="ppFieldBlock">
+                      <label className="ppFieldLabel">
+                        ประเภทชุด <span className="ppReq">*</span>
+                      </label>
+                      {typesLoading ? (
+                        <p className="ppLoadingHint">กำลังโหลดประเภทชุด...</p>
+                      ) : (
+                        <div className="ppSelectWrap">
+                          <select
+                            className="ppSelect"
+                            value={item.uniform_type_id || ""}
+                            onChange={e => {
+                              const selId = e.target.value ? Number(e.target.value) : null;
+                              updateItem(idx, {
+                                uniform_type_id: selId,
+                                custom_type_name: selId ? "" : item.custom_type_name,
+                              });
+                            }}
                           >
-                            {item.images.length === 0 ? (
-                              <div className="ppImgDropEmpty">
-                                <Icon icon="mdi:image-plus-outline" fontSize={34} />
-                                <span>คลิกหรือลากรูปมาวาง</span>
-                                <small>JPG / PNG / WEBP ไม่เกิน 5MB ต่อภาพ</small>
-                              </div>
-                            ) : (
-                              <div className="ppImgRow">
-                                {item.images.map((img, imgIdx) => (
-                                  <div key={imgIdx} className="ppImgSlot ppImgSlotFilled">
-                                    <img src={img.url} alt="" className="ppImgPreview" />
-                                    {imgIdx === 0 && <span className="ppImgCoverBadge">ปก</span>}
-                                    <button
-                                      className="ppImgRemove"
-                                      onClick={e => { e.stopPropagation(); removeImage(idx, imgIdx); }}
-                                    >
-                                      <Icon icon="mdi:close" />
-                                    </button>
-                                  </div>
-                                ))}
-                                {item.images.length < MAX_IMAGES && (
-                                  <div
-                                    className="ppImgSlot ppImgAddSlot"
-                                    onClick={e => { e.stopPropagation(); triggerFileInput(idx); }}
-                                  >
-                                    <Icon icon="mdi:plus" fontSize={26} />
-                                    <small>เพิ่มรูป</small>
-                                  </div>
-                                )}
-                              </div>
+                            <option value="">— เลือกประเภทชุดที่มีในระบบ —</option>
+                            {filteredTypes.length === 0 && (
+                              <option disabled>ไม่มีประเภทชุดในหมวดนี้</option>
                             )}
-                          </div>
-                          <input
-                            type="file" accept="image/*" multiple
-                            style={{ display:"none" }}
-                            ref={el => fileInputRefs.current[`item_${idx}`] = el}
-                            onChange={e => handleFileDrop(idx, e.target.files)}
-                          />
-                        </div>
-
-                        {/* ประเภท */}
-                        <div className="ppFieldRow">
-                          <label className="ppFieldLabel">ประเภท</label>
-                          <div className="ppSelectWrap">
-                            <select
-                              className="ppSelect"
-                              value={item.uniform_type_id}
-                              onChange={e => updateItem(idx, { uniform_type_id: parseInt(e.target.value) })}
-                            >
-                              {UNIFORM_TYPES.map(t => (
-                                <option key={t.uniform_type_id} value={t.uniform_type_id}>{t.type_name}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* ระดับชั้น */}
-                        <div className="ppFieldRow">
-                          <label className="ppFieldLabel">ระดับชั้น</label>
-                          <div className="ppSelectWrap">
-                            <select
-                              className="ppSelect"
-                              value={item.level}
-                              onChange={e => updateItem(idx, { level: e.target.value })}
-                            >
-                              {LEVELS.map(l => <option key={l}>{l}</option>)}
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* ไซส์ */}
-                        <div className="ppFieldRow ppFieldRowSizes">
-                          <label className="ppFieldLabel">ไซส์</label>
-                          <div className="ppSizesGroup">
-                            {sizeKeys.map(key => (
-                              <div key={key} className="ppSizeItem">
-                                <span className="ppSizeLabel">{SIZE_LABELS[key]}</span>
-                                <div className="ppSelectWrap ppSelectXS">
-                                  <select
-                                    className="ppSelect"
-                                    value={item.sizes[key]}
-                                    onChange={e => updateItem(idx, { sizes: { ...item.sizes, [key]: e.target.value } })}
-                                  >
-                                    {SIZE_OPTIONS[key].map(s => <option key={s}>{s}</option>)}
-                                  </select>
-                                </div>
-                                <span className="ppSizeUnit">นิ้ว</span>
-                              </div>
+                            {filteredTypes.map(t => (
+                              <option key={t.uniform_type_id} value={t.uniform_type_id}>
+                                {t.type_name}
+                                {t.gender === "male" ? " (ชาย)" : t.gender === "female" ? " (หญิง)" : ""}
+                              </option>
                             ))}
-                          </div>
+                          </select>
                         </div>
+                      )}
 
-                        {/* สภาพ */}
-                        <div className="ppFieldRow">
-                          <label className="ppFieldLabel">สภาพ</label>
-                          <div className="ppConditionGroup">
-                            <div className="ppSelectWrap ppSelectSmall">
-                              <select
-                                className="ppSelect"
-                                value={item.condition}
-                                onChange={e => updateItem(idx, { condition: e.target.value })}
-                              >
-                                {CONDITIONS.map(c => <option key={c} value={c}>{c}%</option>)}
-                              </select>
+                      <div className="ppOrDivider">
+                        <span />หรือกรอกชื่อ type เอง<span />
+                      </div>
+
+                      <input
+                        className="ppInput"
+                        placeholder="เช่น คอฮาวาย, ชุดพละ, รุ่นพิเศษ..."
+                        value={item.custom_type_name || ""}
+                        disabled={!!item.uniform_type_id}
+                        onChange={e => updateItem(idx, {
+                          custom_type_name: e.target.value,
+                          uniform_type_id: null,
+                        })}
+                      />
+                      {item.uniform_type_id && (
+                        <p className="ppHint">ล้างตัวเลือก dropdown ก่อนถึงจะกรอกเองได้</p>
+                      )}
+                    </div>
+
+                    {/* ระดับชั้น + ไซส์ (2 คอลัมน์) */}
+                    <div className="ppFieldRow2">
+                      <div className="ppFieldBlock">
+                        <label className="ppFieldLabel">ระดับชั้น</label>
+                        <div className="ppSelectWrap">
+                          <select
+                            className="ppSelect"
+                            value={item.level}
+                            onChange={e => updateItem(idx, { level: e.target.value })}
+                          >
+                            {LEVELS.map(l => <option key={l}>{l}</option>)}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="ppFieldBlock">
+                        <label className="ppFieldLabel">ไซส์</label>
+
+                        <div className="ppSizesRow">
+                          {sizeKeys.map(key => (
+                            <div key={key} className="ppSizeBox">
+                              <span className="ppSizeLabel">{SIZE_LABELS[key]}</span>
+
+                              <input
+                                className="ppSizeInput"
+                                type="number"
+                                value={item.sizes[key] || ""}
+                                placeholder="เช่น 26"
+                                onChange={e =>
+                                  updateItem(idx, {
+                                    sizes: { ...item.sizes, [key]: e.target.value }
+                                  })
+                                }
+                              />
+
+                              <span className="ppSizeUnit">นิ้ว</span>
                             </div>
-                            <label className="ppFieldLabel" style={{ marginLeft:12 }}>เพิ่มเติม</label>
-                            <div className="ppSelectWrap ppSelectSmall">
-                              <select
-                                className="ppSelect"
-                                value={item.conditionLabel}
-                                onChange={e => updateItem(idx, { conditionLabel: e.target.value })}
-                              >
-                                {CONDITION_LABELS.map(c => <option key={c}>{c}</option>)}
-                              </select>
-                            </div>
-                          </div>
+                          ))}
                         </div>
+                      </div>
+                    </div>
 
-                        {/* ราคา */}
-                        <div className="ppFieldRow">
-                          <label className="ppFieldLabel">ราคา</label>
-                          <div className="ppPriceWrap">
-                            <input
-                              className="ppInput ppPriceInput"
-                              type="number" min="0" placeholder="0"
-                              value={item.price}
-                              onChange={e => updateItem(idx, { price: e.target.value })}
-                            />
-                            <span className="ppFieldLabel">บาท</span>
-                          </div>
-                        </div>
+                    {/* สภาพ */}
+                    <div className="ppFieldBlock">
+                      <label className="ppFieldLabel">สภาพ (%)</label>
+                      <div className="ppChipGroup">
+                        {CONDITION_PERCENTS.map(c => (
+                          <button
+                            key={c}
+                            className={`ppChip ${item.condition === c ? "ppChipActive ppChipGreen" : ""}`}
+                            onClick={() => updateItem(idx, { condition: c })}
+                          >{c}%</button>
+                        ))}
+                      </div>
+                    </div>
 
-                        {/* จำนวน */}
-                        <div className="ppFieldRow">
-                          <label className="ppFieldLabel">จำนวน</label>
-                          <div className="ppSelectWrap ppSelectXS">
-                            <select
-                              className="ppSelect"
-                              value={item.quantity}
-                              onChange={e => updateItem(idx, { quantity: parseInt(e.target.value) })}
-                            >
-                              {[1,2,3,4,5].map(n => <option key={n}>{n}</option>)}
-                            </select>
-                          </div>
-                          <span className="ppFieldLabel">ชิ้น</span>
-                        </div>
+                    <div className="ppFieldBlock">
+                      <label className="ppFieldLabel">คำอธิบายสภาพ</label>
+                      <div className="ppChipGroup">
+                        {CONDITION_LABELS.map(c => (
+                          <button
+                            key={c}
+                            className={`ppChip ${item.conditionLabel === c ? "ppChipActive ppChipBlue" : ""}`}
+                            onClick={() => updateItem(idx, { conditionLabel: c })}
+                          >{c}</button>
+                        ))}
+                      </div>
+                    </div>
 
-                        {/* รายละเอียด */}
-                        <div className="ppFieldRow ppFieldRowDesc">
-                          <label className="ppFieldLabel">รายละเอียด</label>
-                          <textarea
-                            className="ppTextarea" rows={3}
-                            placeholder="อธิบายเพิ่มเติม เช่น ตำหนิ, เงื่อนไขการซื้อ..."
-                            value={item.description}
-                            onChange={e => updateItem(idx, { description: e.target.value })}
+                    {/* ราคา + จำนวน (2 คอลัมน์) */}
+                    <div className="ppFieldRow2">
+                      <div className="ppFieldBlock">
+                        <label className="ppFieldLabel">
+                          ราคา <span className="ppReq">*</span>
+                        </label>
+                        <div className="ppPriceWrap">
+                          <input
+                            className="ppInput ppPriceInput"
+                            type="number" min="0" placeholder="0"
+                            value={item.price}
+                            onChange={e => updateItem(idx, { price: e.target.value })}
                           />
+                          <span className="ppUnit">บาท</span>
                         </div>
+                      </div>
 
+                      <div className="ppFieldBlock">
+                        <label className="ppFieldLabel">จำนวน</label>
+                        <div className="ppQtyWrap">
+                          <button className="ppQtyBtn" onClick={() => updateItem(idx, { quantity: Math.max(1, item.quantity - 1) })}>−</button>
+                          <span className="ppQtyVal">{item.quantity}</span>
+                          <button className="ppQtyBtn" onClick={() => updateItem(idx, { quantity: Math.min(99, item.quantity + 1) })}>+</button>
+                          <span className="ppUnit">ชิ้น</span>
+                        </div>
                       </div>
-                    ) : (
-                      /* Summary (collapsed) */
-                      <div className="ppItemSummary">
-                        {item.images.length > 0 && (
-                          <img src={item.images[0].url} className="ppSummaryThumb" alt="" />
-                        )}
-                        <span>{typeObj?.type_name}</span>
-                        <span className="ppItemSummaryDot">·</span>
-                        <span>{item.level}</span>
-                        <span className="ppItemSummaryDot">·</span>
-                        <span>{sizeKeys.map(k => `${SIZE_LABELS[k]} ${item.sizes[k]}"`).join(" / ")}</span>
-                        <span className="ppItemSummaryDot">·</span>
-                        <span>สภาพ {item.condition}%</span>
-                        {item.price && (
-                          <>
-                            <span className="ppItemSummaryDot">·</span>
-                            <span className="ppItemPrice">{Number(item.price).toLocaleString()} บาท</span>
-                          </>
-                        )}
-                        <span className="ppImgCountBadge">
-                          <Icon icon="mdi:image-outline" /> {item.images.length}
-                        </span>
+                    </div>
+
+                    <div className="ppDivider" />
+
+                    {/* รายละเอียดเพิ่มเติม */}
+                    <div className="ppOptionalSection">
+                      <p className="ppOptionalTitle">
+                        รายละเอียดเพิ่มเติม
+                        <span className="ppOptionalBadge">ไม่บังคับ</span>
+                      </p>
+
+                      <div className="ppFieldBlock">
+                        <label className="ppFieldLabel">โรงเรียน</label>
+                        <input
+                          className="ppInput"
+                          type="text"
+                          placeholder="ระบุถ้าเป็นชุดของโรงเรียนนั้นๆ เช่น โรงเรียนสาธิตมหาวิทยาลัย..."
+                          value={item.school_name}
+                          onChange={e => updateItem(idx, { school_name: e.target.value })}
+                        />
                       </div>
-                    )}
+
+                      <div className="ppFieldBlock">
+                        <label className="ppFieldLabel">หมายเหตุ / คำอธิบาย</label>
+                        <textarea
+                          className="ppTextarea" rows={3}
+                          placeholder="อธิบายเพิ่มเติม เช่น ตำหนิเล็กน้อย, เงื่อนไขการซื้อ..."
+                          value={item.description}
+                          onChange={e => updateItem(idx, { description: e.target.value })}
+                        />
+                      </div>
+                    </div>
 
                   </div>
-                );
-              })}
+                )}
+              </div>
+            );
+          })}
 
-              <button className="ppAddItemBtn" onClick={addItem}>
-                <Icon icon="mdi:plus-circle-outline" /> เพิ่มรายการสินค้า
-              </button>
-            </div>
-          </section>
+          <button className="ppAddItemBtn" onClick={addItem}>
+            <Icon icon="mdi:plus-circle-outline" /> เพิ่มรายการสินค้า
+          </button>
+
         </div>
 
         {err && (
@@ -497,11 +575,18 @@ export default function PostProductPage() {
           </div>
         )}
 
-        <button className="ppSubmitBtn" onClick={handleSubmit} disabled={submitting}>
-          {submitting
-            ? <><Icon icon="mdi:loading" className="ppSpinner" /> กำลังส่ง...</>
-            : `ลงขาย ${items.length} รายการ`}
-        </button>
+        <div className="ppSubmitArea">
+          <p className="ppSubmitNote">
+            แต่ละรายการจะแสดงเป็นการ์ดแยกกัน · ลงขายครั้งแรกจะอัปเดตสถานะเป็น "ผู้ขาย" โดยอัตโนมัติ
+          </p>
+          <button className="ppSubmitBtn" onClick={handleSubmit} disabled={submitting}>
+            {submitting
+              ? <><Icon icon="mdi:loading" className="ppSpinner" /> กำลังส่ง...</>
+              : <><Icon icon="mdi:tag-outline" /> ลงขาย {items.length} รายการ</>
+            }
+          </button>
+        </div>
+
       </div>
 
       {/* ===== Footer ===== */}
