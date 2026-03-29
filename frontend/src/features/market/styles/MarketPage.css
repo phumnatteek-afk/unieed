@@ -105,7 +105,7 @@
 .mkFilterBtn:hover, .mkFilterBtnActive { color: #1d4ed8; }
 
 /* Filter Panel */
-.mkFilterPanel { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, opacity 0.3s ease; opacity: 0; }
+.mkFilterPanel { margin-left: 40px ; max-height: 0; overflow: hidden; transition: max-height 0.35s ease, opacity 0.3s ease; opacity: 0; }
 .mkFilterPanelOpen { -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */ max-height: 500px; opacity: 1; margin-top: 20px; align-items: flex-end; flex-wrap: wrap; /* ถ้าอยากให้อยู่บรรทัดเดียวตลอด */
   overflow-x: auto; }
