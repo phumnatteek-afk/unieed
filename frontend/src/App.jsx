@@ -36,15 +36,21 @@ import ProjectDetailPage from "./features/project/pages/ProjectDetailPage.jsx";
 import DonatePage from "./features/project/pages/Donatepage.jsx";
 // ส่วนหน้าเมนู
 import DonationProject from "./features/project/pages/DonationProject.jsx";
+// market
 import PostProductPage from "./features/market/pages/PostProductPage.jsx";
 import MarketPage from "./features/market/pages/MarketPage.jsx";
 import "./App.css";
+import ProductDetailPage from "./features/market/pages/ProductDetailPage.jsx";
+import CartPage from "./features/market/pages/CartPage.jsx";
+import CheckoutPage from "./features/market/pages/CheckoutPage.jsx";
+import { CartProvider } from "./features/market/context/CartContext.jsx";
 
 export default function App() {
   return (
     <div className="page-container">
       <AuthProvider>
         <BrowserRouter>
+        <CartProvider>
           <Routes>
             {/* Public */}
             <Route path="/" element={<HomePage />} />
@@ -63,6 +69,10 @@ export default function App() {
             <Route path="/donate/:requestId" element={<DonatePage />} />
             <Route path="/market" element={<MarketPage />} />
             <Route path="/sell" element={<PostProductPage />} />
+            <Route path="/market/:id" element={<ProductDetailPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+
             {/* School */}
             <Route path="/school/pending" element={<SchoolPendingPage />} />
 
@@ -117,6 +127,7 @@ export default function App() {
             {/* fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </CartProvider>
         </BrowserRouter>
       </AuthProvider>
 

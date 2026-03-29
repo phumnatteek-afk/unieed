@@ -1,0 +1,20 @@
+/* CartIcon.css */
+.cartIconWrap {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  color: #374151; text-decoration: none;
+  border-radius: 10px;
+  transition: background 0.15s, color 0.15s;
+}
+.cartIconWrap:hover { background: #f0f4ff; color: #5285E8; }
+
+.cartIconBadge {
+  position: absolute; top: 2px; right: 2px;
+  background: #ef4444; color: #fff;
+  font-size: 10px; font-weight: 600;
+  min-width: 18px; height: 18px;
+  border-radius: 999px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}

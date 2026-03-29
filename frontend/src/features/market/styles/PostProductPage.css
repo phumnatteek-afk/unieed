@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   PostProductPage.css — Unieed Sell Form
+   PostProductPage.css — Unieed Sell Form (Redesigned)
    ═══════════════════════════════════════════════════════════ */
 
 .ppAccentBar {
@@ -9,20 +9,23 @@
 }
 
 .ppWrapper {
-  max-width: 720px;
+  max-width: 740px;
   margin: 0 auto;
   padding: 2.5rem 1.25rem 4rem;
 }
 
 /* ── Page header ── */
-.ppPageHeader { margin-bottom: 2rem; }
+.ppPageHeader { margin-bottom: 1.75rem; }
 
 .ppPageTitle {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #1e293b;
   margin: 0 0 4px;
   letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .ppPageSub {
@@ -30,6 +33,88 @@
   color: #64748b;
   margin: 0;
 }
+
+/* ══════════════════════════════════════
+   Step Indicator
+══════════════════════════════════════ */
+.ppStepBar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 24px;
+  gap: 0;
+}
+
+.ppStep {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.ppStepCircle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  transition: all 0.25s;
+  border: 2px solid #e2e8f0;
+}
+
+.ppStepActive .ppStepCircle {
+  background: linear-gradient(135deg, #87C7EB, #5BA4CC);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(91, 164, 204, 0.35);
+}
+
+.ppStepDone .ppStepCircle {
+  background: #dcfce7;
+  color: #16a34a;
+  border-color: #86efac;
+}
+
+.ppStepInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ppStepNum {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ppStepName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ppStepActive .ppStepName { color: #1e293b; }
+
+.ppStepLine {
+  flex: 0 0 60px;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 12px;
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+
+.ppStepLineDone { background: linear-gradient(90deg, #87C7EB, #5BA4CC); }
 
 /* ── Items area ── */
 .ppItemsArea {
@@ -113,7 +198,7 @@
 .ppItemHeaderRight {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -136,10 +221,10 @@
 
 /* ── Card body ── */
 .ppItemBody {
-  padding: 22px 22px 26px;
+  padding: 16px 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
 }
 
 /* ── Fields ── */
@@ -159,7 +244,7 @@
   color: #374151;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
 }
 
@@ -334,8 +419,6 @@
   box-shadow: 0 0 0 3px rgba(135, 199, 235, 0.2);
 }
 
-.ppSelectSm { padding: 8px 32px 8px 10px; font-size: 13px; }
-
 /* ── Or divider ── */
 .ppOrDivider {
   display: flex;
@@ -381,7 +464,7 @@
   background: #fff;
   font-family: inherit;
   resize: vertical;
-  min-height: 80px;
+  min-height: 70px;
   transition: border-color 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
 }
@@ -398,15 +481,46 @@
 .ppLoadingHint { font-size: 13px; color: #94a3b8; padding: 10px 0; }
 
 /* ── Sizes ── */
-.ppSizesInline { display: flex; flex-direction: column; gap: 8px; }
+.ppSizesRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 
-.ppSizeItem { display: flex; align-items: center; gap: 8px; }
+.ppSizeBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+}
 
-.ppSizeLabel { font-size: 13px; color: #475569; font-weight: 500; width: 28px; flex-shrink: 0; }
-.ppSizeUnit  { font-size: 12px; color: #94a3b8; }
+.ppSizeLabel { font-size: 13px; color: #475569; font-weight: 600; width: 24px; flex-shrink: 0; }
+.ppSizeUnit  { font-size: 11px; color: #94a3b8; }
+
+.ppSizeInput {
+  width: 56px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  text-align: center;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.ppSizeInput:focus {
+  outline: none;
+  border-color: #87C7EB;
+  box-shadow: 0 0 0 2px rgba(135, 199, 235, 0.2);
+}
 
 /* ── Chips ── */
 .ppChipGroup { display: flex; flex-wrap: wrap; gap: 7px; }
+.ppChipGroupSm { gap: 5px; }
 
 .ppChip {
   padding: 6px 13px;
@@ -423,14 +537,20 @@
 
 .ppChip:hover { border-color: #94a3b8; background: #f8fafc; }
 
+.ppChipSm { padding: 5px 10px; font-size: 12px; }
+
 .ppChipGreen { background: #dcfce7; border-color: #86efac; color: #166534; font-weight: 600; }
 .ppChipBlue  { background: #dbeafe; border-color: #93c5fd; color: #1d4ed8; font-weight: 600; }
 
+.ppChipActive.ppChipBlue {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
 /* ── Price + Qty ── */
 .ppPriceWrap { display: flex; align-items: center; gap: 10px; }
-
 .ppPriceInput { flex: 1; text-align: right; font-size: 16px; font-weight: 600; }
-
 .ppUnit { font-size: 14px; color: #64748b; white-space: nowrap; }
 
 .ppQtyWrap { display: flex; align-items: center; gap: 8px; }
@@ -453,7 +573,6 @@
 }
 
 .ppQtyBtn:hover { border-color: #87C7EB; background: #f0f8fd; color: #1e7fa8; }
-
 .ppQtyVal { font-size: 16px; font-weight: 600; color: #1e293b; min-width: 28px; text-align: center; }
 
 /* ── Optional section ── */
@@ -466,7 +585,7 @@
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 /* ── Add item btn ── */
@@ -504,12 +623,12 @@
   margin-top: 16px;
 }
 
-/* ── Submit ── */
+/* ── Submit area ── */
 .ppSubmitArea {
   margin-top: 24px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 10px;
 }
 
@@ -544,6 +663,25 @@
 .ppSubmitBtn:active { transform: translateY(0); }
 .ppSubmitBtn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
+.ppBackBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.ppBackBtn:hover { border-color: #94a3b8; background: #f8fafc; }
+
 .ppSpinner { animation: ppSpin 0.8s linear infinite; }
 
 @keyframes ppSpin {
@@ -551,43 +689,279 @@
   to   { transform: rotate(360deg); }
 }
 
+/* ══════════════════════════════════════
+   STEP 2 — Shipping
+══════════════════════════════════════ */
+
+/* Summary chips (top of step 2) */
+.ppShipSummaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.ppShipSummaryChip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #f0f8fd;
+  border: 1.5px solid #87C7EB;
+  border-radius: 12px;
+}
+
+.ppShipSummaryNum {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: #87C7EB;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ppShipSummaryName { font-size: 13px; font-weight: 600; color: #1e293b; }
+.ppShipSummaryPrice { font-size: 11px; color: #64748b; }
+
+/* Shipping card grid */
+.ppShipGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.ppShipCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 10px 12px;
+  border-radius: 14px;
+  border: 2px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s;
+  text-align: center;
+}
+
+.ppShipCard:hover {
+  border-color: var(--ship-color, #87C7EB);
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+}
+
+.ppShipCardActive {
+  border-color: var(--ship-color, #87C7EB) !important;
+  background: color-mix(in srgb, var(--ship-color, #87C7EB) 10%, white) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ship-color, #87C7EB) 20%, transparent);
+  transform: translateY(-2px);
+}
+
+.ppShipCardIcon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ship-color, #87C7EB) 15%, white);
+  color: var(--ship-color, #87C7EB);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  transition: all 0.18s;
+}
+
+.ppShipCardActive .ppShipCardIcon {
+  background: var(--ship-color, #87C7EB);
+  color: #fff;
+}
+
+.ppShipCardName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.3;
+}
+
+.ppShipCardCheck {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--ship-color, #87C7EB);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+/* Done badge on card header */
+.ppShipDoneBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #dcfce7;
+  color: #16a34a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
   .ppWrapper { padding: 1.5rem 1rem 3rem; }
-  .ppPageTitle { font-size: 1.3rem; }
+  .ppPageTitle { font-size: 1.25rem; }
   .ppItemBody { padding: 16px 16px 20px; }
   .ppCatTab { padding: 6px 11px; font-size: 12px; }
+  .ppStepBar { padding: 14px 16px; }
+  .ppStepLine { flex: 0 0 30px; margin: 0 8px; }
+  .ppShipGrid { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* ── Sizes NEW UI ── */
-.ppSizesRow {
+@media (max-width: 400px) {
+  .ppShipGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ══════════════════════════════════════
+   Section grouping (Step 1 card body)
+══════════════════════════════════════ */
+.ppSection {
   display: flex;
+  flex-direction: column;
   gap: 12px;
-  flex-wrap: wrap;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fafbff;
+  border: 1px solid #f1f5f9;
 }
 
-.ppSizeBox {
+.ppSectionOptional {
+  background: #f8fafc;
+  border-color: #e9eef5;
+}
+
+.ppSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.ppSectionDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ppDotBlue   { background: #3b82f6; }
+.ppDotPurple { background: #8b5cf6; }
+.ppDotGreen  { background: #10b981; }
+.ppDotOrange { background: #f59e0b; }
+.ppDotGray   { background: #94a3b8; }
+
+.ppSectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}
+
+.ppReqBadge {
+  font-size: 10px;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════
+   Apply-all shipping card (Step 2)
+══════════════════════════════════════ */
+.ppApplyAllCard {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e8f4fb 100%);
+  border: 1.5px solid #87C7EB;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ppApplyAllHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ppApplyAllIcon {
+  font-size: 22px;
+  color: #5BA4CC;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ppApplyAllTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.ppApplyAllSub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.ppShipGridSm {
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
+}
+
+.ppApplyAllPriceRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.ppApplyBtn {
   display: flex;
   align-items: center;
   gap: 6px;
-  /* background: #f8fafc; */
-  padding: 8px 10px;
+  padding: 10px 18px;
   border-radius: 10px;
-  /* border: 1.5px solid #e2e8f0; */
-}
-
-.ppSizeInput {
-  width: 60px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1.5px solid #e2e8f0;
-  text-align: center;
+  border: none;
+  background: linear-gradient(135deg, #87C7EB 0%, #5BA4CC 100%);
+  color: #fff;
   font-size: 13px;
-  transition: all 0.15s;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: opacity 0.15s, transform 0.1s;
+  box-shadow: 0 3px 10px rgba(91, 164, 204, 0.35);
 }
 
-.ppSizeInput:focus {
-  outline: none;
-  border-color: #87C7EB;
-  box-shadow: 0 0 0 2px rgba(135, 199, 235, 0.2);
+.ppApplyBtn:hover { opacity: 0.9; transform: translateY(-1px); }
+.ppApplyBtn:active { transform: translateY(0); }
+
+@media (max-width: 540px) {
+  .ppApplyAllPriceRow { flex-direction: column; align-items: stretch; }
+  .ppApplyBtn { justify-content: center; }
+  .ppShipGridSm { grid-template-columns: repeat(3, 1fr) !important; }
 }

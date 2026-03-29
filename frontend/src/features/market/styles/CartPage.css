@@ -1,0 +1,194 @@
+/* CartPage.css */
+.cpPage { min-height: 100vh; background: #f7f9fc; font-family: 'Mitr', 'Kanit', sans-serif; }
+
+.cpContainer { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
+
+.cpHeader {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+}
+.cpTitle {
+  font-size: 24px; font-weight: 600; color: #1d4ed8;
+  display: flex; align-items: center; gap: 10px; margin: 0;
+}
+.cpCount {
+  font-size: 14px; color: #888;
+  background: #f0f4ff; padding: 4px 12px; border-radius: 20px;
+}
+
+/* Loading / Empty */
+.cpLoading {
+  display: flex; align-items: center; gap: 10px;
+  justify-content: center; padding: 80px; color: #888; font-size: 16px;
+}
+.cpSpinner { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.cpEmpty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 16px; padding: 80px 20px; color: #aaa;
+}
+.cpEmpty p { font-size: 18px; color: #888; margin: 0; }
+.cpShopBtn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 28px; border-radius: 999px;
+  background: #5285E8; color: #fff;
+  text-decoration: none; font-size: 15px;
+  transition: background 0.18s;
+}
+.cpShopBtn:hover { background: #3b6fd4; }
+
+/* Layout */
+.cpLayout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Select all */
+.cpSelectAll {
+  background: #fff; border-radius: 12px;
+  padding: 14px 18px; margin-bottom: 12px;
+  border: 0.5px solid #e5e7eb;
+}
+.cpCheckLabel {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; color: #374151; cursor: pointer;
+}
+.cpCheckLabel input { width: 18px; height: 18px; cursor: pointer; accent-color: #5285E8; }
+
+/* Group */
+.cpGroup {
+  background: #fff; border-radius: 14px;
+  border: 0.5px solid #e5e7eb;
+  overflow: hidden; margin-bottom: 12px;
+}
+.cpGroupHeader {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 0.5px solid #f0f0f0;
+  background: #fafafa;
+}
+.cpSellerAvatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #E6F1FB; color: #185FA5;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600; flex-shrink: 0;
+}
+.cpSellerName { font-size: 14px; font-weight: 500; color: #374151; }
+
+/* Item */
+.cpItem {
+  display: grid;
+  grid-template-columns: 24px 90px 1fr auto;
+  gap: 14px; padding: 16px 18px;
+  border-bottom: 0.5px solid #f5f5f5;
+  align-items: start;
+  transition: background 0.15s;
+}
+.cpItem:last-child { border-bottom: none; }
+.cpItemSelected { background: #f0f6ff; }
+
+.cpItemCheck { width: 18px; height: 18px; cursor: pointer; accent-color: #5285E8; margin-top: 2px; }
+
+.cpItemImg {
+  width: 90px; height: 90px; border-radius: 10px;
+  overflow: hidden; background: #f1f5f9; flex-shrink: 0;
+  display: block;
+}
+.cpItemImg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cpItemPlaceholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  color: #ccc; font-size: 32px;
+}
+
+.cpItemInfo { display: flex; flex-direction: column; gap: 4px; }
+.cpItemTitle {
+  font-size: 14px; font-weight: 500; color: #111827;
+  text-decoration: none; line-height: 1.4;
+}
+.cpItemTitle:hover { color: #5285E8; }
+.cpItemMeta {
+  font-size: 12px; color: #888;
+  display: flex; align-items: center; gap: 4px;
+}
+.cpItemStock { font-size: 11px; color: #22c55e; margin-top: 2px; }
+
+.cpItemRight {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 8px; min-width: 130px;
+}
+.cpItemPrice { font-size: 16px; font-weight: 500; color: #5285E8; }
+
+.cpQtyRow { display: flex; align-items: center; gap: 8px; }
+.cpQtyBtn {
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1.5px solid #e5e7eb; background: #fff;
+  font-size: 16px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  transition: border-color 0.15s;
+}
+.cpQtyBtn:hover:not(:disabled) { border-color: #5285E8; color: #5285E8; }
+.cpQtyBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.cpQty { font-size: 15px; font-weight: 500; min-width: 20px; text-align: center; }
+
+.cpItemSubtotal { font-size: 12px; color: #666; }
+
+.cpRemoveBtn {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; color: #ef4444; background: none;
+  border: none; cursor: pointer; padding: 4px 0;
+}
+.cpRemoveBtn:hover { color: #b91c1c; }
+
+/* Summary */
+.cpSummaryCard {
+  background: #fff; border-radius: 16px;
+  padding: 24px; border: 0.5px solid #e5e7eb;
+  position: sticky; top: 24px;
+}
+.cpSummaryTitle { font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px; }
+
+.cpSummaryRows { display: flex; flex-direction: column; gap: 10px; }
+.cpSummaryRow {
+  display: flex; justify-content: space-between;
+  font-size: 14px; color: #555;
+}
+
+.cpSummaryDivider { height: 1px; background: #f0f0f0; margin: 16px 0; }
+
+.cpSummaryTotal {
+  display: flex; justify-content: space-between;
+  font-size: 15px; font-weight: 600; color: #111827;
+  margin-bottom: 20px;
+}
+.cpTotalPrice { color: #5285E8; font-size: 20px; }
+
+.cpCheckoutBtn {
+  width: 100%; height: 52px; border-radius: 999px;
+  border: none; background: #FFBE1B; color: #fff;
+  font-size: 15px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; transition: background 0.18s;
+  font-family: 'Mitr', sans-serif; margin-bottom: 10px;
+}
+.cpCheckoutBtn:hover:not(:disabled) { background: #f0ad00; }
+.cpCheckoutBtn:disabled { background: #ddd; cursor: not-allowed; }
+
+.cpContinueBtn {
+  width: 100%; height: 44px; border-radius: 999px;
+  border: 1.5px solid #e5e7eb; background: #fff;
+  color: #555; font-size: 14px; text-decoration: none;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: border-color 0.18s;
+}
+.cpContinueBtn:hover { border-color: #5285E8; color: #5285E8; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cpLayout { grid-template-columns: 1fr; }
+  .cpItem { grid-template-columns: 24px 70px 1fr; }
+  .cpItemRight { grid-column: 2 / -1; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .cpSummaryCard { position: static; }
+}

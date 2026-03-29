@@ -7,6 +7,8 @@ import {
   searchSchools       as svcSearchSchools,
   getUniformTypes     as svcGetTypes,
   getUniformTypesBySchool as svcGetTypesBySchool,
+  getRelatedProducts  as svcGetRelated,
+  
 } from "./Market.service.js";
 
 // ─────────────────────────────────────────────────────────
@@ -82,6 +84,24 @@ const getProductById = async (req, res) => {
   }
 };
 
+const getRelatedProducts = async (req, res) => {
+  try {
+    const { category_id, gender, level, limit = 6 } = req.query;
+    const rows = await svcGetRelated({
+      productId:  req.params.id,
+      categoryId: category_id,
+      gender,
+      level,
+      limit,
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error("[Market.getRelated]", err);
+    res.status(500).json({ message: "เกิดข้อผิดพลาด" });
+  }
+};
+ 
+
 // ─────────────────────────────────────────────────────────
 // DELETE /api/market/:id
 // ─────────────────────────────────────────────────────────
@@ -145,4 +165,5 @@ export {
   searchSchools,
   getUniformTypes,
   getUniformTypesBySchool,
+  getRelatedProducts,
 };

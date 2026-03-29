@@ -5,8 +5,12 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import NotificationBell from "../../../pages/NotificationBell.jsx";
+import CartIcon from "../components/CartIcon.jsx";
 import "../../../pages/styles/Homepage.css";
 import "../styles/MarketPage.css";
+import { useAddToCart } from "../hooks/useAddToCart.js";
+
 
 const UNIFORM_TYPES = [
   { uniform_type_id: 1, type_name: "เสื้อชาย",  icon: "👔" },
@@ -122,7 +126,8 @@ function SizeDisplay({ size, categoryId }) {
 
 function ProductCard({ product }) {
   const navigate = useNavigate();
-
+   const { addToCart, loadingId } = useAddToCart();
+  const isLoading            = loadingId === product.product_id;
   const images = product.images?.length
     ? product.images
     : product.cover_image
@@ -192,20 +197,44 @@ const displayTitle = typePart
           </div>
           <button
             className="mkCartBtn"
-            onClick={e => e.stopPropagation()}
+            onClick={e => {
+  e.stopPropagation();
+  addToCart(product.product_id);
+}}
+            disabled={isLoading || product.quantity === 0}
             aria-label="เพิ่มลงตะกร้า"
           >
-            <Icon icon="mdi:cart-plus" />
+            <Icon icon={isLoading ? "mdi:loading" : "mdi:cart-plus"}
+              className={isLoading ? "mkSpinner" : ""} />
           </button>
         </div>
       </div>
     </div>
   );
 }
+
+
 // ── Main Page ─────────────────────────────────────────
 export default function MarketPage() {
-  const { token }  = useAuth();
+  const { token, role, userName } = useAuth();
   const location   = useLocation();
+  const rightAccount = () => {
+  if (!token) {
+    return (
+      <div className="navAuth">
+        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
+        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <NotificationBell />
+      <ProfileDropdown />
+      <CartIcon />
+    </div>
+  );
+};
 
   const [toast,         setToast]         = useState(location.state?.successMsg || "");
   const [search,        setSearch]        = useState("");
@@ -274,16 +303,6 @@ setTotalCount(data.pagination?.total || 0);
     setSearch("");
   };
 
-  const getRightAccount = () => {
-    if (!token)
-      return (
-        <div className="navAuth">
-          <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-          <Link className="navBtn navBtnWhite"   to="/login">เข้าสู่ระบบ</Link>
-        </div>
-      );
-    return <ProfileDropdown />;
-  };
 
   return (
     <div className="homePage">
@@ -305,7 +324,7 @@ setTotalCount(data.pagination?.total || 0);
             <a href="#about">เกี่ยวกับเรา</a>
             <button><Link to="/sell">ลงขาย</Link></button>
           </nav>
-          {getRightAccount()}
+          {rightAccount()}
         </div>
       </header>
 

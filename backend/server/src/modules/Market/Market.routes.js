@@ -8,6 +8,7 @@ import {
   searchSchools,
   getUniformTypes,
   getUniformTypesBySchool,
+  getRelatedProducts,
 } from "./Market.controller.js";
 import { auth }                from "../../middleware/auth.js";
 import { uploadProductImages } from "../../config/cloudinary.js";
@@ -33,8 +34,12 @@ router.post("/batch", auth, uploadProductImages, batchCreateProducts);
 // GET  /api/market
 router.get("/", getProducts);
 
+// GET  /api/market/:id/related
+router.get("/:id/related", getRelatedProducts);
+
 // GET  /api/market/:id
 router.get("/:id", getProductById);
+
 
 // DELETE /api/market/:id
 router.delete("/:id", auth, deleteProduct);

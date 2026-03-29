@@ -54,8 +54,8 @@ const sizeStr = Object.keys(sizeObj).length > 0
   `INSERT INTO products
     (seller_id, uniform_type_id, category_id, gender, custom_type_name, product_title,
      product_description, size, level, school_name, condition_percent, condition_label,
-     price, quantity, status)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')`,
+     price, quantity,shipping_name, shipping_price, status)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')`,
   [
     sellerId,
     item.uniform_type_id || null,
@@ -71,6 +71,8 @@ const sizeStr = Object.keys(sizeObj).length > 0
     item.conditionLabel || '',
     parseFloat(item.price),
     parseInt(item.quantity) || 1,
+    item.shipping_name  || null,   // ✅
+    parseFloat(item.shipping_price) || 0, // ✅
   ]
 );
 
@@ -222,7 +224,54 @@ const getProductById = async (id) => {
 
   return { ...product, images };
 };
+const getRelatedProducts = async ({ productId, categoryId, gender, level, limit = 6 }) => {
+  const where  = [`p.status = 'available'`, `p.product_id != ?`];
+  const params = [Number(productId)];
 
+  // ✅ ต้องมี category เดียวกันเสมอ
+  if (categoryId) {
+    where.push(`COALESCE(p.category_id, ci.category_id) = ?`);
+    params.push(Number(categoryId));
+  }
+
+  // ✅ filter เพศเสมอ (ไม่จำกัดแค่ category 1)
+  if (gender) {
+    where.push(`COALESCE(p.gender, ut.gender) = ?`);
+    params.push(gender);
+  }
+
+  // ✅ filter ระดับชั้น strict — ต้องตรงกันเท่านั้น ไม่รับ null/ว่าง
+  if (level) {
+    where.push(`p.level = ?`);
+    params.push(level);
+  }
+
+  const whereSQL = `WHERE ${where.join(" AND ")}`;
+
+  const [rows] = await db.execute(
+    `SELECT
+       p.product_id, p.product_title, p.size, p.level,
+       p.condition_percent, p.condition_label, p.price, p.status, p.quantity,
+       p.school_name, p.custom_type_name,
+       COALESCE(p.category_id, ci.category_id) AS category_id,
+       COALESCE(p.gender, ut.gender) AS gender,
+       COALESCE(ut.type_name, p.custom_type_name) AS type_name,
+       ut.uniform_type_id,
+       ci.category_name,
+       u.user_name AS seller_name,
+       pi.image_url AS cover_image
+     FROM products p
+     LEFT JOIN users u ON u.user_id = p.seller_id
+     LEFT JOIN uniform_type ut ON ut.uniform_type_id = p.uniform_type_id
+     LEFT JOIN category_item ci ON ci.category_id = ut.category_id
+     LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_cover = 1
+     ${whereSQL}
+     ORDER BY RAND()
+     LIMIT ${Number(limit)}`,
+    params
+  );
+  return rows;
+};
 // ─────────────────────────────────────────────────────────
 // Delete product + Cloudinary cleanup
 // ─────────────────────────────────────────────────────────
@@ -299,6 +348,8 @@ const getUniformTypesBySchool = async (schoolId) => {
   return rows;
 };
 
+
+
 export {
   batchCreateProducts,
   getProducts,
@@ -307,4 +358,5 @@ export {
   searchSchools,
   getUniformTypes,
   getUniformTypesBySchool,
+  getRelatedProducts, 
 };

@@ -6,6 +6,8 @@ import "./styles/Homepage.css";
 import "../features/market/styles/MarketPage.css"
 import ProfileDropdown from "../features/auth/pages/ProfileDropdown.jsx";
 import NotificationBell from "./NotificationBell.jsx";
+import CartIcon from "../features/market/components/CartIcon.jsx";
+import { useAddToCart } from "../features/market/hooks/useAddToCart.js";
 
 
 // icon
@@ -18,6 +20,7 @@ import { Icon } from "@iconify/react";
 export default function HomePage() {
   const { token, role, userName, logout } = useAuth();
   const navigate = useNavigate();
+  const { addToCart, loadingId, toastMsg } = useAddToCart(); 
 
   const [stats, setStats] = useState({
     products_total: 0,
@@ -113,6 +116,7 @@ export default function HomePage() {
     <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
       <NotificationBell />
       <ProfileDropdown />
+      <CartIcon />
     </div>
   );
 };
@@ -348,6 +352,11 @@ export default function HomePage() {
 
   return (
     <div className="homePage">
+       {toastMsg && (
+        <div className="mkToast">
+          <Icon icon="mdi:check-circle" /> {toastMsg}
+        </div>
+      )}
       {/* ===== Top Header + Search ===== */}
       <header className="topBar">
         <div className="topRow">
@@ -897,10 +906,17 @@ export default function HomePage() {
         </div>
         <button
           className="mkCartBtn"
-          onClick={e => e.stopPropagation()}
-          type="button"
+          onClick={e => {
+          e.stopPropagation();
+          addToCart(x.product_id); // ✅ แก้ตรงนี้
+        }}
+        disabled={loadingId === x.product_id}
+        type="button"
         >
-          <Icon icon="mdi:cart-plus" />
+          <Icon
+          icon={loadingId === x.product_id ? "mdi:loading" : "mdi:cart-plus"}
+          className={loadingId === x.product_id ? "mkSpinner" : ""}
+        />
         </button>
       </div>
     </div>
