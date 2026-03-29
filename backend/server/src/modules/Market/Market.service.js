@@ -121,19 +121,38 @@ const sizeStr = Object.keys(sizeObj).length > 0
   }
 };
 
-const getProducts = async ({ search, uniform_type_id, level, min_price, max_price, sort, page, limit }) => {
-  const pageNum  = parseInt(page)  || 1;
+const getProducts = async ({ search, category_id, gender, uniform_type_id, level, min_price, max_price, sort, page, limit }) => {  const pageNum  = parseInt(page)  || 1;
   const limitNum = parseInt(limit) || 12;
   const offset   = (pageNum - 1) * limitNum;
 
   const where  = [`p.status = 'available'`];
   const params = [];
 
-  console.log('pageNum:', pageNum, 'limitNum:', limitNum, 'offset:', offset);
+    console.log('query params:', { search, category_id, gender, level, sort, page });
 
-  if (search)          { where.push(`(p.product_title LIKE ? OR p.product_description LIKE ?)`); params.push(`%${search}%`, `%${search}%`); }
+if (search) {
+  const keywords = search.trim().split(/\s+/).filter(Boolean);
+  keywords.forEach(kw => {
+    where.push(`(
+      p.product_title       LIKE ? OR
+      p.product_description LIKE ? OR
+      p.school_name         LIKE ? OR
+      p.level               LIKE ? OR
+      p.condition_label     LIKE ? OR
+      p.custom_type_name    LIKE ? OR
+      ut.type_name          LIKE ?
+    )`);
+    const like = `%${kw}%`;
+    params.push(like, like, like, like, like, like, like);
+  });
+}
   if (uniform_type_id) { where.push(`p.uniform_type_id = ?`); params.push(Number(uniform_type_id)); }
-  if (level)           { where.push(`p.level = ?`);           params.push(level); }
+if (category_id)     { where.push(`p.category_id = ?`);     params.push(Number(category_id)); }
+if (gender) {
+  where.push(`(p.gender = ? OR (p.gender IS NULL AND ut.gender = ?))`);
+  params.push(gender, gender);
+}
+if (level)           { where.push(`p.level = ?`);           params.push(level); }
   if (min_price)       { where.push(`p.price >= ?`);          params.push(Number(min_price)); }
   if (max_price)       { where.push(`p.price <= ?`);          params.push(Number(max_price)); }
 
@@ -146,9 +165,12 @@ const getProducts = async ({ search, uniform_type_id, level, min_price, max_pric
   const whereSQL = `WHERE ${where.join(' AND ')}`;
 
   const [[{ total }]] = await db.execute(
-    `SELECT COUNT(*) AS total FROM products p ${whereSQL}`,
-    params
-  );
+  `SELECT COUNT(*) AS total 
+   FROM products p
+   LEFT JOIN uniform_type ut ON ut.uniform_type_id = p.uniform_type_id
+   ${whereSQL}`,
+  params
+);
 
   const [rows] = await db.execute(
     `SELECT
@@ -156,7 +178,7 @@ const getProducts = async ({ search, uniform_type_id, level, min_price, max_pric
        p.condition_percent, p.condition_label, p.price, p.status, p.created_at,
        p.quantity, p.school_name, p.custom_type_name,
        COALESCE(p.category_id, ci.category_id) AS category_id,
-       COALESCE(p.gender, ut.gender) AS gender,
+       p.gender,
        COALESCE(ut.type_name, p.custom_type_name) AS type_name,
        ut.uniform_type_id,
        ci.category_name,
@@ -171,7 +193,7 @@ const getProducts = async ({ search, uniform_type_id, level, min_price, max_pric
      GROUP BY p.product_id, p.product_title, p.size, p.level,
               p.condition_percent, p.condition_label, p.price, p.status, p.created_at,
               p.quantity, p.category_id, p.gender, p.school_name, p.custom_type_name,
-              ut.type_name, ut.uniform_type_id, ut.gender,
+              ut.type_name, ut.uniform_type_id,
               ci.category_name, ci.category_id, u.user_name
      ORDER BY ${orderBy}
      LIMIT ${limitNum} OFFSET ${offset}`,

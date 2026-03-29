@@ -58,7 +58,7 @@ const UNIFORM_TYPES = [
 ];
 
 const GENDERS = ["ชาย", "หญิง"];
-const LEVELS  = ["อนุบาล", "ประถมศึกษา", "มัธยมศึกษา"];
+const LEVELS  = ["อนุบาล", "ประถมศึกษา", "มัธยมตอนต้น", "มัธยมตอนปลาย"];
 const CONDITIONS = ["90%", "80%", "70%", "60%", "50% ขึ้นไป"];
 
 const TYPE_COLORS = {
@@ -342,6 +342,7 @@ useEffect(() => {
           >
             <FontAwesomeIcon icon={faFilter} />
           </button>
+          
         </div>
 
         {/* Smart filter */}
