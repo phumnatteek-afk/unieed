@@ -72,61 +72,145 @@
   flex: 1; height: 50px; background: #fff; max-width: 600px;
   border-radius: 999px; border: 1.5px solid #5285E8;
   display: flex; align-items: center; padding: 0 18px; gap: 10px;
-  box-shadow: 0 2px 8px rgba(82,133,232,0.08);
+  box-shadow: 0 2px 8px rgba(82,133,232,0.08); outline: none;
+  box-shadow: none;
 }
 .mkSearchBox input {
   flex: 1; border: none; outline: none;
   font-size: 15px; color: #374151; background: transparent;
   font-family: 'Mitr', sans-serif;
+  outline: none;
+  box-shadow: none;
+}
+.mkSearchBox input:focus {
+  outline: none;
+  box-shadow: none;
 }
 .mkSearchBox input::placeholder { color: #b5b5b5; font-size: 14px; }
 .mkSearchIcon { color: #5285E8; font-size: 18px; }
 
 .mkFilterBtn {
-  width: 50px; height: 50px; border-radius: 12px;
-  border: none; background: transparent; color: #5285E8;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: color 0.15s;
+  width: 50px; height: 50px;
+    border-radius: 12px;
+    border: none;
+    color: #5285E8;
+    font-size: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* transition: background 0.2s; */
+    flex-shrink: 0;
 }
 .mkFilterBtn:hover, .mkFilterBtnActive { color: #1d4ed8; }
 
 /* Filter Panel */
 .mkFilterPanel { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, opacity 0.3s ease; opacity: 0; }
-.mkFilterPanelOpen { max-height: 500px; opacity: 1; margin-top: 20px; }
+.mkFilterPanelOpen { -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */ max-height: 500px; opacity: 1; margin-top: 20px; align-items: flex-end; flex-wrap: wrap; /* ถ้าอยากให้อยู่บรรทัดเดียวตลอด */
+  overflow-x: auto; }
 
-.mkFilterLabel { font-size: 18px; font-weight: 600; font-family: 'Mitr'; color: #053f5c; margin-bottom: 14px; margin-left: 200px; }
+  .mkFilterPanelOpen::-webkit-scrollbar {
+  display: none;
+}
+.mkFilterLabel { font-size: 18px; font-weight: 600; font-family: 'Mitr'; color: #053f5c; margin-bottom: 14px; width: 100%; /* บังคับให้หัวข้อใหญ่จองเต็มบรรทัดบน */
+  margin-left: 200px; }
 .mkFilterGroupLabel { font-size: 15px; font-weight: 600; margin-left: 200px; color: #5285e8; margin-bottom: 8px; }
 
-.mkTypeRow { display: flex; gap: 10px; margin-left: 200px; flex-wrap: wrap; }
+.mkTypeRow { display: flex; gap: 10px; margin-left: 0; flex-wrap: wrap; margin-bottom: 0; }
 
 .mkTypeBtnWrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 
+.mkTypeContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 200px; /* จุดเริ่มต้นของแถว */
+}
+
 .mkTypeBtn {
-  margin-top: 10px; display: flex; justify-content: center; flex-direction: column;
-  align-items: center; gap: 4px;
-  border-radius: 999px; border: 2px solid #b5b5b5;
-  cursor: pointer; transition: all 0.18s; width: 80px; height: 80px;
-  background: #fff;
+ display: flex;
+  overflow: visible;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  /* padding: 30px; */
+  border-radius: 999px;
+  border: 2px solid #b5b5b5;
+  background: #87c7eb;
+  cursor: pointer;
+  transition: all 0.18s;
+  width: 80px;
+  height: 80px;
 }
 .mkTypeBtnActive { border-color: #5285E8; background: #e8f0fe; }
 .mkTypeIcon { font-size: 28px; display: flex; align-items: center; justify-content: center; }
 .mkTypeLabel { font-size: 12px; font-weight: 400; color: #5285E8; font-family: 'Mitr', sans-serif; white-space: nowrap; text-align: center; }
 .mkTypeBtnActive .mkTypeLabel { color: #1d4ed8; font-weight: 600; }
 
-.mkFilterGrid { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; margin-left: 200px; }
-.mkFilterGroup { display: flex; flex-direction: column; gap: 6px; font-family: 'Mitr'; }
+.mkFilterGrid {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end; /* ให้ Select วางระดับเดียวกับปุ่ม */
+  margin-left: 0 !important; /* ล้างค่าเก่า */
+  margin-right: 0 !important;
+}
+.mkFilterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mkFilterGroupLabel {
+  font-size: 15px;
+  font-weight: 600;
+  color: #5285e8;
+}
 
+.mkFilterRowContent {
+  display: flex;
+  align-items: flex-end; /* ให้ฐานของ Select ตรงกับฐานของปุ่มประเภทชุด */
+  gap: 30px;            /* ระยะห่างระหว่างก้อนปุ่มกับก้อน Select */
+  margin-left: 200px;   /* ให้จุดเริ่มต้นตรงกับคำว่า "ประเภทชุด" */
+  flex-wrap: nowrap;    /* บังคับให้อยู่บรรทัดเดียว */
+}
+.mkSelect::-webkit-outer-spin-button,
+.mkSelect::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.mkPriceInput::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none;
+}
 .mkSelect {
-  height: 42px; padding: 0 36px 0 14px; border-radius: 10px;
-  border: 1.5px solid #d0e8f7;
+  height: 45px; /* ปรับความสูงให้พอดี */
+  width: 160px; /* ปรับความกว้างตามความเหมาะสม */
+  border: 1px solid #d0e8f7;
+  border-radius: 12px;
+  padding: 0 15px;
+  background-color: #fff;
   background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235285E8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 12px center;
   appearance: none; font-size: 14px; color: #374151; cursor: pointer;
   font-family: 'Kanit', sans-serif; width: 155px; outline: none;
 }
+.mkPriceInput {
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235285E8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 12px center !important;
+  appearance: none;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  padding-right: 32px !important;
+}
 
+.mkSelect:focus, .mkPriceInput:focus {
+  outline: none !important;
+  border-color: #5285E8 !important; /* ให้เป็นขอบสีฟ้าเวลาคลิก */
+  box-shadow: none !important;      /* ลบเงาสีม่วงออก */
+}
 .mkResetBtn {
-  margin-top: 8px; margin-left: auto; margin-right: 240px;
+  margin-top: 8px; margin-left: auto; margin-right: 280px;
   padding: 6px 18px; border-radius: 999px;
+  font-weight: 500;
   border: 1px solid #e5e7eb; background: #fff;
   color: #888; font-size: 13px; display: block;
   cursor: pointer; font-family: 'Kanit', sans-serif;

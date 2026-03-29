@@ -52,15 +52,14 @@ const batchCreateProducts = async (req, res) => {
 const getProducts = async (req, res) => {
   try {
     const {
-      search = '', uniform_type_id, level,
-      min_price, max_price, school_id,
-      sort = 'newest', page = 1, limit = 12,
-    } = req.query;
-    console.log('query params:', { page, limit, sort }); 
+  search = '', uniform_type_id, category_id, gender, level,
+  min_price, max_price, school_id,
+  sort = 'newest', page = 1, limit = 12,
+} = req.query;
 
-    const data = await svcGetProducts({
-      search, uniform_type_id, level, min_price, max_price, school_id, sort, page, limit,
-    });
+const data = await svcGetProducts({
+  search, category_id, gender, uniform_type_id, level, min_price, max_price, school_id, sort, page, limit,
+});
     res.json(data);
   } catch (err) {
     console.error('[Market.getProducts]', err);

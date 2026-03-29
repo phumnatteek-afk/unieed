@@ -4,15 +4,51 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMagnifyingGlass, faFilter } from "@fortawesome/free-solid-svg-icons";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import "../../../pages/styles/Homepage.css";
 import "../styles/MarketPage.css";
 
 const UNIFORM_TYPES = [
-  { uniform_type_id: 1, type_name: "เสื้อชาย",  icon: "👔" },
-  { uniform_type_id: 2, type_name: "เสื้อหญิง", icon: "👗" },
-  { uniform_type_id: 3, type_name: "กางเกง",     icon: "👖" },
-  { uniform_type_id: 4, type_name: "กระโปรง",    icon: "🩱" },
+  { key: "shirt_m", category_id: 1, gender: "male",   type_name: "เสื้อนักเรียนชาย",  icon: <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M34 30.2222C34 32.3085 32.3085 34 30.2222 34H3.77778C1.6915 34 0 32.3085 0 30.2222V3.77778C0 1.6915 1.6915 0 3.77778 0H30.2222C32.3085 0 34 1.6915 34 3.77778V30.2222Z" fill="white"/>
+<path d="M18.2668 33.4857C17.5698 34.1713 16.4308 34.1713 15.7347 33.4857L9.47022 27.3194C8.77417 26.6337 8.59 25.4003 9.06033 24.5767L16.1437 7.15456C16.6149 6.33194 17.3856 6.33194 17.8559 7.15456L24.9393 24.5767C25.4096 25.3993 25.2254 26.6337 24.5294 27.3184L18.2668 33.4857Z" fill="#053F5C"/>
+<path d="M16.9996 13.8535C17.8959 13.8535 18.8923 12.9544 19.7376 11.7842L17.8553 7.15456C17.384 6.33194 16.6134 6.33194 16.143 7.15456L14.2607 11.7842C15.1079 12.9544 16.1034 13.8535 16.9996 13.8535Z" fill="#292F33"/>
+<path d="M21.7228 5.45667C21.7228 7.31156 19.0868 12.1736 17.0005 12.1736C14.9143 12.1736 12.2783 7.31156 12.2783 5.45667C12.2783 3.77273 14.9143 2.83301 17.0005 2.83301C19.0868 2.83301 21.7228 3.77273 21.7228 5.45667Z" fill="#053F5C"/>
+<path d="M0 3.77778V5.90656C1.95878 8.52267 6.40239 13.2269 7.55555 13.2269C9.64183 13.2269 17.9444 3.03072 17.9444 0.944444C17.9444 0 17 0 16.0556 0H3.77778C1.6915 0 0 1.6915 0 3.77778Z" fill="#D9D9D9"/>
+<path d="M16.0547 0.944444C16.0547 3.03072 24.3573 13.2269 26.4436 13.2269C27.5967 13.2269 32.0404 8.52267 33.9991 5.90656V3.77778C33.9991 1.6915 32.3076 0 30.2214 0H17.9436C16.9991 0 16.0547 0 16.0547 0.944444Z" fill="#D9D9D9"/>
+<path d="M3.77677 0C3.5246 0 3.27999 0.0273889 3.04199 0.0746111C4.15927 1.63956 9.97421 2.83333 16.999 2.83333C24.0238 2.83333 29.8387 1.63956 30.956 0.0746111C30.718 0.0273889 30.4734 0 30.2212 0H3.77677Z" fill="#181818" fill-opacity="0.533333"/>
+</svg> },
+  { key: "shirt_f", category_id: 1, gender: "female", type_name: "เสื้อนักเรียนหญิง", icon: <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M34 30.2222C34 32.3085 32.3085 34 30.2222 34H3.77778C1.6915 34 0 32.3085 0 30.2222V3.77778C0 1.6915 1.6915 0 3.77778 0H30.2222C32.3085 0 34 1.6915 34 3.77778V30.2222Z" fill="#FBF0F0"/>
+<path d="M18.2665 33.4853C17.5695 34.1709 16.4305 34.1709 15.7344 33.4853L9.46994 27.319C8.77389 26.6333 8.58972 25.3999 9.06005 24.5763L16.1434 7.15417C16.6147 6.33156 17.3853 6.33156 17.8557 7.15417L24.939 24.5763C25.4093 25.3989 25.2252 26.6333 24.5291 27.3181L18.2665 33.4853Z" fill="#FF88C2"/>
+<path d="M17 13.8531C17.8963 13.8531 18.8927 12.954 19.7379 11.7838L17.8557 7.15417C17.3844 6.33156 16.6137 6.33156 16.1434 7.15417L14.2611 11.7838C15.1083 12.954 16.1037 13.8531 17 13.8531Z" fill="#A0041E"/>
+<path d="M21.7222 5.457C21.7222 7.31189 19.0863 12.1739 17 12.1739C14.9137 12.1739 12.2778 7.31189 12.2778 5.457C12.2778 3.77305 14.9137 2.83333 17 2.83333C19.0863 2.83333 21.7222 3.77305 21.7222 5.457Z" fill="#FF88C2"/>
+<path d="M0 3.77778V5.90656C1.95878 8.52267 6.40239 13.2269 7.55556 13.2269C9.64183 13.2269 17.9444 3.03072 17.9444 0.944444C17.9444 0 17 0 16.0556 0H3.77778C1.6915 0 0 1.6915 0 3.77778Z" fill="#B5B5B5"/>
+<path d="M16.0556 0.944444C16.0556 3.03072 24.3582 13.2269 26.4444 13.2269C27.5976 13.2269 32.0412 8.52267 34 5.90656V3.77778C34 1.6915 32.3085 0 30.2222 0H17.9444C17 0 16.0556 0 16.0556 0.944444Z" fill="#B5B5B5"/>
+<path d="M3.77778 0C3.52561 0 3.281 0.0273889 3.043 0.0746111C4.16028 1.63956 9.97522 2.83333 17 2.83333C24.0248 2.83333 29.8397 1.63956 30.957 0.0746111C30.719 0.0273889 30.4744 0 30.2222 0H3.77778Z" fill="#383838"/>
+</svg>
+ },
+  { key: "pants",   category_id: 2, gender: null,     type_name: "กางเกงนักเรียน",     icon: <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_2847_991)">
+<path d="M29.2778 5.66656V1.84628C29.2778 1.34856 28.8736 0.944336 28.3758 0.944336H5.62417C5.12644 0.944336 4.72222 1.34856 4.72222 1.84628V5.66656L0 29.2777L13.2222 33.0554L17 23.0963L20.7778 33.0554L34 29.2777L29.2778 5.66656Z" fill="#8C5543"/>
+<path d="M4.72259 3.77783H29.2782V5.66672H4.72259V3.77783ZM13.0167 5.66672H11.0579C9.75648 9.54556 5.90126 10.7658 3.62515 11.1511L3.22754 13.1411C6.63321 12.7557 11.6331 10.8716 13.0167 5.66672Z" fill="#662113"/>
+<path d="M30.7729 13.1408L30.3753 11.1509C28.0992 10.7656 24.2449 9.54439 22.9426 5.6665H20.9838C22.3664 10.8713 27.3673 12.7555 30.7729 13.1408ZM16.0557 5.6665V25.5858L17.0001 23.0962L17.9446 25.5858V5.6665H16.0557Z" fill="#662113"/>
+<path d="M17.1407 21.7222H17V19.8333H17.1407C18.6263 19.8333 19.8333 18.6263 19.8333 17.1407V4.72217H21.7222V17.1407C21.7222 19.6671 19.6671 21.7222 17.1407 21.7222Z" fill="#662113"/>
+</g>
+<defs>
+<clipPath id="clip0_2847_991">
+<rect width="34" height="34" fill="white"/>
+</clipPath>
+</defs>
+</svg> },
+  { key: "skirt",   category_id: 3, gender: null,     type_name: "กระโปรงนักเรียน",    icon: <svg width="46" height="46" viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path opacity="0.8" d="M19.1667 10.5415H26.8334L30.5901 41.5493C28.0822 41.9699 25.543 42.1763 23.0001 42.1665C20.1347 42.1665 17.6085 41.9269 15.4062 41.5493L19.1667 10.5415Z" fill="#053F5C"/>
+<path opacity="0.5" d="M11.1897 10.5415L3.98683 34.4098C3.57283 35.7821 3.98875 37.256 5.24033 38.0054C7.12633 39.1382 10.4479 40.6964 15.4063 41.5493L19.1649 10.5415H11.1897Z" fill="#053F5C"/>
+<path opacity="0.9" d="M40.7595 38.0073C42.0092 37.256 42.427 35.7821 42.013 34.4098L34.8102 10.5415H26.833L30.5897 41.5493C35.5481 40.6983 38.8697 39.1401 40.7595 38.0073Z" fill="#053F5C"/>
+<path d="M30.8755 3.8335H15.1263C13.271 3.8335 12.3433 3.8335 11.7664 4.39508C11.1895 4.95666 11.1895 5.85941 11.1895 7.66683V10.5418H34.8124V7.66683C34.8124 5.85941 34.8124 4.95666 34.2355 4.39508C33.6605 3.8335 32.7309 3.8335 30.8755 3.8335Z" fill="#053F5C"/>
+</svg> },
 ];
 const SORT_OPTIONS = [
   { value: "newest",     label: "ใหม่ล่าสุด" },
@@ -20,6 +56,13 @@ const SORT_OPTIONS = [
   { value: "price_desc", label: "ราคา: มาก → น้อย" },
 ];
 const LEVELS = ["","อนุบาล","ประถมศึกษา","มัธยมต้น","มัธยมปลาย"];
+
+const TYPE_COLORS = {
+  "เสื้อนักเรียนชาย": {bg: "#87c7eb", hover: "#5285E8"},
+  "เสื้อนักเรียนหญิง": {bg: "#FFB6C1", hover: "#5285E8"},
+  "กางเกงนักเรียน": {bg:"#E6FFBB", hover: "#5285E8"},
+  "กระโปรงนักเรียน": {bg:"#FFEDBF", hover: "#5285E8"},
+};
 
 // ── Image Carousel ────────────────────────────────────
 function CardCarousel({ images = [], title, quantity }) {
@@ -143,6 +186,8 @@ const displayTitle = typePart
   ? `${categoryLabel}: ${typePart}`
   : categoryLabel;
 
+  const cardColor = TYPE_COLORS[categoryLabel]?.bg || "#f0f0f0";
+
   return (
     <div className="mkCard">
       {/* carousel ไม่มี Link ห่อ → กดลูกศรไม่เด้ง */}
@@ -209,7 +254,7 @@ export default function MarketPage() {
 
   const [toast,         setToast]         = useState(location.state?.successMsg || "");
   const [search,        setSearch]        = useState("");
-  const [uniformTypeId, setUniformTypeId] = useState(null);
+  const [activeFilter, setActiveFilter] = useState(null);
   const [level,         setLevel]         = useState("");
   const [minPrice,      setMinPrice]      = useState("");
   const [maxPrice,      setMaxPrice]      = useState("");
@@ -221,6 +266,63 @@ export default function MarketPage() {
   const [totalPages,    setTotalPages]    = useState(1);
   const [totalCount,    setTotalCount]    = useState(0);
 
+  const [displaySearch, setDisplaySearch] = useState("");
+  const [typedKeyword,  setTypedKeyword]  = useState("");
+
+  const buildDisplayText = useCallback((filter, lvl, typed) => {
+  const parts = [];
+  // ถ้ามีการเลือกประเภทปุ่มวงกลม
+
+
+  if (filter) {
+    const typeObj = UNIFORM_TYPES.find(t => t.key === filter.key);
+    if (typeObj) parts.push(typeObj.type_name);
+  }
+  // ถ้ามีการเลือกระดับชั้นใน select
+  if (lvl) parts.push(lvl);
+  // สิ่งที่ user พิมพ์เอง
+  if (typed) parts.push(typed);
+  
+  return parts.join(' ').trim();
+}, []);
+
+  // const handleTypeToggle = (typeObj) => {
+  // const isSame = activeFilter?.key === typeObj.key;
+  // const newFilter = isSame ? null : typeObj;
+  const handleTypeToggle = (typeObj) => {
+  const isSame = activeFilter?.key === typeObj.key;
+  const newFilter = isSame ? null : typeObj;
+  setActiveFilter(newFilter);
+  
+  // สร้างข้อความที่จะแสดงในช่อง Search โดยเอาสิ่งที่เคยพิมพ์ค้างไว้ (typedKeyword) มาต่อท้าย
+  const newDisplay = buildDisplayText(newFilter, level, typedKeyword);
+  setDisplaySearch(newDisplay);
+  
+  fetchProducts(1, { activeFilter: newFilter });
+};
+
+const handleLevelChange = (e) => {
+  const newLevel = e.target.value;
+  setLevel(newLevel);
+  
+  const newDisplay = buildDisplayText(activeFilter, newLevel, typedKeyword);
+  setDisplaySearch(newDisplay);
+  
+  fetchProducts(1, { level: newLevel });
+};
+const handleSearchInput = (e) => {
+  const val = e.target.value;
+  setDisplaySearch(val); // แสดงค่าที่พิมพ์ในกล่อง
+  setTypedKeyword(val);  // เก็บค่าที่พิมพ์จริง
+  setSearch(val);        // ค่านี้จะถูกส่งไป API
+
+  // Debounce การค้นหา
+  clearTimeout(debounceRef.current);
+  debounceRef.current = setTimeout(() => {
+    fetchProducts(1, { search: val }); // ส่งค่าที่พิมพ์ไป API ทันที
+  }, 400);
+};
+
   const LIMIT = 12;
 
   useEffect(() => {
@@ -231,48 +333,97 @@ export default function MarketPage() {
   }, [toast]);
 
   // GET /api/market
-  const fetchProducts = useCallback(async (p = 1) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: p, limit: LIMIT, sort,
-        ...(search        && { search }),
-        ...(uniformTypeId && { uniform_type_id: uniformTypeId }),
-        ...(level         && { level }),
-        ...(minPrice      && { min_price: minPrice }),
-        ...(maxPrice      && { max_price: maxPrice }),
-      });
+const fetchProductsRef = useRef(null);
 
-      const res  = await fetch(`/api/market?${params}`)    // ← endpoint ใหม่
-      const data = await res.json();
+fetchProductsRef.current = async (p = 1, overrides = {}) => {
+  setLoading(true);
+  try {
+    // ดึงค่าจาก overrides ถ้ามี ถ้าไม่มีให้ใช้จาก state
+    const currentFilter = overrides.activeFilter !== undefined ? overrides.activeFilter : activeFilter;
+    const currentLevel  = overrides.level  !== undefined ? overrides.level  : level;
+    const currentSearch = overrides.search !== undefined ? overrides.search : search;
+    const currentMinPrice = overrides.minPrice !== undefined ? overrides.minPrice : minPrice;
+    const currentMaxPrice = overrides.maxPrice !== undefined ? overrides.maxPrice : maxPrice;
+    
+    // เพิ่มบรรทัดนี้: รองรับการเปลี่ยน Sort ทันที
+    const currentSort = overrides.sort !== undefined ? overrides.sort : sort;
 
-      setProducts(p === 1 ? (data.products || []) : prev => [...prev, ...(data.products || [])]);
-setTotalPages(data.pagination?.pages || 1);
-setTotalCount(data.pagination?.total || 0);
-      setPage(p);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, uniformTypeId, level, minPrice, maxPrice, sort]);
+    const params = new URLSearchParams({
+      page: p, 
+      limit: LIMIT, 
+      sort: currentSort, // ใช้ค่า currentSort ที่ผ่านการเช็คแล้ว
+      ...(currentSearch && { search: currentSearch }),
+      ...(currentFilter?.category_id && { category_id: currentFilter.category_id }),
+      ...(currentFilter && currentFilter.gender !== null && { gender: currentFilter.gender }),
+      ...(currentLevel && { level: currentLevel }),
+      ...(currentMinPrice && { min_price: currentMinPrice }),
+      ...(currentMaxPrice && { max_price: currentMaxPrice }),
+    });
 
-  useEffect(() => { fetchProducts(1); }, [fetchProducts]);
+    console.log('URL:', `/api/market?${params.toString()}`);
+
+    const res  = await fetch(`/api/market?${params}`);
+    const data = await res.json();
+    
+    setProducts(p === 1 ? (data.products || []) : prev => [...prev, ...(data.products || [])]);
+    setTotalPages(data.pagination?.pages || 1);
+    setTotalCount(data.pagination?.total || 0);
+    setPage(p);
+  } catch (e) {
+    console.error("Fetch Error:", e);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const fetchProducts = useCallback((...args) => fetchProductsRef.current(...args), []);
+
+
+  useEffect(() => { fetchProducts(1); }, []);
 
   const debounceRef = useRef(null);
-  const handleSearchInput = (e) => {
-    setSearch(e.target.value);
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchProducts(1), 400);
-  };
+  const normalizeStr = (s) => (s || '').replace(/\s+/g, '').toLowerCase();
+
+const fuzzyMatch = (text, query) => {
+  if (!query) return true;
+  const t = normalizeStr(text);
+  const q = normalizeStr(query);
+  if (t.includes(q)) return true;
+  const words = query.trim().split(/\s+/);
+  return words.every(w => t.includes(normalizeStr(w)));
+};
 
   const handleReset = () => {
-    setUniformTypeId(null);
-    setLevel("");
-    setMinPrice("");
-    setMaxPrice("");
-    setSearch("");
-  };
+  setActiveFilter(null);
+  setLevel("");
+  setMinPrice("");
+  setMaxPrice("");
+  setSearch("");
+  setDisplaySearch("");   // ← เพิ่ม
+  setTypedKeyword("");    // ← เพิ่ม
+  // ✅ เพิ่ม fetchProducts พร้อม override ทุก field
+  fetchProducts(1, {
+    activeFilter: null,
+    level: "",
+    search: "",
+    minPrice: "",
+    maxPrice: "",
+  });
+};
+
+const handleMinPriceChange = (e) => {
+  const val = e.target.value;
+  setMinPrice(val);
+  clearTimeout(debounceRef.current);
+  debounceRef.current = setTimeout(() => fetchProducts(1, { minPrice: val }), 400);
+};
+
+const handleMaxPriceChange = (e) => {
+  const val = e.target.value;
+  setMaxPrice(val);
+  clearTimeout(debounceRef.current);
+  debounceRef.current = setTimeout(() => fetchProducts(1, { maxPrice: val }), 400);
+};
 
   const getRightAccount = () => {
     if (!token)
@@ -287,6 +438,15 @@ setTotalCount(data.pagination?.total || 0);
 
   return (
     <div className="homePage">
+    {/* วางไว้ตรงนี้ได้เลยครับ */}
+    <datalist id="price-suggestions">
+      <option value="50" />
+      <option value="100" />
+      <option value="150" />
+      <option value="200" />
+      <option value="300" />
+      <option value="500" />
+    </datalist>
       {toast && (
         <div className="mkToast">
           <Icon icon="mdi:check-circle" /> {toast}
@@ -329,51 +489,81 @@ setTotalCount(data.pagination?.total || 0);
         <div className="mkSearchRow">
           <div className="mkSearchBox">
             <Icon icon="mdi:magnify" className="mkSearchIcon" />
-            <input placeholder="ค้นหาสินค้า โรงเรียน..." value={search} onChange={handleSearchInput} />
-          </div>
-          <button className={`mkFilterBtn ${filterOpen ? "mkFilterBtnActive" : ""}`}
-            onClick={() => setFilterOpen(o => !o)}>
-            <Icon icon="mdi:tune-variant" style={{ fontSize:28 }} />
-          </button>
+<input 
+  placeholder="ค้นหาสินค้า โรงเรียน..." 
+  value={displaySearch} 
+  onChange={handleSearchInput} 
+/>          </div>
+          <button 
+  className={`mkFilterBtn ${filterOpen ? "mkFilterBtnActive" : ""}`}
+  onClick={() => setFilterOpen(o => !o)}
+>
+  {/* เปลี่ยนจาก <Icon ... /> เป็นตัวนี้ */}
+  <FontAwesomeIcon icon={faFilter} style={{ }} />
+</button>
         </div>
 
         <div className={`mkFilterPanel ${filterOpen ? "mkFilterPanelOpen" : ""}`}>
-          <div className="mkFilterLabel">กรองสินค้า</div>
+          <div className="mkFilterLabel">คุณต้องการซื้อสินค้าอะไร ?</div>
           <div className="mkFilterGroupLabel">ประเภทชุด</div>
+        <div className="mkFilterRowContent">
           <div className="mkTypeRow">
-            {UNIFORM_TYPES.map(t => (
-              <div key={t.uniform_type_id} className="mkTypeBtnWrap">
-                <button
-                  className={`mkTypeBtn ${uniformTypeId === t.uniform_type_id ? "mkTypeBtnActive" : ""}`}
-                  onClick={() => setUniformTypeId(prev => prev === t.uniform_type_id ? null : t.uniform_type_id)}
-                >
-                  <span className="mkTypeIcon">{t.icon}</span>
-                </button>
-                <span className="mkTypeLabel">{t.type_name}</span>
-              </div>
-            ))}
+            {UNIFORM_TYPES.map(t => {
+  const colors = TYPE_COLORS[t.type_name] || {};
+  const isActive = activeFilter?.key === t.key;
+  return (
+    <div key={t.key} className="mkTypeBtnWrap">
+      <button
+        className={`mkTypeBtn ${isActive ? "mkTypeBtnActive" : ""}`}
+        onClick={() => handleTypeToggle(t)}
+        style={{
+          backgroundColor: isActive ? colors.hover : colors.bg,
+        }}
+      >
+        <span className="mkTypeIcon">{t.icon}</span>
+      </button>
+      <span className="mkTypeLabel">{t.type_name}</span>
+    </div>
+  );
+})}
           </div>
 
-          <div className="mkFilterGrid" style={{ marginTop:16 }}>
-            <div className="mkFilterGroup">
-              <span className="mkFilterGroupLabel">ระดับชั้น</span>
-              <select className="mkSelect" value={level} onChange={e => setLevel(e.target.value)}>
-                <option value="">ทั้งหมด</option>
-                {LEVELS.filter(Boolean).map(l => <option key={l}>{l}</option>)}
-              </select>
-            </div>
-            <div className="mkFilterGroup">
-              <span className="mkFilterGroupLabel">ราคาต่ำสุด (บาท)</span>
-              <input type="number" min="0" className="mkSelect" style={{ paddingLeft:12 }}
-                placeholder="0" value={minPrice} onChange={e => setMinPrice(e.target.value)} />
-            </div>
-            <div className="mkFilterGroup">
-              <span className="mkFilterGroupLabel">ราคาสูงสุด (บาท)</span>
-              <input type="number" min="0" className="mkSelect" style={{ paddingLeft:12 }}
-                placeholder="ไม่จำกัด" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} />
-            </div>
+          <div className="mkFilterGrid" style={{ marginTop: 16 }}>
+  {/* ระดับชั้น (คงเดิม) */}
+  <div className="mkFilterGroup">
+    <span className="mkFilterGroupLabel" style={{ marginLeft: 0 }}>ระดับชั้น</span>
+    <select className="mkSelect" value={level} onChange={handleLevelChange}>
+      <option value="">ทั้งหมด</option>
+      {LEVELS.filter(Boolean).map(l => <option key={l}>{l}</option>)}
+    </select>
+  </div>
+           {/* ราคาต่ำสุด */}
+  <div className="mkFilterGroup">
+    <span className="mkFilterGroupLabel" style={{ marginLeft: 0 }}>ราคาต่ำสุด (บาท)</span>
+    <input 
+      type="text" 
+      list="price-suggestions" 
+      className="mkSelect mkPriceInput" 
+      placeholder="0" 
+      value={minPrice} 
+      onChange={handleMinPriceChange} 
+    />
+  </div>
+            {/* ราคาสูงสุด - แก้ไข value และ onChange ตรงนี้ครับ! */}
+  <div className="mkFilterGroup">
+    <span className="mkFilterGroupLabel" style={{ marginLeft: 0 }}>ราคาสูงสุด (บาท)</span>
+    <input 
+      type="text" 
+      list="price-suggestions" 
+      className="mkSelect mkPriceInput" 
+      placeholder="ไม่จำกัด" 
+      value={maxPrice}             // เปลี่ยนจาก minPrice เป็น maxPrice
+      onChange={handleMaxPriceChange} // เปลี่ยนจาก handleMin เป็น handleMax
+    />
+  </div>
           </div>
-          <button className="mkResetBtn" onClick={handleReset}>ล้างตัวกรองทั้งหมด</button>
+          </div> 
+          <button className="mkResetBtn" onClick={handleReset}>ล้างตัวกรอง</button>
         </div>
       </div>
 
@@ -383,9 +573,20 @@ setTotalCount(data.pagination?.total || 0);
             สินค้าทั้งหมด
             {!loading && <span className="mkListCount"> ({totalCount.toLocaleString()} รายการ)</span>}
           </h2>
-          <select className="mkSortSelect" value={sort} onChange={e => setSort(e.target.value)}>
-            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <select 
+  className="mkSortSelect" 
+  value={sort} 
+  onChange={e => {
+    const newSort = e.target.value;
+    setSort(newSort);
+    // เรียกดึงข้อมูลใหม่ทันทีโดยส่งค่า sort ตัวใหม่เข้าไป override
+    fetchProducts(1, { sort: newSort }); 
+  }}
+>
+  {SORT_OPTIONS.map(o => (
+    <option key={o.value} value={o.value}>{o.label}</option>
+  ))}
+</select>
         </div>
 
         {loading && products.length === 0 ? (
