@@ -493,8 +493,11 @@ export default function DonatePage() {
               <div className="dnProjectBadge">โครงการ</div>
               <div className="dnProjectTitle">{project?.request_title || "-"}</div>
               <div className="dnProjectSchool">{project?.school_name} {project?.school_address}</div>
-              <div className="dnProjectFulfilled">
-                ยอดบริจาคชุดปัจจุบัน <strong>{project?.total_fulfilled || 0}</strong> ชิ้น
+              <div className="dnProjectFulfilled" style={{ display: "flex", alignItems: "center", gap: "4px"  }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+                ส่งถึงโรงเรียนแล้ว <strong>{project?.total_fulfilled || 0}</strong> ชุด
               </div>
             </div>
           </div>
