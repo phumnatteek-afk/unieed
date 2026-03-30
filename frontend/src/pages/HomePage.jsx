@@ -719,7 +719,7 @@ export default function HomePage() {
                               <div className="projBottom">
                                 <div className="projFilled">
   {/* บริจาคแล้ว <span><b>{p.total_donated || p.total_fulfilled || 0}</b></span> ชิ้น */}
-  <div className="projFilled">
+  <div className="projFilled" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
