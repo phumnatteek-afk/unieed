@@ -1,6 +1,6 @@
 // frontend/src/features/market/pages/ProductDetailPage.jsx
 import { useState, useEffect } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
@@ -74,6 +74,11 @@ function RelatedCard({ product, navigate }) {
 export default function ProductDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+     const location = useLocation();
+  const isDonation = location.state?.isDonation;
+  const donationAddress = location.state?.shippingAddress;
+  const project = location.state?.project;
+
     const { token, role, userName } = useAuth();
     const { refreshCart } = useCart();
     const rightAccount = () => {
@@ -153,25 +158,44 @@ export default function ProductDetailPage() {
         }
     };
     const handleBuyNow = async () => {
-        if (!token) { navigate("/login"); return; }
-        setAddingCart(true);
-        try {
-            const res = await fetch("/api/cart", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ product_id: Number(id), quantity: 1 }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "เกิดข้อผิดพลาด");
-            await refreshCart();
-            navigate(`/checkout?items=${id}&type=product`);   // ✅ ไปหน้า checkout เลย
-        } catch (e) {
-            setCartMsg(e.message);
-        } finally {
-            setAddingCart(false);
-        }
-    };
+  if (!token) { navigate("/login"); return; }
+  setAddingCart(true);
 
+  try {
+    const res = await fetch("/api/cart", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ product_id: Number(id), quantity: 1 }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+
+    await refreshCart();
+
+    // 🔥 แยก logic
+    if (isDonation) {
+      navigate(`/checkout?items=${id}&type=product`, {
+        state: {
+          isDonation: true,
+          shippingAddress: donationAddress,
+          project_id: project?.project_id,
+          project_title: project?.title,
+        }
+      });
+    } else {
+      navigate(`/checkout?items=${id}&type=product`);
+    }
+
+  } catch (e) {
+    setCartMsg(e.message);
+  } finally {
+    setAddingCart(false);
+  }
+};
 
     const categoryLabel = product
         ? getCategoryLabel(product.category_id, product.gender)

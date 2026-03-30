@@ -370,6 +370,152 @@ const getUniformTypesBySchool = async (schoolId) => {
   return rows;
 };
 
+// ─────────────────────────────────────────────────────────
+// Parse Thai school address string → structured fields
+// รองรับ: "48/169 หมู่ 5 ตำบลกระทุ่มล้ม อำเภอสามพราน จังหวัดนครปฐม 73210"
+//          "140 ม.10 ต.วังม่วง อ.วังม่วง จ.สระบุรี"
+//          "นครปฐม"  (จังหวัดอย่างเดียว)
+// ─────────────────────────────────────────────────────────
+const parseThaiAddress = (addr = "") => {
+  if (!addr) return { address_line: "", district: "", province: "", postal_code: "" };
+
+  let rest = addr.trim();
+
+  // postal code (5 หลัก)
+  let postal_code = "";
+  const postalM = rest.match(/\b(\d{5})\b/);
+  if (postalM) {
+    postal_code = postalM[1];
+    rest = rest.slice(0, postalM.index).trim();
+  }
+
+  // province: จังหวัด / จ.
+  let province = "";
+  const provM = rest.match(/(?:จังหวัด|จ\.)\s*([\u0E00-\u0E7F]+)/);
+  if (provM) { province = provM[1]; rest = rest.slice(0, provM.index).trim(); }
+
+  // district (อำเภอ / เขต / อ.)
+  let district = "";
+  const distM = rest.match(/(?:อำเภอ|เขต|อ\.)\s*([\u0E00-\u0E7F]+)/);
+  if (distM) { district = distM[1]; rest = rest.slice(0, distM.index).trim(); }
+
+  // sub-district (ตำบล / แขวง / ต.) — เก็บรวมกับ address_line
+  const subM = rest.match(/(?:ตำบล|แขวง|ต\.)\s*([\u0E00-\u0E7F]+)/);
+  if (subM) { rest = rest.slice(0, subM.index).trim(); }
+
+  // ถ้าไม่พบอะไรเลย (เช่น "นครปฐม") ให้ใช้เป็น province
+  if (!province && !district && rest) {
+    province = rest;
+    rest = "";
+  }
+
+  return {
+    address_line: rest,
+    district,
+    province,
+    postal_code,
+  };
+};
+
+const getMatchedProducts = async (projectId) => {
+  // 1️⃣ ดึง request + school info (JOIN schools เพื่อเอาที่อยู่โรงเรียน)
+  const [[req]] = await db.execute(
+    `SELECT r.school_id, r.request_id,
+            s.school_name, s.school_address, s.school_phone
+     FROM donation_request r
+JOIN schools s ON s.school_id = r.school_id
+WHERE r.request_id = ?`,
+    [projectId]
+  );
+  if (!req) return [];
+
+  // parse ที่อยู่โรงเรียนจาก string เดียว → structured fields
+  const schoolAddr = parseThaiAddress(req.school_address);
+
+  // 2️⃣ ดึง needs จาก request_items (uniform_items ของ request โดยตรง)
+  //    รองรับทั้งตาราง request_items และ student_need
+  let needs = [];
+
+  // ลอง request_items ก่อน (ตาราง uniform_items ของ request)
+  try {
+    const [rows] = await db.execute(
+      `SELECT ri.uniform_type_id, ri.size, ri.quantity_needed
+       FROM request_items ri
+       WHERE ri.request_id = ?`,
+      [projectId]
+    );
+    needs = rows;
+  } catch { /* ตารางอาจชื่อต่างกัน */ }
+
+  // fallback → student_need ถ้า request_items ไม่มีหรือว่าง
+  if (!needs.length) {
+    try {
+      const [rows] = await db.execute(
+        `SELECT uniform_type_id, size, quantity_needed
+         FROM student_need
+         WHERE school_id = ?`,
+        [req.school_id]
+      );
+      needs = rows;
+    } catch { /* student_need อาจไม่มี */ }
+  }
+
+  if (!needs.length) return [];
+
+  // 3️⃣ ดึงสินค้าทั้งหมดที่ available
+  const [products] = await db.execute(`
+    SELECT p.product_id, p.product_title, p.size, p.level,
+           p.condition_percent, p.condition_label, p.price, p.quantity,
+           ut.type_name, ut.uniform_type_id, ut.gender,
+           ci.category_id, ci.category_name,
+           p.school_name,
+           pi.image_url AS cover_image
+    FROM products p
+    JOIN uniform_type ut ON ut.uniform_type_id = p.uniform_type_id
+    JOIN category_item ci ON ci.category_id = ut.category_id
+    LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_cover = 1
+    WHERE p.status = 'available'
+      AND p.quantity > 0
+  `);
+
+  // 4️⃣ parse JSON size
+  const parseSize = (str) => {
+    try { return str ? JSON.parse(str) : {}; }
+    catch { return {}; }
+  };
+
+  // 5️⃣ match uniform_type + size ±1
+  const sizeMatches = (pSize, nSize) => {
+    const ps = parseSize(pSize);
+    const ns = parseSize(nSize);
+    const chestOk = !ps.chest || !ns.chest ||
+      Math.abs(Number(ps.chest) - Number(ns.chest)) <= 1;
+    const waistOk = !ps.waist || !ns.waist ||
+      Math.abs(Number(ps.waist) - Number(ns.waist)) <= 1;
+    return chestOk && waistOk;
+  };
+
+  const matched = products.filter(p =>
+    needs.some(n =>
+      Number(p.uniform_type_id) === Number(n.uniform_type_id) &&
+      sizeMatches(p.size, n.size)
+    )
+  );
+
+  // แนบ school_info ออกไปพร้อมสินค้า เพื่อให้ frontend ใช้เป็น shippingAddress
+  return {
+    products: matched,
+    school_info: {
+      school_name:    req.school_name,
+      school_address: req.school_address,   // string เต็ม
+      address_line:   schoolAddr.address_line,
+      district:       schoolAddr.district,
+      province:       schoolAddr.province,
+      postal_code:    schoolAddr.postal_code,
+      phone:          req.school_phone || "",
+    },
+  };
+};
 
 
 export {
@@ -380,5 +526,6 @@ export {
   searchSchools,
   getUniformTypes,
   getUniformTypesBySchool,
-  getRelatedProducts, 
+  getRelatedProducts,
+  getMatchedProducts,
 };

@@ -8,6 +8,7 @@ import {
   getUniformTypes     as svcGetTypes,
   getUniformTypesBySchool as svcGetTypesBySchool,
   getRelatedProducts  as svcGetRelated,
+    getMatchedProducts  as svcGetMatched,
   
 } from "./Market.service.js";
 
@@ -155,6 +156,18 @@ const getUniformTypesBySchool = async (req, res) => {
     res.status(500).json({ message: "เกิดข้อผิดพลาด" });
   }
 };
+const getMatchedProducts = async (req, res) => {
+  try {
+    const { project_id } = req.query;
+    if (!project_id) return res.status(400).json({ message: 'กรุณาระบุ project_id' });
+    const result = await svcGetMatched(project_id);
+    // result = { products: [...], school_info: {...} }
+    res.json(result);
+  } catch (err) {
+    console.error('[Market.getMatched]', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
+  }
+};
 
 export {
   batchCreateProducts,
@@ -165,4 +178,5 @@ export {
   getUniformTypes,
   getUniformTypesBySchool,
   getRelatedProducts,
+    getMatchedProducts,
 };

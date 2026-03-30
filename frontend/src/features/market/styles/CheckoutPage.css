@@ -381,3 +381,149 @@
   .coFormGrid { grid-template-columns: 1fr; }
   .coSpan2 { grid-column: 1; }
 }
+
+/* ================================================================
+   CheckoutPage donation additions
+   เพิ่มต่อท้าย CheckoutPage.css เดิม
+   ================================================================ */
+
+/* ── Donation top banner ── */
+.coDonationBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #E6F1FB;
+  color: #0C447C;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 24px;
+  border-bottom: 1px solid #B5D4F4;
+}
+
+/* ── Donation address block (step 1) ── */
+.coDonationAddrBlock {
+  border: 1.5px solid #B5D4F4;
+  border-radius: 12px;
+  padding: 16px;
+  background: #F0F7FF;
+  margin-bottom: 16px;
+}
+
+.coDonationAddrBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #378ADD;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+}
+
+.coDonationProject {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #185FA5;
+  margin-bottom: 10px;
+}
+
+.coDonationAddrCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fff;
+  border: 0.5px solid #B5D4F4;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.coDonationAddrName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 3px;
+}
+
+.coDonationAddrText {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.coDonationAddrPhone {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+.coDonationAddrNote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #185FA5;
+  margin-top: 10px;
+}
+
+/* ── Donation note (step 3) ── */
+.coDonationNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #F0FDF4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #15803d;
+  margin: 12px 0;
+}
+
+/* ── Green confirm button (donation) ── */
+.coBtnGreen {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 24px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.coBtnGreen:disabled { opacity: 0.6; cursor: not-allowed; }
+.coBtnGreen:hover:not(:disabled) { opacity: 0.9; }
+
+/* ── Summary sidebar donation tag ── */
+.coSummaryDonationTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #E6F1FB;
+  color: #0C447C;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+/* ── Summary donation address ── */
+.coSummaryDonationAddr {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}

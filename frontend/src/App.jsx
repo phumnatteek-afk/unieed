@@ -34,6 +34,7 @@ import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
 
 import ProjectDetailPage from "./features/project/pages/ProjectDetailPage.jsx";
 import DonatePage from "./features/project/pages/Donatepage.jsx";
+import DonateMarketPage from "./features/donate/pages/DonateMarketPage.jsx"; // ถ้ายังไม่มี ให้สร้างหน้า placeholder
 // ส่วนหน้าเมนู
 import DonationProject from "./features/project/pages/DonationProject.jsx";
 // market
@@ -44,6 +45,7 @@ import ProductDetailPage from "./features/market/pages/ProductDetailPage.jsx";
 import CartPage from "./features/market/pages/CartPage.jsx";
 import CheckoutPage from "./features/market/pages/CheckoutPage.jsx";
 import { CartProvider } from "./features/market/context/CartContext.jsx";
+
 
 export default function App() {
   return (
@@ -72,6 +74,7 @@ export default function App() {
             <Route path="/market/:id" element={<ProductDetailPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/donate/:projectId/market" element={<DonateMarketPage />} />
 
             {/* School */}
             <Route path="/school/pending" element={<SchoolPendingPage />} />

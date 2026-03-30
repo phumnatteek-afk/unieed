@@ -1,0 +1,140 @@
+/* src/features/donate/pages/DonateMarketPage.css */
+
+/* ── Hero ── */
+.dmHero {
+  position: relative;
+  background: linear-gradient(135deg, #053f5c 0%, #0a7abf 100%);
+  padding: 48px 24px 40px;
+  color: #fff;
+  overflow: hidden;
+}
+.dmHeroOverlay {
+  position: absolute;
+  inset: 0;
+  background: url("/src/unieed_pic/donate-hero-bg.png") center/cover no-repeat;
+  opacity: 0.08;
+  pointer-events: none;
+}
+.dmHeroContent {
+  position: relative;
+  max-width: 860px;
+  margin: 0 auto;
+}
+.dmBackBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: background 0.2s;
+}
+.dmBackBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.dmHeroSchool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+.dmHeroTitle {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+.dmHeroSub {
+  font-size: 0.95rem;
+  opacity: 0.88;
+  margin: 0 0 16px;
+}
+.dmSchoolAddress {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.dmHeroLoading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  opacity: 0.8;
+}
+
+/* ── Main section override ── */
+.dmMain {
+  padding-top: 32px;
+}
+
+/* ── Matched card extras ── */
+.dmMatchCard {
+  position: relative;
+  border: 2px solid #0a7abf !important;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* badge แมช */
+.dmMatchBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #e8f5ff;
+  color: #0a7abf;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-bottom: 1px solid #cce6f7;
+}
+
+/* ปุ่มซื้อเพื่อส่งต่อ */
+.dmBuyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: calc(100% - 24px);
+  margin: 0 12px 14px;
+  padding: 10px 0;
+  background: #0a7abf;
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.dmBuyBtn:hover:not(:disabled) {
+  background: #075e96;
+  transform: translateY(-1px);
+}
+.dmBuyBtn:disabled {
+  background: #b0bec5;
+  cursor: not-allowed;
+}
+
+/* ── Error state ── */
+.dmErrorWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 24px;
+  color: #888;
+  text-align: center;
+}

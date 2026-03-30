@@ -3,6 +3,7 @@ import {
   getAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress,
   getShippingProviders, getCheckoutItems,
     getCheckoutItemsByProduct,
+    placeOrder,
 } from "./checkout.service.js";
 
 // ── Address ──────────────────────────────────────────────
@@ -85,5 +86,33 @@ export const getCheckoutItemsByProductHandler = async (req, res) => {
     res.json(rows);
   } catch (err) {
     res.status(err.status || 500).json({ message: err.message });
+  }
+};
+
+export const placeOrderHandler = async (req, res) => {
+  try {
+    const {
+      items,           // cart_item_ids[]
+      product_ids,     // กรณีซื้อตรง (ไม่ผ่าน cart)
+      address_id,
+      order_type,      // "purchase" | "donation"
+      request_id,
+      donation_address,// { name, address, district, province, postal_code, phone }
+    } = req.body;
+
+    const result = await placeOrder({
+      userId:          req.user.user_id,
+      cartItemIds:     Array.isArray(items)       ? items       : [],
+      productIds:      Array.isArray(product_ids) ? product_ids : [],
+      addressId:       address_id,
+      orderType:       order_type || "purchase",
+      requestId:       request_id || null,
+      donationAddress: donation_address || null,
+    });
+
+    res.status(201).json({ message: "สั่งซื้อสำเร็จ", ...result });
+  } catch (err) {
+    console.error("[placeOrder]", err);
+    res.status(err.status || 500).json({ message: err.message || "เกิดข้อผิดพลาด" });
   }
 };

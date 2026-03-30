@@ -301,6 +301,17 @@ export default function ProjectDetailPage() {
   };
 
   const handleDonate = () => {
+    // 🟢 BUY MODE (ไม่ต้องเลือก qty)
+  if (selectedMethod === "buy") {
+    navigate(`/donate/${requestId}/market`, {
+      state: {
+        requestId,
+        mode: "buy"
+      }
+    });
+    return;
+  }
+
     const items = Object.entries(donateQty)
       .filter(([, v]) => v > 0)
       .map(([k, v]) => {
@@ -440,7 +451,7 @@ export default function ProjectDetailPage() {
 
                 <button
                   className="pdDonateBtn"
-                  disabled={totalSelected === 0}
+                  disabled={selectedMethod !== "buy" && totalSelected === 0}
                   onClick={handleDonate}
                   style={{ opacity: totalSelected === 0 ? 0.5 : 1, cursor: totalSelected === 0 ? "not-allowed" : "pointer" }}
                 >

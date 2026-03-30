@@ -6,6 +6,7 @@ import {
   deleteAddressHandler, setDefaultAddressHandler,
   getShippingHandler, getCheckoutItemsHandler,
   getCheckoutItemsByProductHandler,
+  placeOrderHandler, 
 } from "./checkout.controller.js";
 
 const router = express.Router();
@@ -22,5 +23,6 @@ router.get("/shipping", getShippingHandler);
 router.get("/items/by-product", auth, getCheckoutItemsByProductHandler); 
 // Checkout items
 router.get("/items", auth, getCheckoutItemsHandler);
+router.post("/orders", auth, placeOrderHandler);
 
 export default router;
