@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { request } from "../../../api/http.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
+import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import "../styles/admin.css";
 // icon
 import { Icon } from "@iconify/react";
@@ -48,9 +49,11 @@ export default function AdminBackofficePage() {
 
         <div className="boAdmin">
           <div className="boAdminText">
-            <div className="boAdminRole"><span><Icon icon="subway:admin" /></span>
-          <span>ผู้ดูแลระบบ: </span>
-          <b>{userName || "Admin"}</b></div>
+            {/* <div className="boAdminRole"><span><Icon icon="subway:admin" /></span> */}
+          {/* <span>ผู้ดูแลระบบ: </span> */}
+          <ProfileDropdown />
+          {/* <b>{userName || "Admin"}</b> */}
+          {/* </div> */}
           </div>
         </div>
       </div>

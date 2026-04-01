@@ -536,7 +536,7 @@ height: auto;
 /* Main */
 .boMain {
   background: #ffffff;
-  padding: 28px 36px;
+  padding: 20px 20px;
 }
 
 .boPage{
@@ -577,12 +577,14 @@ height: auto;
   margin-right: 12px;
 }
 
-.boAdminText {
-  display: grid;
-  line-height: 1.1;
-
+.boAdminText div, 
+.boAdminText span, 
+.boAdminText a {
+    color: #053f5c !important;
 }
-
+.boAdminText .pd-avatar svg {
+    color: #053F5C !important;
+}
 .boAdminRole {
   font-weight: 600;
 }

@@ -42,9 +42,9 @@
   user-select: none;
 }
 
-.pd-trigger:hover {
+/* .pd-trigger:hover {
   background: rgba(255, 255, 255, 0.15);
-}
+} */
 
 .pd-bell {
   color: #fff;

@@ -53,6 +53,7 @@
   font-size: 26px;
   flex-shrink: 0;
 }
+
 .srcTitle {
   font-family: 'Prompt', sans-serif;
   font-size: 22px; font-weight: 700; color: var(--c-text);

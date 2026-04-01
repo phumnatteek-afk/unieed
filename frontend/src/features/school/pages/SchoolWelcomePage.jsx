@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
+import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import { getJson } from "../../../api/http.js";
 import "../styles/school.css";
+
 
 // icon
 import { Icon } from "@iconify/react";
@@ -49,11 +51,7 @@ export default function SchoolWelcomePage() {
           <div className="swBrandPic"><img src="/src/unieed_pic/logo.png" alt="Unieed Logo" /></div>
         </button>
 
-        <div className="swAdminTag">
-          <span className="swAvatar"><Icon icon="subway:admin" /></span>
-          <span>ผู้ดูแลระบบ: </span>
-          <b>{coordinatorName || "-"}</b>
-        </div>
+        <ProfileDropdown />
       </header>
 
       <main className="swMain">

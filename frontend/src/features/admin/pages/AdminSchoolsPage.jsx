@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as svc from "../services/admin.service.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import SchoolDetailModal from "../components/SchoolDetailModal.jsx";
+import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import "../styles/backoffice.css";
 import { Icon } from "@iconify/react";
 
@@ -152,18 +153,16 @@ export default function AdminSchoolsPage() {
   return (
     <div className="admPage">
       <main className="boMain">
-        <div className="boTop">
-          <div className="boTitle">จัดการโรงเรียน</div>
-          <div className="boAdmin">
-            <div className="boAdminText">
-              <div className="boAdminRole">
-                <span><Icon icon="subway:admin" /></span>
-                <span>ผู้ดูแลระบบ: </span>
-                <b>{userName || "Admin"}</b>
-              </div>
-            </div>
+              {/* เพิ่ม div boTop เข้ามาคลุม */}
+      <div className="boTop"> 
+        <div className="boTitle">จัดการโรงเรียน</div>
+
+        <div className="boAdmin">
+          <div className="boAdminText">
+            <ProfileDropdown />
           </div>
         </div>
+      </div>
 
         {/* Stats */}
         <section className="admStats">

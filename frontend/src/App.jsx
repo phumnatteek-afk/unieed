@@ -24,6 +24,8 @@ import EditProjectPage from "./features/school/components/EditProjectPage.jsx"
 import SchoolAppointmentPage from "./features/school/pages/SchoolAppointmentPage.jsx";
 import SchoolTestimonialPage from "./features/school/pages/SchoolTestimonialPage.jsx";
 
+import RoleRedirect from "./routes/RoleRedirect.jsx";
+import FallbackRedirect from "./routes/FallbackRedirect.jsx";
 
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import AdminLoginPage from "./features/admin/pages/AdminLoginPage.jsx";
@@ -47,6 +49,7 @@ import CheckoutPage from "./features/market/pages/CheckoutPage.jsx";
 import { CartProvider } from "./features/market/context/CartContext.jsx";
 
 
+
 export default function App() {
   return (
     <div className="page-container">
@@ -55,27 +58,26 @@ export default function App() {
         <CartProvider>
           <Routes>
             {/* Public */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/projects" element={<DonationProject />} />
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<RoleRedirect><HomePage /></RoleRedirect>} />
+            <Route path="/projects" element={<RoleRedirect><DonationProject /></RoleRedirect>} />
+            <Route path="/login" element={<RoleRedirect><LoginPage /></RoleRedirect>} />
 
-            <Route path="/register" element={<RegisterChoicePage />} />
-            <Route path="/register/general" element={<RegisterGeneralPage />} />
-            <Route path="/register/school" element={<RegisterSchoolPage />} />
+            <Route path="/register" element={<RoleRedirect><RegisterChoicePage /></RoleRedirect>} />
+<Route path="/register/general" element={<RoleRedirect><RegisterGeneralPage /></RoleRedirect>} />
+<Route path="/register/school" element={<RoleRedirect><RegisterSchoolPage /></RoleRedirect>} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/resend-verification" element={<ResendVerificationPage />} />
 
-            <Route path="/projects/:requestId" element={<ProjectDetailPage />} />
-            <Route path="/donate/:requestId" element={<DonatePage />} />
-            <Route path="/market" element={<MarketPage />} />
-            <Route path="/sell" element={<PostProductPage />} />
-            <Route path="/market/:id" element={<ProductDetailPage />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/donate/:projectId/market" element={<DonateMarketPage />} />
-
+           <Route path="/projects/:requestId" element={<RoleRedirect><ProjectDetailPage /></RoleRedirect>} />
+<Route path="/donate/:requestId" element={<RoleRedirect><DonatePage /></RoleRedirect>} />
+            <Route path="/market" element={<RoleRedirect><MarketPage /></RoleRedirect>} />
+<Route path="/sell" element={<RoleRedirect><PostProductPage /></RoleRedirect>} />
+            <Route path="/market/:id" element={<RoleRedirect><ProductDetailPage /></RoleRedirect>} />
+            <Route path="/cart" element={<RoleRedirect><CartPage /></RoleRedirect>} />
+<Route path="/checkout" element={<RoleRedirect><CheckoutPage /></RoleRedirect>} />
+            <Route path="/donate/:projectId/market" element={<RoleRedirect><DonateMarketPage /></RoleRedirect>} />
             {/* School */}
             <Route path="/school/pending" element={<SchoolPendingPage />} />
 
@@ -128,7 +130,7 @@ export default function App() {
 
 
             {/* fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<FallbackRedirect />} />
           </Routes>
           </CartProvider>
         </BrowserRouter>

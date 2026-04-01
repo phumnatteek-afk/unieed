@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
+import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import "../styles/school.css";
 
 export default function SchoolLayout() {
@@ -49,9 +50,16 @@ export default function SchoolLayout() {
         </nav>
       </aside>
 
-      <main className="scMain">
-        <Outlet />
-      </main>
+      <div className="scContent">
+        {/* ── Header ── */}
+        <header className="scHeader">
+          <ProfileDropdown />
+        </header>
+
+        <main className="scMain">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }
