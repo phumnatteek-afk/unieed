@@ -161,8 +161,7 @@ const getMatchedProducts = async (req, res) => {
     const { project_id } = req.query;
     if (!project_id) return res.status(400).json({ message: 'กรุณาระบุ project_id' });
     const result = await svcGetMatched(project_id);
-    // result = { products: [...], school_info: {...} }
-    res.json(result);
+    res.json(result); // ← ส่ง { products, school_info } ไปเลย
   } catch (err) {
     console.error('[Market.getMatched]', err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด' });

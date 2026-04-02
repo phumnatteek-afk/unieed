@@ -1,7 +1,4 @@
-// src/features/donate/pages/DonateMarketPage.jsx
-// หน้าสินค้าที่แมชกับโครงการโรงเรียน (มาจากปุ่ม "ซื้อเพื่อส่งต่อ" ใน DonatePage)
-
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
@@ -12,7 +9,7 @@ import "../../../pages/styles/Homepage.css";
 import "../../market/styles/MarketPage.css";
 import "../styles/DonateMarketPage.css";
 
-// ── Image Carousel (ใช้ร่วมกับ MarketPage) ──────────────
+// ── Image Carousel (เหมือน MarketPage) ──────────────────
 function CardCarousel({ images = [], title, quantity }) {
   const [idx, setIdx] = useState(0);
   useEffect(() => setIdx(0), [images]);
@@ -46,21 +43,13 @@ function CardCarousel({ images = [], title, quantity }) {
           <>
             <button
               className="mkCarouselArrow mkCarouselArrowLeft"
-              onClick={e => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIdx(i => (i - 1 + images.length) % images.length);
-              }}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setIdx(i => (i - 1 + images.length) % images.length); }}
             >
               <Icon icon="mdi:chevron-left" />
             </button>
             <button
               className="mkCarouselArrow mkCarouselArrowRight"
-              onClick={e => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIdx(i => (i + 1) % images.length);
-              }}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setIdx(i => (i + 1) % images.length); }}
             >
               <Icon icon="mdi:chevron-right" />
             </button>
@@ -73,11 +62,7 @@ function CardCarousel({ images = [], title, quantity }) {
             <div
               key={i}
               className={`mkCarouselThumb${i === idx ? " mkCarouselThumbActive" : ""}`}
-              onClick={e => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIdx(i);
-              }}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setIdx(i); }}
             >
               <img src={img.image_url} alt={`${title} ${i + 1}`} loading="lazy" />
             </div>
@@ -88,110 +73,99 @@ function CardCarousel({ images = [], title, quantity }) {
   );
 }
 
-// ── Matched Product Card ──────────────────────────────
-function  MatchedProductCard({ product, project, schoolInfo, projectId }) {
+// ── helper: สร้าง label หมวดหมู่ ─────────────────────────
+function getCategoryLabel(product) {
+  const cid = Number(product.category_id);
+  const gender = product.gender;
+  if (cid === 1) return gender === "male" ? "เสื้อนักเรียนชาย" : "เสื้อนักเรียนหญิง";
+  if (cid === 2) return gender === "male" ? "กางเกงนักเรียนชาย" : "กางเกงนักเรียนหญิง";
+  if (cid === 3) return "กระโปรงนักเรียน";
+  return "ชุดนักเรียน";
+}
+
+// ── helper: แปลง size JSON → ข้อความไทย ─────────────────
+function formatSize(sizeRaw) {
+  try {
+    const s = typeof sizeRaw === "string" ? JSON.parse(sizeRaw) : sizeRaw || {};
+    const parts = [];
+    if (s.chest) parts.push(`อก ${s.chest}`);
+    if (s.waist) parts.push(`เอว ${s.waist}`);
+    if (s.length && s.length !== "0") parts.push(`ยาว ${s.length}`);
+    return parts.join(" | ") || null;
+  } catch { return null; }
+}
+
+// ── Matched Product Card ──────────────────────────────────
+function MatchedProductCard({ product, project, schoolInfo, projectId }) {
   const navigate = useNavigate();
 
   const images = product.images?.length
     ? product.images
     : product.cover_image
-    ? [{ image_url: product.cover_image }]
-    : [];
+      ? [{ image_url: product.cover_image }]
+      : [];
 
-  const categoryLabel = (() => {
-    const cid = Number(product.category_id);
-    if (cid === 1) return product.gender === "male" ? "เสื้อนักเรียนชาย" : "เสื้อนักเรียนหญิง";
-    if (cid === 2) return "กางเกงนักเรียน";
-    if (cid === 3) return "กระโปรงนักเรียน";
-    return "ชุดนักเรียน";
-  })();
-
+  const categoryLabel = getCategoryLabel(product);
   const typePart = product.type_name?.trim() || product.custom_type_name?.trim();
   const displayTitle = typePart ? `${categoryLabel}: ${typePart}` : categoryLabel;
+  const sizeLabel = formatSize(product.size);
 
-  // ── กดซื้อ → ไป CheckoutPage พร้อมข้อมูลสินค้า + ที่อยู่โรงเรียน ──
-  // const handleBuyNow = (e) => {
-  //   e.stopPropagation();
-  //   navigate("/checkout", {
-  //     state: {
-  //       // ข้อมูลสินค้า
-  //       product: {
-  //         product_id: product.product_id,
-  //         title: displayTitle,
-  //         price: product.price,
-  //         quantity: 1,
-  //         images,
-  //         size: product.size,
-  //         condition_label: product.condition_label,
-  //         condition_percent: product.condition_percent,
-  //       },
-  //       // ที่อยู่โรงเรียน (ดึงจาก project)
-  //       shippingAddress: {
-  //         name: project.school_name,
-  //         address: project.school_address,
-  //         district: project.district,
-  //         province: project.province,
-  //         postal_code: project.postal_code,
-  //         phone: project.contact_phone,
-  //       },
-  //       // บอกว่าเป็น donation checkout
-  //       isDonation: true,
-  //       project_id: project.project_id,
-  //       project_title: project.title,
-  //     },
-  //   });
-  // };
+
+
   const handleBuyNow = (e) => {
     e.stopPropagation();
-
-    // ใช้ schoolInfo ที่ backend parse มาให้แล้ว (แยก field ครบ)
-    // fallback ไปที่ project fields ถ้า schoolInfo ยังไม่มา
     const si = schoolInfo || project || {};
-    const pid   = project?.request_id || project?.project_id || projectId;
+    const pid = project?.request_id || project?.project_id || projectId;
     const title = project?.request_title || project?.title || "";
 
     navigate(`/checkout?items=${product.product_id}&type=product`, {
       state: {
-        isDonation:    true,
-        project_id:    pid,
+        isDonation: true,
+        project_id: pid,
         project_title: title,
-        // 📍 ที่อยู่โรงเรียน — ใช้ field จาก school_info ที่ backend parse แล้ว
         shippingAddress: {
-          name:        si.school_name    || project?.school_name || "",
-          address:     si.address_line   || si.school_address    || "",
-          district:    si.district       || "",
-          province:    si.province       || "",
-          postal_code: si.postal_code    || "",
-          phone:       si.phone          || si.school_phone      || "",
+          name: si.school_name || project?.school_name || "",
+          address: si.address_line || si.school_address || "",
+          district: si.district || "",
+          province: si.province || "",
+          postal_code: si.postal_code || "",
+          phone: si.phone || si.school_phone || "",
         },
       },
     });
   };
 
   return (
-    <div className="mkCard dmMatchCard">
-      {/* Badge "แมชกับโครงการ" */}
+    <div className="mkCard">
+      {/* badge ตรงกับโครงการ + match score */}
       <div className="dmMatchBadge">
         <Icon icon="mdi:check-decagram" /> ตรงกับที่โรงเรียนต้องการ
       </div>
 
+      {/* รูปสินค้า */}
       <div className="mkCardThumb">
         <CardCarousel images={images} title={displayTitle} quantity={product.quantity} />
       </div>
 
-      <div
-        className="mkCardBody"
-  onClick={(e) => e.stopPropagation()}
-  style={{ cursor: "default" }}
-      >
+      <div className="mkCardBody">
+        {/* ชื่อสินค้า */}
         <div className="mkCardTitle">{displayTitle}</div>
 
+        {/* โรงเรียนผู้ขาย (ถ้ามี) */}
         {product.school_name && (
           <div className="mkCardSchool">
             <Icon icon="mdi:school-outline" /> {product.school_name}
           </div>
         )}
 
+        {/* ชื่อผู้ขาย */}
+        {product.seller_name && (
+          <div className="mkCardSeller">
+            <Icon icon="mdi:account-outline" /> {product.seller_name}
+          </div>
+        )}
+
+        {/* meta: ระดับ, ขนาด, สภาพ */}
         <div className="mkMeta">
           {product.level && (
             <div className="mkMetaRow">
@@ -199,6 +173,12 @@ function  MatchedProductCard({ product, project, schoolInfo, projectId }) {
               <span className="mkMetaVal">
                 <span className="mkBadgeLevel">{product.level}</span>
               </span>
+            </div>
+          )}
+          {sizeLabel && (
+            <div className="mkMetaRow">
+              <span className="mkMetaLabel">ขนาด</span>
+              <span className="mkMetaVal">{sizeLabel}</span>
             </div>
           )}
           {(product.condition_percent || product.condition_label) && (
@@ -209,10 +189,19 @@ function  MatchedProductCard({ product, project, schoolInfo, projectId }) {
                   {[
                     product.condition_percent ? `${product.condition_percent}%` : null,
                     product.condition_label,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  ].filter(Boolean).join(" · ")}
                 </span>
+              </span>
+            </div>
+          )}
+          {product.shipping_name && (
+            <div className="mkMetaRow">
+              <span className="mkMetaLabel">ส่งผ่าน</span>
+              <span className="mkMetaVal">
+                {product.shipping_name}
+                {product.shipping_price > 0
+                  ? ` (+${Number(product.shipping_price).toLocaleString()} บาท)`
+                  : " (ฟรี)"}
               </span>
             </div>
           )}
@@ -220,51 +209,49 @@ function  MatchedProductCard({ product, project, schoolInfo, projectId }) {
 
         <div className="mkCardDivider" />
 
+        {/* ราคา + ปุ่มซื้อ */}
         <div className="mkCardBottom">
           <div className="mkCardPrice">
             {Number(product.price).toLocaleString()}
             <span> บาท</span>
           </div>
+          <button
+            className="dmBuyBtnInline"
+            onClick={handleBuyNow}
+            disabled={product.quantity === 0}
+            title="ซื้อเพื่อส่งต่อให้โรงเรียน"
+          >
+            <Icon icon="mdi:gift-outline" />
+            {product.quantity === 0 ? "หมด" : "ซื้อส่งต่อ"}
+          </button>
         </div>
       </div>
-
-      {/* ปุ่มซื้อเพื่อส่งต่อ */}
-      <button
-        className="dmBuyBtn"
-        onClick={handleBuyNow}
-        disabled={product.quantity === 0}
-      >
-        <Icon icon="mdi:gift-outline" />
-        {product.quantity === 0 ? "สินค้าหมด" : "ซื้อเพื่อส่งต่อ"}
-      </button>
     </div>
   );
 }
 
-// ── Main Page ─────────────────────────────────────────
+// ── Main Page ─────────────────────────────────────────────
 export default function DonateMarketPage() {
-  const { projectId } = useParams();           // รับ project_id จาก URL เช่น /donate/:projectId/market
+  const { projectId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { token } = useAuth();
-  const [noMatch, setNoMatch] = useState(false);
 
-  // project มาจาก location.state (ส่งมาจาก DonatePage)
   const [project, setProject] = useState(location.state?.project || null);
   const [products, setProducts] = useState([]);
-  const [schoolInfo, setSchoolInfo] = useState(null); // ที่อยู่โรงเรียน parsed จาก backend
+  const [schoolInfo, setSchoolInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [noMatch, setNoMatch] = useState(false);
+  const [needsSummary, setNeedsSummary] = useState([]);
 
   const rightAccount = () => {
-    if (!token) {
-      return (
-        <div className="navAuth">
-          <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-          <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
-        </div>
-      );
-    }
+    if (!token) return (
+      <div className="navAuth">
+        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
+        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
+      </div>
+    );
     return (
       <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
         <NotificationBell />
@@ -274,22 +261,54 @@ export default function DonateMarketPage() {
     );
   };
 
-  // ── ดึงสินค้าที่แมช — backend ส่ง { products, school_info } กลับมา ──
+  // ── ดึง project จาก public endpoint (ไม่ต้อง auth) ──
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || project) return;
 
-    setLoading(true);
-
-    fetch(`/api/market/matched?project_id=${projectId}`)
+    // route จริงใน backend: GET /school/projects/public/:request_id
+    fetch(`/school/projects/public/${projectId}`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const ct = r.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) throw new Error("Not JSON");
         return r.json();
       })
       .then(data => {
-        // รับ school_info ที่ backend parse มาให้แล้ว
+        if (!data) return;
+        setProject({
+          ...data,
+          // normalize field names
+          title:          data.request_title        || "",
+          school_address: data.school_full_address  || data.school_address || "",
+        });
+      })
+      .catch(err => {
+        // ไม่ crash — banner จะดึงจาก school_info ของ matched endpoint แทน
+        console.warn("ไม่สามารถโหลดโครงการได้", err.message);
+      });
+  }, [projectId, project, token]);
+
+  // ── ดึงสินค้าที่แมช ──
+  useEffect(() => {
+    if (!projectId) return;
+    setLoading(true);
+
+    fetch(`/api/market/matched?project_id=${projectId}`)
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(data => {
         if (data.school_info) {
           setSchoolInfo(data.school_info);
+          // fallback: ถ้า project fetch ล้มเหลว ดึงจาก school_info แทน
+          setProject(prev => prev ? prev : {
+            school_name:    data.school_info.school_name,
+            school_address: data.school_info.school_address,
+            school_phone:   data.school_info.phone,
+            request_title:  "",
+            title:          "",
+          });
         }
+
+        if (data.needs_summary) setNeedsSummary(data.needs_summary);
 
         if (!data.products || data.products.length === 0) {
           setNoMatch(true);
@@ -297,6 +316,7 @@ export default function DonateMarketPage() {
             .then(r => r.json())
             .then(all => setProducts(all.products || []));
         }
+        setNoMatch(false);
         setProducts(data.products);
       })
       .catch(err => {
@@ -306,46 +326,13 @@ export default function DonateMarketPage() {
       .finally(() => setLoading(false));
   }, [projectId]);
 
-//   useEffect(() => {
-//   if (!location.state || location.state.mode !== "buy") return;
-
-//   async function load() {
-//     const request = await fetch(`/api/projects/${projectId}`)
-//       .then(r => r.json());
-
-//     const products = await fetch(`/api/market/products`)
-//       .then(r => r.json());
-
-//     const matched = products.filter(p =>
-//       request.uniform_items.some(r => {
-//         if (p.category_id !== r.category_id) return false;
-//         if (p.gender !== r.gender) return false;
-
-//         const pSize = JSON.parse(p.size || "{}");
-//         const rSize = JSON.parse(r.size || "{}");
-
-//         const chestOk = !pSize.chest || !rSize.chest || Math.abs(pSize.chest - rSize.chest) <= 1;
-//         const waistOk = !pSize.waist || !rSize.waist || Math.abs(pSize.waist - rSize.waist) <= 1;
-
-//         return chestOk && waistOk;
-//       })
-//     );
-
-//     setProducts(matched);
-//   }
-
-//   load();
-// }, [projectId, location.state]);
-
-  if (error) {
-    return (
-      <div className="dmErrorWrap">
-        <Icon icon="mdi:alert-circle-outline" fontSize={48} />
-        <p>{error}</p>
-        <button onClick={() => navigate(-1)} className="mkResetBtn">กลับ</button>
-      </div>
-    );
-  }
+  if (error) return (
+    <div className="dmErrorWrap">
+      <Icon icon="mdi:alert-circle-outline" fontSize={48} />
+      <p>{error}</p>
+      <button onClick={() => navigate(-1)} className="mkResetBtn">กลับ</button>
+    </div>
+  );
 
   return (
     <div className="homePage">
@@ -366,55 +353,104 @@ export default function DonateMarketPage() {
         </div>
       </header>
 
-      {/* ── Hero Banner โครงการ ── */}
+      {/* ── Hero Banner ── */}
       <section className="dmHero">
-        <div className="dmHeroOverlay" />
         <div className="dmHeroContent">
-          <button className="dmBackBtn" onClick={() => navigate(-1)}>
-            <Icon icon="mdi:arrow-left" /> กลับไปหน้าโครงการ
-          </button>
-          {project ? (
-            <>
-              <div className="dmHeroSchool">
-                <Icon icon="mdi:school" /> {project.school_name}
-              </div>
-              <h1 className="dmHeroTitle">{project.title}</h1>
-              <p className="dmHeroSub">
-                เลือกสินค้าด้านล่างที่ตรงกับรายการที่โรงเรียนต้องการ
-              </p>
+          {/* <button className="dmBackBtn" onClick={() => navigate(-1)}>
+            <Icon icon="mdi:arrow-left" /> 
+          </button> */}
 
-              {/* ── ที่อยู่โรงเรียน — ใช้ schoolInfo (parsed) หรือ school_address เต็ม ── */}
-              <div className="dmSchoolAddress">
-                <Icon icon="mdi:map-marker-outline" />
-                <span>
-                  {schoolInfo
-                    ? [
-                        schoolInfo.address_line,
-                        schoolInfo.district ? `อ.${schoolInfo.district}` : "",
-                        schoolInfo.province ? `จ.${schoolInfo.province}` : "",
-                        schoolInfo.postal_code,
-                      ].filter(Boolean).join(" ")
-                    : project.school_address || project.school_full_address || ""}
-                </span>
+          {project ? (
+            <div className="dmHeroBody">
+
+              {/* ── ซ้าย: ข้อมูลโครงการ ── */}
+              <div className="dmHeroLeft">
+                <div className="dmHeroSchoolBadge">
+                  <Icon icon="mdi:school" />
+                  <span>{project.school_name}</span>
+                </div>
+                <h1 className="dmHeroTitle">
+                  {project.request_title || project.title || "โครงการรับบริจาคชุดนักเรียน"}
+                </h1>
+                <div className="dmHeroAddress">
+                  <Icon icon="mdi:map-marker-outline" />
+                  <span>
+                    {schoolInfo
+                      ? [schoolInfo.address_line, schoolInfo.district, schoolInfo.province, schoolInfo.postal_code]
+                          .filter(Boolean).join(" ")
+                      : project.school_full_address || project.school_address || ""}
+                  </span>
+                </div>
+                {(schoolInfo?.phone || project.school_phone) && (
+                  <div className="dmHeroPhone">
+                    <Icon icon="mdi:phone-outline" />
+                    <span>{schoolInfo?.phone || project.school_phone}</span>
+                  </div>
+                )}
               </div>
-            </>
+
+              {/* ── ขวา: รายการที่โรงเรียนต้องการ ── */}
+{needsSummary.length > 0 && (
+  <div className="dmHeroNeeds">
+    <div className="dmHeroNeedsTitle">
+      <Icon icon="mdi:clipboard-list-outline" />
+      รายการที่โรงเรียนต้องการ
+      <span className="dmNeedsCount">{needsSummary.length} รายการ</span>
+    </div>
+    <div className="dmHeroNeedsList">
+      {needsSummary.map((n, i) => {
+        const sizeLabel = (() => {
+          try {
+            const s = typeof n.size === "string" ? JSON.parse(n.size) : (n.size || {});
+            const parts = [];
+            if (s.chest) parts.push(`อก ${s.chest}"`);
+            if (s.waist) parts.push(`เอว ${s.waist}"`);
+            return parts.join(" / ") || null;
+          } catch { return null; }
+        })();
+        return (
+          <div key={i} className="dmNeedItem">
+            <Icon
+              icon={n.gender === "male" ? "mdi:human-male" : "mdi:human-female"}
+              className={`dmNeedGenderIcon ${n.gender}`}
+            />
+            <div className="dmNeedInfo">
+              <span className="dmNeedTypeName">{n.type_name}</span>
+              <span className="dmNeedMeta">
+                {sizeLabel && <span>{sizeLabel}</span>}
+                <span className="dmNeedQty">× {n.quantity_needed} ชิ้น</span>
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
+            </div>
           ) : (
             <div className="dmHeroLoading">
-              <Icon icon="mdi:loading" className="mkSpinner" /> กำลังโหลดโครงการ...
+              <Icon icon="mdi:loading" className="mkSpinner" /> กำลังโหลด...
             </div>
           )}
         </div>
       </section>
 
-      {/* ── รายการสินค้าที่แมช ── */}
+      {/* ── รายการสินค้า ── */}
       <main className="mkMain dmMain">
         <div className="mkListHeader">
           <h2 className="mkListTitle">
-            สินค้าที่ตรงกับความต้องการของโรงเรียน
+            {noMatch ? "สินค้าทั้งหมด" : "สินค้าที่ตรงกับความต้องการของโรงเรียน"}
             {!loading && (
               <span className="mkListCount"> ({products.length} รายการ)</span>
             )}
           </h2>
+          {noMatch && (
+            <div className="dmNoMatchNote">
+              <Icon icon="mdi:information-outline" />
+              ยังไม่มีสินค้าที่ตรงกับรายการของโรงเรียนพอดี — แสดงสินค้าทั้งหมดให้เลือก
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -426,29 +462,89 @@ export default function DonateMarketPage() {
         ) : products.length === 0 ? (
           <div className="mkEmpty">
             <Icon icon="mdi:package-variant-remove" fontSize={56} />
-            <p>ยังไม่มีสินค้าที่ตรงกับรายการที่โรงเรียนต้องการในขณะนี้</p>
-            <button
-              className="mkResetBtn"
-              onClick={() => navigate("/market")}
-              style={{ display: "inline-block" }}
-            >
+            <p>ยังไม่มีสินค้าในขณะนี้</p>
+            <button className="mkResetBtn" onClick={() => navigate("/market")} style={{ display: "inline-block" }}>
               ดูสินค้าทั้งหมด
             </button>
           </div>
         ) : (
           <div className="mkGrid">
             {products.map(p => (
-              <MatchedProductCard
-                key={p.product_id}
-                product={p}
-                project={project || {}}
-                schoolInfo={schoolInfo}
-                projectId={projectId}
-              />
+              noMatch
+                /* fallback: ใช้การ์ดปกติจาก MarketPage style ไม่มี match badge */
+                ? <FallbackProductCard key={p.product_id} product={p} />
+                /* matched: ใช้การ์ดพร้อม match badge + ปุ่มซื้อส่งต่อ */
+                : <MatchedProductCard
+                  key={p.product_id}
+                  product={p}
+                  project={project || {}}
+                  schoolInfo={schoolInfo}
+                  projectId={projectId}
+                />
             ))}
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+// ── Fallback card (กรณีไม่มีสินค้า match → แสดงสินค้าทั้งหมดแบบปกติ) ──
+function FallbackProductCard({ product }) {
+  const navigate = useNavigate();
+  const images = product.images?.length ? product.images : product.cover_image ? [{ image_url: product.cover_image }] : [];
+  const catLabel = getCategoryLabel(product);
+  const typePart = product.type_name?.trim() || product.custom_type_name?.trim();
+  const title = typePart ? `${catLabel}: ${typePart}` : catLabel;
+  const sizeLabel = formatSize(product.size);
+
+  return (
+    <div className="mkCard" onClick={() => navigate(`/market/${product.product_id}`)}>
+      <div className="mkCardThumb">
+        <CardCarousel images={images} title={title} quantity={product.quantity} />
+      </div>
+      <div className="mkCardBody">
+        <div className="mkCardTitle">{title}</div>
+        {product.school_name && (
+          <div className="mkCardSchool"><Icon icon="mdi:school-outline" /> {product.school_name}</div>
+        )}
+        <div className="mkMeta">
+          {product.level && (
+            <div className="mkMetaRow">
+              <span className="mkMetaLabel">ระดับ</span>
+              <span className="mkMetaVal"><span className="mkBadgeLevel">{product.level}</span></span>
+            </div>
+          )}
+          {sizeLabel && (
+            <div className="mkMetaRow">
+              <span className="mkMetaLabel">ขนาด</span>
+              <span className="mkMetaVal">{sizeLabel}</span>
+            </div>
+          )}
+          {(product.condition_percent || product.condition_label) && (
+            <div className="mkMetaRow">
+              <span className="mkMetaLabel">สภาพ</span>
+              <span className="mkMetaVal">
+                <span className="mkBadgeCond">
+                  {[product.condition_percent ? `${product.condition_percent}%` : null, product.condition_label].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="mkCardDivider" />
+        <div className="mkCardBottom">
+          <div className="mkCardPrice">
+            {Number(product.price).toLocaleString()}<span> บาท</span>
+          </div>
+          <button
+            className="mkCartBtn"
+            onClick={e => { e.stopPropagation(); navigate(`/market/${product.product_id}`); }}
+          >
+            <Icon icon="mdi:cart-outline" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

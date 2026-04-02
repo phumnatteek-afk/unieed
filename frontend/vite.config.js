@@ -12,6 +12,10 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+      "/school": {                        // ← เพิ่มตรงนี้
+    target: "http://localhost:3000",
+    changeOrigin: true,
+  },
     },
   },
 })

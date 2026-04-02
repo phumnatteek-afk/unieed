@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react"; // ✅ ครบแล้ว
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { login as loginService, googleLogin } from "../services/auth.service.js";
@@ -11,6 +11,22 @@ export default function LoginPage() {
   const [err, setErr] = useState("");
   const [unverified, setUnverified] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // ✅ แก้ไข: ใช้ ref วัดขนาด container จริง แทนการใช้ "100%"
+  const googleWrapperRef = useRef(null);
+  const [googleWidth, setGoogleWidth] = useState(400);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (googleWrapperRef.current) {
+        const w = googleWrapperRef.current.offsetWidth;
+        setGoogleWidth(Math.min(Math.max(w, 140), 400));
+      }
+    };
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
 
   const nav = useNavigate();
   const { login } = useAuth();
@@ -84,12 +100,8 @@ export default function LoginPage() {
 
           {/* Badge */}
           <div className="lgBadge">
-            {/* <div className="lgBadgeIcon"></div> */}
             <div className="lgBadgeText">
-              
-              " สร้างโอกาสทางการศึกษา<br />ผ่านการบริจาคชุดนักเรียน <span>
-                "
-              </span>
+              " สร้างโอกาสทางการศึกษา<br />ผ่านการบริจาคชุดนักเรียน <span>"</span>
             </div>
           </div>
         </div>
@@ -193,11 +205,12 @@ export default function LoginPage() {
             <span>หรือ</span>
           </div>
 
-          <div className="lgGoogleWrapper">
+          {/* ✅ แก้ไข: ใช้ ref วัดขนาดจริง แทน width="100%" */}
+          <div className="lgGoogleWrapper" ref={googleWrapperRef}>
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => setErr("Google login ไม่สำเร็จ")}
-              width="100%"
+              width={googleWidth}
               text="signin_with"
               locale="th"
             />

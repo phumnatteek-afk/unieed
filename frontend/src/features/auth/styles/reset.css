@@ -1,0 +1,280 @@
+/* ─── Reset Password Page ─────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Mitr:wght@400;500;600&display=swap');
+
+.rpPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f4ef;
+  font-family: 'Sarabun', sans-serif;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative background blobs */
+.rpPage::before,
+.rpPage::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rpPage::before {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #f5c842, #f59e0b);
+  top: -120px;
+  right: -100px;
+}
+
+.rpPage::after {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #fde68a, #fbbf24);
+  bottom: -100px;
+  left: -80px;
+}
+
+/* ─── Card ───────────────────────────────────────────────── */
+
+.rpCard {
+  position: relative;
+  z-index: 1;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.04),
+    0 8px 24px rgba(0,0,0,0.08),
+    0 32px 64px rgba(0,0,0,0.06);
+  width: 100%;
+  max-width: 440px;
+  padding: 48px 44px;
+  animation: rpFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes rpFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Icon ───────────────────────────────────────────────── */
+
+.rpIcon {
+  width: 56px;
+  height: 56px;
+  background: #fef3c7;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  font-size: 26px;
+}
+
+/* ─── Header ─────────────────────────────────────────────── */
+
+.rpHeader {
+  margin-bottom: 32px;
+}
+
+.rpTitle {
+  font-family: 'Mitr', sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 8px;
+  letter-spacing: -0.3px;
+}
+
+.rpSubtitle {
+  font-size: 15px;
+  color: #888;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ─── Form ───────────────────────────────────────────────── */
+
+.rpForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rpField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rpLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+  letter-spacing: 0.1px;
+}
+
+.rpInputWrap {
+  position: relative;
+}
+
+.rpInput {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid #e5e5e5;
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: 'Sarabun', sans-serif;
+  color: #1a1a1a;
+  background: #fafafa;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.rpInput:focus {
+  border-color: #f59e0b;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12);
+}
+
+.rpInput::placeholder {
+  color: #bbb;
+}
+
+/* ─── Show/Hide Password Button ──────────────────────────── */
+
+.rpEyeBtn {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.rpEyeBtn:hover {
+  color: #555;
+}
+
+/* ─── Submit Button ──────────────────────────────────────── */
+
+.rpBtn {
+  width: 100%;
+  padding: 14px;
+  background: #f59e0b;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-family: 'Mitr', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  margin-top: 4px;
+  letter-spacing: 0.2px;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+.rpBtn:hover:not(:disabled) {
+  background: #d97706;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+}
+
+.rpBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.rpBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ─── Alerts ─────────────────────────────────────────────── */
+
+.rpAlert {
+  padding: 13px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  animation: rpFadeIn 0.3s ease both;
+}
+
+@keyframes rpFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rpAlert--error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.rpAlert--success {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+/* ─── Footer Link ────────────────────────────────────────── */
+
+.rpFooter {
+  margin-top: 28px;
+  text-align: center;
+  font-size: 14px;
+  color: #999;
+}
+
+.rpLink {
+  color: #f59e0b;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.rpLink:hover {
+  color: #d97706;
+  text-decoration: underline;
+}
+
+/* ─── Success State ──────────────────────────────────────── */
+
+.rpSuccessIcon {
+  width: 64px;
+  height: 64px;
+  background: #f0fdf4;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 30px;
+  animation: rpPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes rpPop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}

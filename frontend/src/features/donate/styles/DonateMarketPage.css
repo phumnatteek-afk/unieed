@@ -24,19 +24,19 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  /* background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35); */
   color: #fff;
   border-radius: 20px;
   padding: 6px 14px;
   font-size: 0.85rem;
   cursor: pointer;
   margin-bottom: 16px;
-  transition: background 0.2s;
+  /* transition: background 0.2s; */
 }
-.dmBackBtn:hover {
+/* .dmBackBtn:hover {
   background: rgba(255, 255, 255, 0.3);
-}
+} */
 .dmHeroSchool {
   display: inline-flex;
   align-items: center;
@@ -137,4 +137,324 @@
   padding: 80px 24px;
   color: #888;
   text-align: center;
+}
+
+/* ── เพิ่มใน DonateMarketPage.css ──────────────────────── */
+
+/* Badge row: "ตรงกับโครงการ" + score */
+.dmMatchBadgeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 0;
+  flex-wrap: wrap;
+}
+
+/* score badge (สีกำหนดจาก inline style) */
+.dmScoreBadge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 99px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* note เมื่อไม่มี match */
+.dmNoMatchNote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-top: 8px;
+}
+
+/* ปุ่มซื้อส่งต่อ inline (ใน card bottom) */
+.dmBuyBtnInline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.dmBuyBtnInline:hover:not(:disabled) { background: #1d4ed8; }
+.dmBuyBtnInline:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* seller name */
+.mkCardSeller {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  margin: 2px 0 4px;
+}
+/* ── Hero Banner ────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════
+   Hero Banner
+══════════════════════════════════════════════════ */
+.dmHero {
+  background: linear-gradient(135deg, #1a3a5c 0%, #1565a7 45%, #ade8ff 100%);
+  padding: 44px 24px 40px;
+  position: relative;
+  overflow: hidden;
+}
+.dmHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 8% 85%, rgba(255,255,255,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 92% 15%, rgba(255,255,255,0.09) 0%, transparent 45%);
+  pointer-events: none;
+}
+/* ปิด overlay เดิม */
+.dmHeroOverlay { display: none; }
+
+.dmHeroContent {
+  position: relative;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* .dmBackBtn:hover { background: rgba(255,255,255,0.24); } */
+
+/* ── Body: ซ้าย + ขวา ── */
+.dmHeroBody {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+/* ── ซ้าย ── */
+.dmHeroLeft {
+  flex: 1;
+  min-width: 260px;
+}
+.dmHeroSchoolBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.28);
+  color: #cde9ff;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+  backdrop-filter: blur(4px);
+}
+.dmHeroTitle {
+  font-size: clamp(1.1rem, 2.8vw, 1.55rem);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.45;
+  margin: 0 0 14px;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.22);
+}
+.dmHeroAddress,
+.dmHeroPhone {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: rgba(255,255,255,0.78);
+  font-size: 0.87rem;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+.dmHeroAddress svg,
+.dmHeroPhone svg { flex-shrink: 0; margin-top: 2px; }
+
+/* ── ขวา: needs card ── */
+.dmHeroNeeds {
+  flex: 0 0 auto;
+  min-width: 230px;
+  max-width: 320px;
+  background: rgba(255,255,255,0.11);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  padding: 16px 18px;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;       /* ← จำกัดความสูง */
+}
+
+.dmHeroNeedsTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #9de8df;
+  letter-spacing: 0.03em;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.dmHeroNeedsList {
+ display: flex;
+  flex-direction: column;
+  gap: 7px;
+  overflow-y: auto;          /* ← scroll ได้ */
+  flex: 1;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.25) transparent;
+}
+.dmHeroNeedsList::-webkit-scrollbar       { width: 4px; }
+.dmHeroNeedsList::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.25);
+  border-radius: 4px;
+}
+.dmNeedItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.09);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.dmNeedGenderIcon       { font-size: 1.35rem; flex-shrink: 0; }
+.dmNeedGenderIcon.male  { color: #90caf9; }
+.dmNeedGenderIcon.female { color: #f48fb1; }
+.dmNeedInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.dmNeedTypeName {
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dmNeedMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: rgba(255,255,255,0.68);
+  flex-wrap: wrap;
+}
+.dmNeedQty {
+  background: rgba(255,213,79,0.22);
+  color: #ffe082;
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-weight: 700;
+  font-size: 0.74rem;
+}
+
+/* Loading */
+.dmHeroLoading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.7);
+  font-size: 0.95rem;
+  padding: 24px 0;
+}
+
+/* ══════════════════════════════════════════════════
+   Matched Product Card  (ธีมน้ำเงิน-ส้มอบอุ่น)
+══════════════════════════════════════════════════ */
+
+/* Match badge ด้านบนการ์ด */
+.dmMatchBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(90deg, #1565a7, #aed7ff);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px 8px 0 0;
+  letter-spacing: 0.02em;
+}
+.dmMatchBadge svg { font-size: 1rem; }
+
+/* การ์ดที่มี match badge ให้ขอบบนตัดมุม */
+.mkCard:has(.dmMatchBadge) {
+  border: 1.5px solid #1976d2;
+  box-shadow: 0 4px 18px rgba(21,101,167,0.13);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.mkCard:has(.dmMatchBadge):hover {
+  box-shadow: 0 8px 28px rgba(21,101,167,0.22);
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
+
+/* ปุ่มซื้อส่งต่อ */
+.dmBuyBtnInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f7ad19;
+  /* background: linear-gradient(135deg, #eab300, #fce342); */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.dmBuyBtnInline:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0d47a1, #1565a7);
+  box-shadow: 0 3px 10px rgba(21,101,167,0.35);
+}
+.dmBuyBtnInline:disabled {
+  background: #bdbdbd;
+  cursor: not-allowed;
+}
+.dmNeedsCount {
+  margin-left: auto;
+  background: rgba(255,255,255,0.18);
+  border-radius: 20px;
+  padding: 1px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ══════════════════════════════════════════════════
+   Responsive
+══════════════════════════════════════════════════ */
+@media (max-width: 680px) {
+  .dmHero { padding: 30px 16px 26px; }
+  .dmHeroBody { flex-direction: column; gap: 18px; }
+  .dmHeroNeeds { max-width: 100%; min-width: unset; width: 100%; }
+  .dmHeroTitle { font-size: 1.1rem; }
 }
