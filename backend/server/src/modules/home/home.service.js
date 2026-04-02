@@ -52,7 +52,7 @@ export async function getHomeData() {
         SELECT SUM(ri.quantity)
         FROM request_item ri
         WHERE ri.request_id = dr.request_id
-      ), 0) AS total_needed
+      ), 0) AS total_needed,
 
       -- ✅ เพิ่ม: นับนักเรียน very_urgent ต่อโครงการ
       (SELECT COUNT(*)
