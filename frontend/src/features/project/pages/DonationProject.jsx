@@ -255,19 +255,58 @@ const zeroProjects = useMemo(() => {
 }, [projects]);
 // ── slider state ──
 const [slideIndex, setSlideIndex] = useState(0);
-const slideList = useMemo(() => {
-  const zeros = projects.filter(p => (p.total_fulfilled || 0) === 0 && (p.total_needed || 0) > 0);
-  
-  if (zeros.length > 0) return zeros.slice(0, 10);
-  return urgentProjects; // fallback
-}, [projects, urgentProjects]);
 
-const sectionTitle = useMemo(() => {
-  const zeros = projects.filter(p => (p.total_fulfilled || 0) === 0 && (p.total_needed || 0) > 0);
-  return zeros.length > 0 
-    ? "💙 โรงเรียนยังไม่ได้รับบริจาคเลย" 
-    : "🚨 โรงเรียนเหล่านี้ต้องการจำนวนมาก";
+const slideList = useMemo(() => {
+  const pool = projects.filter(p => Number(p.total_needed) > 0);
+  const usePool = pool.length > 0 ? pool : [...projects];
+
+  // ✅ helper sort function ใช้ร่วมกันทุกกลุ่ม
+  const byUrgency = (a, b) => {
+    const vDiff = Number(b.very_urgent_count || 0) - Number(a.very_urgent_count || 0);
+    if (vDiff !== 0) return vDiff;
+    const uDiff = Number(b.urgent_count || 0) - Number(a.urgent_count || 0);
+    if (uDiff !== 0) return uDiff;
+    const ratioA = (Number(a.total_needed) - Number(a.total_fulfilled)) / (Number(a.student_count) || 1);
+    const ratioB = (Number(b.total_needed) - Number(b.total_fulfilled)) / (Number(b.student_count) || 1);
+    return ratioB - ratioA;
+  };
+
+  // กลุ่ม 1: ต้องการมากที่สุด — ✅ sort ด้วย total_needed ก่อน แล้ว tiebreak ด้วย urgency
+  const mostNeeded = [...usePool]
+    .sort((a, b) => {
+      const nDiff = Number(b.total_needed) - Number(a.total_needed);
+      if (nDiff !== 0) return nDiff;
+      return byUrgency(a, b);
+    })
+    .slice(0, 3)
+    .map(p => ({ ...p, _tag: "most" }));
+
+  // กลุ่ม 2: เร่งด่วน — ✅ sort ด้วย urgency เต็มๆ
+  const mostIds = new Set(mostNeeded.map(p => p.request_id));
+  const urgent = [...usePool]
+    .filter(p => !mostIds.has(p.request_id))
+    .sort(byUrgency)
+    .slice(0, 3)
+    .map(p => ({ ...p, _tag: "urgent" }));
+
+  // กลุ่ม 3: ยังไม่มีใครบริจาค — ✅ sort ด้วย urgency เช่นกัน
+  const usedIds = new Set([...mostNeeded, ...urgent].map(p => p.request_id));
+  const zeros = usePool
+  .filter(p => 
+    Number(p.total_donated || 0) === 0 &&  // ← ยังไม่มีใครบริจาคเลยจริงๆ
+    !usedIds.has(p.request_id)
+  )
+  .sort(byUrgency)
+  .slice(0, 3)
+  .map(p => ({ ...p, _tag: "first" }));
+
+  const merged = [...mostNeeded, ...urgent, ...zeros].slice(0, 10);
+  return merged.length > 0
+    ? merged
+    : projects.slice(0, 10).map(p => ({ ...p, _tag: "first" }));
 }, [projects]);
+
+// const sectionTitle = "💙 โรงเรียนที่ต้องการความช่วยเหลือ";
 
 // ── auto slide ──
 useEffect(() => {
@@ -481,11 +520,21 @@ useEffect(() => {
   {p.request_image_url
     ? <img src={p.request_image_url} alt={p.request_title} />
     : <div className="dpSliderCardImgPlaceholder" />}
-  
-  {/* แสดงเฉพาะเงื่อนไข "บริจาคเป็นคนแรก" เมื่อยอดเป็น 0 เท่านั้น */}
-  {Number(p.total_fulfilled || 0) === 0 && (
-    <div className="dpSliderCardNeed first-donor">
-       ✨ เริ่มต้นการแบ่งปันเป็นคนแรก!
+
+  {/* Tag มุมขวาบน */}
+  {p._tag === "first" && (
+    <div className="dpSliderTag dpSliderTagFirst">
+      ✨ บริจาคเป็นคนแรก!
+    </div>
+  )}
+  {p._tag === "most" && (
+    <div className="dpSliderTag dpSliderTagMost">
+      🔥 ต้องการมากที่สุด
+    </div>
+  )}
+  {p._tag === "urgent" && (
+    <div className="dpSliderTag dpSliderTagUrgent">
+      🚨 เร่งด่วน
     </div>
   )}
 </div>

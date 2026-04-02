@@ -54,6 +54,23 @@ export async function getHomeData() {
         WHERE ri.request_id = dr.request_id
       ), 0) AS total_needed
 
+      -- ✅ เพิ่ม: นับนักเรียน very_urgent ต่อโครงการ
+      (SELECT COUNT(*)
+       FROM students st
+       WHERE st.request_id = dr.request_id
+         AND st.urgency = 'very_urgent') AS very_urgent_count,
+
+      -- ✅ เพิ่ม: นับนักเรียน urgent ต่อโครงการ (ใช้ tiebreak)
+      (SELECT COUNT(*)
+       FROM students st
+       WHERE st.request_id = dr.request_id
+         AND st.urgency = 'urgent') AS urgent_count,
+
+      -- ✅ เพิ่ม: นับนักเรียนทั้งหมดต่อโครงการ
+      (SELECT COUNT(*)
+       FROM students st
+       WHERE st.request_id = dr.request_id) AS student_count
+       
     FROM donation_request dr
     JOIN schools s ON s.school_id = dr.school_id
     WHERE dr.status = 'open'
