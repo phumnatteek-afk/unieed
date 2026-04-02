@@ -9,6 +9,8 @@ import "../../../pages/styles/Homepage.css";
 import "../styles/DonationProject.css";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 
+const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
 // ===== ข้อมูลไซส์ตามประเภทชุดและระดับชั้น =====
 const SIZE_BY_TYPE = {
   เสื้อนักเรียน: { label: "รอบอก (นิ้ว)", sizes: [] },
@@ -66,6 +68,56 @@ const TYPE_COLORS = {
   "กางเกง": {bg:"#E6FFBB", hover: "#5285E8"},
   "กระโปรง": {bg:"#FFEDBF", hover: "#5285E8"},
 };
+
+function ProjectCard({ p, navigate }) {
+  return (
+    <div
+      className="dpCard"
+      onClick={() => navigate(`/projects/${p.request_id}`)}
+    >
+      <div className="dpCardImg" style={{ position: "relative" }}>
+        {p.request_image_url
+          ? <img src={p.request_image_url} alt={p.request_title} />
+          : <div className="dpCardImgPlaceholder" />}
+
+        {/* ✅ Badge มุมขวาบน */}
+        {p._row === "urgent" && (
+          <div className="dpSliderTag dpSliderTagUrgent">🚨 เร่งด่วน</div>
+        )}
+        {p._row === "most" && (
+          <div className="dpSliderTag dpSliderTagMost">🔥 ต้องการมากที่สุด</div>
+        )}
+      </div>
+      <div className="dpCardBody">
+        <div className="dpCardBadge">โครงการ</div>
+        <div className="dpCardTitle">{p.request_title}</div>
+        <div className="dpCardSchool">{p.school_name}</div>
+        <div className="dpCardAddr">
+          <Icon icon="fluent:location-20-filled" width="14"
+            style={{ flexShrink: 0, marginTop: "2px" }} />
+          {p.school_address}
+        </div>
+        <div className="dpCardBottom">
+          <div className="dpCardFulfilled"
+            style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            ส่งถึงโรงเรียนแล้ว <strong>{p.total_fulfilled || 0}</strong> ชุด
+          </div>
+          <button
+            className="dpCardBtn"
+            onClick={e => { e.stopPropagation(); navigate(`/projects/${p.request_id}`); }}
+          >
+            ส่งต่อ
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DonationProject() {
   const { token, userName, logout } = useAuth();
   const navigate = useNavigate();
@@ -162,66 +214,89 @@ useEffect(() => {
 
   // ===== filter + sort projects =====
   const displayProjects = useMemo(() => {
-    console.log("projectDetails at filter time:", projectDetails);
-  const q = (searchQ || autoQuery).toLowerCase().trim();
   let list = [...projects];
 
+  // filter ด้วย search/autoQuery
+  const q = (searchQ || autoQuery).toLowerCase().trim();
   if (q) {
-  const words = q.split(" ").filter(w => w.length > 0);
-  
-  list = list.filter(p => {
-    // เช็ค basic fields
-    const basicMatch = words.some(word =>
-      (p.school_name || "").toLowerCase().includes(word) ||
-      (p.request_title || "").toLowerCase().includes(word) ||
-      (p.school_address || "").toLowerCase().includes(word)
-    );
-
-    // เช็ค uniform_items
-    const items = projectDetails[p.request_id] || [];
-    const uniformMatch = words.some(word =>
-      items.some(item =>
-        (item.name || "").toLowerCase().includes(word) ||
-        (item.education_level || "").toLowerCase().includes(word) ||
-        (item.gender || "").toLowerCase().includes(word) ||
-        (String(item.size || "")).toLowerCase().includes(word)
-      )
-    );
-
-    return basicMatch || uniformMatch;
-  });
-}
-
-  // filter ประเภทชุด
-  if (selType) {
+    const words = q.split(" ").filter(w => w.length > 0);
     list = list.filter(p => {
+      const basicMatch = words.some(word =>
+        (p.school_name || "").toLowerCase().includes(word) ||
+        (p.request_title || "").toLowerCase().includes(word) ||
+        (p.school_address || "").toLowerCase().includes(word)
+      );
       const items = projectDetails[p.request_id] || [];
-      console.log("project:", p.request_id, "items:", items);
-      return items.some(item => (item.name || "").includes(selType));
+      const uniformMatch = words.some(word =>
+        items.some(item =>
+          (item.name || "").toLowerCase().includes(word) ||
+          (item.education_level || "").toLowerCase().includes(word) ||
+          (item.gender || "").toLowerCase().includes(word) ||
+          (String(item.size || "")).toLowerCase().includes(word)
+        )
+      );
+      return basicMatch || uniformMatch;
     });
   }
 
-  // filter ระดับชั้น
-  if (selLevel) {
+ // ✅ filter แบบ AND — item เดียวต้องผ่านทุกเงื่อนไขพร้อมกัน
+  if (selType || selGender || selLevel || selSize) {
+    const genderMap = { "ชาย": "male", "หญิง": "female" };
     list = list.filter(p => {
       const items = projectDetails[p.request_id] || [];
-      return items.some(item => (item.education_level || "").includes(selLevel));
+      return items.some(item => {
+        // เช็ค type
+        if (selType && !(item.name || "").includes(selType)) return false;
+        // เช็ค gender
+        if (selGender) {
+          const genderEn = genderMap[selGender];
+          if (item.gender && item.gender !== genderEn) return false;
+        }
+        // เช็ค level
+        if (selLevel && !(item.education_level || "").includes(selLevel)) return false;
+        // เช็ค size
+        if (selSize) {
+          if (!item.size) return false;
+          try {
+            const sizeObj = typeof item.size === "string"
+              ? JSON.parse(item.size)
+              : item.size;
+            const sizeKey = selType === "เสื้อนักเรียน" ? "chest" : "waist";
+            if (String(sizeObj?.[sizeKey] || "") !== String(selSize)) return false;
+          } catch {
+            return false;
+          }
+        }
+        return true;
+      });
     });
   }
 
-  list.sort((a, b) => {
-  if (sortBy === "newest") return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-  if (sortBy === "most") return (b.total_fulfilled || 0) - (a.total_fulfilled || 0);
-  if (sortBy === "urgent") {
-    const ratioA = (a.total_needed - a.total_fulfilled) / (a.student_count || 1);
-    const ratioB = (b.total_needed - b.total_fulfilled) / (b.student_count || 1);
-    return ratioB - ratioA;
-  }
-  return 0;
-});
+  // แบ่งกลุ่ม
+  const urgentGroup = shuffle(
+    list.filter(p => p.very_urgent_count > 0 || p.urgent_count > 0)
+  ).slice(0, 3);
 
-  return list;
-}, [projects, projectDetails, searchQ, autoQuery, selType, selLevel, sortBy]);
+  const urgentIds = new Set(urgentGroup.map(p => p.request_id));
+
+  const mostGroup = shuffle(
+    list
+      .filter(p => !urgentIds.has(p.request_id))
+      .sort((a, b) => Number(b.total_needed) - Number(a.total_needed))
+  ).slice(0, 3);
+
+  const usedIds = new Set([...urgentGroup, ...mostGroup].map(p => p.request_id));
+
+  const restGroup = shuffle(
+    list.filter(p => !usedIds.has(p.request_id))
+  );
+
+  return [
+    ...urgentGroup.map(p => ({ ...p, _row: "urgent" })),
+    ...mostGroup.map(p => ({ ...p, _row: "most" })),
+    ...restGroup.map(p => ({ ...p, _row: "rest" })),
+  ];
+}, [projects, projectDetails, searchQ, autoQuery, selType, selLevel, selSize]);
 
   // ===== reset size เมื่อเปลี่ยนประเภท/ระดับ =====
   useEffect(() => { setSelSize(""); }, [selType, selLevel]);
@@ -257,53 +332,30 @@ const zeroProjects = useMemo(() => {
 const [slideIndex, setSlideIndex] = useState(0);
 
 const slideList = useMemo(() => {
-  const pool = projects.filter(p => Number(p.total_needed) > 0);
-  const usePool = pool.length > 0 ? pool : [...projects];
+  if (!projects.length) return [];
 
-  // ✅ helper sort function ใช้ร่วมกันทุกกลุ่ม
-  const byUrgency = (a, b) => {
-    const vDiff = Number(b.very_urgent_count || 0) - Number(a.very_urgent_count || 0);
-    if (vDiff !== 0) return vDiff;
-    const uDiff = Number(b.urgent_count || 0) - Number(a.urgent_count || 0);
-    if (uDiff !== 0) return uDiff;
-    const ratioA = (Number(a.total_needed) - Number(a.total_fulfilled)) / (Number(a.student_count) || 1);
-    const ratioB = (Number(b.total_needed) - Number(b.total_fulfilled)) / (Number(b.student_count) || 1);
-    return ratioB - ratioA;
-  };
+  const urgentPool = projects.filter(p =>
+    Number(p.very_urgent_count) > 0 || Number(p.urgent_count) > 0
+  );
+  const pool = urgentPool.length > 0 ? urgentPool : projects;
 
-  // กลุ่ม 1: ต้องการมากที่สุด — ✅ sort ด้วย total_needed ก่อน แล้ว tiebreak ด้วย urgency
-  const mostNeeded = [...usePool]
-    .sort((a, b) => {
-      const nDiff = Number(b.total_needed) - Number(a.total_needed);
-      if (nDiff !== 0) return nDiff;
-      return byUrgency(a, b);
-    })
-    .slice(0, 3)
-    .map(p => ({ ...p, _tag: "most" }));
-
-  // กลุ่ม 2: เร่งด่วน — ✅ sort ด้วย urgency เต็มๆ
-  const mostIds = new Set(mostNeeded.map(p => p.request_id));
-  const urgent = [...usePool]
-    .filter(p => !mostIds.has(p.request_id))
-    .sort(byUrgency)
-    .slice(0, 3)
+  // urgent 2 slides
+  const urgentSlides = shuffle(pool)
+    .slice(0, 2)
     .map(p => ({ ...p, _tag: "urgent" }));
 
-  // กลุ่ม 3: ยังไม่มีใครบริจาค — ✅ sort ด้วย urgency เช่นกัน
-  const usedIds = new Set([...mostNeeded, ...urgent].map(p => p.request_id));
-  const zeros = usePool
-  .filter(p => 
-    Number(p.total_donated || 0) === 0 &&  // ← ยังไม่มีใครบริจาคเลยจริงๆ
-    !usedIds.has(p.request_id)
-  )
-  .sort(byUrgency)
-  .slice(0, 3)
-  .map(p => ({ ...p, _tag: "first" }));
+  const urgentIds = new Set(urgentSlides.map(p => p.request_id));
 
-  const merged = [...mostNeeded, ...urgent, ...zeros].slice(0, 10);
-  return merged.length > 0
-    ? merged
-    : projects.slice(0, 10).map(p => ({ ...p, _tag: "first" }));
+  // most 2 slides (ไม่ซ้ำกับ urgent)
+  const mostSlides = shuffle(
+    [...projects]
+      .filter(p => !urgentIds.has(p.request_id))
+      .sort((a, b) => Number(b.total_needed) - Number(a.total_needed))
+  )
+    .slice(0, 2)
+    .map(p => ({ ...p, _tag: "most" }));
+
+  return [...urgentSlides, ...mostSlides];
 }, [projects]);
 
 // const sectionTitle = "💙 โรงเรียนที่ต้องการความช่วยเหลือ";
@@ -470,7 +522,7 @@ useEffect(() => {
               </select>
             </div>
 
-            {/* สภาพ */}
+            {/* สภาพ
             <div className="dpFilterGroup">
               <div className="dpFilterGroup dpFilterGroupNarrow">
               <div className="dpFilterGroupLabel">สภาพ</div>
@@ -483,7 +535,7 @@ useEffect(() => {
                 <option value="">สภาพ</option>
                 {CONDITIONS.map(c => <option key={c} value={c}>สภาพ {c}</option>)}
               </select>
-            </div>
+            </div> */}
 
           </div>
 
@@ -516,26 +568,17 @@ useEffect(() => {
               className="dpSliderCard"
               onClick={() => navigate(`/projects/${p.request_id}`)}
             >
-             <div className="dpSliderCardImg">
+            <div className="dpSliderCardImg">
   {p.request_image_url
     ? <img src={p.request_image_url} alt={p.request_title} />
     : <div className="dpSliderCardImgPlaceholder" />}
 
-  {/* Tag มุมขวาบน */}
-  {p._tag === "first" && (
-    <div className="dpSliderTag dpSliderTagFirst">
-      ✨ บริจาคเป็นคนแรก!
-    </div>
-  )}
+  {/* ✅ แสดงแค่ urgent เท่านั้น ลบ first ออก */}
   {p._tag === "most" && (
-    <div className="dpSliderTag dpSliderTagMost">
-      🔥 ต้องการมากที่สุด
-    </div>
+    <div className="dpSliderTag dpSliderTagMost">🔥 ต้องการมากที่สุด</div>
   )}
   {p._tag === "urgent" && (
-    <div className="dpSliderTag dpSliderTagUrgent">
-      🚨 เร่งด่วน
-    </div>
+    <div className="dpSliderTag dpSliderTagUrgent">🚨 เร่งด่วน</div>
   )}
 </div>
               <div className="dpSliderCardBody">
@@ -580,60 +623,51 @@ useEffect(() => {
       <div className="dpMain">
         <div className="dpListHeader">
           <h2 className="dpListTitle">โครงการโรงเรียนขอรับบริจาคทั้งหมด</h2>
-         <select
-          className="dpSortSelect"
-          value={sortBy}
-          onChange={e => setSortBy(e.target.value)}
-        >
-          <option value="newest">เรียงตาม : ล่าสุด</option>
-          <option value="most">เรียงตาม : ได้รับมากที่สุด</option>
-          <option value="urgent">เรียงตาม : ต้องการมากที่สุด</option>
-        </select>
         </div>
 
         {loading ? (
-          <div className="muted" style={{ textAlign: "center", padding: "60px" }}>กำลังโหลด…</div>
-        ) : !displayProjects.length ? (
-          <div className="muted" style={{ textAlign: "center", padding: "60px" }}>ไม่พบโครงการที่ตรงกับเงื่อนไข</div>
-        ) : (
+    <div className="muted" style={{ textAlign: "center", padding: "60px" }}>กำลังโหลด…</div>
+  ) : !displayProjects.length ? (
+    <div className="muted" style={{ textAlign: "center", padding: "60px" }}>ไม่พบโครงการที่ตรงกับเงื่อนไข</div>
+  ) : (
+    <>
+      {/* แถว 1: เร่งด่วน */}
+      {displayProjects.some(p => p._row === "urgent") && (
+        <>
+          <h3 className="dpRowLabel">🚨 โครงการเร่งด่วน</h3>
           <div className="dpGrid">
-            {displayProjects.map(p => (
-              <div
-                key={p.request_id}
-                className="dpCard"
-                onClick={() => navigate(`/projects/${p.request_id}`)}
-              >
-                <div className="dpCardImg">
-                  {p.request_image_url
-                    ? <img src={p.request_image_url} alt={p.request_title} />
-                    : <div className="dpCardImgPlaceholder" />}
-                </div>
-                <div className="dpCardBody">
-                  <div className="dpCardBadge">โครงการ</div>
-                  <div className="dpCardTitle">{p.request_title}</div>
-                  <div className="dpCardSchool">{p.school_name}</div>
-                  <div className="dpCardAddr">
-                    <Icon icon="fluent:location-20-filled" width="14" style={{ flexShrink: 0, marginTop: "2px" }} />                    {p.school_address}
-                  </div>
-                  <div className="dpCardBottom">
-                    <div className="dpCardFulfilled"  style={{ display: "flex", alignItems: "center", gap: "4px"  }}>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-                      ส่งถึงโรงเรียนแล้ว <strong>{p.total_fulfilled || 0}</strong> ชุด
-                    </div>
-                    <button
-                      className="dpCardBtn"
-                      onClick={e => { e.stopPropagation(); navigate(`/projects/${p.request_id}`); }}
-                    >
-                      ส่งต่อ
-                    </button>
-                  </div>
-                </div>
-              </div>
+            {displayProjects.filter(p => p._row === "urgent").map(p => (
+              <ProjectCard key={p.request_id} p={p} navigate={navigate} />
             ))}
           </div>
-        )}
+        </>
+      )}
+
+      {/* แถว 2: ต้องการเยอะ */}
+      {displayProjects.some(p => p._row === "most") && (
+        <>
+          <h3 className="dpRowLabel">🔥 ต้องการรับบริจาคมากที่สุด</h3>
+          <div className="dpGrid">
+            {displayProjects.filter(p => p._row === "most").map(p => (
+              <ProjectCard key={p.request_id} p={p} navigate={navigate} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* แถว 3+: ที่เหลือ */}
+      {displayProjects.some(p => p._row === "rest") && (
+        <>
+          <h3 className="dpRowLabel">📋 โครงการทั้งหมด</h3>
+          <div className="dpGrid">
+            {displayProjects.filter(p => p._row === "rest").map(p => (
+              <ProjectCard key={p.request_id} p={p} navigate={navigate} />
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  )}
 
         {/* {displayProjects.length > 0 && (
           <div style={{ textAlign: "center", margin: "40px 0" }}>

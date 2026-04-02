@@ -144,7 +144,7 @@
   font-family: 'Mitr';
   color: #053f5c;
   margin-bottom: 14px;
-  margin-left: 200px;
+  margin-left: 300px;
 }
 
 .dpFilterGrid {
@@ -166,7 +166,7 @@
 .dpFilterGroupLabel {
   font-size: 16px;
   font-weight: 600;
-  margin-left: 200px;
+  margin-left: 300px;
   color: #5285e8;
 }
 
@@ -174,7 +174,7 @@
 .dpTypeRow {
   display: flex;
   gap: 10px;
-  margin-left: 200px;
+  margin-left: 300px;
 }
 
 .dpTypeBtn {
@@ -220,12 +220,52 @@
   background: #fff0e0;
   color: #d35400;
 }
+.dpCard .dpSliderTag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  z-index: 2;
+}
 /* 
 .dpTypeBtn:hover {
   border-color: #b5b5b5;
   background: #f3f3dc;
 } */
+.dpSliderCardMulti {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  align-items: stretch;
+  min-width: 100%;
+  box-sizing: border-box;
+}
 
+.dpSliderMiniCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.dpSliderMiniImg {
+  position: relative;
+  height: 140px;
+  overflow: hidden;
+}
+
+.dpSliderMiniImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .dpTypeBtnActive {
   border-color: #5285E8;
   background: #e8f0fe;
@@ -271,7 +311,7 @@
 }
 .dpFilterGroupNarrow {
   align-self: flex-start;
-  margin-left: -200px;
+  margin-left: -300px;
 }
 .dpSelect:disabled {
   background-color: #f3f4f6;
@@ -282,7 +322,7 @@
 .dpResetBtn {
   margin-top: 8px;
   margin-left: auto;
-  margin-right: 200px;
+  margin-right: 280px;
   padding: 6px 18px;
   font-weight: 500;
   border-radius: 999px;
@@ -514,7 +554,13 @@ display: flex;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
-
+.dpRowLabel {
+  font-size: 18px;
+  font-weight: 700;
+  color: #053F5C;
+  margin: 32px 0 12px;
+  padding-left: 4px;
+}
 .dpSliderCardImg {
   position: relative;
   width: 100%;
