@@ -73,14 +73,16 @@ export default function RegisterGeneralPage() {
 
   // ─── หน้า "กรุณายืนยันอีเมล" หลัง register สำเร็จ ────────
   if (done) {
-    return (
-      <div className="lgPage">
-        <div className="lgCard">
+  return (
+    <div className="lgPage">
+      <div className="lgCard">
+        <div className="lgRightPanel">
           <div className="lgHeader">
             <h2 className="lgTitle">ตรวจสอบอีเมลของคุณ</h2>
+            <p className="lgSubtitle">อีเมลยืนยันถูกส่งไปแล้ว</p>
           </div>
           <div className="lgAlert lgAlert--success">
-            ส่งอีเมลยืนยันไปที่ <strong>{user_email}</strong> แล้ว
+            ✅ ส่งอีเมลยืนยันไปที่ <strong>{user_email}</strong> แล้ว
             กรุณาคลิกลิงก์ในอีเมลเพื่อเริ่มใช้งาน
           </div>
           <p style={{ color: "#6b7280", fontSize: "14px", marginBottom: "16px" }}>
@@ -90,14 +92,26 @@ export default function RegisterGeneralPage() {
             ขอส่งอีเมลยืนยันใหม่
           </Link>
           <div className="lgFooter" style={{ marginTop: "24px" }}>
-            <Link to="/login" className="lgLink">
-              ← กลับหน้าเข้าสู่ระบบ
-            </Link>
+            <Link to="/login" className="lgLink">← กลับหน้าเข้าสู่ระบบ</Link>
+          </div>
+        </div>
+        <div className="lgLeftPanel">
+          <div className="lgBgImage" />
+          <img className="lgLogo" src="/src/unieed_pic/logo1.png" alt="Unieed" />
+          <div className="lgWelcomeBlock">
+            <div className="lgWelcomeTitle">เข้าร่วมกับเรา</div>
+            <div className="lgWelcomeSub">ร่วมส่งต่อโอกาส<br />ให้น้องที่ต้องการ</div>
+          </div>
+          <div className="lgBadge">
+            <div className="lgBadgeText">
+              " สร้างโอกาสทางการศึกษา<br />ผ่านการบริจาคชุดนักเรียน <span>"</span>
+            </div>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // ─── หน้า Register ────────────────────────────────────────
 return (
