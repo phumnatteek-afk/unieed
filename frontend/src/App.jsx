@@ -19,8 +19,8 @@ import SchoolDashboardPage from "./features/school/pages/SchoolDashboardPage.jsx
 import SchoolProjectManageGatePage from "./features/school/pages/SchoolProjectManageGatePage.jsx";
 import SchoolRequestCreatePage from "./features/school/pages/SchoolRequestCreatePage.jsx";
 import SchoolRequestManagePage from "./features/school/pages/SchoolRequestManagePage.jsx";
-import SchoolDonationsPage from "./features/school/pages/SchoolDonationsPage.jsx"; // ถ้ายังไม่มี ให้สร้างหน้า placeholder
-import EditProjectPage from "./features/school/components/EditProjectPage.jsx"
+import SchoolDonationsPage from "./features/school/pages/SchoolDonationsPage.jsx";
+import EditProjectPage from "./features/school/components/EditProjectPage.jsx";
 import SchoolAppointmentPage from "./features/school/pages/SchoolAppointmentPage.jsx";
 import SchoolTestimonialPage from "./features/school/pages/SchoolTestimonialPage.jsx";
 
@@ -34,11 +34,11 @@ import AdminBackofficePage from "./features/admin/pages/AdminBackofficePage.jsx"
 import AdminSchoolsPage from "./features/admin/pages/AdminSchoolsPage.jsx";
 import AdminGuard from "./routes/AdminGuard.jsx";
 import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
-import AdminDonationManagement from "./features/admin/pages/AdminDonationManagement.jsx"; 
+import AdminDonationManagement from "./features/admin/pages/AdminDonationManagement.jsx";
 
 import ProjectDetailPage from "./features/project/pages/ProjectDetailPage.jsx";
 import DonatePage from "./features/project/pages/Donatepage.jsx";
-import DonateMarketPage from "./features/donate/pages/DonateMarketPage.jsx"; // ถ้ายังไม่มี ให้สร้างหน้า placeholder
+import DonateMarketPage from "./features/donate/pages/DonateMarketPage.jsx";
 // ส่วนหน้าเมนู
 import DonationProject from "./features/project/pages/DonationProject.jsx";
 // market
@@ -106,24 +106,16 @@ export default function App() {
                   </ProtectedRoute>
                 }
               >
-
-                {/* default ของ /school */}
                 <Route index element={<Navigate to="dashboard" replace />} />
-
                 <Route path="dashboard" element={<SchoolDashboardPage />} />
                 <Route path="projects/manage" element={<SchoolProjectManageGatePage />} />
                 <Route path="request/new" element={<SchoolRequestCreatePage />} />
                 <Route path="projects/:requestId" element={<SchoolRequestManagePage />} />
                 <Route path="donations" element={<SchoolDonationsPage />} />
-                <Route path="/school/projects/:id/edit" element={<EditProjectPage />} />
+                <Route path="projects/:id/edit" element={<EditProjectPage />} />
                 <Route path="appointments" element={<SchoolAppointmentPage />} />
                 <Route path="testimonials" element={<SchoolTestimonialPage />} />
-
-                 <Route path="/admin/donations" element={<AdminDonationManagement />} />
-
-
               </Route>
-
 
               {/* Admin */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -133,10 +125,9 @@ export default function App() {
                   <Route path="/admin" element={<Navigate to="/admin/backoffice" replace />} />
                   <Route path="/admin/backoffice" element={<AdminBackofficePage />} />
                   <Route path="/admin/schools" element={<AdminSchoolsPage />} />
-
+                  <Route path="/admin/donations" element={<AdminDonationManagement />} />
                 </Route>
               </Route>
-
 
               {/* fallback */}
               <Route path="*" element={<FallbackRedirect />} />
@@ -144,7 +135,6 @@ export default function App() {
           </CartProvider>
         </BrowserRouter>
       </AuthProvider>
-
     </div>
   );
 }
