@@ -23,6 +23,11 @@ export default function AdminLayout() {
             <span className="boMenuIcon boMenuIconEdit" /><Icon icon="fa-regular:edit" />
             จัดการโรงเรียน
           </NavLink>
+
+          <NavLink to="/admin/donations" className={({ isActive }) => (isActive ? "boItem active" : "boItem")}>
+            <span className="boMenuIcon" /><Icon icon="mdi:package-variant-closed" />
+            จัดการการบริจาค
+          </NavLink>
         </nav>
       </aside>
 

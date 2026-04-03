@@ -34,6 +34,7 @@ import AdminBackofficePage from "./features/admin/pages/AdminBackofficePage.jsx"
 import AdminSchoolsPage from "./features/admin/pages/AdminSchoolsPage.jsx";
 import AdminGuard from "./routes/AdminGuard.jsx";
 import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
+import AdminDonationManagement from "./features/admin/pages/AdminDonationManagement.jsx"; 
 
 import ProjectDetailPage from "./features/project/pages/ProjectDetailPage.jsx";
 import DonatePage from "./features/project/pages/Donatepage.jsx";
@@ -127,6 +128,9 @@ export default function App() {
                 <Route path="/admin" element={<Navigate to="/admin/backoffice" replace />} />
                 <Route path="/admin/backoffice" element={<AdminBackofficePage />} />
                 <Route path="/admin/schools" element={<AdminSchoolsPage />} />
+
+                 <Route path="/admin/donations" element={<AdminDonationManagement />} />
+
 
               </Route>
             </Route>
