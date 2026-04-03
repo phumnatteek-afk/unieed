@@ -8,6 +8,8 @@ import { faMagnifyingGlass, faFilter } from "@fortawesome/free-solid-svg-icons";
 import "../../../pages/styles/Homepage.css";
 import "../styles/DonationProject.css";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import NotificationBell from "../../../pages/NotificationBell.jsx";
+import CartIcon from "../../market/components/CartIcon.jsx";
 
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
@@ -378,7 +380,13 @@ useEffect(() => {
       </div>
     );
   }
-  return <ProfileDropdown />;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <NotificationBell />
+      <ProfileDropdown />
+      <CartIcon />
+    </div>
+  );
   };
 
   return (

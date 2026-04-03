@@ -106,7 +106,7 @@ export async function listDonationsByProject(req, res, next) {
 export async function getDonationDetail(req, res, next) {
   try {
     const donation_id = Number(req.params.donationId);
-    const { user_id, role, school_id } = req.user;
+    const { role, school_id, user_id } = req.user;
 
     const donation = await getDonationById(donation_id);
     if (!donation)
@@ -116,10 +116,20 @@ export async function getDonationDetail(req, res, next) {
       const owned = await isDonationOwnedBySchool(donation_id, school_id);
       if (!owned)
         return res.status(403).json({ message: "ไม่มีสิทธิ์เข้าถึง" });
-    } else {
-      if (donation.donor_id !== user_id)
+    } else if (role !== "admin") {
+      // donor เช็ค donor_id
+      if (donation.donor_id && donation.donor_id !== user_id)
         return res.status(403).json({ message: "ไม่มีสิทธิ์เข้าถึง" });
     }
+
+    // ✅ เพิ่ม school_name เข้าไปด้วย
+    const [schoolRows] = await db.query(
+      `SELECT s.school_name FROM donation_request dr
+       JOIN schools s ON s.school_id = dr.school_id
+       WHERE dr.request_id = ? LIMIT 1`,
+      [donation.request_id]
+    );
+    donation.school_name = schoolRows[0]?.school_name || "";
 
     res.json(donation);
   } catch (err) { next(err); }
@@ -127,7 +137,7 @@ export async function getDonationDetail(req, res, next) {
 
 export async function updateDonationStatus(req, res, next) {
   try {
-    const donation_id = Number(req.params.donationId);
+    const donation_id = req.params.donationId;
     const school_id   = req.user.school_id;
     const { status }  = req.body;
 

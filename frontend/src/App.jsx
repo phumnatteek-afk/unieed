@@ -26,6 +26,7 @@ import SchoolTestimonialPage from "./features/school/pages/SchoolTestimonialPage
 
 import RoleRedirect from "./routes/RoleRedirect.jsx";
 import FallbackRedirect from "./routes/FallbackRedirect.jsx";
+import QRScanPage from "./features/donate/pages/QRScanPage.jsx";
 
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import AdminLoginPage from "./features/admin/pages/AdminLoginPage.jsx";
@@ -69,6 +70,8 @@ export default function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/resend-verification" element={<ResendVerificationPage />} />
+
+            <Route path="/confirm/:donationId" element={<QRScanPage />} />
 
            <Route path="/projects/:requestId" element={<RoleRedirect><ProjectDetailPage /></RoleRedirect>} />
 <Route path="/donate/:requestId" element={<RoleRedirect><DonatePage /></RoleRedirect>} />
