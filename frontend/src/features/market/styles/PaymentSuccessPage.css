@@ -1,0 +1,457 @@
+/* PaymentSuccessPage.css — Unieed theme */
+@import url('https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Kanit:wght@300;400;500;600;700&display=swap');
+
+/* ── Page ── */
+.psPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px 60px;
+  font-family: 'Mitr', 'Kanit', sans-serif;
+  background: linear-gradient(135deg, #f0f6ff 0%, #e8f4fd 50%, #f7f9fc 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Background blobs ── */
+.psBlob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 0;
+}
+.psBlob1 {
+  width: 520px; height: 520px;
+  background: #5285E8;
+  top: -140px; left: -120px;
+  animation: blobFloat 8s ease-in-out infinite alternate;
+}
+.psBlob2 {
+  width: 400px; height: 400px;
+  background: #FFBE1B;
+  bottom: -100px; right: -80px;
+  animation: blobFloat 10s ease-in-out infinite alternate-reverse;
+}
+@keyframes blobFloat {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(30px, 20px) scale(1.08); }
+}
+
+/* ── Card ── */
+.psCard {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  background: #fff;
+  border-radius: 28px;
+  padding: 44px 36px 36px;
+  box-shadow: 0 8px 48px rgba(82, 133, 232, 0.12), 0 2px 12px rgba(0,0,0,0.06);
+  text-align: center;
+}
+
+/* ── Check icon ── */
+.psIconWrap {
+  position: relative;
+  width: 96px; height: 96px;
+  margin: 0 auto 28px;
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.5s cubic-bezier(.34,1.56,.64,1), transform 0.5s cubic-bezier(.34,1.56,.64,1);
+}
+.psIconVisible {
+  opacity: 1;
+  transform: scale(1);
+}
+.psCircleSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.psCircleTrack {
+  fill: none;
+  stroke: #e8f0fe;
+  stroke-width: 6;
+}
+.psCircleFill {
+  fill: none;
+  stroke: #5285E8;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 276;
+  stroke-dashoffset: 276;
+  animation: drawCircle 0.7s 0.1s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes drawCircle {
+  to { stroke-dashoffset: 0; }
+}
+.psCheckIcon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  font-size: 44px;
+  color: #5285E8;
+  width: 44px; height: 44px;
+  opacity: 0;
+  transform: scale(0);
+  animation: popIn 0.4s 0.55s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes popIn {
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ── Title ── */
+.psTitleBlock {
+  margin-bottom: 24px;
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.5s 0.1s ease, transform 0.5s 0.1s ease;
+}
+.psFadeUp {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+.psTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px;
+  letter-spacing: -0.3px;
+}
+.psTitleDonation {
+  background: linear-gradient(135deg, #5285E8, #378ADD);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.psSubtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Body ── */
+.psBody {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.5s 0.1s ease, transform 0.5s 0.1s ease;
+}
+
+/* ── Order pill ── */
+.psOrderPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #f0f6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 8px 18px;
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+.psOrderLabel { color: #6b7280; }
+.psOrderId { font-weight: 600; color: #5285E8; }
+.psOrderAmt {
+  font-weight: 700; color: #111827;
+  background: #fff;
+  border-radius: 999px;
+  padding: 2px 10px;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+}
+
+/* ── Donation section ── */
+.psDonationSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+/* Certificate card */
+.psCertCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: linear-gradient(135deg, #fef9ee, #fff8e1);
+  border: 1.5px solid #fde68a;
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.psCertIcon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, #FFBE1B, #f59e0b);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.psCertTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 4px;
+}
+.psCertDesc {
+  font-size: 12px;
+  color: #78350f;
+  line-height: 1.6;
+}
+
+/* Project tag */
+.psProjectTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8f0fe;
+  color: #3b6fd4;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #bfdbfe;
+  align-self: flex-start;
+}
+
+/* ── Donor name card ── */
+.psDonorCard {
+  background: #f8faff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.psDonorLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.psDonorNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.psDonorName {
+  font-size: 18px;
+  font-weight: 700;
+  color: #5285E8;
+  letter-spacing: -0.2px;
+}
+/* ชื่อยังไม่ได้ตั้ง */
+.psDonorNameEmpty {
+  font-size: 15px;
+  color: #9ca3af;
+  font-weight: 400;
+  font-style: italic;
+}
+.psDonorEditBtn {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; color: #5285E8;
+  background: #e8f0fe; border: none;
+  padding: 6px 12px; border-radius: 999px;
+  cursor: pointer; font-family: 'Mitr', sans-serif;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.psDonorEditBtn:hover { background: #bfdbfe; }
+
+/* Edit row */
+.psDonorEditRow {
+  display: flex; gap: 8px; align-items: center;
+}
+.psDonorInput {
+  flex: 1;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1.5px solid #5285E8;
+  font-size: 15px;
+  font-family: 'Mitr', sans-serif;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(82,133,232,0.1);
+  min-width: 0;
+}
+.psDonorSaveBtn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 16px; height: 42px;
+  background: #5285E8; color: #fff;
+  border: none; border-radius: 10px;
+  font-size: 13px; cursor: pointer;
+  font-family: 'Mitr', sans-serif;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.psDonorSaveBtn:hover { background: #3b6fd4; }
+
+/* ปุ่มยกเลิก (X) — เพิ่มใหม่ */
+.psDonorCancelBtn {
+  display: flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px;
+  background: #f3f4f6; color: #6b7280;
+  border: none; border-radius: 10px;
+  font-size: 18px; cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.psDonorCancelBtn:hover { background: #e5e7eb; color: #374151; }
+
+.psDonorHint {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: 8px 0 0;
+}
+
+/* ── Steps ── */
+.psStepsCard {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.psStepsTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+}
+.psStep {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.psStepDot {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #9ca3af;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.psStepDotDone {
+  background: #22c55e;
+  color: #fff;
+}
+.psStepDotActive {
+  background: #5285E8;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(82,133,232,0.15);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(82,133,232,0.15); }
+  50%       { box-shadow: 0 0 0 8px rgba(82,133,232,0.08); }
+}
+.psStepText {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+}
+.psStepLine {
+  width: 2px; height: 16px;
+  background: #e5e7eb;
+  margin-left: 15px;
+}
+
+/* ── Normal section ── */
+.psNormalSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+.psInfoRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #374151;
+  background: #f8faff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+}
+.psInfoRow .iconify { color: #5285E8; font-size: 18px; flex-shrink: 0; }
+
+/* ── Actions ── */
+.psActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.psBtnPrimary {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #5285E8, #378ADD);
+  color: #fff;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: transform 0.18s, box-shadow 0.18s;
+  box-shadow: 0 4px 16px rgba(82,133,232,0.3);
+  font-family: 'Mitr', sans-serif;
+}
+.psBtnPrimary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(82,133,232,0.4);
+}
+.psBtnOutline {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 24px;
+  background: #fff;
+  color: #5285E8;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 14px;
+  font-size: 15px;
+  text-decoration: none;
+  transition: border-color 0.18s, background 0.18s;
+  font-family: 'Mitr', sans-serif;
+}
+.psBtnOutline:hover { border-color: #5285E8; background: #f0f6ff; }
+
+/* ── Confetti ── */
+.psConfetti {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 999;
+  overflow: visible;
+}
+.psConfettiPiece {
+  position: absolute;
+  top: -12px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(0) rotate(0deg) scaleX(1);   opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg) scaleX(-1); opacity: 0; }
+}
+
+/* ── Responsive ── */
+@media (max-width: 540px) {
+  .psCard { padding: 32px 20px 28px; border-radius: 20px; }
+  .psTitle { font-size: 20px; }
+  .psDonorName { font-size: 15px; }
+  .psDonorEditRow { flex-wrap: wrap; }
+  .psDonorInput { width: 100%; }
+}

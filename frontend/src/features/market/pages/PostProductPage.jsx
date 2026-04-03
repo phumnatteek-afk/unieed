@@ -17,20 +17,21 @@ const MAIN_CATEGORIES = [
   { key: "other",   category_id: 4, gender: null,     label: "อื่นๆ",         icon: "mdi:dots-horizontal-circle-outline", sizeKeys: ["chest"] },
 ];
  
-const LEVELS = ["ทุกระดับชั้น", "อนุบาล", "ประถมศึกษา", "มัธยมต้น", "มัธยมปลาย"];
+const LEVELS           = ["ทุกระดับชั้น", "อนุบาล", "ประถมศึกษา", "มัธยมต้น", "มัธยมปลาย"];
 const CONDITION_PERCENTS = ["10","20","30","40","50","60","70","80","90","100"];
 const CONDITION_LABELS   = ["มีตำหนิ","พอใช้ได้","สภาพดี","สภาพดีมาก","ใหม่มาก"];
 const MAX_IMAGES         = 4;
  
-const SHIPPING_OPTIONS = [
-  { name: "ไปรษณีย์ไทย",  icon: "mdi:mailbox-outline",         color: "#e74c3c" },
-  { name: "Kex Express", icon: "mdi:truck-delivery-outline",   color: "#f39c12" },
-  { name: "Flash Express", icon: "mdi:lightning-bolt",           color: "#f1c40f" },
-  { name: "J&T Express",   icon: "mdi:truck-fast-outline",       color: "#e74c3c" },
-  { name: "Ninja Van",     icon: "mdi:ninja",                    color: "#8e44ad" },
-  { name: "Shopee Express",icon: "mdi:shopping-outline",         color: "#e67e22" },
-  { name: "Lazada Express",icon: "mdi:store-outline",            color: "#2980b9" },
-];
+// โลโก้ขนส่ง — ใช้ URL จาก CDN สาธารณะ (fallback เป็น icon ถ้าโหลดไม่ได้)
+const SHIPPING_LOGOS = {
+  "ไปรษณีย์ไทย":   "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Thailand_Post_logo.svg/200px-Thailand_Post_logo.svg.png",
+  "Kerry Express":  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Kerry_Express_logo.svg/200px-Kerry_Express_logo.svg.png",
+  "Flash Express":  "https://companieslogo.com/img/orig/FLASH.BK-5e0d2d86.png",
+  "J&T Express":    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/J%26T_Express_logo.svg/200px-J%26T_Express_logo.svg.png",
+  "Ninja Van":      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Ninjavan-logo.svg/200px-ninjavan-logo.svg.png",
+  "Shopee Express": "https://deo.shopeemobile.com/shopee/shopee-pcmall-live-sg/assets/cb0479f3c6a5e4e82b56.png",
+  "Lazada Express": "https://lzd-img-global.slatic.net/g/tsp/tb/img/logo/lazada_logo_160.png",
+};
  
 const makeItem = () => ({
   _id:              Math.random().toString(36).slice(2),
@@ -47,16 +48,49 @@ const makeItem = () => ({
   quantity:         1,
   description:      "",
   images:           [],
-  shipping_name:    "",
-  shipping_price:   "",
+  // น้ำหนักอยู่ที่ item ระดับ item (step 1)
+  weight:           "",
 });
+ 
+// ── ShippingLogo component ────────────────────────────────
+function ShippingLogo({ name, size = 36 }) {
+  const [error, setError] = useState(false);
+  const src = SHIPPING_LOGOS[name];
+  if (!src || error) {
+    return (
+      <div style={{
+        width: size, height: size,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: size * 0.55,
+      }}>
+        🚚
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={name}
+      onError={() => setError(true)}
+      style={{ width: size, height: size, objectFit: "contain" }}
+    />
+  );
+}
  
 export default function PostProductPage() {
   const { token, updateRole } = useAuth();
   const navigate = useNavigate();
  
-  const [uniformTypes, setUniformTypes] = useState([]);
-  const [typesLoading, setTypesLoading] = useState(true);
+  const [uniformTypes, setUniformTypes]   = useState([]);
+  const [typesLoading, setTypesLoading]   = useState(true);
+  const [shippingProviders, setShippingProviders] = useState([]);
+ 
+  useEffect(() => {
+    fetch("/api/checkout/shipping")
+      .then(res => res.json())
+      .then(data => setShippingProviders(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
  
   useEffect(() => {
     fetch("/api/market/uniform-types")
@@ -66,29 +100,14 @@ export default function PostProductPage() {
       .finally(() => setTypesLoading(false));
   }, []);
  
-  const [step,       setStep]       = useState(1); // 1 = สินค้า, 2 = จัดส่ง
-  const [items,      setItems]      = useState([makeItem()]);
-  const [openIdx,    setOpenIdx]    = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const [err,        setErr]        = useState("");
+  const [step,              setStep]              = useState(1);
+  const [items,             setItems]             = useState([makeItem()]);
+  const [openIdx,           setOpenIdx]           = useState(0);
+  // selectedProviders: provider_id[] — เลือกร่วมกันทุกสินค้า
+  const [selectedProviders, setSelectedProviders] = useState([]);
+  const [submitting,        setSubmitting]        = useState(false);
+  const [err,               setErr]               = useState("");
   const fileInputRefs = useRef({});
- 
-  // Shared shipping — apply to all items at once
-  const [sharedShipName,   setSharedShipName]   = useState("");
-  const [sharedCustomName, setSharedCustomName] = useState("");
-  const [sharedShipPrice,  setSharedShipPrice]  = useState("");
- 
-  const applySharedShipping = () => {
-    const name = sharedShipName === "__custom__"
-      ? sharedCustomName.trim()
-      : sharedShipName;
-    if (!name) return;
-    setItems(prev => prev.map(it => ({
-      ...it,
-      shipping_name:  name,
-      shipping_price: sharedShipPrice,
-    })));
-  };
  
   const updateItem = (idx, patch) =>
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
@@ -136,6 +155,7 @@ export default function PostProductPage() {
     return { typeName, sizeStr };
   };
  
+  // ── validate step 1 ──────────────────────────────────────
   const goToStep2 = () => {
     setErr("");
     for (let i = 0; i < items.length; i++) {
@@ -146,22 +166,23 @@ export default function PostProductPage() {
         return setErr(`รายการที่ ${i + 1}: กรุณากรอกราคา`);
     }
     setStep(2);
+    setOpenIdx(0);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
  
+  // ── submit ───────────────────────────────────────────────
   const handleSubmit = async () => {
     setErr("");
-    for (let i = 0; i < items.length; i++) {
-      if (!items[i].shipping_name)
-        return setErr(`รายการที่ ${i + 1}: กรุณาเลือกบริการขนส่ง`);
-    }
+    if (!selectedProviders.length)
+      return setErr("กรุณาเลือกขนส่งอย่างน้อย 1 รายการ");
+ 
     setSubmitting(true);
     try {
       const formData = new FormData();
       const itemsMeta = items.map(item => {
-        const typeObj  = uniformTypes.find(t => t.uniform_type_id === item.uniform_type_id);
-        const sizeObj  = {};
-        const cid      = Number(item.category_id);
+        const typeObj = uniformTypes.find(t => t.uniform_type_id === item.uniform_type_id);
+        const sizeObj = {};
+        const cid     = Number(item.category_id);
         if (cid === 1) {
           if (item.sizes.chest)  sizeObj.chest  = item.sizes.chest;
           if (item.sizes.length) sizeObj.length = item.sizes.length;
@@ -170,22 +191,24 @@ export default function PostProductPage() {
           if (item.sizes.length) sizeObj.length = item.sizes.length;
         }
         return {
-          uniform_type_id:  item.uniform_type_id,
-          type_name:        item.custom_type_name?.trim() || typeObj?.type_name || "",
-          school_name:      item.school_name || "",
-          level:            item.level,
-          category_id:      item.category_id,
-          gender:           item.gender,
-          sizes:            sizeObj,
-          condition:        item.condition,
-          conditionLabel:   item.conditionLabel,
-          price:            item.price,
-          quantity:         item.quantity,
-          description:      item.description,
-          shipping_name:    item.shipping_name?.trim() || "",
-          shipping_price:   item.shipping_price || 0,
+          uniform_type_id:       item.uniform_type_id,
+          type_name:             item.custom_type_name?.trim() || typeObj?.type_name || "",
+          school_name:           item.school_name || "",
+          level:                 item.level,
+          category_id:           item.category_id,
+          gender:                item.gender,
+          sizes:                 sizeObj,
+          condition:             item.condition,
+          conditionLabel:        item.conditionLabel,
+          price:                 item.price,
+          quantity:              item.quantity,
+          description:           item.description,
+          weight:                parseFloat(item.weight) || 0,
+          // ✅ ส่ง provider_ids ที่เลือกร่วมกันจาก step 2
+          shipping_provider_ids: selectedProviders,
         };
       });
+ 
       formData.append("items", JSON.stringify(itemsMeta));
       items.forEach((item, i) => {
         item.images.forEach(img => {
@@ -317,6 +340,7 @@ export default function PostProductPage() {
                               <div className="ppItemSummaryMeta">
                                 {summary.sizeStr}
                                 {item.price && ` · ${Number(item.price).toLocaleString()} บาท`}
+                                {item.weight && ` · ${item.weight} kg`}
                               </div>
                             </>
                           )}
@@ -553,7 +577,33 @@ export default function PostProductPage() {
                           </div>
                         </div>
  
-                        {/* ══ ⑤ รายละเอียดเพิ่มเติม (optional) ══ */}
+                        {/* ══ ⑤ น้ำหนักสินค้า (ย้ายมาอยู่ step 1) ══ */}
+                        <div className="ppSection">
+                          <div className="ppSectionHeader">
+                            <span className="ppSectionDot ppDotGreen" />
+                            <span className="ppSectionTitle">น้ำหนักสินค้า</span>
+                            <span className="ppOptionalBadge">ใช้คำนวณค่าส่ง</span>
+                          </div>
+                          <div className="ppFieldBlock" style={{ maxWidth: 220 }}>
+                            <label className="ppFieldLabel">
+                              <Icon icon="mdi:weight-kilogram" /> น้ำหนัก
+                            </label>
+                            <div className="ppPriceWrap">
+                              <input
+                                className="ppInput ppPriceInput"
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                placeholder="0.0"
+                                value={item.weight}
+                                onChange={e => updateItem(idx, { weight: e.target.value })}
+                              />
+                              <span className="ppUnit">kg</span>
+                            </div>
+                          </div>
+                        </div>
+ 
+                        {/* ══ ⑥ รายละเอียดเพิ่มเติม (optional) ══ */}
                         <div className="ppSection ppSectionOptional">
                           <div className="ppSectionHeader">
                             <span className="ppSectionDot ppDotGray" />
@@ -610,6 +660,7 @@ export default function PostProductPage() {
  
         {/* ══════════════════════════════════════
             STEP 2 — การจัดส่ง
+            เลือก provider ร่วมกันทุกสินค้า (ไม่ต้องกรอกค่าส่งเอง)
         ══════════════════════════════════════ */}
         {step === 2 && (
           <>
@@ -618,7 +669,7 @@ export default function PostProductPage() {
                 <Icon icon="mdi:truck-delivery-outline" style={{ marginRight: 8, verticalAlign: "middle" }} />
                 การจัดส่ง
               </h1>
-              <p className="ppPageSub">เลือกบริการขนส่งและระบุค่าส่งสำหรับแต่ละรายการ</p>
+              <p className="ppPageSub">เลือกบริการขนส่งที่รองรับสำหรับสินค้าของคุณ — ค่าจัดส่งจะคำนวณจากน้ำหนักโดยอัตโนมัติ</p>
             </div>
  
             {/* Summary chips */}
@@ -630,223 +681,74 @@ export default function PostProductPage() {
                     <div className="ppShipSummaryNum">{idx + 1}</div>
                     <div>
                       <div className="ppShipSummaryName">{summary.typeName}</div>
-                      <div className="ppShipSummaryPrice">{item.price ? `${Number(item.price).toLocaleString()} บาท` : "—"}</div>
+                      <div className="ppShipSummaryPrice">
+                        {item.price ? `${Number(item.price).toLocaleString()} บาท` : "—"}
+                        {item.weight ? ` · ${item.weight} kg` : ""}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
  
-            {/* ── Apply-all shipping panel ── */}
-            {items.length > 1 && (
-              <div className="ppApplyAllCard">
-                <div className="ppApplyAllHeader">
-                  <Icon icon="mdi:lightning-bolt" className="ppApplyAllIcon" />
-                  <div>
-                    <div className="ppApplyAllTitle">ตั้งค่าการจัดส่งพร้อมกันทุกรายการ</div>
-                    <div className="ppApplyAllSub">เลือกขนส่งและค่าส่งครั้งเดียว แล้วกด "ใช้กับทุกรายการ"</div>
-                  </div>
+            {/* ── Provider selection ── */}
+            <div className="ppSection" style={{ background: "var(--color-surface)", borderRadius: 16, padding: "24px", marginBottom: 24 }}>
+              <div className="ppSectionHeader" style={{ marginBottom: 16 }}>
+                <span className="ppSectionDot ppDotBlue" />
+                <span className="ppSectionTitle">เลือกขนส่งที่รองรับ</span>
+                <span className="ppReqBadge">จำเป็น — เลือกได้หลายรายการ</span>
+              </div>
+ 
+              <p className="ppHint" style={{ marginBottom: 16 }}>
+                <Icon icon="mdi:information-outline" style={{ verticalAlign: "middle", marginRight: 4 }} />
+                ผู้ซื้อจะเห็นตัวเลือกขนส่งเหล่านี้ โดยราคาค่าส่งคำนวณจากน้ำหนักสินค้าโดยอัตโนมัติ
+              </p>
+ 
+              {shippingProviders.length === 0 ? (
+                <div className="ppLoadingHint">
+                  <Icon icon="mdi:loading" className="ppSpinner" /> กำลังโหลดรายการขนส่ง...
                 </div>
-                <div className="ppShipGrid ppShipGridSm">
-                  {SHIPPING_OPTIONS.map(opt => {
-                    const isActive = sharedShipName === opt.name;
+              ) : (
+                <div className="ppShipGrid">
+                  {shippingProviders.map(p => {
+                    const active = selectedProviders.includes(p.provider_id);
                     return (
-                      <button
-                        key={opt.name}
-                        type="button"
-                        className={`ppShipCard ${isActive ? "ppShipCardActive" : ""}`}
-                        style={{ "--ship-color": opt.color }}
-                        onClick={() => setSharedShipName(opt.name)}
+                      <div
+                        key={p.provider_id}
+                        className={`ppShipCard ${active ? "ppShipCardActive" : ""}`}
+                        onClick={() =>
+                          setSelectedProviders(prev =>
+                            prev.includes(p.provider_id)
+                              ? prev.filter(id => id !== p.provider_id)
+                              : [...prev, p.provider_id]
+                          )
+                        }
                       >
-                        <div className="ppShipCardIcon"><Icon icon={opt.icon} /></div>
-                        <span className="ppShipCardName">{opt.name}</span>
-                        {isActive && <span className="ppShipCardCheck"><Icon icon="mdi:check" /></span>}
-                      </button>
+                        <div className="ppShipCardIcon">
+                          <ShippingLogo name={p.name} size={38} />
+                        </div>
+                        <div className="ppShipCardName">{p.name}</div>
+                        {active && (
+                          <div className="ppShipCardCheck">
+                            <Icon icon="mdi:check-circle" />
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
-                  <button
-                    type="button"
-                    className={`ppShipCard ${sharedShipName === "__custom__" ? "ppShipCardActive" : ""}`}
-                    style={{ "--ship-color": "#64748b" }}
-                    onClick={() => setSharedShipName("__custom__")}
-                  >
-                    <div className="ppShipCardIcon"><Icon icon="mdi:dots-horizontal-circle-outline" /></div>
-                    <span className="ppShipCardName">อื่นๆ</span>
-                  </button>
                 </div>
-                {sharedShipName === "__custom__" && (
-                  <input
-                    className="ppInput"
-                    style={{ marginTop: 10 }}
-                    placeholder="ระบุชื่อขนส่ง เช่น SCG Express..."
-                    value={sharedCustomName}
-                    onChange={e => setSharedCustomName(e.target.value)}
-                  />
-                )}
-                {sharedShipName && sharedShipName !== "__custom__" && (
-                  <div className="ppApplyAllPriceRow">
-                    <label className="ppFieldLabel" style={{ whiteSpace: "nowrap" }}>
-                      <Icon icon="mdi:cash-multiple" /> ค่าจัดส่ง
-                    </label>
-                    <div className="ppPriceWrap" style={{ flex: 1 }}>
-                      <input
-                        className="ppInput ppPriceInput"
-                        type="number" min="0" placeholder="0"
-                        value={sharedShipPrice}
-                        onChange={e => setSharedShipPrice(e.target.value)}
-                      />
-                      <span className="ppUnit">บาท</span>
-                    </div>
-                    <button
-                      className="ppApplyBtn"
-                      onClick={applySharedShipping}
-                    >
-                      <Icon icon="mdi:check-all" /> ใช้กับทุกรายการ
-                    </button>
-                  </div>
-                )}
-                {sharedShipName === "__custom__" && sharedCustomName.trim() && (
-                  <div className="ppApplyAllPriceRow">
-                    <label className="ppFieldLabel" style={{ whiteSpace: "nowrap" }}>
-                      <Icon icon="mdi:cash-multiple" /> ค่าจัดส่ง
-                    </label>
-                    <div className="ppPriceWrap" style={{ flex: 1 }}>
-                      <input
-                        className="ppInput ppPriceInput"
-                        type="number" min="0" placeholder="0"
-                        value={sharedShipPrice}
-                        onChange={e => setSharedShipPrice(e.target.value)}
-                      />
-                      <span className="ppUnit">บาท</span>
-                    </div>
-                    <button
-                      className="ppApplyBtn"
-                      onClick={applySharedShipping}
-                    >
-                      <Icon icon="mdi:check-all" /> ใช้กับทุกรายการ
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
  
-            <div className="ppItemsArea">
-              {items.map((item, idx) => {
-                const summary = getItemSummary(item);
-                const isOpen  = openIdx === idx;
- 
-                return (
-                  <div key={item._id} className={`ppItemCard ${isOpen ? "ppItemCardOpen" : ""}`}>
- 
-                    <div className="ppItemHeader" onClick={() => setOpenIdx(isOpen ? -1 : idx)}>
-                      <div className="ppItemHeaderLeft">
-                        <div className="ppItemNumBadge">{idx + 1}</div>
-                        <div>
-                          <div className="ppItemSummaryName">{summary.typeName}</div>
-                          <div className="ppItemSummaryMeta">
-                            {item.shipping_name
-                              ? `📦 ${item.shipping_name}${item.shipping_price ? ` · ${item.shipping_price} บาท` : ""}`
-                              : "ยังไม่ได้เลือกขนส่ง"}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="ppItemHeaderRight">
-                        {item.shipping_name && (
-                          <span className="ppShipDoneBadge">
-                            <Icon icon="mdi:check-circle" /> พร้อม
-                          </span>
-                        )}
-                        <Icon icon={isOpen ? "mdi:chevron-up" : "mdi:chevron-down"} className="ppItemChevron" />
-                      </div>
-                    </div>
- 
-                    {isOpen && (
-                      <div className="ppItemBody">
- 
-                        {/* ── Shipping cards ── */}
-                        <div className="ppFieldBlock">
-                          <label className="ppFieldLabel">
-                            <Icon icon="mdi:truck-outline" />
-                            บริการขนส่ง <span className="ppReq">*</span>
-                          </label>
-                          <div className="ppShipGrid">
-                            {SHIPPING_OPTIONS.map(opt => {
-                              const isActive = item.shipping_name === opt.name;
-                              return (
-                                <button
-                                  key={opt.name}
-                                  type="button"
-                                  className={`ppShipCard ${isActive ? "ppShipCardActive" : ""}`}
-                                  style={{ "--ship-color": opt.color }}
-                                  onClick={() => updateItem(idx, { shipping_name: opt.name })}
-                                >
-                                  <div className="ppShipCardIcon">
-                                    <Icon icon={opt.icon} />
-                                  </div>
-                                  <span className="ppShipCardName">{opt.name}</span>
-                                  {isActive && (
-                                    <span className="ppShipCardCheck">
-                                      <Icon icon="mdi:check" />
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })}
- 
-                            {/* Custom option */}
-                            <button
-                              type="button"
-                              className={`ppShipCard ${
-                                item.shipping_name === "__custom__" ||
-                                (item.shipping_name &&
-                                  !SHIPPING_OPTIONS.find(o => o.name === item.shipping_name))
-                                  ? "ppShipCardActive" : ""
-                              }`}
-                              style={{ "--ship-color": "#64748b" }}
-                              onClick={() => updateItem(idx, { shipping_name: "__custom__" })}
-                            >
-                              <div className="ppShipCardIcon">
-                                <Icon icon="mdi:dots-horizontal-circle-outline" />
-                              </div>
-                              <span className="ppShipCardName">อื่นๆ</span>
-                            </button>
-                          </div>
- 
-                          {(item.shipping_name === "__custom__") && (
-                            <input
-                              className="ppInput"
-                              style={{ marginTop: 10 }}
-                              placeholder="ระบุชื่อขนส่ง เช่น SCG Express..."
-                              onChange={e => updateItem(idx, { shipping_name: e.target.value })}
-                            />
-                          )}
-                        </div>
- 
-                        {/* ── ค่าจัดส่ง ── */}
-                        {item.shipping_name && item.shipping_name !== "__custom__" && (
-                          <div className="ppFieldBlock">
-                            <label className="ppFieldLabel">
-                              <Icon icon="mdi:cash-multiple" />
-                              ค่าจัดส่ง
-                            </label>
-                            <div className="ppPriceWrap">
-                              <input
-                                className="ppInput ppPriceInput"
-                                type="number" min="0" placeholder="0"
-                                value={item.shipping_price}
-                                onChange={e => updateItem(idx, { shipping_price: e.target.value })}
-                              />
-                              <span className="ppUnit">บาท</span>
-                            </div>
-                            <p className="ppHint">กรอก 0 หากไม่คิดค่าจัดส่ง</p>
-                          </div>
-                        )}
- 
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {selectedProviders.length > 0 && (
+                <div className="ppShipSelectedSummary">
+                  <Icon icon="mdi:check-circle-outline" style={{ color: "#22c55e", marginRight: 6 }} />
+                  เลือกแล้ว {selectedProviders.length} รายการ:{" "}
+                  {shippingProviders
+                    .filter(p => selectedProviders.includes(p.provider_id))
+                    .map(p => p.name)
+                    .join(", ")}
+                </div>
+              )}
             </div>
  
             {err && (

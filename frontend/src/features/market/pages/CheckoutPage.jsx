@@ -1,534 +1,12 @@
-// // frontend/src/features/market/pages/CheckoutPage.jsx
-// import { useState, useEffect, useCallback } from "react";
-// import { Link, useNavigate, useSearchParams } from "react-router-dom";
-// import { Icon } from "@iconify/react";
-// import { useAuth } from "../../../context/AuthContext.jsx";
-// import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
-// import "../styles/CheckoutPage.css";
-
-// // ── helpers ──────────────────────────────────────────────
-// function getCategoryLabel(cid, gender) {
-//   const c = Number(cid);
-//   if (c === 1) return gender === "male" ? "เสื้อนักเรียนชาย" : "เสื้อนักเรียนหญิง";
-//   if (c === 2) return "กางเกงนักเรียน";
-//   if (c === 3) return "กระโปรงนักเรียน";
-//   return "ชุดนักเรียน";
-// }
-
-// function getSizeText(size, categoryId) {
-//   if (!size) return null;
-//   try {
-//     const s = JSON.parse(size);
-//     const cid = Number(categoryId);
-//     const parts = [];
-//     if (cid === 1) {
-//       if (s.chest  && s.chest  !== "0") parts.push(`อก ${s.chest}`);
-//       if (s.length && s.length !== "0") parts.push(`ยาว ${s.length}`);
-//     } else {
-//       if (s.waist  && s.waist  !== "0") parts.push(`เอว ${s.waist}`);
-//       if (s.length && s.length !== "0") parts.push(`ยาว ${s.length}`);
-//     }
-//     return parts.join(" / ") || null;
-//   } catch { return size; }
-// }
-
-// function groupBySeller(items) {
-//   const map = new Map();
-//   for (const item of items) {
-//     const key = item.seller_id || "unknown";
-//     if (!map.has(key)) {
-//       map.set(key, { seller_id: key, seller_name: item.seller_name || "ไม่ระบุ", items: [] });
-//     }
-//     map.get(key).items.push(item);
-//   }
-//   return Array.from(map.values());
-// }
-
-// // ── Address Form Modal ────────────────────────────────────
-// function AddressModal({ address, onSave, onClose }) {
-//   const [form, setForm] = useState(address || {
-//     recipient_name: "", phone: "", address_line: "",
-//     district: "", province: "", postcode: "", is_default: false,
-//   });
-//   const [saving, setSaving] = useState(false);
-//   const [err,    setErr]    = useState("");
-
-//   const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-//   const handleSave = async () => {
-//     if (!form.recipient_name || !form.phone || !form.address_line || !form.district || !form.province || !form.postcode) {
-//       setErr("กรุณากรอกข้อมูลให้ครบถ้วน"); return;
-//     }
-//     setSaving(true);
-//     try { await onSave(form); onClose(); }
-//     catch (e) { setErr(e.message); }
-//     finally   { setSaving(false); }
-//   };
-
-//   return (
-//     <div className="coModalOverlay" onClick={onClose}>
-//       <div className="coModal" onClick={e => e.stopPropagation()}>
-//         <div className="coModalHeader">
-//           <h3>{address ? "แก้ไขที่อยู่" : "เพิ่มที่อยู่ใหม่"}</h3>
-//           <button className="coModalClose" onClick={onClose}><Icon icon="mdi:close" /></button>
-//         </div>
-//         <div className="coModalBody">
-//           {err && <div className="coModalErr"><Icon icon="mdi:alert-circle" /> {err}</div>}
-//           <div className="coFormGrid">
-//             <div className="coFormGroup coSpan2">
-//               <label>ชื่อผู้รับ *</label>
-//               <input value={form.recipient_name} onChange={e => update("recipient_name", e.target.value)} placeholder="ชื่อ-นามสกุล" />
-//             </div>
-//             <div className="coFormGroup coSpan2">
-//               <label>เบอร์โทร *</label>
-//               <input value={form.phone} onChange={e => update("phone", e.target.value)} placeholder="08x-xxx-xxxx" />
-//             </div>
-//             <div className="coFormGroup coSpan2">
-//               <label>ที่อยู่ *</label>
-//               <input value={form.address_line} onChange={e => update("address_line", e.target.value)} placeholder="บ้านเลขที่ ถนน ซอย" />
-//             </div>
-//             <div className="coFormGroup">
-//               <label>แขวง/ตำบล *</label>
-//               <input value={form.district} onChange={e => update("district", e.target.value)} placeholder="แขวง/ตำบล" />
-//             </div>
-//             <div className="coFormGroup">
-//               <label>จังหวัด *</label>
-//               <input value={form.province} onChange={e => update("province", e.target.value)} placeholder="จังหวัด" />
-//             </div>
-//             <div className="coFormGroup">
-//               <label>รหัสไปรษณีย์ *</label>
-//               <input value={form.postcode} onChange={e => update("postcode", e.target.value)} placeholder="10xxx" maxLength={5} />
-//             </div>
-//             <div className="coFormGroup coSpan2">
-//               <label className="coCheckLabel">
-//                 <input type="checkbox" checked={!!form.is_default} onChange={e => update("is_default", e.target.checked)} />
-//                 ตั้งเป็นที่อยู่หลัก
-//               </label>
-//             </div>
-//           </div>
-//         </div>
-//         <div className="coModalFooter">
-//           <button className="coBtnOutline" onClick={onClose}>ยกเลิก</button>
-//           <button className="coBtnPrimary" onClick={handleSave} disabled={saving}>
-//             {saving && <Icon icon="mdi:loading" className="coSpinner" />} บันทึก
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// // ── Seller Shipping Block ─────────────────────────────────
-// function SellerShippingBlock({ group }) {
-//   const subtotal = group.items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-
-//   return (
-//     <div className="coSellerBlock">
-//       <div className="coSellerHeader">
-//         <div className="coSellerAvatarSm">{group.seller_name[0].toUpperCase()}</div>
-//         <span className="coSellerNameSm">{group.seller_name}</span>
-//         <span className="coSellerSubtotal">{subtotal.toLocaleString()} บาท</span>
-//       </div>
-
-//       <div className="coSellerItems">
-//         {group.items.map(item => {
-//           const cat   = getCategoryLabel(item.category_id, item.gender);
-//           const type  = item.type_name?.trim();
-//           const title = type ? `${cat}: ${type}` : cat;
-//           const size  = getSizeText(item.size, item.category_id);
-//           return (
-//             <div key={item.cart_item_id} className="coSellerItem">
-//               <div className="coSellerItemImg">
-//                 {item.cover_image
-//                   ? <img src={item.cover_image} alt={title} loading="lazy" />
-//                   : <Icon icon="mdi:tshirt-crew" />
-//                 }
-//               </div>
-//               <div className="coSellerItemInfo">
-//                 <div className="coSellerItemTitle">{title}</div>
-//                 {item.school_name && <div className="coSellerItemMeta">{item.school_name}</div>}
-//                 {size && <div className="coSellerItemMeta">ขนาด: {size}</div>}
-//                 <div className="coSellerItemMeta">× {item.quantity} ชิ้น</div>
-//               </div>
-//               <div className="coSellerItemPrice">
-//                 {(Number(item.price) * item.quantity).toLocaleString()} บาท
-//               </div>
-//             </div>
-//           );
-//         })}
-//       </div>
-
-//       {/* ✅ แสดงขนส่งจากสินค้าโดยตรง */}
-//       <div className="coShipSection">
-//         <div className="coShipSectionTitle">
-//           <Icon icon="mdi:truck-outline" /> การจัดส่ง
-//         </div>
-//         {group.items.map(item => (
-//           <div key={item.cart_item_id} className="coShipFixed">
-//             <Icon icon="mdi:check-circle" style={{ color: "#22c55e" }} />
-//             <span>{item.shipping_name || "ไม่ระบุขนส่ง"}</span>
-//             <span>· ค่าขนส่ง {Number(item.shipping_price || 0).toLocaleString()} บาท</span>
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// }
-
-// // ── Main ─────────────────────────────────────────────────
-// export default function CheckoutPage() {
-//   const { token } = useAuth();
-//   const navigate  = useNavigate();
-//   const [params]  = useSearchParams();
-//   const itemIds   = params.get("items")?.split(",").map(Number).filter(Boolean) || [];
-//   const buyType   = params.get("type");
-
-//   const [step,       setStep]       = useState(1);
-//   const [items,      setItems]      = useState([]);
-//   const [addresses,  setAddresses]  = useState([]);
-//   const [selAddress, setSelAddress] = useState(null);
-//   const [showModal,  setShowModal]  = useState(false);
-//   const [editAddr,   setEditAddr]   = useState(null);
-//   const [loading,    setLoading]    = useState(true);
-//   const [placing,    setPlacing]    = useState(false);
-//   const [err,        setErr]        = useState("");
-
-//   const groups = groupBySeller(items);
-
-//   // ── Load ──────────────────────────────────────────────
-//   useEffect(() => {
-//     if (!token) { navigate("/login"); return; }
-//     if (!itemIds.length) { navigate("/cart"); return; }
-
-//     const itemsUrl = buyType === "product"
-//       ? `/api/checkout/items/by-product?items=${itemIds.join(",")}`
-//       : `/api/checkout/items?items=${itemIds.join(",")}`;
-
-//     Promise.all([
-//       fetch(itemsUrl, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-//       fetch("/api/checkout/addresses", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-//     ]).then(([its, addrs]) => {
-//       setItems(Array.isArray(its)   ? its   : []);
-//       setAddresses(Array.isArray(addrs) ? addrs : []);
-//       const def = (Array.isArray(addrs) ? addrs : []).find(a => a.is_default) || addrs[0];
-//       if (def) setSelAddress(def.address_id);
-//     }).catch(console.error)
-//       .finally(() => setLoading(false));
-//   }, [token]);
-
-//   const saveAddress = useCallback(async (form) => {
-//     const isEdit = !!editAddr;
-//     const url    = isEdit ? `/api/checkout/addresses/${editAddr.address_id}` : "/api/checkout/addresses";
-//     const method = isEdit ? "PUT" : "POST";
-//     const res    = await fetch(url, {
-//       method,
-//       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-//       body:    JSON.stringify(form),
-//     });
-//     const data = await res.json();
-//     if (!res.ok) throw new Error(data.message);
-//     const fresh = await fetch("/api/checkout/addresses", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
-//     setAddresses(fresh);
-//     setSelAddress(data.address_id);
-//     setEditAddr(null);
-//   }, [token, editAddr]);
-
-//   const deleteAddr = async (id) => {
-//     await fetch(`/api/checkout/addresses/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-//     const fresh = await fetch("/api/checkout/addresses", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
-//     setAddresses(fresh);
-//     if (selAddress === id) setSelAddress(fresh[0]?.address_id || null);
-//   };
-
-//   // ── คำนวณยอด ──────────────────────────────────────────
-//   const subtotal      = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-//   const shippingTotal = items.reduce((s, i) => s + Number(i.shipping_price || 0), 0);
-//   const total         = subtotal + shippingTotal;
-//   const selectedAddr  = addresses.find(a => a.address_id === selAddress);
-//   const steps         = ["ที่อยู่จัดส่ง", "การจัดส่ง", "ยืนยันคำสั่งซื้อ"];
-
-//   if (!token) return null;
-
-//   return (
-//     <div className="coPage">
-//       <header className="topBar">
-//         <div className="topRow">
-//           <Link to="/" className="brand">
-//             <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-//           </Link>
-//           <nav className="navLinks">
-//             <Link to="/">หน้าหลัก</Link>
-//             <Link to="/market">ร้านค้า</Link>
-//             <Link to="/cart">ตะกร้า</Link>
-//           </nav>
-//           <ProfileDropdown />
-//         </div>
-//       </header>
-
-//       <div className="coContainer">
-//         {/* Steps */}
-//         <div className="coSteps">
-//           {steps.map((s, i) => (
-//             <div key={i} className={`coStep${step === i+1 ? " coStepActive" : step > i+1 ? " coStepDone" : ""}`}>
-//               <div className="coStepCircle">
-//                 {step > i+1 ? <Icon icon="mdi:check" /> : i+1}
-//               </div>
-//               <span>{s}</span>
-//               {i < steps.length - 1 && (
-//                 <div className={`coStepLine${step > i+1 ? " coStepLineDone" : step === i+1 ? " coStepLineActive" : ""}`} />
-//               )}
-//             </div>
-//           ))}
-//         </div>
-
-//         {loading ? (
-//           <div className="coLoading"><Icon icon="mdi:loading" className="coSpinner" /> กำลังโหลด...</div>
-//         ) : (
-//           <div className="coLayout">
-//             <div className="coLeft">
-
-//               {/* ── Step 1: Address ── */}
-//               {step === 1 && (
-//                 <div className="coSection">
-//                   <div className="coSectionHead">
-//                     <h2><Icon icon="mdi:map-marker-outline" /> ที่อยู่จัดส่ง</h2>
-//                     <button className="coAddBtn" onClick={() => { setEditAddr(null); setShowModal(true); }}>
-//                       <Icon icon="mdi:plus" /> เพิ่มที่อยู่
-//                     </button>
-//                   </div>
-
-//                   {addresses.length === 0 ? (
-//                     <div className="coEmpty">
-//                       <Icon icon="mdi:map-marker-off" fontSize={48} />
-//                       <p>ยังไม่มีที่อยู่ กรุณาเพิ่มก่อน</p>
-//                     </div>
-//                   ) : (
-//                     <div className="coAddrList">
-//                       {addresses.map(a => (
-//                         <div
-//                           key={a.address_id}
-//                           className={`coAddrCard${selAddress === a.address_id ? " coAddrCardSel" : ""}`}
-//                           onClick={() => setSelAddress(a.address_id)}
-//                         >
-//                           <div className="coAddrRadio">
-//                             <input type="radio" checked={selAddress === a.address_id} onChange={() => setSelAddress(a.address_id)} />
-//                           </div>
-//                           <div className="coAddrBody">
-//                             <div className="coAddrTop">
-//                               <span className="coAddrName">{a.recipient_name}</span>
-//                               <span className="coAddrPhone">{a.phone}</span>
-//                               {a.is_default ? <span className="coBadgeDefault">ที่อยู่หลัก</span> : null}
-//                             </div>
-//                             <div className="coAddrText">
-//                               {a.address_line} {a.district} {a.province} {a.postcode}
-//                             </div>
-//                           </div>
-//                           <div className="coAddrBtns">
-//                             <button className="coAddrBtn" title="แก้ไข"
-//                               onClick={e => { e.stopPropagation(); setEditAddr(a); setShowModal(true); }}>
-//                               <Icon icon="mdi:pencil-outline" />
-//                             </button>
-//                             <button className="coAddrBtn coAddrBtnDel" title="ลบ"
-//                               onClick={e => { e.stopPropagation(); deleteAddr(a.address_id); }}>
-//                               <Icon icon="mdi:trash-can-outline" />
-//                             </button>
-//                           </div>
-//                         </div>
-//                       ))}
-//                     </div>
-//                   )}
-
-//                   <div className="coNavBtns">
-//                     <Link to="/cart" className="coBtnOutline"><Icon icon="mdi:arrow-left" /> ย้อนกลับ</Link>
-//                     <button className="coBtnPrimary" disabled={!selAddress} onClick={() => setStep(2)}>
-//                       ถัดไป <Icon icon="mdi:arrow-right" />
-//                     </button>
-//                   </div>
-//                 </div>
-//               )}
-
-//               {/* ── Step 2: Shipping ── */}
-//               {step === 2 && (
-//                 <div className="coSection">
-//                   <h2><Icon icon="mdi:truck-outline" /> การจัดส่ง</h2>
-//                   <div className="coSellerList">
-//                     {groups.map(g => (
-//                       <SellerShippingBlock key={g.seller_id} group={g} />
-//                     ))}
-//                   </div>
-//                   <div className="coNavBtns">
-//                     <button className="coBtnOutline" onClick={() => setStep(1)}>
-//                       <Icon icon="mdi:arrow-left" /> ย้อนกลับ
-//                     </button>
-//                     <button className="coBtnPrimary" onClick={() => setStep(3)}>
-//                       ถัดไป <Icon icon="mdi:arrow-right" />
-//                     </button>
-//                   </div>
-//                 </div>
-//               )}
-
-//               {/* ── Step 3: Confirm ── */}
-//               {step === 3 && (
-//                 <div className="coSection">
-//                   <h2><Icon icon="mdi:clipboard-check-outline" /> ยืนยันคำสั่งซื้อ</h2>
-
-//                   {selectedAddr && (
-//                     <div className="coConfirmBlock">
-//                       <div className="coConfirmIcon"><Icon icon="mdi:map-marker-outline" /></div>
-//                       <div className="coConfirmContent">
-//                         <div className="coConfirmLabelText">ที่อยู่จัดส่ง</div>
-//                         <div className="coConfirmVal">
-//                           <b>{selectedAddr.recipient_name}</b> · {selectedAddr.phone}<br />
-//                           {selectedAddr.address_line} {selectedAddr.district} {selectedAddr.province} {selectedAddr.postcode}
-//                         </div>
-//                       </div>
-//                       <button className="coEditLink" onClick={() => setStep(1)}>เปลี่ยน</button>
-//                     </div>
-//                   )}
-
-//                   {groups.map(g => {
-//                     const sub = g.items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-//                     const shipTotal = g.items.reduce((s, i) => s + Number(i.shipping_price || 0), 0);
-//                     return (
-//                       <div key={g.seller_id} className="coConfirmSeller">
-//                         <div className="coConfirmSellerHead">
-//                           <div className="coSellerAvatarSm">{g.seller_name[0].toUpperCase()}</div>
-//                           <span className="coSellerNameSm">{g.seller_name}</span>
-//                           <button className="coEditLink" onClick={() => setStep(2)}>เปลี่ยน</button>
-//                         </div>
-//                         {g.items.map(item => {
-//                           const cat   = getCategoryLabel(item.category_id, item.gender);
-//                           const type  = item.type_name?.trim();
-//                           const title = type ? `${cat}: ${type}` : cat;
-//                           const size  = getSizeText(item.size, item.category_id);
-//                           return (
-//                             <div key={item.cart_item_id} className="coConfirmItem">
-//                               <div className="coConfirmItemImg">
-//                                 {item.cover_image
-//                                   ? <img src={item.cover_image} alt={title} />
-//                                   : <Icon icon="mdi:tshirt-crew" />
-//                                 }
-//                               </div>
-//                               <div className="coConfirmItemInfo">
-//                                 <div className="coConfirmItemTitle">{title}</div>
-//                                 {item.school_name && <div className="coConfirmItemMeta">{item.school_name}</div>}
-//                                 {size && <div className="coConfirmItemMeta">ขนาด: {size}</div>}
-//                                 <div className="coConfirmItemMeta">จำนวน: {item.quantity} ชิ้น</div>
-//                                 {item.shipping_name && (
-//                                   <div className="coConfirmItemMeta">
-//                                     <Icon icon="mdi:truck-outline" /> {item.shipping_name}
-//                                     · ค่าขนส่ง {Number(item.shipping_price || 0).toLocaleString()} บาท
-//                                   </div>
-//                                 )}
-//                               </div>
-//                               <div className="coConfirmItemPrice">
-//                                 {(Number(item.price) * item.quantity).toLocaleString()} บาท
-//                               </div>
-//                             </div>
-//                           );
-//                         })}
-//                         <div className="coConfirmSellerFoot">
-//                           ยอดสินค้า {sub.toLocaleString()} บาท
-//                           {shipTotal > 0 && ` + ค่าขนส่ง ${shipTotal.toLocaleString()} บาท`}
-//                         </div>
-//                       </div>
-//                     );
-//                   })}
-
-//                   {err && <div className="coErr"><Icon icon="mdi:alert-circle" /> {err}</div>}
-
-//                   <div className="coNavBtns">
-//                     <button className="coBtnOutline" onClick={() => setStep(2)}>
-//                       <Icon icon="mdi:arrow-left" /> ย้อนกลับ
-//                     </button>
-//                     <button className="coBtnYellow" disabled={placing} onClick={async () => {
-//                       setPlacing(true); setErr("");
-//                       try {
-//                         await new Promise(r => setTimeout(r, 1000));
-//                         navigate("/market", { state: { successMsg: "สั่งซื้อสำเร็จ! 🎉" } });
-//                       } catch(e) { setErr(e.message); }
-//                       finally { setPlacing(false); }
-//                     }}>
-//                       {placing ? <Icon icon="mdi:loading" className="coSpinner" /> : <Icon icon="mdi:credit-card-outline" />}
-//                       ยืนยันคำสั่งซื้อ
-//                     </button>
-//                   </div>
-//                 </div>
-//               )}
-//             </div>
-
-//             {/* ── Summary ── */}
-//             <div className="coRight">
-//               <div className="coSummaryCard">
-//                 <div className="coSummaryTitle">สรุปคำสั่งซื้อ</div>
-//                 {groups.map(g => {
-//                   const sub = g.items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-//                   return (
-//                     <div key={g.seller_id} className="coSummaryGroup">
-//                       <div className="coSummaryGroupName">
-//                         <Icon icon="mdi:store-outline" /> {g.seller_name}
-//                       </div>
-//                       {g.items.map(item => {
-//                         const cat   = getCategoryLabel(item.category_id, item.gender);
-//                         const type  = item.type_name?.trim();
-//                         const title = type ? `${cat}: ${type}` : cat;
-//                         return (
-//                           <div key={item.cart_item_id} className="coSummaryItem">
-//                             <span className="coSummaryItemName">{title} × {item.quantity}</span>
-//                             <span>{(Number(item.price) * item.quantity).toLocaleString()} บาท</span>
-//                           </div>
-//                         );
-//                       })}
-//                       <div className="coSummaryShip">
-//                         <span>ค่าจัดส่ง</span>
-//                         <span>
-//                           {g.items.reduce((s, i) => s + Number(i.shipping_price || 0), 0).toLocaleString()} บาท
-//                         </span>
-//                       </div>
-//                     </div>
-//                   );
-//                 })}
-//                 <div className="coSummaryDivider" />
-//                 <div className="coSummaryRow">
-//                   <span>ยอดสินค้า</span>
-//                   <span>{subtotal.toLocaleString()} บาท</span>
-//                 </div>
-//                 <div className="coSummaryRow">
-//                   <span>ค่าจัดส่งรวม</span>
-//                   <span>{shippingTotal.toLocaleString()} บาท</span>
-//                 </div>
-//                 <div className="coSummaryDivider" />
-//                 <div className="coSummaryTotal">
-//                   <span>ยอดรวมทั้งหมด</span>
-//                   <span className="coTotalPrice">{total.toLocaleString()} บาท</span>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-
-//       {showModal && (
-//         <AddressModal
-//           address={editAddr}
-//           onSave={saveAddress}
-//           onClose={() => { setShowModal(false); setEditAddr(null); }}
-//         />
-//       )}
-//     </div>
-//   );
-// }
-
-// ----- new ver.
 // frontend/src/features/market/pages/CheckoutPage.jsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import "../styles/CheckoutPage.css";
- 
-// ── helpers ──────────────────────────────────────────────
+
+// ── Helpers ───────────────────────────────────────────────
 function getCategoryLabel(cid, gender) {
   const c = Number(cid);
   if (c === 1) return gender === "male" ? "เสื้อนักเรียนชาย" : "เสื้อนักเรียนหญิง";
@@ -536,11 +14,11 @@ function getCategoryLabel(cid, gender) {
   if (c === 3) return "กระโปรงนักเรียน";
   return "ชุดนักเรียน";
 }
- 
+
 function getSizeText(size, categoryId) {
   if (!size) return null;
   try {
-    const s   = JSON.parse(size);
+    const s = JSON.parse(size);
     const cid = Number(categoryId);
     const parts = [];
     if (cid === 1) {
@@ -553,7 +31,7 @@ function getSizeText(size, categoryId) {
     return parts.join(" / ") || null;
   } catch { return size; }
 }
- 
+
 function groupBySeller(items) {
   const map = new Map();
   for (const item of items) {
@@ -565,18 +43,17 @@ function groupBySeller(items) {
   }
   return Array.from(map.values());
 }
- 
-// ── Address Form Modal ────────────────────────────────────
+
+// ── Address Modal ─────────────────────────────────────────
 function AddressModal({ address, onSave, onClose }) {
   const [form, setForm] = useState(address || {
     recipient_name: "", phone: "", address_line: "",
     district: "", province: "", postcode: "", is_default: false,
   });
   const [saving, setSaving] = useState(false);
-  const [err,    setErr]    = useState("");
- 
+  const [err, setErr] = useState("");
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
- 
+
   const handleSave = async () => {
     if (!form.recipient_name || !form.phone || !form.address_line ||
         !form.district || !form.province || !form.postcode) {
@@ -585,9 +62,9 @@ function AddressModal({ address, onSave, onClose }) {
     setSaving(true);
     try { await onSave(form); onClose(); }
     catch (e) { setErr(e.message); }
-    finally   { setSaving(false); }
+    finally { setSaving(false); }
   };
- 
+
   return (
     <div className="coModalOverlay" onClick={onClose}>
       <div className="coModal" onClick={e => e.stopPropagation()}>
@@ -640,17 +117,20 @@ function AddressModal({ address, onSave, onClose }) {
     </div>
   );
 }
- 
+
 // ── Seller Shipping Block ─────────────────────────────────
-function SellerShippingBlock({ group }) {
+function SellerShippingBlock({ group, shippingOptions, selectedShipping, setSelectedShipping }) {
   const subtotal = group.items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+  const options  = shippingOptions[group.seller_id] || [];
+
   return (
     <div className="coSellerBlock">
       <div className="coSellerHeader">
-        <div className="coSellerAvatarSm">{group.seller_name[0].toUpperCase()}</div>
+        <div className="coSellerAvatarSm">{group.seller_name[0]?.toUpperCase()}</div>
         <span className="coSellerNameSm">{group.seller_name}</span>
         <span className="coSellerSubtotal">{subtotal.toLocaleString()} บาท</span>
       </div>
+
       <div className="coSellerItems">
         {group.items.map(item => {
           const cat   = getCategoryLabel(item.category_id, item.gender);
@@ -677,33 +157,61 @@ function SellerShippingBlock({ group }) {
           );
         })}
       </div>
+
       <div className="coShipSection">
         <div className="coShipSectionTitle">
           <Icon icon="mdi:truck-outline" /> การจัดส่ง
         </div>
-        {group.items.map(item => (
-          <div key={item.cart_item_id} className="coShipFixed">
-            <Icon icon="mdi:check-circle" style={{ color: "#22c55e" }} />
-            <span>{item.shipping_name || "ไม่ระบุขนส่ง"}</span>
-            <span>· ค่าขนส่ง {Number(item.shipping_price || 0).toLocaleString()} บาท</span>
+        {options.length === 0 ? (
+          <div className="coShipEmpty">
+            <Icon icon="mdi:truck-alert-outline" /> ไม่มีตัวเลือกขนส่งจากผู้ขายรายนี้
           </div>
-        ))}
+        ) : (
+          <>
+            {options.some(o => o.free_threshold) && (
+              <div className="coShipFreeHint">
+                <Icon icon="mdi:tag-outline" />
+                ซื้อครบ {Math.min(...options.filter(o => o.free_threshold).map(o => o.free_threshold)).toLocaleString()} บาท ส่งฟรี!
+              </div>
+            )}
+            <div className="coShipOptions">
+              {options.map(opt => {
+                const selected = selectedShipping[group.seller_id]?.provider_id === opt.provider_id;
+                return (
+                  <label key={opt.provider_id} className={`coShipOption ${selected ? "coShipOptionSel" : ""}`}>
+                    <input
+                      type="radio"
+                      name={`shipping-${group.seller_id}`}
+                      checked={selected}
+                      onChange={() => setSelectedShipping(prev => ({ ...prev, [group.seller_id]: { ...opt, seller_id: group.seller_id } }))}
+                    />
+                    <div className="coShipOptionCode">{opt.code || "📦"}</div>
+                    <div className="coShipOptionInfo">
+                      <div className="coShipOptionName">{opt.name}</div>
+                      <div className="coShipOptionDesc">{opt.est_days || "2-5 วัน"}</div>
+                    </div>
+                    <div className={`coShipOptionPrice ${opt.price === 0 ? "coFree" : ""}`}>
+                      {opt.price === 0 ? "🎉 ส่งฟรี" : `${Number(opt.price).toLocaleString()} บาท`}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
- 
-// ── Donation Address Block (แสดงแทน address selector เมื่อเป็น donation) ──
+
+// ── Donation Address Block ────────────────────────────────
 function DonationAddressBlock({ shippingAddress, projectTitle }) {
   return (
     <div className="coDonationAddrBlock">
-      <div className="coDonationAddrBadge">
-        <Icon icon="mdi:gift-outline" /> ซื้อเพื่อส่งต่อ
-      </div>
+      <div className="coDonationAddrBadge"><Icon icon="mdi:gift-outline" /> ซื้อเพื่อส่งต่อ</div>
       {projectTitle && (
         <div className="coDonationProject">
-          <Icon icon="mdi:clipboard-text-outline" />
-          <span>{projectTitle}</span>
+          <Icon icon="mdi:clipboard-text-outline" /> <span>{projectTitle}</span>
         </div>
       )}
       <div className="coDonationAddrCard">
@@ -716,31 +224,166 @@ function DonationAddressBlock({ shippingAddress, projectTitle }) {
               .filter(Boolean).join(" ")}
           </div>
           {shippingAddress?.phone && (
-            <div className="coDonationAddrPhone">
-              <Icon icon="mdi:phone-outline" /> {shippingAddress.phone}
-            </div>
+            <div className="coDonationAddrPhone"><Icon icon="mdi:phone-outline" /> {shippingAddress.phone}</div>
           )}
         </div>
       </div>
       <p className="coDonationAddrNote">
-        <Icon icon="mdi:information-outline" />
-        ที่อยู่จัดส่งจะเป็นโรงเรียนโดยอัตโนมัติ ไม่สามารถเปลี่ยนได้
+        <Icon icon="mdi:information-outline" /> ที่อยู่จัดส่งจะเป็นโรงเรียนโดยอัตโนมัติ
       </p>
     </div>
   );
 }
- 
- 
- 
-// ── Main ─────────────────────────────────────────────────
+
+// ── Omise Card Form ───────────────────────────────────────
+const OMISE_PUBLIC_KEY = import.meta.env.VITE_OMISE_PUBLIC_KEY || "pkey_test_xxxxxxxx";
+
+function OmiseCardForm({ amount, onToken, onError, disabled }) {
+  const [cardNum,  setCardNum]  = useState("");
+  const [expMonth, setExpMonth] = useState("");
+  const [expYear,  setExpYear]  = useState("");
+  const [cvc,      setCvc]      = useState("");
+  const [name,     setName]     = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const omiseRef = useRef(null);
+
+  useEffect(() => {
+    if (window.Omise) { omiseRef.current = window.Omise; return; }
+    const script = document.createElement("script");
+    script.src = "https://cdn.omise.co/omise.js";
+    script.onload = () => {
+      window.Omise.setPublicKey(OMISE_PUBLIC_KEY);
+      omiseRef.current = window.Omise;
+    };
+    document.head.appendChild(script);
+    return () => { try { document.head.removeChild(script); } catch {} };
+  }, []);
+
+  const formatCardNum = (val) => {
+    const digits = val.replace(/\D/g, "").slice(0, 16);
+    return digits.replace(/(.{4})/g, "$1 ").trim();
+  };
+
+  const handleSubmit = async () => {
+    if (!omiseRef.current) { onError("ระบบชำระเงินยังโหลดไม่สำเร็จ กรุณารอสักครู่"); return; }
+    if (!name || !cardNum || !expMonth || !expYear || !cvc) {
+      onError("กรุณากรอกข้อมูลบัตรให้ครบถ้วน"); return;
+    }
+    setLoading(true);
+    omiseRef.current.createToken("card", {
+      name,
+      number:           cardNum.replace(/\s/g, ""),
+      expiration_month: Number(expMonth),
+      expiration_year:  Number(expYear),
+      security_code:    cvc,
+    }, (statusCode, response) => {
+      setLoading(false);
+      if (statusCode !== 200 || response.object === "error") {
+        onError(response.message || "ข้อมูลบัตรไม่ถูกต้อง");
+        return;
+      }
+      onToken(response.id);
+    });
+  };
+
+  return (
+    <div className="coCardForm">
+      <div className="coCardFormHeader">
+        <Icon icon="mdi:credit-card-outline" />
+        <span>ชำระด้วยบัตรเครดิต/เดบิต</span>
+        <div className="coCardBrands">
+          <Icon icon="logos:visa" style={{ fontSize: 32 }} />
+          <Icon icon="logos:mastercard" style={{ fontSize: 32 }} />
+          <Icon icon="simple-icons:jcb" style={{ fontSize: 28, color: "#005BAC" }} />
+        </div>
+      </div>
+      <div className="coCardFormBody">
+        <div className="coCardField coSpan2">
+          <label>ชื่อบนบัตร</label>
+          <input value={name} onChange={e => setName(e.target.value.toUpperCase())} placeholder="FIRSTNAME LASTNAME" autoComplete="cc-name" disabled={disabled || loading} />
+        </div>
+        <div className="coCardField coSpan2">
+          <label>หมายเลขบัตร</label>
+          <div className="coCardNumWrap">
+            <Icon icon="mdi:credit-card-outline" className="coCardNumIcon" />
+            <input value={cardNum} onChange={e => setCardNum(formatCardNum(e.target.value))} placeholder="0000 0000 0000 0000" autoComplete="cc-number" inputMode="numeric" maxLength={19} disabled={disabled || loading} />
+          </div>
+        </div>
+        <div className="coCardField">
+          <label>วันหมดอายุ</label>
+          <div className="coCardExpRow">
+            <input value={expMonth} onChange={e => setExpMonth(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="MM" inputMode="numeric" maxLength={2} disabled={disabled || loading} className="coCardExpInput" />
+            <span>/</span>
+            <input value={expYear} onChange={e => setExpYear(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="YYYY" inputMode="numeric" maxLength={4} disabled={disabled || loading} className="coCardExpInput" />
+          </div>
+        </div>
+        <div className="coCardField">
+          <label>CVV / CVC</label>
+          <input value={cvc} onChange={e => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="•••" inputMode="numeric" maxLength={4} type="password" disabled={disabled || loading} />
+        </div>
+      </div>
+      <div className="coCardTotal">
+        <span>ยอดชำระ</span>
+        <span className="coCardTotalAmt">{Number(amount).toLocaleString()} บาท</span>
+      </div>
+      <button className="coBtnYellow coCardPayBtn" onClick={handleSubmit} disabled={disabled || loading}>
+        {loading
+          ? <><Icon icon="mdi:loading" className="coSpinner" /> กำลังตรวจสอบบัตร...</>
+          : <><Icon icon="mdi:lock-outline" /> ชำระเงิน {Number(amount).toLocaleString()} บาท</>
+        }
+      </button>
+      <div className="coCardSecureNote">
+        <Icon icon="mdi:shield-check-outline" />
+        ข้อมูลบัตรถูกส่งตรงไปยัง Omise — เราไม่เก็บข้อมูลบัตรของคุณ
+      </div>
+    </div>
+  );
+}
+
+// ── PromptPay Block ───────────────────────────────────────
+// FIX: รับ qrImageUrl (URL ตรงๆ จาก Omise) แทน qrBase64
+function PromptPayBlock({ qrImageUrl, amount, onConfirm }) {
+  const [polling, setPolling] = useState(false);
+  const pollRef = useRef(null);
+
+  useEffect(() => {
+    if (!qrImageUrl) return;
+    setPolling(true);
+    pollRef.current = setInterval(() => {
+      onConfirm();
+    }, 3000);
+    return () => { clearInterval(pollRef.current); setPolling(false); };
+  }, [qrImageUrl]); // eslint-disable-line
+
+  if (!qrImageUrl) return null;
+
+  return (
+    <div className="coQrBlock">
+      <div className="coQrHeader">
+        <Icon icon="mdi:qrcode-scan" />
+        <span>สแกน QR Code ด้วย Mobile Banking</span>
+      </div>
+      {/* FIX: ใช้ URL โดยตรง ไม่ต้อง encode base64 */}
+      <img src={qrImageUrl} alt="PromptPay QR" className="coQrImage" />
+      <div className="coQrAmt">{Number(amount).toLocaleString()} บาท</div>
+      <div className="coQrNote">
+        {polling
+          ? <><Icon icon="mdi:loading" className="coSpinner" /> กำลังรอการชำระเงิน...</>
+          : "กรุณาสแกนและชำระภายใน 15 นาที"}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════
 export default function CheckoutPage() {
-  const { token }    = useAuth();
-  const navigate     = useNavigate();
-  const location     = useLocation();
-  const [params]     = useSearchParams();
- 
-  // ── donation state จาก location.state หรือ sessionStorage (กัน refresh หาย) ──
-  // บันทึกไว้ใน sessionStorage ครั้งแรกที่เข้ามาพร้อม state
+  const { token, user } = useAuth();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const [params]  = useSearchParams();
+
   useEffect(() => {
     if (location.state?.isDonation) {
       sessionStorage.setItem(
@@ -749,156 +392,223 @@ export default function CheckoutPage() {
       );
     }
   }, []); // eslint-disable-line
- 
-  const _savedDonation = (() => {
-    try {
-      return JSON.parse(
-        sessionStorage.getItem(`donationState_${params.get("items")}`) || "{}"
-      );
-    } catch { return {}; }
-  })();
- 
-  const isDonation      = (location.state?.isDonation ?? _savedDonation.isDonation) === true;
-  const donationAddress = location.state?.shippingAddress ?? _savedDonation.shippingAddress ?? null;
-  const projectId       = location.state?.project_id      ?? _savedDonation.project_id      ?? null;
-  const projectTitle    = location.state?.project_title   ?? _savedDonation.project_title   ?? null;
- 
+
+  const _saved       = (() => { try { return JSON.parse(sessionStorage.getItem(`donationState_${params.get("items")}`) || "{}"); } catch { return {}; } })();
+  const isDonation   = (location.state?.isDonation ?? _saved.isDonation) === true;
+  const donationAddr = location.state?.shippingAddress ?? _saved.shippingAddress ?? null;
+  const projectId    = location.state?.project_id      ?? _saved.project_id      ?? null;
+  const projectTitle = location.state?.project_title   ?? _saved.project_title   ?? null;
+
   const itemIds = params.get("items")?.split(",").map(Number).filter(Boolean) || [];
   const buyType = params.get("type");
- 
-  const [step,       setStep]       = useState(1);
-  const [items,      setItems]      = useState([]);
-  const [addresses,  setAddresses]  = useState([]);
-  const [selAddress, setSelAddress] = useState(null);
-  const [showModal,  setShowModal]  = useState(false);
-  const [editAddr,   setEditAddr]   = useState(null);
-  const [loading,    setLoading]    = useState(true);
-  const [placing,    setPlacing]    = useState(false);
-  const [err,        setErr]        = useState("");
- 
+
+  // ── State ─────────────────────────────────────────────
+  const [step,             setStep]             = useState(1);
+  const [items,            setItems]            = useState([]);
+  const [addresses,        setAddresses]        = useState([]);
+  const [selAddress,       setSelAddress]       = useState(null);
+  // "school" = ส่งให้โรงเรียน (default donation), "buyer" = ใช้ที่อยู่ผู้ซื้อ
+  const [donationAddrMode, setDonationAddrMode] = useState("school");
+  const [shippingOptions,  setShippingOptions]  = useState({});
+  const [selectedShipping, setSelectedShipping] = useState({});
+  const [payMethod,        setPayMethod]        = useState("card");
+  const [loading,          setLoading]          = useState(true);
+  const [placing,          setPlacing]          = useState(false);
+  const [err,              setErr]              = useState("");
+  const [showModal,        setShowModal]        = useState(false);
+  const [editAddr,         setEditAddr]         = useState(null);
+  const [confirmDeleteId,  setConfirmDeleteId]  = useState(null);
+  const [orderId,          setOrderId]          = useState(null);
+  const [qrImageUrl,       setQrImageUrl]       = useState(null);
+  const [authorizeUri,     setAuthorizeUri]      = useState(null);
+  const pollRef = useRef(null);
+
   const groups = groupBySeller(items);
- 
+
   // ── Load items + addresses ────────────────────────────
   useEffect(() => {
     if (!token) { navigate("/login"); return; }
     if (!itemIds.length) { navigate("/cart"); return; }
- 
+
     const itemsUrl = buyType === "product"
       ? `/api/checkout/items/by-product?items=${itemIds.join(",")}`
       : `/api/checkout/items?items=${itemIds.join(",")}`;
- 
-    const fetches = [
+
+    Promise.all([
       fetch(itemsUrl, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-    ];
- 
-    // donation mode ไม่ต้องโหลด address list (ใช้ของโรงเรียน)
-    if (!isDonation) {
-      fetches.push(
-        fetch("/api/checkout/addresses", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
-      );
-    }
- 
-    Promise.all(fetches)
+      fetch("/api/checkout/addresses", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+    ])
       .then(([its, addrs]) => {
         setItems(Array.isArray(its) ? its : []);
+        const addrList = Array.isArray(addrs) ? addrs : [];
+        setAddresses(addrList);
+        // non-donation: auto-select default
         if (!isDonation) {
-          const addrList = Array.isArray(addrs) ? addrs : [];
-          setAddresses(addrList);
           const def = addrList.find(a => a.is_default) || addrList[0];
           if (def) setSelAddress(def.address_id);
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [token]);
- 
-  // ── Address CRUD (ซื้อทั่วไปเท่านั้น) ────────────────
+  }, [token]); // eslint-disable-line
+
+  // ── Load shipping options ─────────────────────────────
+  useEffect(() => {
+    if (!items.length || !token) return;
+    const ids = items.map(i => i.cart_item_id);
+    fetch(`/api/checkout/shipping-options?items=${ids.join(",")}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        setShippingOptions(typeof data === "object" ? data : {});
+        const autoSel = {};
+        for (const [sellerId, opts] of Object.entries(data || {})) {
+          if (opts.length === 1) autoSel[sellerId] = { ...opts[0], seller_id: Number(sellerId) };
+        }
+        if (Object.keys(autoSel).length) setSelectedShipping(autoSel);
+      })
+      .catch(console.error);
+  }, [items, token]);
+
+  // ── Address CRUD ──────────────────────────────────────
+  const reloadAddresses = async () => {
+    const fresh = await fetch("/api/checkout/addresses", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+    setAddresses(Array.isArray(fresh) ? fresh : []);
+    return fresh;
+  };
+
   const saveAddress = useCallback(async (form) => {
     const isEdit = !!editAddr;
     const url    = isEdit ? `/api/checkout/addresses/${editAddr.address_id}` : "/api/checkout/addresses";
-    const method = isEdit ? "PUT" : "POST";
     const res    = await fetch(url, {
-      method,
+      method:  isEdit ? "PUT" : "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body:    JSON.stringify(form),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message);
-    const fresh = await fetch("/api/checkout/addresses", {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(r => r.json());
-    setAddresses(fresh);
-    setSelAddress(data.address_id);
+    const fresh = await reloadAddresses();
+    const found = fresh.find(a => a.address_id === data.address_id);
+    if (found) setSelAddress(found.address_id);
     setEditAddr(null);
-  }, [token, editAddr]);
- 
+  }, [token, editAddr]); // eslint-disable-line
+
   const deleteAddr = async (id) => {
-    await fetch(`/api/checkout/addresses/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const fresh = await fetch("/api/checkout/addresses", {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(r => r.json());
-    setAddresses(fresh);
+    await fetch(`/api/checkout/addresses/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    const fresh = await reloadAddresses();
     if (selAddress === id) setSelAddress(fresh[0]?.address_id || null);
+    setConfirmDeleteId(null);
   };
- 
-  // ── ยืนยันคำสั่งซื้อ — API จริง ────────────────────────
-  const handlePlaceOrder = async () => {
-    setPlacing(true); setErr("");
-    try {
-      const body = {
-        order_type: isDonation ? "donation" : "purchase",
-        request_id: isDonation ? projectId  : null,
-      };
- 
-      if (buyType === "product") {
-        body.product_ids = itemIds;
+
+  // ── Derived values ────────────────────────────────────
+  const useSchoolAddr  = isDonation && donationAddrMode === "school";
+  const step1Valid    = useSchoolAddr ? true : !!selAddress;
+  const validGroups   = groups.filter(g => g.seller_id !== "unknown");
+  const step2Valid    = isDonation || (validGroups.length > 0 && validGroups.every(g => !!selectedShipping[g.seller_id]));
+  const subtotal      = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+  const shippingTotal = Object.values(selectedShipping).reduce((s, v) => s + (Number(v.price) || 0), 0);
+  const total         = subtotal + shippingTotal;
+  const selectedAddr  = addresses.find(a => a.address_id === selAddress);
+  // donation ก็ต้องชำระเงินผ่าน Omise เหมือนซื้อปกติ
+  const steps         = ["ที่อยู่จัดส่ง", "การจัดส่ง", isDonation ? "ยืนยัน & ส่งต่อ" : "ชำระเงิน"];
+
+  // ── Build order body ──────────────────────────────────
+  const buildOrderBody = () => {
+    const body = {
+      order_type: isDonation ? "donation" : "purchase",
+      request_id: isDonation ? projectId  : null,
+      shipping:   Object.values(selectedShipping).map(v => ({
+        seller_id:   Number(v.seller_id || v.provider_id),
+        provider_id: v.provider_id,
+        price:       v.price,
+      })),
+    };
+    if (buyType === "product") body.product_ids = itemIds;
+    else                       body.items       = itemIds;
+
+    if (isDonation) {
+      if (useSchoolAddr) {
+        body.donation_address = donationAddr;
       } else {
-        body.items = itemIds;
-      }
- 
-      if (isDonation) {
-        body.donation_address = donationAddress;
-      } else {
+        // ผู้ซื้อเลือกส่งไปที่อยู่ตัวเอง (ไม่ใช่โรงเรียน)
         body.address_id = selAddress;
       }
- 
+    } else {
+      body.address_id = selAddress;
+    }
+    return body;
+  };
+
+  // ── Card payment (ใช้ทั้ง purchase และ donation) ─────
+  const handleCardPayment = async (omiseToken) => {
+    setPlacing(true); setErr("");
+    try {
       const res  = await fetch("/api/checkout/orders", {
         method:  "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body:    JSON.stringify(body),
+        body:    JSON.stringify({ ...buildOrderBody(), omise_token: omiseToken, payment_method: "card" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "ชำระเงินไม่สำเร็จ");
+      navigate("/checkout/success", {
+        state: {
+          orderId:       data.order_id,
+          isDonation,
+          projectTitle,
+          schoolName:    useSchoolAddr ? (donationAddr?.name || "") : (selectedAddr?.address_line || ""),
+          totalAmount:   total,
+          paymentMethod: "card",
+          donorName:     user?.display_name || user?.name || user?.username || "",
+        }
+      });
+    } catch (e) { setErr(e.message); }
+    finally { setPlacing(false); }
+  };
+
+  // ── PromptPay ─────────────────────────────────────────
+  const handlePromptPay = async () => {
+    setPlacing(true); setErr("");
+    try {
+      const res  = await fetch("/api/checkout/orders", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ ...buildOrderBody(), payment_method: "promptpay" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "เกิดข้อผิดพลาด");
- 
-      navigate("/market", {
-        state: {
-          successMsg: isDonation
-            ? "ซื้อเพื่อส่งต่อสำเร็จ! โรงเรียนจะได้รับแจ้ง 🎉"
-            : "สั่งซื้อสำเร็จ! 🎉",
-        },
-      });
-    } catch (e) {
-      setErr(e.message);
-    } finally {
-      setPlacing(false);
-    }
+      setOrderId(data.order_id);
+      setQrImageUrl(data.qr_image_url || null);
+      setAuthorizeUri(data.authorize_uri || null);
+    } catch (e) { setErr(e.message); }
+    finally { setPlacing(false); }
   };
- 
-  // ── ตรวจ step 1 valid ─────────────────────────────────
-  const step1Valid = isDonation ? true : !!selAddress;
- 
-  // ── คำนวณยอด ──────────────────────────────────────────
-  const subtotal      = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-  const shippingTotal = items.reduce((s, i) => s + Number(i.shipping_price || 0), 0);
-  const total         = subtotal + shippingTotal;
-  const selectedAddr  = addresses.find(a => a.address_id === selAddress);
-  const steps         = ["ที่อยู่จัดส่ง", "การจัดส่ง", "ยืนยันคำสั่งซื้อ"];
- 
+
+  // ── Poll PromptPay status ─────────────────────────────
+  const checkPromptPayStatus = useCallback(async () => {
+    if (!orderId) return;
+    try {
+      const res  = await fetch(`/api/checkout/orders/${orderId}/payment-status`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.paid) {
+        clearInterval(pollRef.current);
+        navigate("/checkout/success", {
+          state: {
+            orderId,
+            isDonation,
+            projectTitle,
+            schoolName:    useSchoolAddr ? (donationAddr?.name || "") : (selectedAddr?.address_line || ""),
+            totalAmount:   total,
+            paymentMethod: "promptpay",
+            donorName:     user?.display_name || user?.name || user?.username || "",
+          }
+        });
+      }
+    } catch { /* silent */ }
+  }, [orderId, token, navigate]); // eslint-disable-line
+
   if (!token) return null;
- 
+
   return (
     <div className="coPage">
       <header className="topBar">
@@ -914,17 +624,15 @@ export default function CheckoutPage() {
           <ProfileDropdown />
         </div>
       </header>
- 
-      {/* Donation banner */}
+
       {isDonation && (
         <div className="coDonationBanner">
           <Icon icon="mdi:gift-outline" />
           <span>โหมดซื้อเพื่อส่งต่อ — สินค้าจะถูกจัดส่งตรงให้โรงเรียน</span>
         </div>
       )}
- 
+
       <div className="coContainer">
-        {/* Steps */}
         <div className="coSteps">
           {steps.map((s, i) => (
             <div key={i} className={`coStep${step === i+1 ? " coStepActive" : step > i+1 ? " coStepDone" : ""}`}>
@@ -938,32 +646,84 @@ export default function CheckoutPage() {
             </div>
           ))}
         </div>
- 
+
         {loading ? (
           <div className="coLoading"><Icon icon="mdi:loading" className="coSpinner" /> กำลังโหลด...</div>
         ) : (
           <div className="coLayout">
             <div className="coLeft">
- 
-              {/* ── Step 1: ที่อยู่จัดส่ง ── */}
+
+              {/* ══ STEP 1 ══ */}
               {step === 1 && (
                 <div className="coSection">
                   <div className="coSectionHead">
                     <h2><Icon icon="mdi:map-marker-outline" /> ที่อยู่จัดส่ง</h2>
-                    {/* donation mode ไม่มีปุ่มเพิ่มที่อยู่ */}
                     {!isDonation && (
                       <button className="coAddBtn" onClick={() => { setEditAddr(null); setShowModal(true); }}>
                         <Icon icon="mdi:plus" /> เพิ่มที่อยู่
                       </button>
                     )}
                   </div>
- 
-                  {/* donation → แสดงที่อยู่โรงเรียน / ปกติ → เลือก address */}
+
                   {isDonation ? (
-                    <DonationAddressBlock
-                      shippingAddress={donationAddress}
-                      projectTitle={projectTitle}
-                    />
+                    <div>
+                      {/* ── toggle school / buyer ── */}
+                      <div className="coDonationAddrToggle">
+                        <button
+                          className={`coDonationToggleBtn${donationAddrMode === "school" ? " coDonationToggleActive" : ""}`}
+                          onClick={() => setDonationAddrMode("school")}
+                        >
+                          <Icon icon="mdi:school-outline" /> ส่งให้โรงเรียน
+                        </button>
+                        <button
+                          className={`coDonationToggleBtn${donationAddrMode === "buyer" ? " coDonationToggleActive" : ""}`}
+                          onClick={() => setDonationAddrMode("buyer")}
+                        >
+                          <Icon icon="mdi:home-outline" /> ใช้ที่อยู่ของฉัน
+                        </button>
+                      </div>
+
+                      {donationAddrMode === "school" ? (
+                        <DonationAddressBlock shippingAddress={donationAddr} projectTitle={projectTitle} />
+                      ) : (
+                        <>
+                          <p className="coStepDesc" style={{ marginBottom: 12 }}>
+                            <Icon icon="mdi:information-outline" /> เลือกที่อยู่ที่ต้องการรับสินค้า (คุณจะรับสินค้าไปส่งต่อเอง)
+                          </p>
+                          {addresses.length === 0 ? (
+                            <div className="coEmpty">
+                              <Icon icon="mdi:map-marker-off" fontSize={48} />
+                              <p>ยังไม่มีที่อยู่ กรุณาเพิ่มก่อน</p>
+                            </div>
+                          ) : (
+                            <div className="coAddrList">
+                              {addresses.map(a => (
+                                <div
+                                  key={a.address_id}
+                                  className={`coAddrCard${selAddress === a.address_id ? " coAddrCardSel" : ""}`}
+                                  onClick={() => setSelAddress(a.address_id)}
+                                >
+                                  <div className="coAddrRadio">
+                                    <input type="radio" checked={selAddress === a.address_id} onChange={() => setSelAddress(a.address_id)} />
+                                  </div>
+                                  <div className="coAddrBody">
+                                    <div className="coAddrTop">
+                                      <span className="coAddrName">{a.recipient_name}</span>
+                                      <span className="coAddrPhone">{a.phone}</span>
+                                      {a.is_default ? <span className="coBadgeDefault">ที่อยู่หลัก</span> : null}
+                                    </div>
+                                    <div className="coAddrText">{a.address_line} {a.district} {a.province} {a.postcode}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <button className="coAddBtn" style={{ marginTop: 12 }} onClick={() => { setEditAddr(null); setShowModal(true); }}>
+                            <Icon icon="mdi:plus" /> เพิ่มที่อยู่
+                          </button>
+                        </>
+                      )}
+                    </div>
                   ) : addresses.length === 0 ? (
                     <div className="coEmpty">
                       <Icon icon="mdi:map-marker-off" fontSize={48} />
@@ -986,33 +746,33 @@ export default function CheckoutPage() {
                               <span className="coAddrPhone">{a.phone}</span>
                               {a.is_default ? <span className="coBadgeDefault">ที่อยู่หลัก</span> : null}
                             </div>
-                            <div className="coAddrText">
-                              {a.address_line} {a.district} {a.province} {a.postcode}
-                            </div>
+                            <div className="coAddrText">{a.address_line} {a.district} {a.province} {a.postcode}</div>
                           </div>
                           <div className="coAddrBtns">
-                            <button className="coAddrBtn" title="แก้ไข"
-                              onClick={e => { e.stopPropagation(); setEditAddr(a); setShowModal(true); }}>
+                            <button className="coAddrBtn" onClick={e => { e.stopPropagation(); setEditAddr(a); setShowModal(true); }}>
                               <Icon icon="mdi:pencil-outline" />
                             </button>
-                            <button className="coAddrBtn coAddrBtnDel" title="ลบ"
-                              onClick={e => { e.stopPropagation(); deleteAddr(a.address_id); }}>
-                              <Icon icon="mdi:trash-can-outline" />
-                            </button>
+                            {confirmDeleteId === a.address_id ? (
+                              <span className="coAddrDelConfirm" onClick={e => e.stopPropagation()}>
+                                <span>ลบ?</span>
+                                <button className="coAddrBtnDelConfirm" onClick={e => { e.stopPropagation(); deleteAddr(a.address_id); }}>ใช่</button>
+                                <button className="coAddrBtnDelCancel" onClick={e => { e.stopPropagation(); setConfirmDeleteId(null); }}>ไม่</button>
+                              </span>
+                            ) : (
+                              <button className="coAddrBtn coAddrBtnDel" onClick={e => { e.stopPropagation(); setConfirmDeleteId(a.address_id); }}>
+                                <Icon icon="mdi:trash-can-outline" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
- 
+
                   <div className="coNavBtns">
                     {isDonation
-                      ? <button className="coBtnOutline" onClick={() => navigate(-1)}>
-                          <Icon icon="mdi:arrow-left" /> ย้อนกลับ
-                        </button>
-                      : <Link to="/cart" className="coBtnOutline">
-                          <Icon icon="mdi:arrow-left" /> ย้อนกลับ
-                        </Link>
+                      ? <button className="coBtnOutline" onClick={() => navigate(-1)}><Icon icon="mdi:arrow-left" /> ย้อนกลับ</button>
+                      : <Link to="/cart" className="coBtnOutline"><Icon icon="mdi:arrow-left" /> ย้อนกลับ</Link>
                     }
                     <button className="coBtnPrimary" disabled={!step1Valid} onClick={() => setStep(2)}>
                       ถัดไป <Icon icon="mdi:arrow-right" />
@@ -1020,48 +780,50 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               )}
- 
-              {/* ── Step 2: การจัดส่ง ── */}
+
+              {/* ══ STEP 2 ══ */}
               {step === 2 && (
                 <div className="coSection">
                   <h2><Icon icon="mdi:truck-outline" /> การจัดส่ง</h2>
+                  <p className="coStepDesc">เลือกบริษัทขนส่งสำหรับแต่ละร้านค้า ค่าจัดส่งคำนวณตามน้ำหนักและยอดสินค้า</p>
                   <div className="coSellerList">
                     {groups.map(g => (
-                      <SellerShippingBlock key={g.seller_id} group={g} />
+                      <SellerShippingBlock
+                        key={g.seller_id}
+                        group={g}
+                        shippingOptions={shippingOptions}
+                        selectedShipping={selectedShipping}
+                        setSelectedShipping={setSelectedShipping}
+                      />
                     ))}
                   </div>
                   <div className="coNavBtns">
-                    <button className="coBtnOutline" onClick={() => setStep(1)}>
-                      <Icon icon="mdi:arrow-left" /> ย้อนกลับ
-                    </button>
-                    <button className="coBtnPrimary" onClick={() => setStep(3)}>
+                    <button className="coBtnOutline" onClick={() => setStep(1)}><Icon icon="mdi:arrow-left" /> ย้อนกลับ</button>
+                    <button className="coBtnPrimary" disabled={!step2Valid} onClick={() => setStep(3)}>
                       ถัดไป <Icon icon="mdi:arrow-right" />
                     </button>
                   </div>
                 </div>
               )}
- 
-              {/* ── Step 3: ยืนยันคำสั่งซื้อ ── */}
+
+              {/* ══ STEP 3 ══ */}
               {step === 3 && (
                 <div className="coSection">
-                  <h2><Icon icon="mdi:clipboard-check-outline" /> ยืนยันคำสั่งซื้อ</h2>
- 
-                  {/* ที่อยู่จัดส่ง */}
-                  {isDonation ? (
+                  <h2><Icon icon="mdi:clipboard-check-outline" /> {isDonation ? "ยืนยันการส่งต่อ" : "ชำระเงิน"}</h2>
+
+                  {isDonation && useSchoolAddr ? (
                     <div className="coConfirmBlock">
                       <div className="coConfirmIcon"><Icon icon="mdi:school-outline" /></div>
                       <div className="coConfirmContent">
                         <div className="coConfirmLabelText">จัดส่งให้โรงเรียน</div>
                         <div className="coConfirmVal">
-                          <b>{donationAddress?.name}</b>
-                          {donationAddress?.phone && ` · ${donationAddress.phone}`}<br />
-                          {[donationAddress?.address, donationAddress?.district,
-                            donationAddress?.province, donationAddress?.postal_code]
-                            .filter(Boolean).join(" ")}
+                          <b>{donationAddr?.name}</b>{donationAddr?.phone && ` · ${donationAddr.phone}`}<br />
+                          {[donationAddr?.address, donationAddr?.district, donationAddr?.province, donationAddr?.postal_code].filter(Boolean).join(" ")}
                         </div>
                       </div>
+                      <button className="coEditLink" onClick={() => setStep(1)}>เปลี่ยน</button>
                     </div>
-                  ) : selectedAddr && (
+                  ) : selectedAddr ? (
                     <div className="coConfirmBlock">
                       <div className="coConfirmIcon"><Icon icon="mdi:map-marker-outline" /></div>
                       <div className="coConfirmContent">
@@ -1073,102 +835,136 @@ export default function CheckoutPage() {
                       </div>
                       <button className="coEditLink" onClick={() => setStep(1)}>เปลี่ยน</button>
                     </div>
-                  )}
- 
-                  {/* รายการสินค้า */}
+                  ) : null}
+
                   {groups.map(g => {
-                    const sub      = g.items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-                    const shipSub  = g.items.reduce((s, i) => s + Number(i.shipping_price || 0), 0);
+                    const sub  = g.items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+                    const ship = selectedShipping[g.seller_id];
                     return (
-                      <div key={g.seller_id} className="coConfirmSeller">
-                        <div className="coConfirmSellerHead">
-                          <div className="coSellerAvatarSm">{g.seller_name[0].toUpperCase()}</div>
-                          <span className="coSellerNameSm">{g.seller_name}</span>
-                          <button className="coEditLink" onClick={() => setStep(2)}>เปลี่ยน</button>
-                        </div>
+                      <div key={g.seller_id} className="coSummaryGroup">
+                        <div className="coSummaryGroupName"><Icon icon="mdi:store-outline" /> {g.seller_name}</div>
                         {g.items.map(item => {
                           const cat   = getCategoryLabel(item.category_id, item.gender);
                           const type  = item.type_name?.trim();
                           const title = type ? `${cat}: ${type}` : cat;
-                          const size  = getSizeText(item.size, item.category_id);
                           return (
-                            <div key={item.cart_item_id} className="coConfirmItem">
-                              <div className="coConfirmItemImg">
-                                {item.cover_image
-                                  ? <img src={item.cover_image} alt={title} />
-                                  : <Icon icon="mdi:tshirt-crew" />}
-                              </div>
-                              <div className="coConfirmItemInfo">
-                                <div className="coConfirmItemTitle">{title}</div>
-                                {item.school_name && <div className="coConfirmItemMeta">{item.school_name}</div>}
-                                {size && <div className="coConfirmItemMeta">ขนาด: {size}</div>}
-                                <div className="coConfirmItemMeta">จำนวน: {item.quantity} ชิ้น</div>
-                                {item.shipping_name && (
-                                  <div className="coConfirmItemMeta">
-                                    <Icon icon="mdi:truck-outline" /> {item.shipping_name}
-                                    · ค่าขนส่ง {Number(item.shipping_price || 0).toLocaleString()} บาท
-                                  </div>
-                                )}
-                              </div>
-                              <div className="coConfirmItemPrice">
-                                {(Number(item.price) * item.quantity).toLocaleString()} บาท
-                              </div>
+                            <div key={item.cart_item_id} className="coSummaryItem">
+                              <span>{title} × {item.quantity}</span>
+                              <span>{(Number(item.price) * item.quantity).toLocaleString()} บาท</span>
                             </div>
                           );
                         })}
-                        <div className="coConfirmSellerFoot">
-                          ยอดสินค้า {sub.toLocaleString()} บาท
-                          {shipSub > 0 && ` + ค่าขนส่ง ${shipSub.toLocaleString()} บาท`}
+                        <div className="coSummaryShip">
+                          <span>ค่าจัดส่ง {ship ? `(${ship.name})` : ""}</span>
+                          <span>{!ship ? "-" : ship.price === 0 ? "ส่งฟรี" : `${Number(ship.price).toLocaleString()} บาท`}</span>
                         </div>
+                        <div className="coConfirmSellerFoot">ยอดร้านนี้ {(sub + (ship?.price || 0)).toLocaleString()} บาท</div>
                       </div>
                     );
                   })}
- 
-                  {/* donation note */}
+
                   {isDonation && (
                     <div className="coDonationNote">
                       <Icon icon="mdi:information-outline" />
-                      เมื่อโรงเรียนยืนยันรับสินค้าแล้ว คุณจะได้รับใบเกียรติบัตรทางอีเมล
+                      เมื่อโรงเรียนยืนยันรับสินค้า คุณจะได้แจ้งเตือนพร้อมรับใบเกียรติบัตร
                     </div>
                   )}
- 
+
+                  {/* ── ชำระเงิน ── */}
+                  {!qrImageUrl && (
+                    <>
+                      {isDonation && (
+                        <div className="coDonationNote" style={{ marginBottom: 12 }}>
+                          <Icon icon="mdi:information-outline" />
+                          กรุณาชำระเงินเพื่อยืนยันการส่งต่อ — สินค้าจะถูกจัดส่งตรงไปยังโรงเรียน
+                        </div>
+                      )}
+                      <div className="coPayMethodBar">
+                        <button
+                          className={`coPayMethodBtn ${payMethod === "card" ? "coPayMethodActive" : ""}`}
+                          onClick={() => setPayMethod("card")}
+                        >
+                          <Icon icon="mdi:credit-card-outline" /> บัตรเครดิต/เดบิต
+                        </button>
+                        <button
+                          className={`coPayMethodBtn ${payMethod === "promptpay" ? "coPayMethodActive" : ""}`}
+                          onClick={() => setPayMethod("promptpay")}
+                        >
+                          <Icon icon="mdi:qrcode" /> PromptPay
+                        </button>
+                      </div>
+
+                      {payMethod === "card" && (
+                        <OmiseCardForm
+                          amount={total}
+                          onToken={handleCardPayment}
+                          onError={msg => setErr(msg)}
+                          disabled={placing}
+                        />
+                      )}
+
+                      {payMethod === "promptpay" && (
+                        <div className="coPromptPaySection">
+                          <p className="coPromptPayDesc">
+                            <Icon icon="mdi:information-outline" />
+                            กด "สร้าง QR Code" แล้วสแกนด้วยแอปธนาคาร ระบบจะยืนยันอัตโนมัติ
+                          </p>
+                          <button className="coBtnYellow coCardPayBtn" onClick={handlePromptPay} disabled={placing}>
+                            {placing
+                              ? <><Icon icon="mdi:loading" className="coSpinner" /> กำลังสร้าง QR...</>
+                              : <><Icon icon="mdi:qrcode-scan" /> สร้าง QR Code {total.toLocaleString()} บาท</>
+                            }
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* QR Code PromptPay */}
+                  {qrImageUrl && (
+                    <PromptPayBlock
+                      qrImageUrl={qrImageUrl}
+                      amount={total}
+                      onConfirm={checkPromptPayStatus}
+                    />
+                  )}
+
+                  {/* Fallback: authorize_uri */}
+                  {!qrImageUrl && authorizeUri && (
+                    <div className="coAuthorizeBlock">
+                      <Icon icon="mdi:qrcode-scan" style={{ fontSize: 32, color: "#3b82f6" }} />
+                      <p>ไม่สามารถโหลด QR Code ได้ กรุณากดปุ่มด้านล่างเพื่อชำระเงินผ่าน Omise</p>
+                      <a href={authorizeUri} target="_blank" rel="noopener noreferrer"
+                        className="coBtnYellow coCardPayBtn"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+                        <Icon icon="mdi:open-in-new" /> เปิดหน้าชำระ PromptPay
+                      </a>
+                      <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>
+                        หลังชำระเงินแล้ว กลับมาที่หน้านี้ ระบบจะยืนยันอัตโนมัติ
+                      </p>
+                    </div>
+                  )}
+
                   {err && <div className="coErr"><Icon icon="mdi:alert-circle" /> {err}</div>}
- 
+
                   <div className="coNavBtns">
-                    <button className="coBtnOutline" onClick={() => setStep(2)}>
-                      <Icon icon="mdi:arrow-left" /> ย้อนกลับ
-                    </button>
-                    <button
-                      className={isDonation ? "coBtnGreen" : "coBtnYellow"}
-                      disabled={placing}
-                      onClick={handlePlaceOrder}
-                    >
-                      {placing
-                        ? <Icon icon="mdi:loading" className="coSpinner" />
-                        : <Icon icon={isDonation ? "mdi:gift-outline" : "mdi:credit-card-outline"} />}
-                      {isDonation ? "ยืนยันการส่งต่อ" : "ยืนยันคำสั่งซื้อ"}
-                    </button>
+                    <button className="coBtnOutline" onClick={() => setStep(2)}><Icon icon="mdi:arrow-left" /> ย้อนกลับ</button>
                   </div>
                 </div>
               )}
             </div>
- 
-            {/* ── Summary sidebar ── */}
+
+            {/* ── Sidebar ── */}
             <div className="coRight">
               <div className="coSummaryCard">
-                {isDonation && (
-                  <div className="coSummaryDonationTag">
-                    <Icon icon="mdi:gift-outline" /> ซื้อเพื่อส่งต่อ
-                  </div>
-                )}
+                {isDonation && <div className="coSummaryDonationTag"><Icon icon="mdi:gift-outline" /> ซื้อเพื่อส่งต่อ</div>}
                 <div className="coSummaryTitle">สรุปคำสั่งซื้อ</div>
+
                 {groups.map(g => {
-                  const sub = g.items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+                  const ship = selectedShipping[g.seller_id];
                   return (
                     <div key={g.seller_id} className="coSummaryGroup">
-                      <div className="coSummaryGroupName">
-                        <Icon icon="mdi:store-outline" /> {g.seller_name}
-                      </div>
+                      <div className="coSummaryGroupName"><Icon icon="mdi:store-outline" /> {g.seller_name}</div>
                       {g.items.map(item => {
                         const cat   = getCategoryLabel(item.category_id, item.gender);
                         const type  = item.type_name?.trim();
@@ -1182,38 +978,31 @@ export default function CheckoutPage() {
                       })}
                       <div className="coSummaryShip">
                         <span>ค่าจัดส่ง</span>
-                        <span>
-                          {g.items.reduce((s, i) => s + Number(i.shipping_price || 0), 0).toLocaleString()} บาท
-                        </span>
+                        <span>{!ship ? "-" : ship.price === 0 ? "ส่งฟรี" : `${Number(ship.price).toLocaleString()} บาท`}</span>
                       </div>
+                      {ship && <div className="coConfirmShipTag">🚚 {ship.name}{ship.price === 0 ? " · ส่งฟรี" : ` · ${ship.price} บาท`}</div>}
                     </div>
                   );
                 })}
+
                 <div className="coSummaryDivider" />
-                <div className="coSummaryRow">
-                  <span>ยอดสินค้า</span>
-                  <span>{subtotal.toLocaleString()} บาท</span>
-                </div>
-                <div className="coSummaryRow">
-                  <span>ค่าจัดส่งรวม</span>
-                  <span>{shippingTotal.toLocaleString()} บาท</span>
-                </div>
+                <div className="coSummaryRow"><span>ยอดสินค้า</span><span>{subtotal.toLocaleString()} บาท</span></div>
+                <div className="coSummaryRow"><span>ค่าจัดส่งรวม</span><span>{shippingTotal > 0 ? `${shippingTotal.toLocaleString()} บาท` : "ส่งฟรี"}</span></div>
                 <div className="coSummaryDivider" />
                 <div className="coSummaryTotal">
                   <span>ยอดรวมทั้งหมด</span>
                   <span className="coTotalPrice">{total.toLocaleString()} บาท</span>
                 </div>
- 
-                {/* จัดส่งให้โรงเรียน (summary) */}
-                {isDonation && donationAddress && (
+
+                {isDonation && donationAddr && (
                   <>
                     <div className="coSummaryDivider" />
                     <div className="coSummaryDonationAddr">
                       <Icon icon="mdi:school-outline" />
                       <div>
-                        <div style={{ fontWeight: 500, fontSize: 13 }}>{donationAddress.name}</div>
+                        <div style={{ fontWeight: 500, fontSize: 13 }}>{donationAddr.name}</div>
                         <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-                          {[donationAddress.province, donationAddress.postal_code].filter(Boolean).join(" ")}
+                          {[donationAddr.province, donationAddr.postal_code].filter(Boolean).join(" ")}
                         </div>
                       </div>
                     </div>
@@ -1224,7 +1013,7 @@ export default function CheckoutPage() {
           </div>
         )}
       </div>
- 
+
       {showModal && (
         <AddressModal
           address={editAddr}

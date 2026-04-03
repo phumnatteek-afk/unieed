@@ -2,6 +2,11 @@ import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { schoolRequestSvc } from "../services/schoolRequest.service.js";
 import "../styles/excelImport.css";
+import {
+  validateStudent,
+  detectDuplicates,
+  detectDuplicatesWithExisting,
+} from "../../../utils/studentValidation.js";
 
 // ── map ภาษาไทย → ค่า DB ─────────────────────────────────
 const MAP_GENDER = { "ชาย": "male", "หญิง": "female" };
@@ -69,25 +74,18 @@ function parseRows(ws) {
   return results;
 }
 
-// ── validate student ─────────────────────────────────────
-function validate(s) {
-  const errs = [];
-  if (!["male", "female"].includes(s.gender))
-    errs.push(`เพศไม่ถูกต้อง: "${s.gender}" (ใส่ ชาย หรือ หญิง)`);
-  // ✅ แก้ — เพิ่มทุกค่าที่รองรับ
-  if (!["อนุบาล", "ประถมศึกษา", "มัธยมตอนต้น", "มัธยมตอนปลาย"].includes(s.education_level))
-    errs.push(`ระดับชั้นไม่ถูกต้อง: "${s.education_level}" (ใส่ อนุบาล / ประถมศึกษา / มัธยมตอนต้น / มัธยมตอนปลาย)`);
-  if (!["very_urgent", "urgent", "can_wait"].includes(s.urgency))
-    errs.push(`ความเร่งด่วนไม่ถูกต้อง: "${s.urgency}"`);
-  return errs;
-}
+// ── validate ใช้ shared module ───────────────────────────
+// validateStudent ครอบคลุม: ชื่อ (ห้ามตัวเลข, ต้องมีนามสกุล), เพศ, ระดับชั้น, ความเร่งด่วน, needs
+function validate(s) { return validateStudent(s); }
 
 export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
   const inputRef = useRef();
   const [step, setStep] = useState("idle"); // idle | preview | importing | done
   const [students, setStudents] = useState([]);
-  const [errors, setErrors] = useState([]);     // validation errors
-  const [result, setResult] = useState(null);   // { created, updated, failed }
+  const [errors, setErrors] = useState([]);          // validation errors per row
+  const [dupWarnings, setDupWarnings] = useState(new Map()); // dup warnings per row
+  const [existingStudents, setExistingStudents] = useState([]);
+  const [result, setResult] = useState(null);        // { created, updated, skipped, failed }
   const [importErr, setImportErr] = useState("");
 
   if (!open) return null;
@@ -103,25 +101,53 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
   const handleClose = () => { reset(); onClose(); };
 
   // ── อ่านไฟล์ xlsx ─────────────────────────────────────
-  const onFile = (e) => {
+  const onFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const wb = XLSX.read(ev.target.result, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const parsed = parseRows(ws);
+
+        // ── โหลด existing students จาก DB ──────────────────
+        let existing = [];
+        try {
+          existing = await schoolRequestSvc.listStudents(requestId) || [];
+          setExistingStudents(existing);
+        } catch { /* ถ้าโหลดไม่ได้ก็ตรวจ dup เฉพาะในไฟล์ */ }
+
+        // ── validate แต่ละแถว ──────────────────────────────
         const errs = [];
         parsed.forEach((s, i) => {
           const ve = validate(s);
           if (ve.length) errs.push({ index: i + 1, name: s.student_name, errors: ve });
         });
 
+        // ── ตรวจ dup ระหว่างแถวในไฟล์ ──────────────────────
+        const dupInFile = detectDuplicates(parsed);           // Map<index, {type,matchIndex,matchFields}>
+
+        // ── ตรวจ dup กับ DB ────────────────────────────────
+        const dupWithDb = detectDuplicatesWithExisting(parsed, existing); // Map<index, {type,existingStudent}>
+
+        // รวม warnings (db ก่อน, file ทีหลัง)
+        const allDups = new Map([...dupWithDb]);
+        for (const [idx, info] of dupInFile.entries()) {
+          if (!allDups.has(idx)) {
+            allDups.set(idx, {
+              ...info,
+              existingStudent: parsed[info.matchIndex], // refer to row in file
+              source: "file",
+            });
+          }
+        }
+
         setStudents(parsed);
         setErrors(errs);
+        setDupWarnings(allDups);
         setStep("preview");
       } catch (err) {
         setImportErr("อ่านไฟล์ไม่ได้: " + err.message);
@@ -135,38 +161,28 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
     setStep("importing");
     setImportErr("");
 
-    // กรองเฉพาะแถวที่ valid
-    const validIdx = new Set(
-      students
-        .map((_, i) => i)
-        .filter((i) => !errors.find((e) => e.index === i + 1))
-    );
-    const toImport = students.filter((_, i) => validIdx.has(i));
+    // กรองเฉพาะแถวที่ valid (ไม่มี validation error)
+    const errorIdxSet = new Set(errors.map(e => e.index - 1));
+    const toImportWithIdx = students
+      .map((s, i) => ({ s, i }))
+      .filter(({ i }) => !errorIdxSet.has(i));
 
-    // ── ดึงรายชื่อที่มีอยู่แล้ว เพื่อ detect dup ──────
-    let existingMap = new Map();
-    try {
-      const existing = await schoolRequestSvc.listStudents(requestId);
-      existingMap = new Map(
-        (existing || []).map((s) => [
-          `${s.student_name.trim().toLowerCase()}|${s.gender}|${s.education_level}`,
-          s,
-        ])
-      );
-    } catch {
-      // ถ้าโหลดไม่ได้ก็ create ทั้งหมด
-    }
-
-    let created = 0, updated = 0, failed = 0;
+    let created = 0, updated = 0, skipped = 0, failed = 0;
     const failedRows = [];
+    // existingStudents โหลดแล้วจาก onFile
+    const existingMap = new Map(
+      existingStudents.map(s => [s.student_id, s])
+    );
 
-    for (const s of toImport) {
-      const key = `${s.student_name.trim().toLowerCase()}|${s.gender}|${s.education_level}`;
-      const dup = existingMap.get(key);
+    for (const { s, i } of toImportWithIdx) {
+      const dup = dupWarnings.get(i);
       try {
-        if (dup) {
-          // UPDATE — นักเรียนมีอยู่แล้ว อัปเดต urgency + needs
-          await schoolRequestSvc.updateStudent(requestId, dup.student_id, {
+        if (dup?.type === "exact") {
+          // ข้อมูลเหมือนกัน 100% → ข้าม
+          skipped++;
+        } else if (dup?.type === "update" && dup.existingStudent?.student_id) {
+          // ชื่อ+เพศ+ระดับ+urgency ตรงกัน แต่ needs ต่าง → UPDATE
+          await schoolRequestSvc.updateStudent(requestId, dup.existingStudent.student_id, {
             student_name: s.student_name,
             gender: s.gender,
             education_level: s.education_level,
@@ -175,10 +191,9 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
           });
           updated++;
         } else {
-          // CREATE — นักเรียนใหม่
+          // สร้างใหม่
           await schoolRequestSvc.createStudent(requestId, s);
           created++;
-          existingMap.set(key, s);
         }
       } catch (e) {
         failed++;
@@ -256,8 +271,23 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
             <div className="eiPreview">
               <div className="eiSummaryBar">
                 <span className="eiSumOk">✅ พร้อม import: {validCount} คน</span>
+                {[...dupWarnings.values()].filter(d => d.type === "update").length > 0 && (
+                  <span className="eiSumUpdate">
+                    🔄 อัปเดต: {[...dupWarnings.values()].filter(d => d.type === "update").length} คน
+                  </span>
+                )}
+                {[...dupWarnings.values()].filter(d => d.type === "exact").length > 0 && (
+                  <span className="eiSumSkip">
+                    ↷ ซ้ำ (ข้าม): {[...dupWarnings.values()].filter(d => d.type === "exact").length} คน
+                  </span>
+                )}
+                {[...dupWarnings.values()].filter(d => !["exact","update"].includes(d.type)).length > 0 && (
+                  <span className="eiSumWarnDup">
+                    ⚠️ คล้ายกับที่มีอยู่: {[...dupWarnings.values()].filter(d => !["exact","update"].includes(d.type)).length} คน
+                  </span>
+                )}
                 {hasErrors && (
-                  <span className="eiSumWarn">⚠️ มีปัญหา: {errors.length} แถว (จะข้าม)</span>
+                  <span className="eiSumWarn">❌ ข้อมูลผิด: {errors.length} แถว (จะข้าม)</span>
                 )}
               </div>
 
@@ -289,9 +319,25 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                   <tbody>
                     {students.map((s, i) => {
                       const hasErr = errors.find((e) => e.index === i + 1);
+                      const dup    = dupWarnings.get(i);
+                      const rowClass = hasErr ? "eiRowErr" :
+                        dup?.type === "exact"  ? "eiRowExact" :
+                        dup?.type === "update" ? "eiRowUpdate" :
+                        dup                    ? "eiRowDup" : "";
                       return (
-                        <tr key={i} className={hasErr ? "eiRowErr" : ""}>
-                          <td>{i + 1}</td>
+                        <tr key={i} className={rowClass} title={
+                          hasErr ? hasErr.errors.join(", ") :
+                          dup?.type === "exact"  ? "ซ้ำทั้งหมด — จะถูกข้าม" :
+                          dup?.type === "update" ? "จะอัปเดตรายการชุดของนักเรียนที่มีอยู่" :
+                          dup ? `คล้ายกับ "${dup.existingStudent?.student_name}" (${dup.matchFields?.join(", ")})` : ""
+                        }>
+                          <td>
+                            {i + 1}
+                            {hasErr && <span className="eiTagErr" title={hasErr.errors.join(", ")}>✕ Error</span>}
+                            {!hasErr && dup?.type === "exact"  && <span className="eiTagExact">↷ ซ้ำ</span>}
+                            {!hasErr && dup?.type === "update" && <span className="eiTagUpdate">↻ Update</span>}
+                            {!hasErr && dup && !["exact","update"].includes(dup.type) && <span className="eiTagDup">⚠ คล้าย</span>}
+                          </td>
                           <td>{s.student_name}</td>
                           <td>{s.gender === "male" ? "ชาย" : "หญิง"}</td>
                           <td>{s.education_level}</td>

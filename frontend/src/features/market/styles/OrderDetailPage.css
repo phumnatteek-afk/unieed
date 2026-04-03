@@ -1,0 +1,127 @@
+/* Layout */
+.pageContainer {
+  min-height: 100vh;
+  background: var(--color-bg, #f8fafc);
+}
+
+.contentWrapper {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* Card */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  margin-bottom: 1rem;
+}
+
+/* Header */
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.orderId {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.orderDate {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Status */
+.statusBadge {
+  border-radius: 99px;
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paymentBadge {
+  border-radius: 99px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Items */
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.itemImage {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.itemTitle {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.itemQty {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Grid */
+.gridTwo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.btnSecondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #fff;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 12px 0;
+}
+
+/* Loading animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

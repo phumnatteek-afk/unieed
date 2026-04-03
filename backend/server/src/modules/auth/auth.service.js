@@ -4,11 +4,25 @@ import { signJwt } from "../../utils/jwt.js";
 import validator from "validator";
 import crypto from "crypto";
 import { Resend } from "resend";
-import { OAuth2Client } from "google-auth-library";
+// import { OAuth2Client } from "google-auth-library";
+import * as jose from "jose";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+async function verifyGoogleToken(idToken) {
+  const JWKS = jose.createRemoteJWKSet(
+    new URL("https://www.googleapis.com/oauth2/v3/certs")
+  );
+  const { payload } = await jose.jwtVerify(idToken, JWKS, {
+    audience: process.env.GOOGLE_CLIENT_ID,
+    issuer: ["https://accounts.google.com", "accounts.google.com"],
+  });
+  return payload;
+}
 
+// const resend = new Resend(process.env.RESEND_API_KEY);
+// const googleClient = new OAuth2Client({
+//   clientId: process.env.GOOGLE_CLIENT_ID,
+//   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+// });
 /* ─────────────────────── helpers ─────────────────────── */
 
 function normalizeThaiPhone(input) {
@@ -122,7 +136,6 @@ export async function registerGeneral(payload) {
     ]
   );
 
-  // ✅ แก้: ส่ง email แบบ fire-and-forget — INSERT สำเร็จแน่นอน ไม่ว่า email จะ fail หรือไม่
   sendVerificationEmail(email, verificationToken).catch((err) => {
     console.error("sendVerificationEmail failed:", err);
   });
@@ -191,15 +204,12 @@ export async function registerSchoolOneStep(payload) {
   }
 
   const conn = await db.getConnection();
-
-  // ✅ แก้: declare ข้างนอก try เพื่อให้ใช้ได้หลัง finally
   let school_id;
   let verificationToken;
 
   try {
     await conn.beginTransaction();
 
-    // ✅ แก้: query ก่อน แล้วค่อยเอา insertId — ไม่ใช้ const (ใช้ assignment ให้ตัวแปรข้างนอก)
     const [sr] = await conn.query(
       `INSERT INTO schools
         (school_name, school_address, school_phone,
@@ -215,10 +225,10 @@ export async function registerSchoolOneStep(payload) {
       ]
     );
 
-    school_id = sr.insertId; // ✅ assign ให้ตัวแปรข้างนอก ไม่ใช้ const
+    school_id = sr.insertId;
 
     const password_hash = await hashPassword(password);
-    verificationToken = generateToken(); // ✅ assign ให้ตัวแปรข้างนอก ไม่ใช้ const
+    verificationToken = generateToken();
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await conn.query(
@@ -241,7 +251,6 @@ export async function registerSchoolOneStep(payload) {
     conn.release();
   }
 
-  // ✅ ส่ง email หลัง release แล้ว — ถ้า fail ไม่กระทบ transaction
   sendVerificationEmail(email, verificationToken).catch((err) => {
     console.error("sendVerificationEmail failed:", err);
   });
@@ -278,7 +287,6 @@ export async function login({ user_email, password }) {
     throw Object.assign(new Error("Account banned"), { status: 403 });
   }
 
-  // ✅ แก้: เช็ค email_verified ครั้งเดียว (เอาที่ซ้ำออก)
   if (u.role !== "admin" && !u.email_verified) {
     throw Object.assign(
       new Error("กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ"),
@@ -447,17 +455,15 @@ export async function googleLogin({ idToken }) {
     throw Object.assign(new Error("ไม่พบ ID Token"), { status: 400 });
   }
 
-  let ticket;
+  let payload;
   try {
-    ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-  } catch {
+    payload = await verifyGoogleToken(idToken);
+  } catch (err) {
+    console.error("❌ verifyGoogleToken failed:", err.message);
     throw Object.assign(new Error("Google token ไม่ถูกต้อง"), { status: 401 });
   }
 
-  const { sub: google_id, email, name, picture } = ticket.getPayload();
+  const { sub: google_id, email, name, picture } = payload;
 
   const [byGoogle] = await db.query(
     `SELECT user_id, user_name, role, school_id, status
@@ -496,7 +502,7 @@ export async function googleLogin({ idToken }) {
   return { token, role: "user", user_name: name };
 }
 
-/* ─────────────────────── OTP / School Status (existing) ─────────────────────── */
+/* ─────────────────────── OTP / School Status ─────────────────────── */
 
 export async function requestOtp(body) {
   // existing OTP logic...
