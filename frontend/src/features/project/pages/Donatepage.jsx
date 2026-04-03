@@ -6,6 +6,8 @@ import { getJson } from "../../../api/http.js";
 import { Icon } from "@iconify/react";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import QRCode from "https://esm.sh/qrcode@1.5.3";
+import NotificationBell from "../../../pages/NotificationBell.jsx";
+import CartIcon from "../../market/components/CartIcon.jsx";
 
 import "../../../pages/styles/Homepage.css";
 import "../styles/DonatePage.css";
@@ -285,6 +287,7 @@ export default function DonatePage() {
   // const [confetti,  setConfetti]  = useState(false);
   // เพิ่ม:
   const [step, setStep] = useState("form");
+  const [realDonationId, setRealDonationId] = useState(null);
 
 
   // ============ บันทึก/โหลดร่าง ============
@@ -421,6 +424,7 @@ export default function DonatePage() {
       if (!res.ok) throw new Error(data?.message || "เกิดข้อผิดพลาด");
 
       // ✨ ไม่ออก cert ที่นี่อีกต่อไป — แสดง success 
+      setRealDonationId(data.donation_id);
       setStep("confirm");     // ← state ใหม่ (เพิ่มในส่วน [2])
     } catch (e) {
       setErr(e.message || "เกิดข้อผิดพลาด");
@@ -436,7 +440,13 @@ export default function DonatePage() {
         <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
       </div>
     );
-    return <ProfileDropdown />;
+    return (
+    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <NotificationBell />
+      <ProfileDropdown />
+      <CartIcon />
+    </div>
+  );
   };
 
   // format วันที่เลือกเป็นภาษาไทย
@@ -535,7 +545,9 @@ export default function DonatePage() {
         {step === "confirm" && (
           <div style={S.overlay}>
             <div style={S.modalContainer}>
+              
               <ConfirmationSummaryPage
+              proofPreview={proofPreview}
                 donorName={donorName}
                 projectTitle={project?.request_title}
                 schoolName={project?.school_name}
@@ -566,17 +578,20 @@ export default function DonatePage() {
           <div style={S.overlay}>
             <div style={S.modalContainer}>
               <QRLabelPage
-                donateMethod={donateMethod} // สำคัญมาก
+                donationId={realDonationId}
+                donateMethod={donateMethod}
                 donorName={donorName}
                 projectTitle={project?.request_title}
                 schoolName={project?.school_name}
                 courier={courier}
                 trackingNo={trackingNo}
-                appointDate={appointDate} // สำหรับดึงไปโชว์ในป้าย
-                appointTime={appointTime} // สำหรับดึงไปโชว์ในป้าย
-                donorPhone={donorPhone}   // สำหรับดึงไปโชว์ในป้าย
+                appointDate={appointDate}
+                appointTime={appointTime}
+                donorPhone={donorPhone}
                 selectedItems={selectedItems.map(it => ({ name: it.name, qty: it.quantity }))}
                 totalQty={totalQty}
+                // ✅ ไม่ต้องส่ง baseUrl หรือส่งแบบนี้
+                baseUrl={window.location.origin}
                 onViewProject={() => {
                   setSubmitSuccess(true);
                   setStep("form");
@@ -941,20 +956,11 @@ export default function DonatePage() {
 // }) {
 // แก้ไขบรรทัดประมาณ 760+ (จุดที่ประกาศฟังก์ชัน)
 export function ConfirmationSummaryPage({
-  donorName,
-  projectTitle,
-  schoolName,
-  schoolAddress,
-  donateMethod, // รับเพิ่ม
-  courier,      // สำหรับ parcel
-  trackingNo,   // สำหรับ parcel
-  appointDate,  // สำหรับ dropoff
-  appointTime,  // สำหรับ dropoff
-  donorPhone,   // สำหรับ dropoff
-  selectedItems = [],
-  totalQty = 0,
-  onConfirm = () => { },
-  onBack = () => { },
+  donorName, projectTitle, schoolName, schoolAddress,
+  proofPreview,
+  donateMethod, courier, trackingNo, appointDate, appointTime, donorPhone,
+  selectedItems = [], totalQty = 0,
+  onConfirm = () => {}, onBack = () => {},
 }) {
   const [confirming, setConfirming] = useState(false);
 
@@ -965,90 +971,175 @@ export function ConfirmationSummaryPage({
   };
 
   return (
-    <div style={{ ...S.page, background: "transparent", padding: 0, minHeight: "auto", display: "block" }}>
-      <div style={{ ...S.card, margin: "0 auto" }}>
-
-        {/* Header */}
-        <div style={S.cardHeader}>
-          <div style={S.headerIcon}>
-            <Icon icon="fluent:document-checkmark-20-filled" width="22" color="#fff" />
-          </div>
-          <div>
-            <div style={S.headerTitle}>สรุปรายการบริจาค</div>
-            <div style={S.headerSub}>โครงการ: {projectTitle}</div>
-          </div>
+    <div style={{
+      background: "#fff", borderRadius: 20,
+      boxShadow: "0 4px 32px rgba(0,0,0,.12)",
+      width: "100%", maxWidth: 640, margin: "0 auto",
+      overflow: "hidden",
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: "20px 24px", borderBottom: "1px solid #E5E7EB",
+        display: "flex", alignItems: "center", gap: 12,
+      }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 12, background: "#29B6E8",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+        }}>
+          <Icon icon="fluent:document-checkmark-20-filled" width="22" color="#fff" />
         </div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 17, color: "#1a1a2e" }}>สรุปรายการบริจาค</div>
+          <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>โครงการ: {projectTitle}</div>
+        </div>
+      </div>
 
-        {/* School destination */}
-        <Section label="โรงเรียนปลายทาง">
-          <Row label="โรงเรียน" value={schoolName} />
-          <Row label="ที่อยู่" value={schoolAddress} />
-        </Section>
+      {/* Body — 2 columns */}
+      <div style={{ display: "flex", gap: 0 }}>
 
-        {/* ✨ Delivery method (ปรับปรุงการแสดงผล) */}
-        <Section label="ช่องทางการส่งต่อ">
-          <div style={S.methodBadge}>
-            <Icon icon={donateMethod === "parcel" ? "lucide:truck" : "lucide:package-check"} width="16" />
-            {donateMethod === "parcel" ? "จัดส่งพัสดุ" : "นำส่งด้วยตนเอง (Drop-off)"}
-          </div>
+        {/* LEFT — รายการชุด */}
+        <div style={{
+          flex: 1, padding: "20px 20px",
+          borderRight: "1px solid #E5E7EB",
+          display: "flex", flexDirection: "column", gap: 12,
+        }}>
 
-          {donateMethod === "parcel" ? (
-            <>
-              <Row label="ขนส่ง" value={courier} />
-              <Row label="เลข Tracking" value={trackingNo} mono />
-              <Row label="วันที่ส่ง" value={formatThaiDate(new Date())} />
-            </>
-          ) : (
-            <>
-              <Row label="วันนัดหมาย" value={formatThaiDate(appointDate)} />
-              <Row label="เวลานัดหมาย" value={appointTime ? `${appointTime} น.` : "ไม่ระบุ"} />
-              <Row label="เบอร์ติดต่อ" value={donorPhone} />
-            </>
+          {/* ✅ รูปหลักฐานที่อัปโหลด — อยู่บนสุด */}
+          {proofPreview && (
+            <div style={{ width: "100%", borderRadius: 12, overflow: "hidden" }}>
+              <img src={proofPreview} alt="หลักฐานการจัดส่ง"
+                style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
+              <div style={{ fontSize: 11, color: "#6b7280", textAlign: "center", marginTop: 4 }}>
+                หลักฐานการจัดส่ง
+              </div>
+            </div>
           )}
-        </Section>
 
-        {/* Items */}
-        <Section label={`รายการชุดนักเรียน (${selectedItems.length} รายการ)`}>
-          <div style={S.itemList}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5 }}>
+            รายการชุดนักเรียน
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {selectedItems.map((item, i) => (
-              <div key={i} style={S.itemRow}>
-                <span style={S.itemName}>{item.name}</span>
-                <span style={S.itemQty}>{item.qty} ชิ้น</span>
+              <div key={i} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                background: "#F7F8FA", borderRadius: 8, padding: "8px 12px",
+              }}>
+                <span style={{ fontSize: 13, color: "#1a1a2e" }}>{item.name}</span>
+                <span style={{
+                  fontSize: 13, fontWeight: 600, color: "#378ADD",
+                  background: "#EFF6FF", padding: "2px 10px", borderRadius: 20,
+                }}>
+                  {item.qty} ชิ้น
+                </span>
               </div>
             ))}
           </div>
-          <div style={S.totalRow}>
-            <span style={S.totalLabel}>รวมทั้งหมด</span>
-            <span style={S.totalVal}>{totalQty} ชิ้น</span>
+          <div style={{
+            display: "flex", justifyContent: "space-between",
+            paddingTop: 10, borderTop: "1px solid #E5E7EB",
+            fontWeight: 700, fontSize: 14,
+          }}>
+            <span style={{ color: "#6b7280" }}>รวมทั้งหมด</span>
+            <span style={{ color: "#1a1a2e" }}>{totalQty} ชิ้น</span>
           </div>
-        </Section>
-
-        {/* Donor info */}
-        <Section label="ข้อมูลผู้บริจาค">
-          <Row label="ชื่อ" value={donorName} />
-        </Section>
-
-        {/* Notice (ปรับตามเงื่อนไข) */}
-        <div style={S.notice}>
-          <Icon icon="fluent:info-20-filled" width="16" style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>
-            {donateMethod === "parcel"
-              ? "หลังยืนยันแล้ว ระบบจะสร้าง QR Label สำหรับปริ้นแปะหน้ากล่องพัสดุ"
-              : "กรุณานำชุดนักเรียนไปส่งตามวันและเวลาที่คุณนัดหมายไว้กับทางโรงเรียน"
-            }
-          </span>
         </div>
 
-        {/* Buttons */}
-        <div style={S.btnRow}>
-          <button style={S.btnBack} onClick={onBack} type="button">← กลับแก้ไข</button>
-          <button style={{ ...S.btnConfirm, opacity: confirming ? 0.7 : 1 }}
-            onClick={handleConfirm} disabled={confirming} type="button">
-            {confirming ? <><Spinner /> กำลังยืนยัน...</> : "ยืนยันการส่งต่อ →"}
-          </button>
-        </div>
+        {/* RIGHT — รายละเอียด + ปุ่ม */}
+        <div style={{ flex: 1, padding: "20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
 
+          {/* โรงเรียนปลายทาง */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>โรงเรียนปลายทาง</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>{schoolName}</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2, lineHeight: 1.5 }}>{schoolAddress}</div>
+          </div>
+
+          <div style={{ borderTop: "1px solid #E5E7EB" }} />
+
+          {/* ช่องทางการส่ง */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>ช่องทางการส่งต่อ</div>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "#EFF6FF", padding: "5px 12px", borderRadius: 8,
+              fontSize: 12, fontWeight: 600, color: "#378ADD", marginBottom: 8,
+            }}>
+              <Icon icon={donateMethod === "parcel" ? "lucide:truck" : "lucide:package-check"} width="14" />
+              {donateMethod === "parcel" ? "จัดส่งพัสดุ" : "นำส่งด้วยตนเอง (Drop-off)"}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {donateMethod === "parcel" ? (
+                <>
+                  <DetailRow label="ขนส่ง" value={courier} />
+                  <DetailRow label="เลข Tracking" value={trackingNo} mono />
+                  <DetailRow label="วันที่ส่ง" value={formatThaiDate(new Date())} />
+                </>
+              ) : (
+                <>
+                  <DetailRow label="วันนัดหมาย" value={formatThaiDate(appointDate)} />
+                  <DetailRow label="เวลา" value={appointTime ? `${appointTime} น.` : "ไม่ระบุ"} />
+                  <DetailRow label="เบอร์ติดต่อ" value={donorPhone} />
+                </>
+              )}
+              <DetailRow label="ผู้บริจาค" value={donorName} />
+            </div>
+          </div>
+
+          <div style={{ flex: 1 }} />
+
+          {/* Notice */}
+          <div style={{
+            display: "flex", alignItems: "flex-start", gap: 8,
+            background: "#FFFBEB", border: "1.5px solid #FFBE1B",
+            borderRadius: 10, padding: "10px 12px",
+            fontSize: 12, color: "#92400e", lineHeight: 1.5,
+          }}>
+            <Icon icon="fluent:info-20-filled" width="14" style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>
+              {donateMethod === "parcel"
+                ? "หลังยืนยันแล้ว ระบบจะสร้าง QR Label สำหรับปริ้นแปะหน้ากล่องพัสดุ"
+                : "กรุณานำชุดนักเรียนไปส่งตามวันและเวลาที่นัดหมายไว้"
+              }
+            </span>
+          </div>
+
+          {/* Buttons */}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              style={{
+                flex: 1, padding: "11px", background: "#F3F4F6", color: "#1a1a2e",
+                border: "none", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}
+              onClick={onBack} type="button"
+            >
+              ← กลับแก้ไข
+            </button>
+            <button
+              style={{
+                flex: 2, padding: "11px", background: "#29B6E8", color: "#fff",
+                border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                cursor: "pointer", opacity: confirming ? 0.7 : 1,
+              }}
+              onClick={handleConfirm} disabled={confirming} type="button"
+            >
+              {confirming ? <><Spinner /> กำลังยืนยัน...</> : "ยืนยันการส่งต่อ →"}
+            </button>
+          </div>
+        </div>
       </div>
+    </div>
+  );
+}
+
+// helper เล็กสำหรับแถวรายละเอียดฝั่งขวา
+function DetailRow({ label, value, mono = false }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+      <span style={{ color: "#6b7280" }}>{label}</span>
+      <span style={{ color: "#1a1a2e", fontWeight: 500, ...(mono ? { fontFamily: "monospace", fontWeight: 700 } : {}) }}>
+        {value || "—"}
+      </span>
     </div>
   );
 }
@@ -1069,11 +1160,11 @@ export function QRLabelPage({
   donorPhone,   // ข้อมูลสำหรับ Drop-off
   selectedItems = [],
   totalQty = 5,
-  baseUrl = "http://localhost:5173/login",
+  baseUrl = "http://localhost:5173",
   onViewProject = () => { },
 }) {
   const printRef = useRef(null);
-  const id = donationId || genDonationId();
+  const id = donationId;
   const qrUrl = `${baseUrl}/confirm/${id}`;
   const qrRef = useQRCanvas(qrUrl, 110);
 
@@ -1456,7 +1547,7 @@ export function DonationFlowDemo() {
       {screen === "qr" && (
         <QRLabelPage
           {...sharedProps}
-          baseUrl="http://localhost:5173/login"
+          baseUrl="http://localhost:5173"
           // baseUrl="https://unieed.com"
           onViewProject={() => setScreen("school")}
         />
@@ -1792,7 +1883,7 @@ const S = {
   },
   modalContainer: {
     width: "100%",
-    maxWidth: "520px",
+    maxWidth: "700px",
     // maxHeight: "90vh",
     // overflowY: "auto",
     borderRadius: "20px",

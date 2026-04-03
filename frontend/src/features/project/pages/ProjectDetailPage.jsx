@@ -6,6 +6,8 @@ import { Icon } from "@iconify/react";
 import "../../../pages/styles/Homepage.css";
 import "../styles/ProjectDetail.css";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import NotificationBell from "../../../pages/NotificationBell.jsx";
+import CartIcon from "../../market/components/CartIcon.jsx";
 
 
 export default function ProjectDetailPage() {
@@ -99,7 +101,13 @@ export default function ProjectDetailPage() {
         </div>
       );
     }
-    return <ProfileDropdown />;
+    return (
+    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <NotificationBell />
+      <ProfileDropdown />
+      <CartIcon />
+    </div>
+    );
   };
 
   const needed = project?.total_needed || 0;

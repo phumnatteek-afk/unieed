@@ -26,6 +26,7 @@ import SchoolTestimonialPage from "./features/school/pages/SchoolTestimonialPage
 
 import RoleRedirect from "./routes/RoleRedirect.jsx";
 import FallbackRedirect from "./routes/FallbackRedirect.jsx";
+import QRScanPage from "./features/donate/pages/QRScanPage.jsx";
 
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import AdminLoginPage from "./features/admin/pages/AdminLoginPage.jsx";
