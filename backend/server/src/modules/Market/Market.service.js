@@ -54,8 +54,8 @@ const batchCreateProducts = async ({ items, files, sellerId }) => {
         `INSERT INTO products
     (seller_id, uniform_type_id, category_id, gender, custom_type_name, product_title,
      product_description, size, level, school_name, condition_percent, condition_label,
-     price, quantity,shipping_name, shipping_price, status)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')`,
+     price, quantity, weight, status)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')`,
         [
           sellerId,
           item.uniform_type_id || null,
@@ -71,12 +71,30 @@ const batchCreateProducts = async ({ items, files, sellerId }) => {
           item.conditionLabel || '',
           parseFloat(item.price),
           parseInt(item.quantity) || 1,
-          item.shipping_name || null,   // ✅
-          parseFloat(item.shipping_price) || 0, // ✅
+          parseFloat(item.weight) || 0, 
         ]
       );
 
       const productId = result.insertId;
+      // ✅ INSERT product_shipping (ถ้าตารางยังไม่มีจะ skip ไม่ crash)
+if (item.shipping_provider_ids?.length) {
+  try {
+    for (const pid of item.shipping_provider_ids) {
+      await conn.execute(
+        `INSERT INTO product_shipping (product_id, provider_id) VALUES (?, ?)`,
+        [productId, pid]
+      );
+    }
+  } catch (shippingErr) {
+    if (shippingErr.code === 'ER_NO_SUCH_TABLE') {
+      console.warn('[batchCreate] product_shipping table not found — run create_shipping_tables.sql migration');
+    } else {
+      throw shippingErr;
+    }
+  }
+} else {
+  console.warn(`[batchCreate] item ${i} has no shipping_provider_ids — user did not select any`);
+}
 
       const fileArray = (files && files[`item${i}_images`]) || [];
       for (let j = 0; j < fileArray.length; j++) {
@@ -121,7 +139,7 @@ const batchCreateProducts = async ({ items, files, sellerId }) => {
   }
 };
 
-const getProducts = async ({ search, category_id, gender, uniform_type_id, level, min_price, max_price, sort, page, limit }) => {
+const getProducts = async ({ search, category_id, gender, uniform_type_id, level, min_price, max_price, school_id, sort, page, limit }) => {
   const pageNum = parseInt(page) || 1;
   const limitNum = parseInt(limit) || 12;
   const offset = (pageNum - 1) * limitNum;
@@ -156,6 +174,7 @@ const getProducts = async ({ search, category_id, gender, uniform_type_id, level
   if (level) { where.push(`p.level = ?`); params.push(level); }
   if (min_price) { where.push(`p.price >= ?`); params.push(Number(min_price)); }
   if (max_price) { where.push(`p.price <= ?`); params.push(Number(max_price)); }
+  if (school_id) { where.push(`p.school_name IN (SELECT school_name FROM schools WHERE school_id = ?)`); params.push(Number(school_id)); }
 
   const ORDER_MAP = {
     newest: 'p.created_at DESC',
@@ -165,19 +184,22 @@ const getProducts = async ({ search, category_id, gender, uniform_type_id, level
   const orderBy = ORDER_MAP[sort] || 'p.created_at DESC';
   const whereSQL = `WHERE ${where.join(' AND ')}`;
 
+  // Clone params เพราะต้องใช้ 2 ครั้ง (COUNT + SELECT)
+  const countParams = [...params];
+
   const [[{ total }]] = await db.execute(
     `SELECT COUNT(*) AS total 
    FROM products p
    LEFT JOIN uniform_type ut ON ut.uniform_type_id = p.uniform_type_id
    ${whereSQL}`,
-    params
+    countParams
   );
 
   const [rows] = await db.execute(
     `SELECT
        p.product_id, p.product_title, p.size, p.level,
        p.condition_percent, p.condition_label, p.price, p.status, p.created_at,
-       p.quantity, p.school_name, p.custom_type_name,
+       p.quantity, p.school_name, p.custom_type_name, p.weight,
        COALESCE(p.category_id, ci.category_id) AS category_id,
        p.gender,
        COALESCE(ut.type_name, p.custom_type_name) AS type_name,
@@ -186,15 +208,15 @@ const getProducts = async ({ search, category_id, gender, uniform_type_id, level
        u.user_name AS seller_name,
        GROUP_CONCAT(pi.image_url ORDER BY pi.sort_order SEPARATOR '|||') AS image_urls
      FROM products p
-     LEFT JOIN users         u  ON u.user_id         = p.seller_id
-     LEFT JOIN uniform_type  ut ON ut.uniform_type_id = p.uniform_type_id
-     LEFT JOIN category_item ci ON ci.category_id     = ut.category_id
-     LEFT JOIN product_images pi ON pi.product_id     = p.product_id
+     LEFT JOIN users          u  ON u.user_id          = p.seller_id
+     LEFT JOIN uniform_type   ut ON ut.uniform_type_id = p.uniform_type_id
+     LEFT JOIN category_item  ci ON ci.category_id     = ut.category_id
+     LEFT JOIN product_images pi ON pi.product_id      = p.product_id
      ${whereSQL}
      GROUP BY p.product_id, p.product_title, p.size, p.level,
               p.condition_percent, p.condition_label, p.price, p.status, p.created_at,
               p.quantity, p.category_id, p.gender, p.school_name, p.custom_type_name,
-              ut.type_name, ut.uniform_type_id,
+              p.weight, ut.type_name, ut.uniform_type_id, ut.category_id,
               ci.category_name, ci.category_id, u.user_name
      ORDER BY ${orderBy}
      LIMIT ${limitNum} OFFSET ${offset}`,
@@ -204,6 +226,7 @@ const getProducts = async ({ search, category_id, gender, uniform_type_id, level
   return {
     products: rows.map(row => ({
       ...row,
+      shipping_providers: [],
       images: row.image_urls
         ? row.image_urls.split('|||').map(url => ({ image_url: url }))
         : [],
@@ -245,7 +268,17 @@ const getProductById = async (id) => {
     [id]
   );
 
-  return { ...product, images };
+  // ดึง shipping providers ที่ผู้ขายรองรับ
+  const [shippingRows] = await db.execute(
+    `SELECT sp.provider_id, sp.name, sp.code
+     FROM product_shipping ps
+     JOIN shipping_providers sp ON sp.provider_id = ps.provider_id
+     WHERE ps.product_id = ?
+     ORDER BY sp.name`,
+    [id]
+  );
+
+  return { ...product, images, shipping_providers: shippingRows };
 };
 const getRelatedProducts = async ({ productId, categoryId, gender, level, limit = 6 }) => {
   const where = [`p.status = 'available'`, `p.product_id != ?`];
@@ -434,21 +467,28 @@ const getMatchedProducts = async (project_id) => {
   // ── 2. ดึง needs พร้อม type_name ──────────────────────────
   const [needs] = await db.execute(
     `SELECT
-     sn.student_need_id,
-     sn.uniform_type_id,
-     sn.size,
-     sn.quantity_needed,
-     ut.category_id,
-     ut.gender,
-     ut.type_name,          -- เพิ่ม type_name
-     st.education_level_group AS level
-   FROM student_need sn
-   JOIN students     st ON st.student_id     = sn.student_id
-   JOIN uniform_type ut ON ut.uniform_type_id = sn.uniform_type_id
-   WHERE st.request_id = ?
-     AND sn.status = 'pending'
-     AND sn.quantity_needed > sn.quantity_received`,
-    [project_id]   // ← ใช้ project_id (= request_id) ตรงๆ
+       sn.student_need_id,
+       sn.uniform_type_id,
+       sn.size,
+       sn.quantity_needed,
+       ut.category_id,
+       ut.gender,
+       ut.type_name,
+       st.education_level_group AS level,
+       -- uniform_subtype_name จาก uniform_type_images ของโรงเรียนนี้
+       -- เช่น "ถักรังดุม สีแดง" ที่โรงเรียนกำหนดสำหรับ uniform_type_id=4
+       uti.uniform_subtype_name
+     FROM student_need sn
+     JOIN students     st  ON st.student_id      = sn.student_id
+     JOIN uniform_type ut  ON ut.uniform_type_id  = sn.uniform_type_id
+     LEFT JOIN uniform_type_images uti
+           ON  uti.uniform_type_id = sn.uniform_type_id
+           AND uti.school_id       = ?
+           AND (uti.request_id     = ? OR uti.request_id IS NULL)
+     WHERE st.request_id = ?
+       AND sn.status = 'pending'
+       AND sn.quantity_needed > sn.quantity_received`,
+    [project.school_id, project_id, project_id]
   );
   if (!needs.length) return { products: [], school_info: null };
 
@@ -460,7 +500,7 @@ const getMatchedProducts = async (project_id) => {
        p.size, p.level, p.school_name,
        p.condition_percent, p.condition_label,
        p.price, p.quantity, p.status, p.created_at,
-       p.shipping_name, p.shipping_price,
+       p.weight,
        COALESCE(p.category_id, ci.category_id) AS category_id,
        COALESCE(p.gender, ut.gender)            AS gender,
        COALESCE(ut.type_name, p.custom_type_name) AS type_name,
@@ -468,6 +508,7 @@ const getMatchedProducts = async (project_id) => {
        ci.category_name,
        u.user_name  AS seller_name,
        u.user_phone AS seller_phone,
+       GROUP_CONCAT(DISTINCT sp.name ORDER BY sp.name SEPARATOR '|||') AS shipping_providers,
        GROUP_CONCAT(pi.image_url ORDER BY pi.sort_order SEPARATOR '|||') AS image_urls,
        MAX(CASE WHEN pi.is_cover = 1 THEN pi.image_url END) AS cover_image
      FROM products p
@@ -475,6 +516,8 @@ const getMatchedProducts = async (project_id) => {
      LEFT JOIN uniform_type   ut ON ut.uniform_type_id  = p.uniform_type_id
      LEFT JOIN category_item  ci ON ci.category_id      = ut.category_id
      LEFT JOIN product_images pi ON pi.product_id       = p.product_id
+     LEFT JOIN product_shipping ps ON ps.product_id     = p.product_id
+     LEFT JOIN shipping_providers sp ON sp.provider_id  = ps.provider_id
      WHERE p.status = 'available' AND p.quantity > 0
      GROUP BY p.product_id`
   );
@@ -522,10 +565,9 @@ const getMatchedProducts = async (project_id) => {
     const pTokens = new Set(tokenize(productTypeName));
     if (!nTokens.length) return 0;
     const matched = nTokens.filter(t => pTokens.has(t)).length;
-    return matched / nTokens.length; // 0 = ไม่ตรงเลย, 1 = ตรงทุกคำ
+    return matched / nTokens.length;
   };
 
-  // threshold: ต้องตรงอย่างน้อย 50% ของ keyword ของ need จึงจะนับว่า keyword match
   const KEYWORD_THRESHOLD = 0.5;
 
   const productScore = new Map(); // product_id → { score, need_id, type_name }
@@ -535,7 +577,12 @@ const getMatchedProducts = async (project_id) => {
     const nGender = need.gender || null;
     const nLevel = normalizeLevel(need.level);
     const nTypeId = Number(need.uniform_type_id);
-    const nTypeName = need.type_name || "";
+    // ใช้ uniform_subtype_name (ชื่อที่โรงเรียนกำหนด เช่น "ถักรังดุม สีแดง") เป็น primary
+    // ถ้าไม่มีค่อยใช้ type_name ทั่วไป (เช่น "กระโปรงนักเรียนหญิง")
+    const nTypeName = (need.uniform_subtype_name || need.type_name || "").trim();
+    // เก็บทั้งสองชื่อเพื่อ match ได้ทั้งคู่
+    const nTypeNameGeneral = (need.type_name || "").trim();
+    const nSubtypeName = (need.uniform_subtype_name || "").trim();
 
     for (const p of products) {
       const pCat = Number(p.category_id);
@@ -547,25 +594,43 @@ const getMatchedProducts = async (project_id) => {
       const sizeOk = matchSize(p.size, need.size);
       if (!sizeOk) continue;
 
-      // ── type matching: 3 ระดับ ────────────────────────────────
-      // ระดับ 1: uniform_type_id ตรงเป๊ะ → type_score = 3
-      // ระดับ 2: custom_type_name / type_name มี keyword ตรงกัน → type_score = 1–2 (สัดส่วน * 2)
-      // ระดับ 3: ไม่มีชื่อตรงเลย แต่ category+gender+size ผ่าน → type_score = 0 (ยังแสดงได้ แต่คะแนนต่ำ)
+      // ── type matching ────────────────────────────────────────
+      // ระดับ 1: uniform_type_id ตรงเป๊ะ → score = 3
+      // ระดับ 2: uniform_subtype_name ของโรงเรียน match กับ custom_type_name ของสินค้า
+      //          เช่น need.subtype="ถักรังดุม สีแดง" == product.custom_type_name="ถักรังดุม สีแดง"
+      // ระดับ 3: keyword ของ type_name ตรงกัน ≥ 50%
+      // ไม่มี fallback — ต้องตรงจริงเท่านั้น
       const pTypeId = Number(p.uniform_type_id);
-
-      // ชื่อ type ของ product: ใช้ type_name จาก uniform_type ก่อน ถ้าไม่มีใช้ custom_type_name
-      const pTypeName = (p.type_name || p.custom_type_name || "").trim();
+      // ชื่อ type ของ product: custom_type_name (ที่ seller กรอก) หรือ type_name จาก uniform_type
+      const pCustomName = (p.custom_type_name || "").trim();
+      const pTypeName   = (p.type_name || p.custom_type_name || "").trim();
 
       let typeScore = 0;
       if (pTypeId && pTypeId === nTypeId) {
+        // ระดับ 1: type_id ตรงกัน
         typeScore = 3;
+      } else if (
+        nSubtypeName &&
+        pCustomName &&
+        nSubtypeName.toLowerCase() === pCustomName.toLowerCase()
+      ) {
+        // ระดับ 2: uniform_subtype_name ของโรงเรียน == custom_type_name ของ product (exact string)
+        typeScore = 3;
+      } else if (
+        nSubtypeName &&
+        pCustomName &&
+        keywordScore(nSubtypeName, pCustomName) >= KEYWORD_THRESHOLD
+      ) {
+        // ระดับ 2b: keyword match ระหว่าง subtype_name และ custom_type_name
+        typeScore = 2;
       } else {
-        const kw = keywordScore(nTypeName, pTypeName);
+        // ระดับ 3: keyword match ระหว่าง type_name ทั่วไป
+        const kw = keywordScore(nTypeNameGeneral, pTypeName);
         if (kw >= KEYWORD_THRESHOLD) {
           typeScore = Math.round(kw * 2);
         }
       }
-      if (typeScore === 0) continue;  // ← เพิ่มบรรทัดนี้
+      if (typeScore === 0) continue;
 
       const pLevel = normalizeLevel(p.level);
 
@@ -595,7 +660,11 @@ const getMatchedProducts = async (project_id) => {
     .map(p => ({
       ...p,
       match_score: productScore.get(p.product_id).score,
-      matched_type_name: productScore.get(p.product_id).type_name, // ← เพิ่ม
+      matched_type_name: productScore.get(p.product_id).type_name,
+      // แปลง shipping_providers string → array
+      shipping_providers: p.shipping_providers
+        ? p.shipping_providers.split("|||").filter(Boolean)
+        : [],
       images: p.image_urls
         ? p.image_urls.split("|||").map(url => ({ image_url: url }))
         : [],

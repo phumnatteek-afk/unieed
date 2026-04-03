@@ -46,7 +46,7 @@ export default function HomePage() {
   const autoTimerRef = useRef(null);
   const AUTO_MS = 3500;
 
-  // ===== helper: shuffle (สุ่มครั้งเดียวแบบนิ่ง ไม่สุ่มใหม่ทุก render) (เพิ่ม)
+  // ===== helper: shuffle (randomize once statically, not on every render) (added)
   function shuffleArray(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -77,7 +77,7 @@ export default function HomePage() {
 
         setStats(data.stats || {});
 
-        // ✅ projects: set ครั้งเดียว + สุ่มครั้งเดียวหลังโหลด
+        // ✅ projects: set once + randomize once after load
         const list = Array.isArray(data.projects) ? data.projects : [];
         setProjects(list);
         setRandomProjects(shuffleArray(list));
@@ -241,7 +241,7 @@ export default function HomePage() {
           </svg>
         </>
       ),
-      title: "เตรียมชุดนักเรียน / เลือกซื้อชุดนักเรียนส่งไปบริจาค",
+      title: "Prepare school uniform / Choose to buy school uniform to donate",
     },
     {
       no: 2,

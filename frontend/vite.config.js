@@ -7,15 +7,20 @@ export default defineConfig({
     host: true,
     port: 5173,
     allowedHosts: ["draven-achronychous-hazel.ngrok-free.dev"],
+    // ✅ เพิ่มตรงนี้
+    headers: {
+      "Cross-Origin-Opener-Policy": "unsafe-none",
+      "Cross-Origin-Embedder-Policy": "unsafe-none",
+    },
     proxy: {
-      "/api": {                          // ← เปลี่ยนจาก /market เป็น /api
+      "/api": {
         target: "http://localhost:3000",
         changeOrigin: true,
       },
-      "/school": {                        // ← เพิ่มตรงนี้
-    target: "http://localhost:3000",
-    changeOrigin: true,
-  },
+      "/school": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
   },
 })

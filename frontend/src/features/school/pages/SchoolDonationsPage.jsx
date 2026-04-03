@@ -288,11 +288,13 @@ export default function SchoolDonationPage() {
                             <Icon icon="mdi:package-variant-closed" width="14" />
                             <span>ส่งพัสดุ : {d.shipping_carrier}</span>
                           </div>
-                          {d.tracking_number && (
+                          {d.tracking_number ? (
                             <button className="sdTrackBtn"
                               onClick={e => { e.stopPropagation(); openTracking(d.shipping_carrier, d.tracking_number); }}>
                               #{d.tracking_number}
                             </button>
+                          ) : (
+                            <span className="sdTrackPending">รอร้านค้าอัปเดต</span>
                           )}
                         </div>
                       ) : (
