@@ -415,25 +415,55 @@ export async function createStudentWithNeeds(req, res) {
   if (!Array.isArray(needs) || needs.length === 0) {
     return res.status(400).json({ message: "ต้องเพิ่มอย่างน้อย 1 รายการความต้องการ" });
   }
+
+  // ── backend validation (defense in depth) ─────────────
+  const nameStr = String(student_name ?? "").trim();
+  if (/^\d+$/.test(nameStr))
+    return res.status(400).json({ message: "ชื่อ-นามสกุลไม่สามารถเป็นตัวเลขล้วนได้" });
+  if (nameStr.length < 3)
+    return res.status(400).json({ message: "ชื่อ-นามสกุลสั้นเกินไป (อย่างน้อย 3 ตัวอักษร)" });
+  if (!/\s/.test(nameStr))
+    return res.status(400).json({ message: "กรุณากรอกทั้งชื่อและนามสกุล (คั่นด้วยช่องว่าง)" });
+  if (!["male", "female"].includes(genderDb))
+    return res.status(400).json({ message: `เพศไม่ถูกต้อง: "${gender}"` });
+  if (!["อนุบาล", "ประถมศึกษา", "มัธยมตอนต้น", "มัธยมตอนปลาย"].includes(education_level))
+    return res.status(400).json({ message: `ระดับชั้นไม่ถูกต้อง: "${education_level}"` });
+  if (!["very_urgent", "urgent", "can_wait"].includes(urgency || "can_wait"))
+    return res.status(400).json({ message: `ความเร่งด่วนไม่ถูกต้อง: "${urgency}"` });
  
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
  
-    // ✅ FIX: เช็คชื่อซ้ำในโครงการเดียวกัน
+    // ── ตรวจซ้ำ: ชื่อ + เพศ + ระดับชั้น ตรงกัน → ถือว่าคนเดียวกัน ──
     const [dupCheck] = await conn.query(
-      `SELECT student_id FROM students
-       WHERE school_id = ? AND request_id = ? AND student_name = ?
+      `SELECT student_id, student_name FROM students
+       WHERE school_id = ? AND request_id = ?
+         AND LOWER(TRIM(student_name)) = LOWER(TRIM(?))
+         AND gender = ? AND education_level = ?
        LIMIT 1`,
-      [school_id, request_id, student_name.trim()]
+      [school_id, request_id, student_name.trim(), genderDb, education_level]
     );
     if (dupCheck[0]) {
       await conn.rollback();
       conn.release();
       return res.status(409).json({
-        message: `มีนักเรียนชื่อ "${student_name.trim()}" ในโครงการนี้อยู่แล้ว`,
+        message: `มีนักเรียนชื่อ "${student_name.trim()}" เพศ${gender} ระดับ${education_level} ในโครงการนี้อยู่แล้ว`,
+        student_id: dupCheck[0].student_id,
+        code: "DUPLICATE_STUDENT",
       });
     }
+
+    // ── ตรวจซ้ำแบบ "คล้ายกัน" (ชื่อ+เพศ ตรงกัน ต่างแค่ระดับ) → แจ้งเตือนแต่ไม่บล็อก ──
+    const [similarCheck] = await conn.query(
+      `SELECT student_id, student_name, education_level FROM students
+       WHERE school_id = ? AND request_id = ?
+         AND LOWER(TRIM(student_name)) = LOWER(TRIM(?))
+         AND gender = ?
+       LIMIT 1`,
+      [school_id, request_id, student_name.trim(), genderDb]
+    );
+    // (ไม่บล็อก — เพียง log ไว้, frontend จัดการ warning เอง)
  
     const [ins] = await conn.query(
       `INSERT INTO students

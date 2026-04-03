@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import "../styles/studentModal.css";
+import { validateName, validateStudent, detectDuplicatesWithExisting } from "../../../utils/studentValidation.js";
 
 const emptyNeed = () => ({
   uniform_type_id: "",
@@ -37,7 +38,7 @@ const URGENCY_OPTIONS = [
   { value: "can_wait", label: "รอได้", color: "#29B6E8", bg: "#E0F7FF", dot: "#29B6E8" },
 ];
 
-export default function StudentModal({ open, onClose, onSave, uniformTypes = [], initial }) {
+export default function StudentModal({ open, onClose, onSave, uniformTypes = [], initial, existingStudents = [] }) {
   const isEdit = !!initial;
   const [student_name, setName] = useState("");
   const [education_level, setGrade] = useState("ประถมศึกษา");
@@ -85,7 +86,24 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
     setActiveNeed((a) => Math.max(0, a >= idx ? a - 1 : a));
   };
 
+  // ── validation real-time ──────────────────────────────
+  const nameErrors = useMemo(() => validateName(student_name), [student_name]);
+
+  // duplicate check กับ existing students (ยกเว้นตัวเองตอน edit)
+  const dupWarning = useMemo(() => {
+    if (!student_name.trim() || nameErrors.length) return null;
+    const othersInDB = existingStudents.filter(s =>
+      !isEdit || s.student_id !== initial?.student_id
+    );
+    const candidate = [{ student_name, gender, education_level, urgency, needs }];
+    const dups = detectDuplicatesWithExisting(candidate, othersInDB);
+    return dups.get(0) || null;
+  }, [student_name, gender, education_level, urgency, needs, existingStudents, isEdit, initial, nameErrors]);
+
+  const [submitErrors, setSubmitErrors] = useState([]);
+
   const canSave = useMemo(() => {
+    if (nameErrors.length) return false;
     if (!student_name.trim() || !needs.length) return false;
     if (support_mode === "recurring" && (!support_years || Number(support_years) <= 0)) return false;
     for (const n of needs) {
@@ -103,12 +121,40 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
       if (rq < 0 || rq > nq) return false;
     }
     return true;
-  }, [student_name, needs, uniformTypes, support_mode, support_years]);
+  }, [student_name, nameErrors, needs, uniformTypes, support_mode, support_years]);
 
   if (!open) return null;
 
   const submit = () => {
+    setSubmitErrors([]);
     if (!canSave) return;
+
+    // final validation ครั้งสุดท้ายก่อนบันทึก
+    const studentData = {
+      student_name: student_name.trim(), gender, education_level, urgency,
+      needs: needs.map(n => ({
+        ...n,
+        uniform_type_id: Number(n.uniform_type_id),
+        quantity_needed: Number(n.quantity_needed),
+        support_mode,
+        support_years: support_mode === "recurring" ? Number(support_years || 1) : null,
+      })),
+      support_mode,
+      support_years: support_mode === "recurring" ? Number(support_years) : null,
+    };
+    const errs = validateStudent(studentData);
+    if (errs.length) { setSubmitErrors(errs); return; }
+
+    // แจ้งเตือน duplicate ก่อนบันทึก
+    if (dupWarning) {
+      const typeLabel = dupWarning.type === "exact"
+        ? "ข้อมูลซ้ำกันทั้งหมด — ยืนยันบันทึกซ้ำ?"
+        : dupWarning.type === "update"
+        ? `พบนักเรียน "${dupWarning.existingStudent.student_name}" ที่ข้อมูลตรงกัน — ยืนยันอัปเดตข้อมูล?`
+        : `ข้อมูลคล้ายกับ "${dupWarning.existingStudent.student_name}" (${dupWarning.matchFields.join(", ")}) — ยืนยันบันทึก?`;
+      if (!window.confirm(typeLabel)) return;
+    }
+
     onSave({
       student_name: student_name.trim(), education_level, gender, urgency,
       needs: needs.map((n) => ({
@@ -159,11 +205,32 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
               <div className="smField smFieldFull">
                 <label className="smLabel">ชื่อ-นามสกุล <span className="smReq">*</span></label>
                 <input
-                  className="smInput"
+                  className={`smInput ${nameErrors.length ? "smInputErr" : dupWarning ? "smInputWarn" : ""}`}
                   value={student_name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => { setName(e.target.value); setSubmitErrors([]); }}
                   placeholder="เช่น เด็กชายสมชาย ใจดี"
                 />
+                {/* แสดง error real-time */}
+                {nameErrors.length > 0 && (
+                  <div className="smFieldErrList">
+                    {nameErrors.map((e, i) => (
+                      <div key={i} className="smFieldErr">
+                        <Icon icon="mdi:alert-circle-outline" width="13" /> {e}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* แสดง duplicate warning */}
+                {!nameErrors.length && dupWarning && (
+                  <div className={`smDupWarn ${dupWarning.type === "exact" ? "smDupExact" : dupWarning.type === "update" ? "smDupUpdate" : "smDupSimilar"}`}>
+                    <Icon icon={dupWarning.type === "update" ? "mdi:refresh-circle" : "mdi:account-alert-outline"} width="14" />
+                    {dupWarning.type === "exact"
+                      ? `⚠️ ข้อมูลซ้ำกันทุก field กับ "${dupWarning.existingStudent.student_name}"`
+                      : dupWarning.type === "update"
+                      ? `🔄 พบนักเรียนชื่อเดียวกัน — จะอัปเดตรายการชุด`
+                      : `⚠️ คล้ายกับ "${dupWarning.existingStudent.student_name}" (${dupWarning.matchFields.join(", ")})`}
+                  </div>
+                )}
               </div>
 
               {/* เพศ */}
@@ -387,6 +454,16 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
             })}
           </div>
         </div>
+
+        {/* ── Submit Errors ──────────────────────────────── */}
+        {submitErrors.length > 0 && (
+          <div className="smSubmitErrBox">
+            <Icon icon="mdi:alert-circle" width="16" />
+            <div>
+              {submitErrors.map((e, i) => <div key={i}>{e}</div>)}
+            </div>
+          </div>
+        )}
 
         {/* ── Footer ─────────────────────────────────────── */}
         <div className="smFoot">
