@@ -79,7 +79,8 @@ export async function getDonationsByProject(request_id) {
        donation_id, donor_id, donor_name, donor_phone,
        donation_date, donation_time, delivery_method,
        shipping_carrier, tracking_number,
-       donation_pic, items_snapshot,   -- ← เพิ่ม items_snapshot
+       donation_pic, items_snapshot,
+       market_order_id,          -- ✅ เพิ่มบรรทัดนี้
        quantity, status, condition_status, created_at
      FROM donation_record
      WHERE request_id = ?
@@ -174,3 +175,11 @@ export async function insertFulfillment(conn, donation_id, request_id, items) {
     );
   }
 }
+
+export async function updateDonorName(donation_id, donor_name) {
+  await db.query(
+    "UPDATE donation_record SET donor_name = ? WHERE donation_id = ?",
+    [donor_name, donation_id]
+  );
+}
+ 

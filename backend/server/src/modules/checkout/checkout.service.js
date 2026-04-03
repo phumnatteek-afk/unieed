@@ -1077,30 +1077,85 @@ const placeOrder = async ({
       const [[buyer]] = await conn.execute(
         "SELECT user_name, user_phone FROM users WHERE user_id = ?", [userId]
       );
+
+      // ✅ ดึงชื่อสินค้า + uniform_type_id + education_level จาก products
+      const productIdList = items.map(i => i.product_id);
+      const ph2 = productIdList.map(() => "?").join(",");
+      const [productDetails] = await conn.execute(
+        `SELECT p.product_id,
+                COALESCE(ut.type_name, p.custom_type_name, p.product_title) AS name,
+                p.uniform_type_id,
+                p.education_level
+         FROM products p
+         LEFT JOIN uniform_type ut ON ut.uniform_type_id = p.uniform_type_id
+         WHERE p.product_id IN (${ph2})`,
+        productIdList
+      );
+      const productMap = Object.fromEntries(
+        productDetails.map(p => [p.product_id, p])
+      );
+
+      // ✅ สร้าง items_snapshot ในรูปแบบเดียวกับ donation ปกติ
+      const donationItems = items.map(i => {
+        const d = productMap[i.product_id] || {};
+        return {
+          product_id:      i.product_id,
+          name:            d.name || `สินค้า #${i.product_id}`,
+          uniform_type_id: d.uniform_type_id || null,
+          education_level: d.education_level || null,
+          quantity:        i.quantity,
+          price:           i.price,
+        };
+      });
+
       const totalQty = items.reduce((s, i) => s + i.quantity, 0);
+
+      // ✅ แก้ delivery_method → 'market_purchase', เพิ่ม market_order_id + donation_time
       const [donResult] = await conn.execute(
-`INSERT INTO donation_record
-  (request_id, donor_id, donor_name, donor_phone, delivery_method, donation_date, quantity, status, order_id)
- VALUES (?, ?, ?, ?, 'parcel', CURDATE(), ?, 'pending', ?)`,
-        [requestId, userId, buyer.user_name, buyer.user_phone || shippingPhone, totalQty, orderId]
+        `INSERT INTO donation_record
+           (request_id, donor_id, donor_name, donor_phone,
+            delivery_method, donation_date, donation_time,
+            quantity, status,
+            market_order_id, items_snapshot)
+         VALUES (?, ?, ?, ?, 'market_purchase', CURDATE(), NOW(), ?, 'pending', ?, ?)`,
+        [
+          requestId,
+          userId,
+          buyer.user_name,
+          buyer.user_phone || shippingPhone,
+          totalQty,
+          String(orderId),
+          JSON.stringify(donationItems),
+        ]
       );
-      await conn.execute(
-        `UPDATE donation_record SET items_snapshot = ? WHERE donation_id = ?`,
-        [JSON.stringify(items.map(i => ({ product_id: i.product_id, quantity: i.quantity, price: i.price }))), donResult.insertId]
-      );
-      // Notification โรงเรียน
-      await conn.execute(
-        `INSERT INTO notifications (user_id, type, title, body, ref_id)
-         SELECT u.user_id, 'donation',
-                'มีการซื้อชุดเพื่อส่งต่อให้โรงเรียน',
-                CONCAT(?, ' ซื้อสินค้าจำนวน ', ?, ' ชิ้น เพื่อส่งต่อให้โรงเรียน'),
-                ?
-         FROM users u
-         WHERE u.school_id = (SELECT school_id FROM donation_request WHERE request_id = ?)
-           AND u.role IN ('school', 'admin')
-         LIMIT 5`,
-        [buyer.user_name, totalQty, orderId, requestId]
-      );
+
+      // ✅ Notification โรงเรียน — ใช้ column 'message' (ไม่ใช่ 'body')
+      try {
+        const [projInfo] = await conn.execute(
+          `SELECT school_id FROM donation_request WHERE request_id = ? LIMIT 1`,
+          [requestId]
+        );
+        if (projInfo[0]) {
+          const [admins] = await conn.execute(
+            `SELECT user_id FROM users WHERE school_id = ? AND role = 'school_admin'`,
+            [projInfo[0].school_id]
+          );
+          for (const admin of admins) {
+            await conn.execute(
+              `INSERT INTO notifications
+                 (user_id, type, title, message, ref_id, ref_type, created_at)
+               VALUES (?, 'donation_received', 'มีการบริจาคผ่านการซื้อสินค้า', ?, ?, 'donation', NOW())`,
+              [
+                admin.user_id,
+                `${buyer.user_name} ซื้อสินค้าเพื่อบริจาคให้โรงเรียน (คำสั่งซื้อ #${orderId})`,
+                donResult.insertId,
+              ]
+            );
+          }
+        }
+      } catch (notifErr) {
+        console.error("[placeOrder] notification error:", notifErr.message);
+      }
     }
 
     await conn.commit();

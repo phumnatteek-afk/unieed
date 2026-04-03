@@ -6,114 +6,217 @@
 //   3. แสดง badge "รอ Auto-check" / "Auto-approved โดยระบบ" แทน badge ปกติ
 //   4. แสดง warning banner เมื่อมีรายการที่เกิน 7 วันและยังไม่ confirmed
 // ─────────────────────────────────────────────────────────────────────────────
-
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import "../styles/Schooldonationpage.css";
-
+ 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
-
+ 
 const TRACKING_URLS = {
   "ไปรษณีย์ไทย": (no) => `https://track.thailandpost.co.th/?trackNumber=${no}`,
   "Flash Express": (no) => `https://www.flashexpress.co.th/tracking/?se=${no}`,
   "J&T Express":  (no) => `https://www.jtexpress.co.th/service/track?waybillNo=${no}`,
   "Kerry Express":(no) => `https://th.kex-express.com/th/track/?track=${no}`,
   "Lazada Logistics": () => `https://www.lazada.co.th/helpcenter/`,
+  "SCG Express":  (no) => `https://www.scgexpress.co.th/tracking/?barcode=${no}`,
+  "Best Express": (no) => `https://www.best-inc.co.th/track?numbers=${no}`,
+  "Ninja Van":    (no) => `https://www.ninjavan.co/th-th/tracking?id=${no}`,
 };
-
+ 
+const getTrackingUrl = (carrier, trackingNo) => {
+  const fn = TRACKING_URLS[carrier];
+  return fn
+    ? fn(trackingNo)
+    : `https://www.google.com/search?q=${encodeURIComponent((carrier || "") + " tracking " + trackingNo)}`;
+};
+ 
 const CONDITION_OPTIONS = [
   { value: "usable",     label: "ใช้งานได้",   color: "#16a34a", bg: "#dcfce7" },
   { value: "wrong_item", label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" },
   { value: "damaged",    label: "เสียหาย",      color: "#dc2626", bg: "#fee2e2" },
 ];
-
+ 
 const STATUS_META = {
   pending:  { label: "รอตรวจสอบ", color: "#d97706", bg: "#fef3c7" },
   approved: { label: "ได้รับแล้ว", color: "#16a34a", bg: "#dcfce7" },
   rejected: { label: "ปฏิเสธ",    color: "#dc2626", bg: "#fee2e2" },
 };
-
+ 
 const CONDITION_META = {
   usable:     { label: "ใช้งานได้",   color: "#16a34a", bg: "#dcfce7" },
   wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" },
   damaged:    { label: "เสียหาย",      color: "#dc2626", bg: "#fee2e2" },
 };
-
+ 
 const TH_MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 const TH_DAYS   = ["อา","จ","อ","พ","พฤ","ศ","ส"];
-
+ 
 const formatDate = (raw) => {
   if (!raw) return "-";
   const d = new Date(raw);
   if (isNaN(d.getTime())) return "-";
   return d.toLocaleDateString("th-TH", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
-
+ 
 const parseItems = (snapshot) => {
   if (!snapshot) return [];
   try { return typeof snapshot === "string" ? JSON.parse(snapshot) : snapshot; }
   catch { return []; }
 };
-
-// ── NEW: ฟังก์ชันตรวจสอบว่าเกิน 7 วันหรือยัง ─────────────────────────────────
+ 
 const isOverdue = (createdAt) => {
   if (!createdAt) return false;
-  const diffMs  = Date.now() - new Date(createdAt).getTime();
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
-  return diffDays >= 7;
+  return (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24) >= 7;
 };
-
+ 
 const getDaysElapsed = (createdAt) => {
   if (!createdAt) return 0;
   return Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24));
 };
-
-// ── NEW: Auto-check status badge ──────────────────────────────────────────────
+ 
+// ── Auto-check Badge ───────────────────────────────────────────────────────
 function AutoCheckBadge({ donation }) {
-  // ยังไม่เกิน 7 วัน — ไม่แสดงอะไร
+  // market_purchase: ไม่ใช้ auto-check (tracking มาจากร้านค้า)
+  if (donation.delivery_method === "market_purchase") {
+    return <span style={{ color: "#e2e8f0" }}>—</span>;
+  }
   if (!isOverdue(donation.created_at) || donation.delivery_method !== "parcel") {
     return <span style={{ color: "#e2e8f0" }}>—</span>;
   }
-
-  // เกิน 7 วัน แต่โรงเรียน approved แล้ว (manual)
   if (donation.status === "approved" && !donation.auto_approved) {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#16a34a", background: "#dcfce7", padding: "3px 9px", borderRadius: 20 }}>
-        <Icon icon="mdi:check" width={12} />
-        ยืนยันโดยโรงเรียน
+      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"#16a34a", background:"#dcfce7", padding:"3px 9px", borderRadius:20 }}>
+        <Icon icon="mdi:check" width={12} /> ยืนยันโดยโรงเรียน
       </span>
     );
   }
-
-  // Auto-approved โดยระบบ
   if (donation.auto_approved) {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#7c3aed", background: "#f3e8ff", padding: "3px 9px", borderRadius: 20 }}>
-        <Icon icon="mdi:robot-outline" width={12} />
-        Auto-approved
+      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"#7c3aed", background:"#f3e8ff", padding:"3px 9px", borderRadius:20 }}>
+        <Icon icon="mdi:robot-outline" width={12} /> Auto-approved
       </span>
     );
   }
-
-  // เกิน 7 วัน + pending → รอ auto-check
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#d97706", background: "#fef3c7", padding: "3px 9px", borderRadius: 20, whiteSpace: "nowrap" }}>
+    <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"#d97706", background:"#fef3c7", padding:"3px 9px", borderRadius:20, whiteSpace:"nowrap" }}>
       <Icon icon="mdi:clock-alert-outline" width={12} />
       รอ Auto-check · {getDaysElapsed(donation.created_at)} วัน
     </span>
   );
 }
-
-// ── Mini Calendar ────────────────────────────────────────────────────────────
+ 
+// ── Delivery cell — แยกตาม delivery_method ───────────────────────────────
+function DeliveryCell({ d, onOpenTracking, onOpenAppt }) {
+  // ── market_purchase ──────────────────────────────────────────────────────
+  if (d.delivery_method === "market_purchase") {
+    return (
+      <div className="sdDelivery">
+        <div className="sdDeliveryRow">
+          {/* ไอคอนถุงช้อปปิ้ง + label */}
+          <Icon icon="mdi:shopping-outline" width="14" color="#5285E8" />
+          <span style={{ color: "#5285E8", fontWeight: 600 }}>ซื้อเพื่อบริจาค</span>
+          {d.shipping_carrier && (
+            <span style={{ color: "#64748b", fontSize: 12 }}>· {d.shipping_carrier}</span>
+          )}
+        </div>
+ 
+        {d.tracking_number ? (
+          // มีเลขพัสดุแล้ว → ลิ้งไปหน้า tracking
+          <button
+            className="sdTrackBtn"
+            onClick={e => { e.stopPropagation(); onOpenTracking(d.shipping_carrier, d.tracking_number); }}
+          >
+            #{d.tracking_number}
+          </button>
+        ) : (
+          // ยังไม่มีเลขพัสดุ
+          <span className="sdTrackPending">รอร้านค้าอัปเดต</span>
+        )}
+ 
+        {/* order reference */}
+        {d.market_order_id && (
+          <span style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>
+            คำสั่งซื้อ #{d.market_order_id}
+          </span>
+        )}
+      </div>
+    );
+  }
+ 
+  // ── parcel ───────────────────────────────────────────────────────────────
+  if (d.delivery_method === "parcel") {
+    return (
+      <div className="sdDelivery">
+        <div className="sdDeliveryRow">
+          <Icon icon="mdi:package-variant-closed" width="14" />
+          <span>ส่งพัสดุ : {d.shipping_carrier}</span>
+        </div>
+        {d.tracking_number ? (
+          <button
+            className="sdTrackBtn"
+            onClick={e => { e.stopPropagation(); onOpenTracking(d.shipping_carrier, d.tracking_number); }}
+          >
+            #{d.tracking_number}
+          </button>
+        ) : (
+          <span className="sdTrackPending">รอร้านค้าอัปเดต</span>
+        )}
+      </div>
+    );
+  }
+ 
+  // ── dropoff ──────────────────────────────────────────────────────────────
+  return (
+    <div className="sdDelivery">
+      <div className="sdDeliveryRow">
+        <Icon icon="mdi:calendar-clock" width="14" />
+        <span>Drop-Off</span>
+      </div>
+      <span style={{ fontSize: 12, color: "#64748b" }}>
+        {formatDate(d.donation_date)}
+        {d.donation_time ? ` ${String(d.donation_time).slice(0,5)} น.` : ""}
+      </span>
+    </div>
+  );
+}
+ 
+// ── Proof / Appointment cell ─────────────────────────────────────────────
+function ProofCell({ d, onOpenAppt }) {
+  if (d.donation_pic) {
+    return (
+      <button className="sdProofBtn" onClick={() => window.open(d.donation_pic, "_blank")}>
+        <Icon icon="mdi:image-outline" width="14" /> ดูรูปภาพ
+      </button>
+    );
+  }
+  if (d.delivery_method === "dropoff") {
+    return (
+      <button className="sdApptBtn" onClick={() => onOpenAppt(d)}>
+        <Icon icon="mdi:calendar-check-outline" width="14" /> ดูการนัด
+      </button>
+    );
+  }
+  // market_purchase: ไม่มีรูปหลักฐาน (ระบบ auto-receive จากระบบ payment)
+  if (d.delivery_method === "market_purchase") {
+    return (
+      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, color:"#5285E8", background:"#eff6ff", padding:"3px 8px", borderRadius:12 }}>
+        <Icon icon="mdi:check-circle-outline" width={13} /> ชำระผ่านระบบ
+      </span>
+    );
+  }
+  return <span style={{ color: "#cbd5e1", fontSize: 13 }}>ไม่มี</span>;
+}
+ 
+// ── Mini Calendar ─────────────────────────────────────────────────────────
 function MiniCalendar({ markedDate }) {
-  const target   = markedDate ? new Date(markedDate) : new Date();
-  const year     = target.getFullYear();
-  const month    = target.getMonth();
-  const marked   = markedDate
-    ? `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,"0")}-${String(target.getDate()).padStart(2,"0")}`
+  const target      = markedDate ? new Date(markedDate) : new Date();
+  const year        = target.getFullYear();
+  const month       = target.getMonth();
+  const marked      = markedDate
+    ? `${year}-${String(month+1).padStart(2,"0")}-${String(target.getDate()).padStart(2,"0")}`
     : null;
-  const firstDay = new Date(year, month, 1).getDay();
+  const firstDay    = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
@@ -136,26 +239,26 @@ function MiniCalendar({ markedDate }) {
     </div>
   );
 }
-
+ 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SchoolDonationPage() {
   const { token } = useAuth();
-
-  const [donations, setDonations]   = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [expandedRow, setExpandedRow] = useState(null);
-  const [search, setSearch]         = useState("");
+ 
+  const [donations,    setDonations]    = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [expandedRow,  setExpandedRow]  = useState(null);
+  const [search,       setSearch]       = useState("");
   const [filterMethod, setFilterMethod] = useState("all");
-
+ 
   const [confirmPopup, setConfirmPopup] = useState(null);
-  const [verifyPopup, setVerifyPopup]   = useState(null);
-  const [apptPopup, setApptPopup]       = useState(null);
-  const [thankMsg, setThankMsg]         = useState("");
-  const [condition, setCondition]       = useState("");
-  const [verifying, setVerifying]       = useState(false);
-
+  const [verifyPopup,  setVerifyPopup]  = useState(null);
+  const [apptPopup,    setApptPopup]    = useState(null);
+  const [thankMsg,     setThankMsg]     = useState("");
+  const [condition,    setCondition]    = useState("");
+  const [verifying,    setVerifying]    = useState(false);
+ 
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
+ 
   const loadDonations = async () => {
     try {
       setLoading(true);
@@ -168,18 +271,18 @@ export default function SchoolDonationPage() {
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
-
+ 
   useEffect(() => { loadDonations(); }, []);
-
+ 
   const summary = useMemo(() => ({
     usable:     donations.filter(d => d.condition_status === "usable").length,
     wrong_item: donations.filter(d => d.condition_status === "wrong_item").length,
     damaged:    donations.filter(d => d.condition_status === "damaged").length,
     approved:   donations.filter(d => d.status === "approved").length,
     pending:    donations.filter(d => d.status === "pending").length,
+    market:     donations.filter(d => d.delivery_method === "market_purchase").length,
   }), [donations]);
-
-  // ── NEW: นับรายการที่เกิน 7 วันและยัง pending (parcel) ─────────────────────
+ 
   const overdueCount = useMemo(() =>
     donations.filter(d =>
       d.status === "pending" &&
@@ -187,21 +290,20 @@ export default function SchoolDonationPage() {
       isOverdue(d.created_at)
     ).length,
   [donations]);
-
+ 
   const filtered = useMemo(() => donations.filter(d => {
     const matchMethod = filterMethod === "all" || d.delivery_method === filterMethod;
     const matchSearch = !search ||
       d.donor_name?.toLowerCase().includes(search.toLowerCase()) ||
-      d.tracking_number?.toLowerCase().includes(search.toLowerCase());
+      d.tracking_number?.toLowerCase().includes(search.toLowerCase()) ||
+      d.market_order_id?.toLowerCase().includes(search.toLowerCase());
     return matchMethod && matchSearch;
   }), [donations, filterMethod, search]);
-
+ 
   const openTracking = (carrier, trackingNo) => {
-    const fn  = TRACKING_URLS[carrier];
-    const url = fn ? fn(trackingNo) : `https://www.google.com/search?q=${encodeURIComponent(carrier+" tracking "+trackingNo)}`;
-    window.open(url, "_blank");
+    window.open(getTrackingUrl(carrier, trackingNo), "_blank");
   };
-
+ 
   const handleConfirm = async (donation) => {
     try {
       await fetch(`${BASE}/donations/${donation.donation_id}/status`, {
@@ -213,7 +315,7 @@ export default function SchoolDonationPage() {
       loadDonations();
     } catch (e) { console.error(e); }
   };
-
+ 
   const handleVerify = async () => {
     if (!condition) return alert("กรุณาเลือกสภาพชุด");
     try {
@@ -230,7 +332,7 @@ export default function SchoolDonationPage() {
     } catch (e) { console.error(e); }
     finally { setVerifying(false); }
   };
-
+ 
   const openVerifyPopup = (donation) => {
     setVerifyPopup(donation);
     setCondition("");
@@ -239,71 +341,75 @@ export default function SchoolDonationPage() {
       `การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`
     );
   };
-
+ 
   return (
     <div className="sdPage">
       <h1 className="sdTitle">ติดตามการบริจาค</h1>
-
-      {/* ── NEW: Warning banner เมื่อมีรายการเกิน 7 วัน ── */}
+ 
+      {/* Warning: รายการเกิน 7 วัน */}
       {overdueCount > 0 && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          background: "#fffbeb", border: "1px solid #fde68a",
-          borderRadius: 10, padding: "12px 16px", marginBottom: 20,
-          fontSize: 13, color: "#92400e",
-        }}>
-          <Icon icon="mdi:clock-alert-outline" width={20} color="#d97706" style={{ flexShrink: 0 }} />
-          <span>
-            มี <strong>{overdueCount} รายการ</strong> ที่ผ่านมาแล้วเกิน 7 วันและยังไม่ได้รับการยืนยัน
-            — ระบบจะทำการ Auto-check สถานะพัสดุให้อัตโนมัติ
-          </span>
-          <Icon icon="mdi:robot-outline" width={18} color="#d97706" style={{ marginLeft: "auto", flexShrink: 0 }} />
+        <div style={{ display:"flex", alignItems:"center", gap:12, background:"#fffbeb", border:"1px solid #fde68a", borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:13, color:"#92400e" }}>
+          <Icon icon="mdi:clock-alert-outline" width={20} color="#d97706" style={{ flexShrink:0 }} />
+          <span>มี <strong>{overdueCount} รายการ</strong> ที่ผ่านมาแล้วเกิน 7 วันและยังไม่ได้รับการยืนยัน — ระบบจะทำการ Auto-check สถานะพัสดุให้อัตโนมัติ</span>
+          <Icon icon="mdi:robot-outline" width={18} color="#d97706" style={{ marginLeft:"auto", flexShrink:0 }} />
         </div>
       )}
-
+ 
       {/* Summary cards */}
       <div className="sdSummaryRow">
-        <div className="sdSummaryCard" style={{ borderColor: "#2563eb" }}>
+        <div className="sdSummaryCard" style={{ borderColor:"#2563eb" }}>
           <span className="sdSummaryLabel">ใช้งานได้</span>
-          <span className="sdSummaryVal" style={{ color: "#2563eb" }}>{summary.usable}</span>
+          <span className="sdSummaryVal" style={{ color:"#2563eb" }}>{summary.usable}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor: "#d97706" }}>
+        <div className="sdSummaryCard" style={{ borderColor:"#d97706" }}>
           <span className="sdSummaryLabel">รายการไม่ตรง</span>
-          <span className="sdSummaryVal" style={{ color: "#d97706" }}>{summary.wrong_item}</span>
+          <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.wrong_item}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor: "#dc2626" }}>
+        <div className="sdSummaryCard" style={{ borderColor:"#dc2626" }}>
           <span className="sdSummaryLabel">เสียหาย</span>
-          <span className="sdSummaryVal" style={{ color: "#dc2626" }}>{summary.damaged}</span>
+          <span className="sdSummaryVal" style={{ color:"#dc2626" }}>{summary.damaged}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor: "#16a34a" }}>
-          <span className="sdSummaryDot" style={{ background: "#16a34a" }} />
+        <div className="sdSummaryCard" style={{ borderColor:"#16a34a" }}>
+          <span className="sdSummaryDot" style={{ background:"#16a34a" }} />
           <span className="sdSummaryLabel">ได้รับแล้ว</span>
-          <span className="sdSummaryVal" style={{ color: "#16a34a" }}>{summary.approved}</span>
+          <span className="sdSummaryVal" style={{ color:"#16a34a" }}>{summary.approved}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor: "#d97706" }}>
-          <span className="sdSummaryDot" style={{ background: "#d97706" }} />
+        <div className="sdSummaryCard" style={{ borderColor:"#d97706" }}>
+          <span className="sdSummaryDot" style={{ background:"#d97706" }} />
           <span className="sdSummaryLabel">รอตรวจสอบ</span>
-          <span className="sdSummaryVal" style={{ color: "#d97706" }}>{summary.pending}</span>
+          <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.pending}</span>
         </div>
-        {/* ── NEW: overdue summary card ── */}
+        {/* ซื้อเพื่อบริจาค */}
+        {summary.market > 0 && (
+          <div className="sdSummaryCard" style={{ borderColor:"#5285E8" }}>
+            <span className="sdSummaryDot" style={{ background:"#5285E8" }} />
+            <span className="sdSummaryLabel">ซื้อเพื่อบริจาค</span>
+            <span className="sdSummaryVal" style={{ color:"#5285E8" }}>{summary.market}</span>
+          </div>
+        )}
         {overdueCount > 0 && (
-          <div className="sdSummaryCard" style={{ borderColor: "#7c3aed" }}>
-            <span className="sdSummaryDot" style={{ background: "#7c3aed" }} />
+          <div className="sdSummaryCard" style={{ borderColor:"#7c3aed" }}>
+            <span className="sdSummaryDot" style={{ background:"#7c3aed" }} />
             <span className="sdSummaryLabel">รอ Auto-check</span>
-            <span className="sdSummaryVal" style={{ color: "#7c3aed" }}>{overdueCount}</span>
+            <span className="sdSummaryVal" style={{ color:"#7c3aed" }}>{overdueCount}</span>
           </div>
         )}
       </div>
-
+ 
       {/* Toolbar */}
       <div className="sdToolbar">
         <div className="sdSearchWrap">
           <Icon icon="mdi:magnify" width="18" color="#aaa" />
-          <input className="sdSearch" placeholder="ค้นหาชื่อผู้บริจาค หรือ เลขพัสดุ......"
+          <input className="sdSearch" placeholder="ค้นหาชื่อผู้บริจาค หรือ เลขพัสดุ / คำสั่งซื้อ..."
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="sdFilterGroup">
-          {[["all","ทั้งหมด"],["parcel","จัดส่งพัสดุ"],["dropoff","Drop-Off"]].map(([v,l]) => (
+          {[
+            ["all",              "ทั้งหมด"],
+            ["parcel",           "จัดส่งพัสดุ"],
+            ["dropoff",          "Drop-Off"],
+            ["market_purchase",  "ซื้อเพื่อบริจาค"],
+          ].map(([v, l]) => (
             <label key={v} className="sdRadio">
               <input type="radio" name="method" value={v}
                 checked={filterMethod === v} onChange={() => setFilterMethod(v)} />
@@ -312,7 +418,7 @@ export default function SchoolDonationPage() {
           ))}
         </div>
       </div>
-
+ 
       {/* Table */}
       <div className="sdTableWrap">
         <table className="sdTable">
@@ -325,7 +431,6 @@ export default function SchoolDonationPage() {
               <th>รายการบริจาค</th>
               <th>สถานะ</th>
               <th>การใช้งาน</th>
-              {/* ── NEW column ── */}
               <th>Auto-check</th>
               <th>จัดการ</th>
             </tr>
@@ -336,84 +441,57 @@ export default function SchoolDonationPage() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={9} style={{ textAlign:"center", padding:"48px", color:"#94a3b8" }}>ยังไม่มีรายการ</td></tr>
             ) : filtered.map(d => {
-              const isExpanded  = expandedRow === d.donation_id;
-              const items       = parseItems(d.items_snapshot);
-              const statusMeta  = STATUS_META[d.status] || STATUS_META.pending;
+              const isExpanded    = expandedRow === d.donation_id;
+              const items         = parseItems(d.items_snapshot);
+              const statusMeta    = STATUS_META[d.status] || STATUS_META.pending;
               const conditionMeta = d.condition_status ? CONDITION_META[d.condition_status] : null;
-              // ── highlight row ที่เกิน 7 วันและยัง pending ──
               const overdue = isOverdue(d.created_at) && d.status === "pending" && d.delivery_method === "parcel";
-
+              // market_purchase rows: ไฮไลต์สีฟ้าอ่อน
+              const isMarket = d.delivery_method === "market_purchase";
+ 
               return (
                 <>
                   <tr key={d.donation_id}
                     className={`sdRow ${isExpanded ? "sdRowExpanded" : ""}`}
-                    style={overdue ? { background: "#fffbeb" } : {}}
+                    style={
+                      isMarket ? { background:"#f0f5ff" } :
+                      overdue  ? { background:"#fffbeb" } : {}
+                    }
                     onClick={() => setExpandedRow(isExpanded ? null : d.donation_id)}
                   >
                     {/* วันที่ */}
                     <td style={{ whiteSpace:"nowrap", fontSize:13 }}>
                       {formatDate(d.created_at)}
                       {overdue && (
-                        <div style={{ fontSize:10, color:"#d97706", marginTop:2, fontWeight:600 }}>
-                          เกิน 7 วัน
-                        </div>
+                        <div style={{ fontSize:10, color:"#d97706", marginTop:2, fontWeight:600 }}>เกิน 7 วัน</div>
+                      )}
+                      {isMarket && (
+                        <div style={{ fontSize:10, color:"#5285E8", marginTop:2, fontWeight:600 }}>ซื้อบริจาค</div>
                       )}
                     </td>
-
+ 
                     {/* ผู้บริจาค */}
                     <td className="sdDonorName">{d.donor_name}</td>
-
+ 
                     {/* การจัดส่ง */}
                     <td>
-                      {d.delivery_method === "parcel" ? (
-                        <div className="sdDelivery">
-                          <div className="sdDeliveryRow">
-                            <Icon icon="mdi:package-variant-closed" width="14" />
-                            <span>ส่งพัสดุ : {d.shipping_carrier}</span>
-                          </div>
-                          {d.tracking_number ? (
-                            <button className="sdTrackBtn"
-                              onClick={e => { e.stopPropagation(); openTracking(d.shipping_carrier, d.tracking_number); }}>
-                              #{d.tracking_number}
-                            </button>
-                          ) : (
-                            <span className="sdTrackPending">รอร้านค้าอัปเดต</span>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="sdDelivery">
-                          <div className="sdDeliveryRow">
-                            <Icon icon="mdi:calendar-clock" width="14" />
-                            <span>Drop-Off</span>
-                          </div>
-                          <span style={{ fontSize:12, color:"#64748b" }}>
-                            {formatDate(d.donation_date)}
-                            {d.donation_time ? ` ${String(d.donation_time).slice(0,5)} น.` : ""}
-                          </span>
-                        </div>
-                      )}
+                      <DeliveryCell
+                        d={d}
+                        onOpenTracking={openTracking}
+                        onOpenAppt={setApptPopup}
+                      />
                     </td>
-
+ 
                     {/* หลักฐาน */}
                     <td onClick={e => e.stopPropagation()}>
-                      {d.donation_pic ? (
-                        <button className="sdProofBtn" onClick={() => window.open(d.donation_pic,"_blank")}>
-                          <Icon icon="mdi:image-outline" width="14" />ดูรูปภาพ
-                        </button>
-                      ) : d.delivery_method === "dropoff" ? (
-                        <button className="sdApptBtn" onClick={() => setApptPopup(d)}>
-                          <Icon icon="mdi:calendar-check-outline" width="14" />ดูการนัด
-                        </button>
-                      ) : (
-                        <span style={{ color:"#cbd5e1", fontSize:13 }}>ไม่มี</span>
-                      )}
+                      <ProofCell d={d} onOpenAppt={setApptPopup} />
                     </td>
-
+ 
                     {/* รายการ */}
                     <td>
                       <span className="sdItemCount">{items.length} รายการ · {d.quantity} ชิ้น</span>
                     </td>
-
+ 
                     {/* สถานะ */}
                     <td>
                       <span className="sdBadge" style={{ color:statusMeta.color, background:statusMeta.bg }}>
@@ -421,7 +499,7 @@ export default function SchoolDonationPage() {
                         {statusMeta.label}
                       </span>
                     </td>
-
+ 
                     {/* การใช้งาน */}
                     <td>
                       {conditionMeta ? (
@@ -430,12 +508,12 @@ export default function SchoolDonationPage() {
                         </span>
                       ) : <span style={{ color:"#e2e8f0" }}>—</span>}
                     </td>
-
-                    {/* ── NEW: Auto-check column ── */}
+ 
+                    {/* Auto-check */}
                     <td onClick={e => e.stopPropagation()}>
                       <AutoCheckBadge donation={d} />
                     </td>
-
+ 
                     {/* จัดการ */}
                     <td onClick={e => e.stopPropagation()}>
                       <div className="sdActions">
@@ -454,15 +532,22 @@ export default function SchoolDonationPage() {
                       </div>
                     </td>
                   </tr>
-
+ 
                   {/* Expanded row */}
                   {isExpanded && (
                     <tr key={`${d.donation_id}-exp`} className="sdExpandRow">
                       <td colSpan={9}>
                         <div className="sdExpandInner">
+                          {/* market_purchase: แสดง order reference */}
+                          {isMarket && d.market_order_id && (
+                            <div style={{ marginBottom:8, fontSize:12, color:"#5285E8", display:"flex", alignItems:"center", gap:6 }}>
+                              <Icon icon="mdi:shopping-outline" width={14} />
+                              คำสั่งซื้อ #{d.market_order_id}
+                            </div>
+                          )}
                           {items.length === 0 ? (
                             <span style={{ color:"#94a3b8", fontSize:13 }}>ไม่มีข้อมูลรายการ</span>
-                          ) : items.map((item,i) => (
+                          ) : items.map((item, i) => (
                             <div key={i} className="sdExpandItem">
                               <span className="sdExpandDot" />
                               <span className="sdExpandName">{item.name}</span>
@@ -480,7 +565,7 @@ export default function SchoolDonationPage() {
           </tbody>
         </table>
       </div>
-
+ 
       {/* ── Popup: ยืนยัน ── */}
       {confirmPopup && (
         <div className="sdOverlay" onClick={() => setConfirmPopup(null)}>
@@ -498,7 +583,7 @@ export default function SchoolDonationPage() {
           </div>
         </div>
       )}
-
+ 
       {/* ── Popup: ตรวจสอบ ── */}
       {verifyPopup && (
         <div className="sdOverlay" onClick={() => setVerifyPopup(null)}>
@@ -507,21 +592,22 @@ export default function SchoolDonationPage() {
               <Icon icon="mdi:close" width="18" />
             </button>
             <div className="sdPopupTitle">ยืนยันรับบริจาค + ออกใบประกาศนียบัตร</div>
-            <div className="sdPopupSubtitle">จาก {verifyPopup.donor_name} · {formatDate(verifyPopup.created_at)}</div>
-
-            {/* ── NEW: แจ้งเตือนถ้าเกิน 7 วัน ── */}
+            <div className="sdPopupSubtitle">
+              จาก {verifyPopup.donor_name} · {formatDate(verifyPopup.created_at)}
+              {verifyPopup.delivery_method === "market_purchase" && (
+                <span style={{ marginLeft:8, fontSize:11, color:"#5285E8", background:"#eff6ff", padding:"2px 8px", borderRadius:12 }}>
+                  ซื้อเพื่อบริจาค
+                </span>
+              )}
+            </div>
+ 
             {isOverdue(verifyPopup.created_at) && verifyPopup.delivery_method === "parcel" && (
-              <div style={{
-                display:"flex", alignItems:"center", gap:8,
-                background:"#fffbeb", border:"1px solid #fde68a",
-                borderRadius:8, padding:"10px 12px", marginBottom:14,
-                fontSize:12, color:"#92400e",
-              }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, background:"#fffbeb", border:"1px solid #fde68a", borderRadius:8, padding:"10px 12px", marginBottom:14, fontSize:12, color:"#92400e" }}>
                 <Icon icon="mdi:clock-alert-outline" width={16} color="#d97706" />
                 <span>รายการนี้เกิน 7 วันแล้ว — ระบบกำลังติดตามสถานะพัสดุให้อัตโนมัติ การยืนยันด้วยตนเองจะยกเลิก auto-check</span>
               </div>
             )}
-
+ 
             <div className="sdVerifySection">
               <label className="sdVerifyLabel">
                 <Icon icon="mdi:message-text-outline" width="16" />
@@ -529,7 +615,7 @@ export default function SchoolDonationPage() {
               </label>
               <textarea className="sdVerifyTextarea" rows={4} value={thankMsg} onChange={e => setThankMsg(e.target.value)} />
             </div>
-
+ 
             <div className="sdVerifySection">
               <label className="sdVerifyLabel">
                 <Icon icon="mdi:tshirt-crew-outline" width="16" />
@@ -547,19 +633,15 @@ export default function SchoolDonationPage() {
                 ))}
               </div>
             </div>
-
-            <div className="sdVerifyNote" style={{
-              background:"#eff6ff", border:"0.5px solid #bfdbfe", borderRadius:"8px",
-              padding:"10px 12px", fontSize:"12px", color:"#1e40af",
-              display:"flex", alignItems:"flex-start", gap:"8px", marginBottom:"16px",
-            }}>
+ 
+            <div className="sdVerifyNote" style={{ background:"#eff6ff", border:"0.5px solid #bfdbfe", borderRadius:"8px", padding:"10px 12px", fontSize:"12px", color:"#1e40af", display:"flex", alignItems:"flex-start", gap:"8px", marginBottom:"16px" }}>
               <Icon icon="mdi:certificate-outline" width="16" style={{ flexShrink:0, marginTop:"1px" }} />
               <span>
                 เมื่อยืนยัน ระบบจะ<strong> ออกใบประกาศนียบัตรอัตโนมัติ</strong>{" "}
                 และส่ง notification พร้อมข้อความขอบคุณให้ผู้บริจาคทันที
               </span>
             </div>
-
+ 
             <div className="sdPopupActions">
               <button className="sdPopupBtnGhost" onClick={() => setVerifyPopup(null)}>ยกเลิก</button>
               <button className="sdPopupBtnPrimary" onClick={handleVerify} disabled={verifying || !condition}>
@@ -569,7 +651,7 @@ export default function SchoolDonationPage() {
           </div>
         </div>
       )}
-
+ 
       {/* ── Popup: ดูการนัดหมาย drop-off ── */}
       {apptPopup && (
         <div className="sdOverlay" onClick={() => setApptPopup(null)}>
@@ -579,7 +661,7 @@ export default function SchoolDonationPage() {
             </button>
             <div className="sdPopupTitle">รายละเอียดการนัดหมาย</div>
             <div className="sdPopupSubtitle">Drop-Off โดย {apptPopup.donor_name}</div>
-
+ 
             <div className="sdApptLayout">
               <MiniCalendar markedDate={apptPopup.donation_date} />
               <div className="sdSchedule">
@@ -630,7 +712,7 @@ export default function SchoolDonationPage() {
                 </div>
               </div>
             </div>
-
+ 
             <div className="sdPopupActions">
               <button className="sdPopupBtnGhost" onClick={() => setApptPopup(null)}>ปิด</button>
               {apptPopup.status === "pending" && (
@@ -645,3 +727,4 @@ export default function SchoolDonationPage() {
     </div>
   );
 }
+ 

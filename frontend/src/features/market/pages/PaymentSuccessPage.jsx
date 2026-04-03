@@ -1,45 +1,54 @@
-// frontend/src/features/market/pages/PaymentSuccessPage.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import "../styles/PaymentSuccessPage.css";
-
+ 
+const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
+ 
 export default function PaymentSuccessPage() {
-  const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-
+  const { user, token } = useAuth();
+  const location        = useLocation();
+  const navigate        = useNavigate();
+ 
   const {
     orderId,
     isDonation    = false,
     projectTitle  = "",
+    projectId,               // ← project_id / request_id ส่งมาจาก CheckoutPage
     schoolName    = "",
     totalAmount   = 0,
     paymentMethod = "card",
-    // ชื่อผู้บริจาคที่ CheckoutPage ส่งมา (= display_name ของ account)
+    shippingCarrier,         // ← ชื่อขนส่งที่ผู้ขายเลือก (optional ณ ตอนนี้)
+    trackingNumber,          // ← เลขพัสดุ (optional ณ ตอนนี้)
+    orderItems    = [],      // ← [{ name, quantity, uniform_type_id? }]
     donorName: stateDonorName,
   } = location.state || {};
-
-  // ── Donor name ────────────────────────────────────────────
-  // Priority: state จาก navigate → user.user_name → user.display_name → ""
+ 
+  // ── Donor name ────────────────────────────────────────────────────────────
   const defaultDonorName =
     stateDonorName ||
-    user?.user_name ||
     user?.display_name ||
+    user?.user_name ||
     user?.name ||
     user?.username ||
     "";
-
+ 
   const [donorName,   setDonorName]   = useState(defaultDonorName);
   const [editingName, setEditingName] = useState(false);
   const [tempName,    setTempName]    = useState(defaultDonorName);
-
-  // ── Animation ─────────────────────────────────────────────
+ 
+  // ── Donation record state ─────────────────────────────────────────────────
+  const [donationId,      setDonationId]      = useState(null);
+  const [donationLoading, setDonationLoading] = useState(false);
+  const [donationError,   setDonationError]   = useState(null);
+  const submittedRef = useRef(false); // ป้องกัน double-submit
+ 
+  // ── Animation ─────────────────────────────────────────────────────────────
   const [showConfetti, setShowConfetti] = useState(false);
   const [animStep,     setAnimStep]     = useState(0);
   const inputRef = useRef(null);
-
+ 
   useEffect(() => {
     const t1 = setTimeout(() => setAnimStep(1), 100);
     const t2 = setTimeout(() => setAnimStep(2), 600);
@@ -48,37 +57,100 @@ export default function PaymentSuccessPage() {
     const t5 = setTimeout(() => setShowConfetti(false), 3500);
     return () => [t1, t2, t3, t4, t5].forEach(clearTimeout);
   }, []);
-
+ 
   useEffect(() => {
     if (editingName && inputRef.current) inputRef.current.focus();
   }, [editingName]);
-
+ 
   // redirect ถ้าไม่มี orderId
   useEffect(() => {
     if (!orderId) navigate("/", { replace: true });
   }, [orderId, navigate]);
-
-  if (!orderId) return null;
-
-  // ── Handlers ──────────────────────────────────────────────
-  const handleSaveName = () => {
-    setDonorName(tempName.trim() || defaultDonorName);
-    setEditingName(false);
+ 
+  // ── Auto-submit donation record เมื่อ payment สำเร็จ ─────────────────────
+  const submitDonation = useCallback(async (nameToUse) => {
+    if (!isDonation || !orderId || !projectId) return;
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+ 
+    setDonationLoading(true);
+    setDonationError(null);
+    try {
+      const res = await fetch(`${BASE}/donations/from-order`, {
+        method:  "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          order_id:         String(orderId),
+          project_id:       projectId,
+          donor_name:       nameToUse || defaultDonorName || "ผู้ใจดี",
+          shipping_carrier: shippingCarrier || null,
+          tracking_number:  trackingNumber  || null,
+          items:            orderItems,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "ส่งข้อมูลไม่สำเร็จ");
+      setDonationId(data.donation_id);
+    } catch (err) {
+      console.error("[submitDonation]", err);
+      setDonationError(err.message);
+      submittedRef.current = false; // อนุญาตให้ retry
+    } finally {
+      setDonationLoading(false);
+    }
+  }, [isDonation, orderId, projectId, token, defaultDonorName, shippingCarrier, trackingNumber, orderItems]);
+ 
+  // Submit ทันทีที่หน้าโหลด (ใช้ defaultDonorName)
+  useEffect(() => {
+    if (isDonation && orderId && projectId) {
+      submitDonation(defaultDonorName);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once
+ 
+  // ── อัปเดตชื่อบน donation record หลังผู้ใช้แก้ไข ─────────────────────────
+  const updateDonorName = async (newName) => {
+    if (!donationId) return; // ยังไม่มี donation_id → ไม่ต้อง patch
+    try {
+      await fetch(`${BASE}/donations/${donationId}/donor-name`, {
+        method:  "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ donor_name: newName }),
+      });
+    } catch (err) {
+      console.error("[updateDonorName]", err);
+    }
   };
-
+ 
+  if (!orderId) return null;
+ 
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handleSaveName = async () => {
+    const saved = tempName.trim() || defaultDonorName;
+    setDonorName(saved);
+    setEditingName(false);
+    await updateDonorName(saved);
+  };
+ 
   const handleCancelEdit = () => {
     setTempName(donorName);
     setEditingName(false);
   };
-
+ 
   return (
     <div className="psPage">
       {showConfetti && <ConfettiBlast />}
       <div className="psBlob psBlob1" />
       <div className="psBlob psBlob2" />
-
+ 
       <div className="psCard">
-
+ 
         {/* ── Check icon ── */}
         <div className={`psIconWrap ${animStep >= 1 ? "psIconVisible" : ""}`}>
           <svg className="psCircleSvg" viewBox="0 0 100 100">
@@ -87,7 +159,7 @@ export default function PaymentSuccessPage() {
           </svg>
           <Icon icon="mdi:check-bold" className="psCheckIcon" />
         </div>
-
+ 
         {/* ── Title ── */}
         <div className={`psTitleBlock ${animStep >= 2 ? "psFadeUp" : ""}`}>
           {isDonation ? (
@@ -102,10 +174,10 @@ export default function PaymentSuccessPage() {
             </>
           )}
         </div>
-
+ 
         {/* ── Body ── */}
         <div className={`psBody ${animStep >= 3 ? "psFadeUp" : ""}`}>
-
+ 
           {/* Order pill */}
           <div className="psOrderPill">
             <span className="psOrderLabel">คำสั่งซื้อ</span>
@@ -114,11 +186,31 @@ export default function PaymentSuccessPage() {
               <span className="psOrderAmt">{Number(totalAmount).toLocaleString()} บาท</span>
             )}
           </div>
-
+ 
           {/* ── Donation section ── */}
           {isDonation && (
             <div className="psDonationSection">
-
+ 
+              {/* Donation submit status */}
+              {donationLoading && (
+                <div className="psDonationSubmitStatus">
+                  <Icon icon="mdi:loading" className="psSpinner" />
+                  <span>กำลังบันทึกข้อมูลการบริจาค...</span>
+                </div>
+              )}
+              {donationError && (
+                <div className="psDonationSubmitError">
+                  <Icon icon="mdi:alert-circle-outline" />
+                  <span>{donationError}</span>
+                  <button
+                    className="psDonationRetryBtn"
+                    onClick={() => { submittedRef.current = false; submitDonation(donorName); }}
+                  >
+                    ลองอีกครั้ง
+                  </button>
+                </div>
+              )}
+ 
               {/* Certificate note */}
               <div className="psCertCard">
                 <div className="psCertIcon">
@@ -132,7 +224,7 @@ export default function PaymentSuccessPage() {
                   </div>
                 </div>
               </div>
-
+ 
               {/* Project tag */}
               {projectTitle && (
                 <div className="psProjectTag">
@@ -140,14 +232,14 @@ export default function PaymentSuccessPage() {
                   <span>{projectTitle}</span>
                 </div>
               )}
-
+ 
               {/* ── Donor name ── */}
               <div className="psDonorCard">
                 <div className="psDonorLabel">
                   <Icon icon="mdi:account-heart-outline" />
                   บริจาคในนาม
                 </div>
-
+ 
                 {editingName ? (
                   <div className="psDonorEditRow">
                     <input
@@ -182,10 +274,10 @@ export default function PaymentSuccessPage() {
                     </button>
                   </div>
                 )}
-
+ 
                 <p className="psDonorHint">ชื่อนี้จะปรากฏบนใบประกาศนียบัตรของคุณ</p>
               </div>
-
+ 
               {/* Steps */}
               <div className="psStepsCard">
                 <div className="psStepsTitle">ขั้นตอนต่อไป</div>
@@ -206,7 +298,7 @@ export default function PaymentSuccessPage() {
               </div>
             </div>
           )}
-
+ 
           {/* ── Normal purchase section ── */}
           {!isDonation && (
             <div className="psNormalSection">
@@ -220,7 +312,7 @@ export default function PaymentSuccessPage() {
               </div>
             </div>
           )}
-
+ 
           {/* ── Actions ── */}
           <div className="psActions">
             <Link to={`/orders/${orderId}`} className="psBtnPrimary">
@@ -235,8 +327,8 @@ export default function PaymentSuccessPage() {
     </div>
   );
 }
-
-// ── Confetti ──────────────────────────────────────────────
+ 
+// ── Confetti ───────────────────────────────────────────────────────────────
 function ConfettiBlast() {
   const pieces = Array.from({ length: 28 }, (_, i) => ({
     id: i,
@@ -247,7 +339,7 @@ function ConfettiBlast() {
     color: ["#5285E8","#FFBE1B","#22c55e","#f472b6","#a78bfa","#38bdf8"][i % 6],
     rotate: Math.random() * 360,
   }));
-
+ 
   return (
     <div className="psConfetti" aria-hidden>
       {pieces.map(p => (
@@ -269,3 +361,4 @@ function ConfettiBlast() {
     </div>
   );
 }
+ 
