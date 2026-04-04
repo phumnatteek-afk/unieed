@@ -9,6 +9,7 @@ import {
   getShippingOptionsHandler,
   placeOrderHandler,
   checkPaymentStatusHandler,
+  getQrImageHandler, 
 } from "./checkout.controller.js";
 
 const router = express.Router();
@@ -35,6 +36,9 @@ router.post("/orders",               auth, placeOrderHandler);
 
 // Check PromptPay payment status
 router.get("/orders/:id/payment-status", auth, checkPaymentStatusHandler);
+
+// checkout.routes.js
+router.get("/qr-image/:chargeId", auth, getQrImageHandler);
 
 export default router;
 
@@ -75,6 +79,8 @@ export const getOrderDetail = async (orderId, userId) => {
       [orderId]
     );
   } catch { /* table ยังไม่มี */ }
+
+  
 
   return { ...order, items, shipping };
 };

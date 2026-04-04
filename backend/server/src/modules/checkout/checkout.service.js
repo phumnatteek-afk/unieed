@@ -705,6 +705,7 @@ const getCheckoutItemsByProduct = async (userId, productIds) => {
 //   ถ้า subtotal >= free_threshold → price = 0 (ฟรี)
 // ────────────────────────────────────────────────────────
 const getShippingOptions = async (cartItemIds) => {
+  console.log("[getShippingOptions] received ids:", cartItemIds);
   if (!cartItemIds.length) return {};
 
   try {
@@ -792,14 +793,14 @@ const getShippingOptions = async (cartItemIds) => {
     const result = {};
 
     for (const sellerId of sellerIds) {
-      const sellerItems = effectiveItems.filter(i => i.seller_id === sellerId);
+  const sellerItems = effectiveItems.filter(i => Number(i.seller_id) === Number(sellerId));
       const qty         = sellerItems.reduce((s, i) => s + Number(i.quantity), 0);
       const totalWeight = sellerItems.reduce((s, i) => s + (Number(i.weight) || 0) * Number(i.quantity), 0);
       const subtotal    = sellerItems.reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
 
       const validProviders = sellerCommonProviders[sellerId] || new Set();
       const providerDetails = providerRows
-        .filter(r => r.seller_id === sellerId && validProviders.has(r.provider_id));
+  .filter(r => Number(r.seller_id) === Number(sellerId) && validProviders.has(r.provider_id));
 
       // dedupe providers
       const seen = new Set();
@@ -1157,12 +1158,14 @@ const placeOrder = async ({
         console.error("[placeOrder] notification error:", notifErr.message);
       }
     }
+    console.log("[PromptPay] qrBase64 length:", qrBase64?.length);
+    console.log("[PromptPay] authorizeUri:", authorizeUri);
 
     await conn.commit();
     return {
   order_id:      orderId,
   charge_id:     chargeId,
-  qr_base64:     qrBase64,
+  qr_image_url:  chargeId ? `/api/checkout/qr-image/${chargeId}` : null,
   authorize_uri: authorizeUri || null,
 };
 

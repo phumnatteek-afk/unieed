@@ -577,7 +577,7 @@ export default function PostProductPage() {
                           </div>
                         </div>
  
-                        {/* ══ ⑤ น้ำหนักสินค้า (ย้ายมาอยู่ step 1) ══ */}
+                        {/* ══ ⑤ น้ำหนักสินค้า (ย้ายมาอยู่ step 1) ══
                         <div className="ppSection">
                           <div className="ppSectionHeader">
                             <span className="ppSectionDot ppDotGreen" />
@@ -601,7 +601,7 @@ export default function PostProductPage() {
                               <span className="ppUnit">kg</span>
                             </div>
                           </div>
-                        </div>
+                        </div> */}
  
                         {/* ══ ⑥ รายละเอียดเพิ่มเติม (optional) ══ */}
                         <div className="ppSection ppSectionOptional">

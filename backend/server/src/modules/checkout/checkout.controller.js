@@ -7,7 +7,9 @@ import {
   placeOrder,
   checkPaymentStatus,
 } from "./checkout.service.js";
-
+// ต้นไฟล์ checkout.controller.js
+import Omise from "omise";
+const omise = Omise({ secretKey: process.env.OMISE_SECRET_KEY });
 // ── Address ──────────────────────────────────────────────
 export const getAddressesHandler = async (req, res) => {
   try { res.json(await getAddresses(req.user.user_id)); }
@@ -88,14 +90,13 @@ export const placeOrderHandler = async (req, res) => {
     });
 
     res.status(201).json({
-      message:       "สั่งซื้อสำเร็จ",
-      order_id:      result.order_id,
-      charge_id:     result.charge_id,
-      // แปลง base64 → data URI ให้ frontend ใช้เป็น <img src> ได้เลย
-      qr_image_url:  result.qr_base64
-                       ? `data:image/png;base64,${result.qr_base64}`
-                       : null,
-      authorize_uri: result.authorize_uri || null,
+      message:    "สั่งซื้อสำเร็จ",
+      order_id:   result.order_id,
+      charge_id:  result.charge_id,
+      qr_image_url: result.qr_base64
+    ? `data:image/png;base64,${result.qr_base64}`
+    : null,
+  authorize_uri: result.authorize_uri || null, // fallback URL ถ้าดึง QR ไม่ได้
     });
   } catch (err) {
     console.error("[placeOrder]", err);
@@ -110,5 +111,27 @@ export const checkPaymentStatusHandler = async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(err.status || 500).json({ message: err.message });
+  }
+};
+
+export const getQrImageHandler = async (req, res) => {
+  try {
+    const charge = await omise.charges.retrieve(req.params.chargeId);
+    const dlUri  = charge.source?.scannable_code?.image?.download_uri;
+    if (!dlUri) return res.status(404).json({ message: "ไม่พบ QR image" });
+
+    const imgRes = await fetch(dlUri, {
+      headers: {
+        Authorization: "Basic " + Buffer.from(process.env.OMISE_SECRET_KEY + ":").toString("base64"),
+      },
+    });
+
+    if (!imgRes.ok) return res.status(502).json({ message: "โหลด QR จาก Omise ไม่สำเร็จ" });
+
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-store");
+    imgRes.body.pipe(res);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

@@ -281,13 +281,12 @@ export async function getOverdueDonations() {
        dr.donation_id, dr.donor_name, dr.shipping_carrier,
        dr.tracking_number, dr.created_at, dr.auto_approved, dr.auto_approved_at,
        dr.donation_pic,
-       TIMESTAMPDIFF(DAY, dr.created_at, NOW()) AS days_elapsed,
+       TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) AS days_elapsed,
        req.school_id, s.school_name
      FROM donation_record dr
      JOIN donation_request req ON req.request_id = dr.request_id
      JOIN schools s ON s.school_id    = req.school_id
-     WHERE dr.status          = 'pending'
-       AND dr.delivery_method = 'parcel'
+     WHERE dr.status = 'pending'
        AND TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7
      ORDER BY days_elapsed DESC`
   );

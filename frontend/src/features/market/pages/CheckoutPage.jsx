@@ -453,23 +453,31 @@ export default function CheckoutPage() {
   }, [token]); // eslint-disable-line
 
   // ── Load shipping options ─────────────────────────────
-  useEffect(() => {
-    if (!items.length || !token) return;
-    const ids = items.map(i => i.cart_item_id);
-    fetch(`/api/checkout/shipping-options?items=${ids.join(",")}`, {
-      headers: { Authorization: `Bearer ${token}` }
+  // ── Load shipping options ─────────────────────────────
+useEffect(() => {
+  if (!items.length || !token) return;
+
+  // ✅ ถ้าเป็น product type ให้ใช้ product_id แทน cart_item_id
+  const ids = buyType === "product"
+    ? items.map(i => i.product_id)
+    : items.map(i => i.cart_item_id);
+
+  if (!ids.filter(Boolean).length) return; // ป้องกัน undefined
+
+  fetch(`/api/checkout/shipping-options?items=${ids.join(",")}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+    .then(r => r.json())
+    .then(data => {
+      setShippingOptions(typeof data === "object" ? data : {});
+      const autoSel = {};
+      for (const [sellerId, opts] of Object.entries(data || {})) {
+        if (opts.length === 1) autoSel[sellerId] = { ...opts[0], seller_id: Number(sellerId) };
+      }
+      if (Object.keys(autoSel).length) setSelectedShipping(autoSel);
     })
-      .then(r => r.json())
-      .then(data => {
-        setShippingOptions(typeof data === "object" ? data : {});
-        const autoSel = {};
-        for (const [sellerId, opts] of Object.entries(data || {})) {
-          if (opts.length === 1) autoSel[sellerId] = { ...opts[0], seller_id: Number(sellerId) };
-        }
-        if (Object.keys(autoSel).length) setSelectedShipping(autoSel);
-      })
-      .catch(console.error);
-  }, [items, token]);
+    .catch(console.error);
+}, [items, token]);
 
   // ── Address CRUD ──────────────────────────────────────
   const reloadAddresses = async () => {

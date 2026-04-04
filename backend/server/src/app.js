@@ -31,6 +31,8 @@ app.use(express.json({ limit: "10mb" }));
 
 app.use("/auth",         authRoutes);
 app.use("/school",       schoolRoutes);
+
+app.use("/admin/autocheck", autocheckRoutes);
 app.use("/admin",        adminRoutes);
 app.use("/upload",       uploadRoutes);
 app.use("/",             homeRoutes);
@@ -43,7 +45,7 @@ app.use("/notifications", notificationRouter); // ← register
 app.use("/api/cart", cartRoutes);
 app.use("/api/checkout", checkoutRoutes);
 
-app.use("/admin/autocheck", autocheckRoutes);
+
 
 app.use(errorHandler);
 app.use((err, req, res, next) => {
