@@ -19,8 +19,8 @@ import SchoolDashboardPage from "./features/school/pages/SchoolDashboardPage.jsx
 import SchoolProjectManageGatePage from "./features/school/pages/SchoolProjectManageGatePage.jsx";
 import SchoolRequestCreatePage from "./features/school/pages/SchoolRequestCreatePage.jsx";
 import SchoolRequestManagePage from "./features/school/pages/SchoolRequestManagePage.jsx";
-import SchoolDonationsPage from "./features/school/pages/SchoolDonationsPage.jsx"; // ถ้ายังไม่มี ให้สร้างหน้า placeholder
-import EditProjectPage from "./features/school/components/EditProjectPage.jsx"
+import SchoolDonationsPage from "./features/school/pages/SchoolDonationsPage.jsx";
+import EditProjectPage from "./features/school/components/EditProjectPage.jsx";
 import SchoolAppointmentPage from "./features/school/pages/SchoolAppointmentPage.jsx";
 import SchoolTestimonialPage from "./features/school/pages/SchoolTestimonialPage.jsx";
 
@@ -38,7 +38,7 @@ import AdminDonationManagement from "./features/admin/pages/Admindonationmanagem
 
 import ProjectDetailPage from "./features/project/pages/ProjectDetailPage.jsx";
 import DonatePage from "./features/project/pages/Donatepage.jsx";
-import DonateMarketPage from "./features/donate/pages/DonateMarketPage.jsx"; // ถ้ายังไม่มี ให้สร้างหน้า placeholder
+import DonateMarketPage from "./features/donate/pages/DonateMarketPage.jsx";
 // ส่วนหน้าเมนู
 import DonationProject from "./features/project/pages/DonationProject.jsx";
 // market
@@ -48,99 +48,92 @@ import "./App.css";
 import ProductDetailPage from "./features/market/pages/ProductDetailPage.jsx";
 import CartPage from "./features/market/pages/CartPage.jsx";
 import CheckoutPage from "./features/market/pages/CheckoutPage.jsx";
+// ✅ เพิ่ม PaymentSuccessPage
+import PaymentSuccessPage from "./features/market/pages/PaymentSuccessPage.jsx";
 import { CartProvider } from "./features/market/context/CartContext.jsx";
-
-
 
 export default function App() {
   return (
     <div className="page-container">
       <AuthProvider>
         <BrowserRouter>
-        <CartProvider>
-          <Routes>
-            {/* Public */}
-            <Route path="/" element={<RoleRedirect><HomePage /></RoleRedirect>} />
-            <Route path="/projects" element={<RoleRedirect><DonationProject /></RoleRedirect>} />
-            <Route path="/login" element={<RoleRedirect><LoginPage /></RoleRedirect>} />
+          <CartProvider>
+            <Routes>
+              {/* Public */}
+              <Route path="/" element={<RoleRedirect><HomePage /></RoleRedirect>} />
+              <Route path="/projects" element={<RoleRedirect><DonationProject /></RoleRedirect>} />
+              <Route path="/login" element={<RoleRedirect><LoginPage /></RoleRedirect>} />
 
-            <Route path="/register" element={<RoleRedirect><RegisterChoicePage /></RoleRedirect>} />
-<Route path="/register/general" element={<RoleRedirect><RegisterGeneralPage /></RoleRedirect>} />
-<Route path="/register/school" element={<RoleRedirect><RegisterSchoolPage /></RoleRedirect>} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route path="/resend-verification" element={<ResendVerificationPage />} />
+              <Route path="/register" element={<RoleRedirect><RegisterChoicePage /></RoleRedirect>} />
+              <Route path="/register/general" element={<RoleRedirect><RegisterGeneralPage /></RoleRedirect>} />
+              <Route path="/register/school" element={<RoleRedirect><RegisterSchoolPage /></RoleRedirect>} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
+              <Route path="/resend-verification" element={<ResendVerificationPage />} />
 
-            <Route path="/confirm/:donationId" element={<QRScanPage />} />
+              <Route path="/confirm/:donationId" element={<QRScanPage />} />
 
-           <Route path="/projects/:requestId" element={<RoleRedirect><ProjectDetailPage /></RoleRedirect>} />
-<Route path="/donate/:requestId" element={<RoleRedirect><DonatePage /></RoleRedirect>} />
-            <Route path="/market" element={<RoleRedirect><MarketPage /></RoleRedirect>} />
-<Route path="/sell" element={<RoleRedirect><PostProductPage /></RoleRedirect>} />
-            <Route path="/market/:id" element={<RoleRedirect><ProductDetailPage /></RoleRedirect>} />
-            <Route path="/cart" element={<RoleRedirect><CartPage /></RoleRedirect>} />
-<Route path="/checkout" element={<RoleRedirect><CheckoutPage /></RoleRedirect>} />
-            <Route path="/donate/:projectId/market" element={<RoleRedirect><DonateMarketPage /></RoleRedirect>} />
-            {/* School */}
-            <Route path="/school/pending" element={<SchoolPendingPage />} />
+              <Route path="/projects/:requestId" element={<RoleRedirect><ProjectDetailPage /></RoleRedirect>} />
+              <Route path="/donate/:requestId" element={<RoleRedirect><DonatePage /></RoleRedirect>} />
+              <Route path="/market" element={<RoleRedirect><MarketPage /></RoleRedirect>} />
+              <Route path="/sell" element={<RoleRedirect><PostProductPage /></RoleRedirect>} />
+              <Route path="/market/:id" element={<RoleRedirect><ProductDetailPage /></RoleRedirect>} />
+              <Route path="/cart" element={<RoleRedirect><CartPage /></RoleRedirect>} />
+              <Route path="/checkout" element={<RoleRedirect><CheckoutPage /></RoleRedirect>} />
+              {/* ✅ Route ที่ CheckoutPage navigate ไป */}
+              <Route path="/checkout/success" element={<PaymentSuccessPage />} />
+              <Route path="/donate/:projectId/market" element={<RoleRedirect><DonateMarketPage /></RoleRedirect>} />
 
-            {/* welcome เป็นหน้าเดี่ยว ไม่ต้องอยู่ใน SchoolLayout */}
-            <Route
-              path="/school/welcome"
-              element={
-                <ProtectedRoute allowRoles={["school_admin"]}>
-                  <SchoolWelcomePage />
-                </ProtectedRoute>
-              }
-            />
+              {/* School */}
+              <Route path="/school/pending" element={<SchoolPendingPage />} />
 
-            {/* โซนที่มี sidebar + outlet */}
-            <Route
-              path="/school"
-              element={
-                <ProtectedRoute allowRoles={["school_admin"]}>
-                  <SchoolLayout />
-                </ProtectedRoute>
-              }
-            >
-              
-              {/* default ของ /school */}
-              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route
+                path="/school/welcome"
+                element={
+                  <ProtectedRoute allowRoles={["school_admin"]}>
+                    <SchoolWelcomePage />
+                  </ProtectedRoute>
+                }
+              />
 
-              <Route path="dashboard" element={<SchoolDashboardPage />} />
-              <Route path="projects/manage" element={<SchoolProjectManageGatePage />} />
-              <Route path="request/new" element={<SchoolRequestCreatePage />} />
-              <Route path="projects/:requestId" element={<SchoolRequestManagePage />} />
-              <Route path="donations" element={<SchoolDonationsPage />} />
-              <Route path="/school/projects/:id/edit" element={<EditProjectPage />} />
-              <Route path="appointments"  element={<SchoolAppointmentPage />} />
-<Route path="testimonials"  element={<SchoolTestimonialPage />} />
-
-            </Route>
-
-
-            {/* Admin */}
-            <Route path="/admin/login" element={<AdminLoginPage />} />
-
-            <Route element={<AdminGuard />}>
-              <Route element={<AdminLayout />}>
-                <Route path="/admin" element={<Navigate to="/admin/backoffice" replace />} />
-                <Route path="/admin/backoffice" element={<AdminBackofficePage />} />
-                <Route path="/admin/schools" element={<AdminSchoolsPage />} />
-                <Route path="/admin/donations" element={<AdminDonationManagement />} />
-
+              <Route
+                path="/school"
+                element={
+                  <ProtectedRoute allowRoles={["school_admin"]}>
+                    <SchoolLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<SchoolDashboardPage />} />
+                <Route path="projects/manage" element={<SchoolProjectManageGatePage />} />
+                <Route path="request/new" element={<SchoolRequestCreatePage />} />
+                <Route path="projects/:requestId" element={<SchoolRequestManagePage />} />
+                <Route path="donations" element={<SchoolDonationsPage />} />
+                <Route path="/school/projects/:id/edit" element={<EditProjectPage />} />
+                <Route path="appointments" element={<SchoolAppointmentPage />} />
+                <Route path="testimonials" element={<SchoolTestimonialPage />} />
               </Route>
-            </Route>
 
+              {/* Admin */}
+              <Route path="/admin/login" element={<AdminLoginPage />} />
 
-            {/* fallback */}
-            <Route path="*" element={<FallbackRedirect />} />
-          </Routes>
+              <Route element={<AdminGuard />}>
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin" element={<Navigate to="/admin/backoffice" replace />} />
+                  <Route path="/admin/backoffice" element={<AdminBackofficePage />} />
+                  <Route path="/admin/schools" element={<AdminSchoolsPage />} />
+                  <Route path="/admin/donations" element={<AdminDonationManagement />} />
+                </Route>
+              </Route>
+
+              {/* fallback */}
+              <Route path="*" element={<FallbackRedirect />} />
+            </Routes>
           </CartProvider>
         </BrowserRouter>
       </AuthProvider>
-
     </div>
   );
 }

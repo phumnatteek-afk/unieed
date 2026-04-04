@@ -453,31 +453,23 @@ export default function CheckoutPage() {
   }, [token]); // eslint-disable-line
 
   // ── Load shipping options ─────────────────────────────
-  // ── Load shipping options ─────────────────────────────
-useEffect(() => {
-  if (!items.length || !token) return;
-
-  // ✅ ถ้าเป็น product type ให้ใช้ product_id แทน cart_item_id
-  const ids = buyType === "product"
-    ? items.map(i => i.product_id)
-    : items.map(i => i.cart_item_id);
-
-  if (!ids.filter(Boolean).length) return; // ป้องกัน undefined
-
-  fetch(`/api/checkout/shipping-options?items=${ids.join(",")}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-    .then(r => r.json())
-    .then(data => {
-      setShippingOptions(typeof data === "object" ? data : {});
-      const autoSel = {};
-      for (const [sellerId, opts] of Object.entries(data || {})) {
-        if (opts.length === 1) autoSel[sellerId] = { ...opts[0], seller_id: Number(sellerId) };
-      }
-      if (Object.keys(autoSel).length) setSelectedShipping(autoSel);
+  useEffect(() => {
+    if (!items.length || !token) return;
+    const ids = items.map(i => i.cart_item_id);
+    fetch(`/api/checkout/shipping-options?items=${ids.join(",")}`, {
+      headers: { Authorization: `Bearer ${token}` }
     })
-    .catch(console.error);
-}, [items, token]);
+      .then(r => r.json())
+      .then(data => {
+        setShippingOptions(typeof data === "object" ? data : {});
+        const autoSel = {};
+        for (const [sellerId, opts] of Object.entries(data || {})) {
+          if (opts.length === 1) autoSel[sellerId] = { ...opts[0], seller_id: Number(sellerId) };
+        }
+        if (Object.keys(autoSel).length) setSelectedShipping(autoSel);
+      })
+      .catch(console.error);
+  }, [items, token]);
 
   // ── Address CRUD ──────────────────────────────────────
   const reloadAddresses = async () => {
@@ -561,13 +553,21 @@ useEffect(() => {
       if (!res.ok) throw new Error(data.message || "ชำระเงินไม่สำเร็จ");
       navigate("/checkout/success", {
         state: {
-          orderId:       data.order_id,
+          orderId:        data.order_id,
           isDonation,
+          projectId,
           projectTitle,
-          schoolName:    useSchoolAddr ? (donationAddr?.name || "") : (selectedAddr?.address_line || ""),
-          totalAmount:   total,
-          paymentMethod: "card",
-          donorName:     user?.display_name || user?.name || user?.username || "",
+          schoolName:     useSchoolAddr ? (donationAddr?.name || "") : (selectedAddr?.address_line || ""),
+          totalAmount:    total,
+          paymentMethod:  "card",
+          donorName:      user?.display_name || user?.name || user?.username || "",
+          shippingCarrier: Object.values(selectedShipping)[0]?.name || null,
+          // รายการสินค้าสำหรับสร้าง donation_record
+          orderItems: items.map(i => ({
+            name:            i.product_title || i.title || i.name || "",
+            quantity:        i.quantity,
+            uniform_type_id: i.uniform_type_id || null,
+          })),
         }
       });
     } catch (e) { setErr(e.message); }
@@ -604,11 +604,18 @@ useEffect(() => {
           state: {
             orderId,
             isDonation,
+            projectId,
             projectTitle,
-            schoolName:    useSchoolAddr ? (donationAddr?.name || "") : (selectedAddr?.address_line || ""),
-            totalAmount:   total,
-            paymentMethod: "promptpay",
-            donorName:     user?.display_name || user?.name || user?.username || "",
+            schoolName:     useSchoolAddr ? (donationAddr?.name || "") : (selectedAddr?.address_line || ""),
+            totalAmount:    total,
+            paymentMethod:  "promptpay",
+            donorName:      user?.display_name || user?.name || user?.username || "",
+            shippingCarrier: Object.values(selectedShipping)[0]?.name || null,
+            orderItems: items.map(i => ({
+              name:            i.product_title || i.title || i.name || "",
+              quantity:        i.quantity,
+              uniform_type_id: i.uniform_type_id || null,
+            })),
           }
         });
       }
