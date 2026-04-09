@@ -12,6 +12,7 @@ import {
   forgotPassword,
   resetPassword,
   googleLogin,
+  updateProfile,
 } from "./auth.controller.js";
 
 const r = Router();
@@ -38,5 +39,8 @@ r.get("/school/status", auth, mySchoolStatus);
 // ─── OTP ─────────────────────────────────────────────────────
 r.post("/otp/request", requestOtp);
 r.post("/otp/verify", verifyOtp);
+
+// ─── User Profile ───────────────────────────────────────────
+r.patch("/profile", auth, updateProfile);
 
 export default r;

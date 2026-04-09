@@ -327,4 +327,28 @@ export async function updateDonationTracking(req, res, next) {
     res.json({ message: "อัปเดตข้อมูลการจัดส่งเรียบร้อย" });
   } catch (err) { next(err); }
 }
- 
+
+export async function getMyDonationHistory(req, res, next) {
+  try {
+    const user_id = req.user.user_id;
+
+    const [rows] = await db.query(
+  `SELECT 
+    d.donation_id, d.donor_name, d.donation_date,
+    d.delivery_method, d.shipping_carrier, d.tracking_number,
+    d.quantity, d.status, d.items_snapshot,
+    d.donation_pic, d.created_at,
+    s.school_name,
+    dr.request_title,
+    dr.request_image_url
+   FROM donation_record d
+   JOIN donation_request dr ON dr.request_id = d.request_id
+   JOIN schools s ON s.school_id = dr.school_id
+   WHERE d.donor_id = ?
+   ORDER BY d.created_at DESC`,
+  [user_id]
+);
+
+    res.json(rows);
+  } catch (err) { next(err); }
+}

@@ -12,6 +12,7 @@ import {
   updateDonationStatus,
   createDonationFromOrder,   // ✅ ใหม่
   updateDonationTracking,    // ✅ ใหม่
+  getMyDonationHistory,
 } from "./donation.controller.js";
 
 // ✅ import schedule controller
@@ -30,6 +31,9 @@ const r = Router();
 r.get("/schedule/request/:requestId", getScheduleForDonor);
 r.get("/schedule/mine", auth, requireRole(["school_admin"]), getMySchedule);
 r.put("/schedule/mine",  auth, requireRole(["school_admin"]), saveMySchedule);
+
+// ── history (donor) ─────────────────────────────────────────────────────────────
+r.get("/my/history", auth, getMyDonationHistory);
 
 // ── project list ──────────────────────────────────────────────────────────────
 r.get("/project/:requestId", auth, requireRole(["school_admin"]), listDonationsByProject);

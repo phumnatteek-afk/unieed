@@ -502,6 +502,17 @@ export async function googleLogin({ idToken }) {
   return { token, role: "user", user_name: name };
 }
 
+export async function updateProfile(userId, { user_name }) {
+  if (!user_name?.trim()) {
+    throw Object.assign(new Error("กรุณากรอกชื่อ"), { status: 400 });
+  }
+  await db.query(
+    "UPDATE users SET user_name = ? WHERE user_id = ?",
+    [user_name.trim(), userId]
+  );
+  return { message: "อัปเดตข้อมูลสำเร็จ", user_name: user_name.trim() };
+}
+
 /* ─────────────────────── OTP / School Status ─────────────────────── */
 
 export async function requestOtp(body) {

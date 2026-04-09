@@ -102,3 +102,10 @@ export async function verifyOtp(req, res, next) {
     res.json(result);
   } catch (e) { next(e); }
 }
+
+export async function updateProfile(req, res, next) {
+  try {
+    const result = await svc.updateProfile(req.user.user_id, req.body);
+    res.json(result);
+  } catch (err) { next(err); }
+}

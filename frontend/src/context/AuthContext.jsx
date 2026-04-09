@@ -33,8 +33,18 @@ export function AuthProvider({ children }) {
     setRole(newRole);
   };
 
+  const updateUserName = (newName) => {
+  localStorage.setItem("userName", newName);
+  setUserName(newName);
+  };
+
+  // const value = useMemo(
+  //   () => ({ token, role, userName, login, logout, updateRole }),
+  //   [token, role, userName]
+  // );
+
   const value = useMemo(
-    () => ({ token, role, userName, login, logout, updateRole }),
+    () => ({ token, role, userName, login, logout, updateRole, updateUserName }),
     [token, role, userName]
   );
 

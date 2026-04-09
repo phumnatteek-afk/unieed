@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
-// login/register/forgot-password
+// login/register/forgot-password/ProfileEdit
 import HomePage from "./pages/HomePage.jsx";
 import LoginPage from "./features/auth/pages/LoginPage.jsx";
 import RegisterChoicePage from "./features/auth/pages/RegisterChoicePage.jsx";
@@ -10,6 +10,12 @@ import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage.jsx";
 import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage.jsx";
 import VerifyEmailPage from "./features/auth/pages/VerifyEmailPage.jsx";
 import ResendVerificationPage from "./features/auth/pages/ResendVerificationPage.jsx";
+import ProfileEditPage from "./features/auth/pages/ProfileEditPage.jsx";
+
+import DonationHistoryPage from "./features/donate/pages/DonationHistoryPage.jsx";
+import CertificatePage from "./features/certificate/pages/CertificatePage.jsx";
+
+
 
 // school pages/layout
 import SchoolLayout from "./features/school/layouts/SchoolLayout.jsx";
@@ -71,8 +77,13 @@ export default function App() {
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/resend-verification" element={<ResendVerificationPage />} />
+              <Route path="/profile/edit" element={<ProfileEditPage />} />
 
               <Route path="/confirm/:donationId" element={<QRScanPage />} />
+              <Route path="/donations/history" element={<DonationHistoryPage />} />
+              <Route path="/profile/certificates" element={<CertificatePage />} />
+
+
 
               <Route path="/projects/:requestId" element={<RoleRedirect><ProjectDetailPage /></RoleRedirect>} />
               <Route path="/donate/:requestId" element={<RoleRedirect><DonatePage /></RoleRedirect>} />

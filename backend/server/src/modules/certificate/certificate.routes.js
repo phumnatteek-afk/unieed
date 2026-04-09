@@ -4,6 +4,7 @@ import { auth }   from "../../middleware/auth.js";
 import {
   generateCertificate,
   getCertificate,
+  getMyCertificates,
 } from "./certificate.controller.js";
 
 const r = Router();
@@ -18,6 +19,9 @@ r.post(
   },
   generateCertificate
 );
+
+// GET /certificates/my — ใบเซอร์ทั้งหมดของ user ← เพิ่ม
+r.get("/my", auth, getMyCertificates);
 
 // GET /certificates/donation/:donationId
 // ดึงใบเซอร์ที่มีอยู่แล้ว

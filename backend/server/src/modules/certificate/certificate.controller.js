@@ -309,3 +309,26 @@ export async function verifyAndIssueCertificate(req, res, next) {
         next(err);
     }
 }
+
+export async function getMyCertificates(req, res, next) {
+  try {
+    const user_id = req.user.user_id;
+
+    const [rows] = await db.query(
+      `SELECT 
+        c.certificate_id, c.certificate_code,
+        c.donor_name, c.items_summary,
+        c.project_title, c.school_name,
+        c.issued_at, c.certificate_url, c.pdf_url,
+        dr.request_image_url
+       FROM certificate c
+       LEFT JOIN donation_record d ON d.donation_id = c.donation_id
+       LEFT JOIN donation_request dr ON dr.request_id = d.request_id
+       WHERE c.user_id = ?
+       ORDER BY c.issued_at DESC`,
+      [user_id]
+    );
+
+    res.json(rows);
+  } catch (err) { next(err); }
+}
