@@ -4,9 +4,6 @@ import { useAuth } from "../../../context/AuthContext.jsx";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import { getJson } from "../../../api/http.js";
 import "../styles/school.css";
-
-
-// icon
 import { Icon } from "@iconify/react";
 
 export default function SchoolWelcomePage() {
@@ -24,17 +21,33 @@ export default function SchoolWelcomePage() {
         setErr("");
         setLoading(true);
 
-        // กันหลุด role
         if (!token || role !== "school_admin") {
           nav("/login");
           return;
         }
 
-        // ต้องเป็น auth=true เพื่อแนบ token
-        const me = await getJson("/school/me", true);
+        // ดึงข้อมูลโรงเรียน + โครงการล่าสุด พร้อมกัน
+        const [me, latest] = await Promise.all([
+          getJson("/school/me", true),
+          getJson("/school/projects/latest", true).catch(() => null),
+        ]);
 
         setCoordinatorName(me?.user_name || userName || "");
         setSchoolName(me?.school_name || "");
+
+        // ถ้ามีโครงการที่ยัง open อยู่ → ไป dashboard เลย
+        if (latest && latest.status === "open") {
+          nav("/school/dashboard", { replace: true });
+          return;
+        }
+
+        // ถ้ามีโครงการแต่ปิดแล้ว → ไปสร้างโครงการใหม่เลย
+        if (latest && latest.status !== "open") {
+          nav("/school/request/new", { replace: true });
+          return;
+        }
+
+        // ยังไม่มีโครงการเลย (ครั้งแรก) → แสดงหน้า welcome
       } catch (e) {
         setErr(e?.data?.message || e.message || "โหลดข้อมูลไม่สำเร็จ");
       } finally {
@@ -43,36 +56,50 @@ export default function SchoolWelcomePage() {
     })();
   }, [token, role, nav, userName]);
 
+  // loading state
+  if (loading) {
+    return (
+      <div style={{
+        height: "100vh", display: "flex",
+        alignItems: "center", justifyContent: "center",
+      }}>
+        <Icon icon="mdi:loading" width="36" color="#29B6E8"
+          style={{ animation: "spin 1s linear infinite" }}/>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // error state
+  if (err) {
+    return (
+      <div style={{
+        height: "100vh", display: "flex",
+        alignItems: "center", justifyContent: "center",
+        color: "#dc2626", fontSize: 14,
+      }}>
+        {err}
+      </div>
+    );
+  }
+
+  // ครั้งแรก — แสดงหน้า welcome
   return (
     <div className="swPage">
-      <header className="swTopbar">
-        <button className="swBrand" onClick={() => nav("/")}>
-          <div className="swLogo" />
-          <div className="swBrandPic"><img src="/src/unieed_pic/logo.png" alt="Unieed Logo" /></div>
-        </button>
-
-        <ProfileDropdown />
-      </header>
-
       <main className="swMain">
         <div className="swHero">
-          <div className="swIllustration" 
-          ><img src="/src/unieed_pic/illustrator.png" alt="Illustration" /></div>
+          <div className="swIllustration">
+            <img src="/src/unieed_pic/illustrator.png" alt="Illustration"/>
+          </div>
 
-          {loading ? (
-            <div className="swMuted">กำลังโหลด…</div>
-          ) : err ? (
-            <div className="swError">{err}</div>
-          ) : (
-            <div className="swWelcomeText">
-              <h1 className="swTitle">ยินดีต้อนรับ คุณ{coordinatorName || "ผู้ประสานงาน"}</h1>
-              <h2 className="swSub">{schoolName || "ชื่อโรงเรียน"}</h2>
+          <div className="swWelcomeText">
+            <h1 className="swTitle">ยินดีต้อนรับ คุณ{coordinatorName || "ผู้ประสานงาน"}</h1>
+            <h2 className="swSub">{schoolName || "ชื่อโรงเรียน"}</h2>
 
-              <button className="swCTA" onClick={() => nav("/school/request/new")}>
-                เข้าสู่ระบบบันทึก
-              </button>
-            </div>
-          )}
+            <button className="swCTA" onClick={() => nav("/school/request/new")}>
+              เข้าสู่ระบบบันทึก
+            </button>
+          </div>
         </div>
       </main>
     </div>

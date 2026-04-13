@@ -152,3 +152,19 @@ export async function removeSchoolAdmin(req, res, next) {
     res.json(result);
   } catch (e) { next(e); }
 }
+
+export async function inviteSchoolAdmin(req, res, next) {
+  try {
+    const schoolId = req.user.school_id;
+    if (!schoolId) return res.status(400).json({ message: "ไม่พบข้อมูลโรงเรียน" });
+    const result = await svc.inviteSchoolAdmin(schoolId, req.user.user_id, req.body);
+    res.status(201).json(result);
+  } catch (e) { next(e); }
+}
+
+export async function acceptSchoolAdminInvite(req, res, next) {
+  try {
+    const result = await svc.acceptSchoolAdminInvite(req.body);
+    res.json(result);
+  } catch (e) { next(e); }
+}

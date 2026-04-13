@@ -16,6 +16,8 @@ import {
   getSchoolAdmins,
   addSchoolAdmin,
   removeSchoolAdmin,
+  inviteSchoolAdmin,        // ← เพิ่ม
+  acceptSchoolAdminInvite,  // ← เพิ่ม
 } from "./auth.controller.js";
 
 const r = Router();
@@ -50,5 +52,9 @@ r.patch("/profile", auth, updateProfile);
 r.get("/school-admins", auth, getSchoolAdmins);
 r.post("/school-admins", auth, addSchoolAdmin);
 r.delete("/school-admins/:userId", auth, removeSchoolAdmin);
+
+//invite school admin flow:
+r.post("/school-admins/invite", auth, inviteSchoolAdmin);
+r.post("/school-admins/accept-invite", acceptSchoolAdminInvite); // ไม่ต้อง auth
 
 export default r;

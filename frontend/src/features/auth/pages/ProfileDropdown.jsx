@@ -239,12 +239,27 @@ function EditProfileModal({ onClose, userId }) {
             </div>
           </div>
           <button onClick={onClose} style={{
-            background: "rgba(255,255,255,.2)", border: "none", borderRadius: "50%",
-            width: 32, height: 32, display: "flex", alignItems: "center",
-            justifyContent: "center", cursor: "pointer", color: "#fff",
-          }}>
-            <Icon icon="mdi:close" width="18"/>
-          </button>
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          color: "#fff",
+          padding: 4,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "color .15s",
+          transform: "none",    // ← เพิ่ม
+          outline: "none",      // ← เพิ่ม
+        }}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = "rgba(255,255,255,.5)";
+            e.currentTarget.style.transform = "none";   // ← lock position
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = "#fff";
+            e.currentTarget.style.transform = "none";   // ← lock position
+          }}
+        >
+          <Icon icon="mdi:close" width="24"/>
+        </button>
         </div>
 
         <div style={{ padding: "24px 28px" }}>
@@ -288,8 +303,18 @@ function EditProfileModal({ onClose, userId }) {
             {err && <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8 }}><Icon icon="mdi:alert-circle" width="16"/>{err}</div>}
             {success && <div style={{ background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#16a34a", display: "flex", alignItems: "center", gap: 8 }}><Icon icon="mdi:check-circle" width="16"/>{success}</div>}
             <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-              <button type="button" onClick={onClose} style={{ flex: 1, padding: "12px", background: "#F3F4F6", color: "#1a1a2e", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>ยกเลิก</button>
-              <button type="submit" disabled={loading} style={{ flex: 2, padding: "12px", background: "#5285e8", color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>{loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}</button>
+              <button type="button" onClick={onClose} className="pd-btn-static"
+              onMouseEnter={e => e.currentTarget.style.background = "#E5E7EB"}
+              onMouseLeave={e => e.currentTarget.style.background = "#F3F4F6"}
+              style={{ flex: 1, padding: "12px", background: "#F3F4F6", color: "#1a1a2e", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+              ยกเลิก
+            </button>
+              <button type="submit" disabled={loading} className="pd-btn-static"
+                onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "#3a6fd8"; }}
+                onMouseLeave={e => { if (!loading) e.currentTarget.style.background = "#5285e8"; }}
+                style={{ flex: 2, padding: "12px", background: "#5285e8", color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+                {loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
+              </button>
             </div>
           </form>
         </div>
@@ -320,26 +345,26 @@ function ManageAdminsModal({ onClose, currentUserId }) {
     })();
   }, []);
 
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    setErr(""); setSuccess("");
-    if (!newName.trim() || !newEmail.trim() || !newPass) return setErr("กรุณากรอกข้อมูลให้ครบ");
-    try {
-      setAddLoading(true);
-      const res = await request("/auth/school-admins", {
-        method: "POST",
-        body: { user_name: newName.trim(), user_email: newEmail.trim(), password: newPass },
-        auth: true,
-      });
-      setAdmins(prev => [...prev, { ...res, created_at: new Date().toISOString() }]);
-      setNewName(""); setNewEmail(""); setNewPass("");
-      setShowAdd(false);
-      setSuccess("เพิ่มผู้ดูแลสำเร็จ!");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (e) {
-      setErr(e?.message || "เกิดข้อผิดพลาด");
-    } finally { setAddLoading(false); }
-  };
+  // handleAdd ใหม่
+const handleAdd = async (e) => {
+  e.preventDefault();
+  setErr(""); setSuccess("");
+  if (!newEmail.trim()) return setErr("กรุณากรอกอีเมล");
+  try {
+    setAddLoading(true);
+    await request("/auth/school-admins/invite", {
+      method: "POST",
+      body: { user_email: newEmail.trim() },
+      auth: true,
+    });
+    setNewEmail("");
+    setShowAdd(false);
+    setSuccess("ส่งคำเชิญสำเร็จ! ผู้ดูแลจะได้รับอีเมลเชิญ");
+    setTimeout(() => setSuccess(""), 5000);
+  } catch (e) {
+    setErr(e?.message || "เกิดข้อผิดพลาด");
+  } finally { setAddLoading(false); }
+};
 
   const handleRemove = async (userId, name) => {
     if (!confirm(`ต้องการลบผู้ดูแล "${name}" ออกจากระบบ?`)) return;
@@ -358,7 +383,7 @@ function ManageAdminsModal({ onClose, currentUserId }) {
         zIndex: 9999, padding: 20,
       }}>
       <div onClick={e => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 480, background: "#fff", borderRadius: 24,
+        width: "100%", maxWidth: 560, background: "#fff", borderRadius: 24,
         boxShadow: "0 8px 40px rgba(0,0,0,.15)", overflow: "hidden",
         display: "flex", flexDirection: "column",
       }}>
@@ -381,12 +406,20 @@ function ManageAdminsModal({ onClose, currentUserId }) {
               <div style={{ fontSize: 12, color: "rgba(255,255,255,.8)", marginTop: 2 }}>{admins.length} คน</div>
             </div>
           </div>
-          <button onClick={onClose} style={{
-            background: "rgba(255,255,255,.2)", border: "none", borderRadius: "50%",
-            width: 32, height: 32, display: "flex", alignItems: "center",
-            justifyContent: "center", cursor: "pointer", color: "#fff",
-          }}>
-            <Icon icon="mdi:close" width="18"/>
+          <button onClick={onClose} className="pd-btn-static" style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "#fff",
+            padding: 4,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "color .15s",
+            outline: "none",
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,.5)"}
+            onMouseLeave={e => e.currentTarget.style.color = "#fff"}
+          >
+            <Icon icon="mdi:close" width="24"/>
           </button>
         </div>
 
@@ -453,57 +486,51 @@ function ManageAdminsModal({ onClose, currentUserId }) {
           </div>
 
           {/* ฟอร์มเพิ่ม */}
-          {showAdd ? (
-            <div style={{ background: "#F0F9FF", borderRadius: 14, border: "1.5px solid #BAE6FD", padding: "18px" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 14 }}>เพิ่มผู้ดูแลใหม่</div>
-              <form onSubmit={handleAdd} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <style>{`.adm-ph::placeholder{color:#B0BEC5;}`}</style>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>ชื่อผู้ดูแล</label>
-                  <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="ชื่อ-นามสกุล"
-                    className="adm-ph"
-                    style={{ width: "100%", padding: "7px 12px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }}
-                    onFocus={e => e.target.style.borderColor = "#87c7eb"}
-                    onBlur={e => e.target.style.borderColor = "#E5E7EB"}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>อีเมล</label>
-                  <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="teacher1234@gmail.com" type="email"
-                    className="adm-ph"
-                    style={{ width: "100%", padding: "7px 12px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }}
-                    onFocus={e => e.target.style.borderColor = "#87c7eb"}
-                    onBlur={e => e.target.style.borderColor = "#E5E7EB"}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>รหัสผ่าน</label>
-                  <input value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร" type="password"
-                    className="adm-ph"
-                    style={{ width: "100%", padding: "7px 12px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }}
-                    onFocus={e => e.target.style.borderColor = "#87c7eb"}
-                    onBlur={e => e.target.style.borderColor = "#E5E7EB"}
-                  />
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button type="button" onClick={() => { setShowAdd(false); setErr(""); }}
-                    style={{ flex: 1, padding: "10px", background: "#Fff", color: "#1a1a2e", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>ยกเลิก</button>
-                  <button type="submit" disabled={addLoading}
-                    style={{ flex: 2, padding: "10px", background: "#5285e8", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: addLoading ? "not-allowed" : "pointer", opacity: addLoading ? 0.7 : 1 }}>
-                    {addLoading ? "กำลังเพิ่ม..." : "เพิ่มผู้ดูแล"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          ) : (
-            <button onClick={() => { setShowAdd(true); setErr(""); setSuccess(""); }} style={{
-              width: "100%", padding: "11px", background: "#EFF6FF", color: "#87c7eb",
-              border: "1.5px dashed #BAE6FD", borderRadius: 12, fontSize: 14, fontWeight: 600,
-              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            }}>
-              <Icon icon="mdi:plus" width="18"/>เพิ่มผู้ดูแลใหม่
-            </button>
-          )}
+          {/* ฟอร์มใหม่ — แค่ช่องอีเมล */}
+{showAdd ? (
+  <div style={{ background: "#F0F9FF", borderRadius: 14, border: "1.5px solid #BAE6FD", padding: "18px" }}>
+    <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>เชิญผู้ดูแลใหม่</div>
+    <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>
+      ระบบจะส่งลิงก์เชิญไปยังอีเมลที่ระบุ ผู้รับสามารถตั้งชื่อและรหัสผ่านเองได้
+    </div>
+    <form onSubmit={handleAdd} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <style>{`.adm-ph::placeholder{color:#B0BEC5;}`}</style>
+      <div>
+        <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>อีเมลผู้ดูแล</label>
+        <input value={newEmail} onChange={e => setNewEmail(e.target.value)}
+          placeholder="teacher@school.ac.th" type="email"
+          className="adm-ph"
+          style={{ width: "100%", padding: "9px 12px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }}
+          onFocus={e => e.target.style.borderColor = "#87c7eb"}
+          onBlur={e => e.target.style.borderColor = "#E5E7EB"}
+        />
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="button" onClick={() => { setShowAdd(false); setErr(""); }}
+          className="pd-btn-static"
+          onMouseEnter={e => e.currentTarget.style.background = "#E5E7EB"}
+          onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+          style={{ flex: 1, padding: "10px", background: "#fff", color: "#1a1a2e", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          ยกเลิก
+        </button>
+        <button type="submit" disabled={addLoading}
+          className="pd-btn-static"
+          onMouseEnter={e => { if (!addLoading) e.currentTarget.style.background = "#3a6fd8"; }}
+          onMouseLeave={e => { if (!addLoading) e.currentTarget.style.background = "#5285e8"; }}
+          style={{ flex: 2, padding: "10px", background: "#5285e8", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: addLoading ? "not-allowed" : "pointer", opacity: addLoading ? 0.7 : 1 }}>
+          {addLoading ? "กำลังส่ง..." : "ส่งคำเชิญ"}
+        </button>
+      </div>
+    </form>
+  </div>
+) : (
+  <button
+    onClick={() => { setShowAdd(true); setErr(""); setSuccess(""); }}
+    className="add-admin-btn"
+  >
+    <Icon icon="mdi:plus" width="18"/>เพิ่มผู้ดูแลใหม่
+  </button>
+)}
         </div>
       </div>
     </div>

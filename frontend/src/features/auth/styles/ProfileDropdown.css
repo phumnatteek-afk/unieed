@@ -41,11 +41,34 @@
   transition: background 0.15s;
   user-select: none;
 }
-
+.pd-btn-static:hover {
+  transform: none !important;
+}
 /* .pd-trigger:hover {
   background: rgba(255, 255, 255, 0.15);
 } */
+.add-admin-btn {
+  width: 100%;
+  padding: 11px;
+  background: #EFF6FF;
+  color: #87c7eb;
+  border: 1.5px dashed #BAE6FD;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s;
+  transform: none !important;
+}
 
+.add-admin-btn:hover {
+  background: #DBEAFE;
+  transform: none !important;
+}
 .pd-bell {
   color: #fff;
   display: flex;

@@ -6,6 +6,8 @@ import crypto from "crypto";
 import { Resend } from "resend";
 import * as jose from "jose";
 
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 async function verifyGoogleToken(idToken) {
   const JWKS = jose.createRemoteJWKSet(
     new URL("https://www.googleapis.com/oauth2/v3/certs")
@@ -599,4 +601,136 @@ export async function verifyOtp(body) {
 
 export async function getMySchoolStatus(user) {
   // existing logic...
+}
+
+// ส่ง invite ไปยังอีเมล
+export async function inviteSchoolAdmin(schoolId, invitedBy, { user_email }) {
+  if (!user_email?.trim()) {
+    throw Object.assign(new Error("กรุณากรอกอีเมล"), { status: 400 });
+  }
+
+  const email = cleanEmail(user_email);
+  if (!validator.isEmail(email)) {
+    throw Object.assign(new Error("รูปแบบอีเมลไม่ถูกต้อง"), { status: 400 });
+  }
+
+  // เช็คว่าเป็นสมาชิกในระบบอยู่แล้วและเป็น school_admin ของโรงเรียนนี้ไหม
+  const [exist] = await db.query(
+    "SELECT user_id, role, school_id FROM users WHERE user_email = ?",
+    [email]
+  );
+  if (exist.length && exist[0].role === "school_admin" && exist[0].school_id === schoolId) {
+    throw Object.assign(new Error("อีเมลนี้เป็นผู้ดูแลโรงเรียนนี้อยู่แล้ว"), { status: 409 });
+  }
+
+  // เช็ค invite ที่ยังไม่หมดอายุ
+  const [pending] = await db.query(
+    `SELECT invite_id FROM school_admin_invites
+     WHERE email = ? AND school_id = ? AND used_at IS NULL AND expires_at > NOW()`,
+    [email, schoolId]
+  );
+  if (pending.length) {
+    throw Object.assign(new Error("ได้ส่งคำเชิญไปยังอีเมลนี้แล้ว"), { status: 409 });
+  }
+
+  const token = generateToken();
+  const expires = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 ชั่วโมง
+
+  await db.query(
+    `INSERT INTO school_admin_invites (school_id, email, token, invited_by, expires_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [schoolId, email, token, invitedBy, expires]
+  );
+
+  // ดึงชื่อโรงเรียน
+  const [[school]] = await db.query(
+    "SELECT school_name FROM schools WHERE school_id = ?",
+    [schoolId]
+  );
+
+  const url = `${process.env.FRONTEND_URL}/school/accept-invite?token=${token}`;
+  console.log("🔔 กำลังส่งอีเมลไปที่:", email);
+console.log("🔔 RESEND_FROM_EMAIL:", process.env.RESEND_FROM_EMAIL);
+console.log("🔔 FRONTEND_URL:", process.env.FRONTEND_URL);
+  try {
+  const result = await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL,
+    to: email,
+    subject: `คุณได้รับเชิญให้เป็นผู้ดูแล ${school?.school_name || "โรงเรียน"}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px">
+        <h2 style="color:#1a1a1a">คุณได้รับคำเชิญ</h2>
+        <p style="color:#555">คุณได้รับเชิญให้เป็นผู้ดูแลโรงเรียน <strong>${school?.school_name || ""}</strong> บนแพลตฟอร์ม Unieed</p>
+        <a href="${url}"
+          style="display:inline-block;margin-top:16px;padding:12px 28px;background:#5285e8;
+                 color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+          รับคำเชิญ
+        </a>
+        <p style="margin-top:24px;color:#999;font-size:13px">
+          ลิงก์นี้จะหมดอายุใน 48 ชั่วโมง<br/>
+          หากคุณไม่ได้รับคำเชิญนี้ ไม่ต้องทำอะไร
+        </p>
+      </div>
+    `,
+  });
+  console.log("Resend result:", result);
+} catch (emailErr) {
+  console.error("Resend error:", emailErr);
+}
+
+  return { message: "ส่งคำเชิญสำเร็จ" };
+}
+
+// รับ invite และตั้งชื่อ + รหัสผ่าน
+export async function acceptSchoolAdminInvite({ token, user_name, password }) {
+  if (!token || !user_name?.trim() || !password) {
+    throw Object.assign(new Error("กรุณากรอกข้อมูลให้ครบ"), { status: 400 });
+  }
+  if (password.length < 6) {
+    throw Object.assign(new Error("รหัสผ่านต้องอย่างน้อย 6 ตัวอักษร"), { status: 400 });
+  }
+
+  const [rows] = await db.query(
+    `SELECT * FROM school_admin_invites
+     WHERE token = ? AND used_at IS NULL AND expires_at > NOW()`,
+    [token]
+  );
+
+  const invite = rows[0];
+  if (!invite) {
+    throw Object.assign(new Error("ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว"), { status: 400 });
+  }
+
+  // เช็คว่ามีบัญชีอยู่แล้วไหม
+  const [exist] = await db.query(
+    "SELECT user_id FROM users WHERE user_email = ?",
+    [invite.email]
+  );
+
+  const password_hash = await hashPassword(password);
+
+  if (exist.length) {
+    // มีบัญชีอยู่แล้ว → แค่เพิ่ม school_id + เปลี่ยน role
+    await db.query(
+      `UPDATE users SET role = 'school_admin', school_id = ?, user_name = ?
+       WHERE user_id = ?`,
+      [invite.school_id, user_name.trim(), exist[0].user_id]
+    );
+  } else {
+    // ยังไม่มีบัญชี → สร้างใหม่
+    await db.query(
+      `INSERT INTO users
+        (user_name, user_email, password_hash, role, school_id, status, email_verified)
+       VALUES (?, ?, ?, 'school_admin', ?, 'active', 1)`,
+      [user_name.trim(), invite.email, password_hash, invite.school_id]
+    );
+  }
+
+  // mark invite ว่าใช้แล้ว
+  await db.query(
+    "UPDATE school_admin_invites SET used_at = NOW() WHERE invite_id = ?",
+    [invite.invite_id]
+  );
+
+  return { message: "รับคำเชิญสำเร็จ กรุณาเข้าสู่ระบบ", email: invite.email };
 }

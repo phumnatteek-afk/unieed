@@ -15,7 +15,7 @@ import ProfileEditPage from "./features/auth/pages/ProfileEditPage.jsx";
 import DonationHistoryPage from "./features/donate/pages/DonationHistoryPage.jsx";
 import CertificatePage from "./features/certificate/pages/CertificatePage.jsx";
 
-
+import AcceptInvitePage from "./features/auth/pages/AcceptInvitePage.jsx";
 
 // school pages/layout
 import SchoolLayout from "./features/school/layouts/SchoolLayout.jsx";
@@ -82,6 +82,8 @@ export default function App() {
               <Route path="/confirm/:donationId" element={<QRScanPage />} />
               <Route path="/donations/history" element={<DonationHistoryPage />} />
               <Route path="/profile/certificates" element={<CertificatePage />} />
+
+              <Route path="/school/accept-invite" element={<AcceptInvitePage />} />
 
 
 
