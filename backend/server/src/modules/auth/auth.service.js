@@ -4,7 +4,6 @@ import { signJwt } from "../../utils/jwt.js";
 import validator from "validator";
 import crypto from "crypto";
 import { Resend } from "resend";
-// import { OAuth2Client } from "google-auth-library";
 import * as jose from "jose";
 
 async function verifyGoogleToken(idToken) {
@@ -18,11 +17,6 @@ async function verifyGoogleToken(idToken) {
   return payload;
 }
 
-// const resend = new Resend(process.env.RESEND_API_KEY);
-// const googleClient = new OAuth2Client({
-//   clientId: process.env.GOOGLE_CLIENT_ID,
-//   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-// });
 /* ─────────────────────── helpers ─────────────────────── */
 
 function normalizeThaiPhone(input) {
@@ -502,6 +496,8 @@ export async function googleLogin({ idToken }) {
   return { token, role: "user", user_name: name };
 }
 
+/* ─────────────────────── update profile ─────────────────────── */
+
 export async function updateProfile(userId, { user_name }) {
   if (!user_name?.trim()) {
     throw Object.assign(new Error("กรุณากรอกชื่อ"), { status: 400 });
@@ -511,6 +507,84 @@ export async function updateProfile(userId, { user_name }) {
     [user_name.trim(), userId]
   );
   return { message: "อัปเดตข้อมูลสำเร็จ", user_name: user_name.trim() };
+}
+
+/* ─────────────────────── school admins ─────────────────────── */
+
+// ดึงรายชื่อแอดมินทั้งหมดของโรงเรียนนี้
+export async function getSchoolAdmins(schoolId) {
+  const [rows] = await db.query(
+    `SELECT user_id, user_name, user_email, created_at
+     FROM users
+     WHERE school_id = ? AND role = 'school_admin'
+     ORDER BY created_at ASC`,
+    [schoolId]
+  );
+  return rows;
+}
+
+// เพิ่มแอดมินใหม่
+export async function addSchoolAdmin(schoolId, { user_name, user_email, password }) {
+  if (!user_name?.trim() || !user_email?.trim() || !password) {
+    throw Object.assign(new Error("กรุณากรอกข้อมูลให้ครบ"), { status: 400 });
+  }
+
+  const email = cleanEmail(user_email);
+  if (!validator.isEmail(email)) {
+    throw Object.assign(new Error("รูปแบบอีเมลไม่ถูกต้อง"), { status: 400 });
+  }
+
+  if (password.length < 6) {
+    throw Object.assign(new Error("รหัสผ่านต้องอย่างน้อย 6 ตัวอักษร"), { status: 400 });
+  }
+
+  // เช็คว่า email ซ้ำไหม
+  const [exist] = await db.query(
+    "SELECT user_id FROM users WHERE user_email = ?",
+    [email]
+  );
+  if (exist.length) {
+    throw Object.assign(new Error("อีเมลนี้ถูกใช้งานแล้ว"), { status: 409 });
+  }
+
+  const password_hash = await hashPassword(password);
+
+  const [result] = await db.query(
+    `INSERT INTO users
+      (user_name, user_email, password_hash, role, school_id, status, email_verified)
+     VALUES (?, ?, ?, 'school_admin', ?, 'active', 1)`,
+    [user_name.trim(), email, password_hash, schoolId]
+  );
+
+  return {
+    user_id: result.insertId,
+    user_name: user_name.trim(),
+    user_email: email,
+  };
+}
+
+// ลบแอดมิน (ป้องกันลบตัวเอง)
+export async function removeSchoolAdmin(schoolId, targetUserId, requesterId) {
+  if (Number(targetUserId) === Number(requesterId)) {
+    throw Object.assign(new Error("ไม่สามารถลบบัญชีตัวเองได้"), { status: 400 });
+  }
+
+  const [rows] = await db.query(
+    `SELECT user_id FROM users
+     WHERE user_id = ? AND school_id = ? AND role = 'school_admin'`,
+    [targetUserId, schoolId]
+  );
+
+  if (!rows.length) {
+    throw Object.assign(new Error("ไม่พบผู้ดูแลคนนี้"), { status: 404 });
+  }
+
+  await db.query(
+    "DELETE FROM users WHERE user_id = ? AND school_id = ? AND role = 'school_admin'",
+    [targetUserId, schoolId]
+  );
+
+  return { message: "ลบผู้ดูแลสำเร็จ" };
 }
 
 /* ─────────────────────── OTP / School Status ─────────────────────── */

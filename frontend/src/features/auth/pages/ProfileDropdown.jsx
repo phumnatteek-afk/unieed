@@ -11,10 +11,188 @@ const ROLE_LABEL = {
   user: "บุคคลทั่วไป",
 };
 
-// ── Edit Profile Modal ──────────────────────────────────────
-function EditProfileModal({ onClose }) {
+// ── Avatar SVG 5 แบบ ─────────────────────────────────────────
+const AVATARS = [
+  (size = 40) => (
+    <svg width={size} height={size} viewBox="0 0 136 136" preserveAspectRatio="xMidYMid slice" style={{ display: "block" }}>
+      <circle cx="68" cy="68" r="68" fill="#F5EEF8"/>
+      <rect x="18" y="100" width="100" height="60" fill="#7D3C98"/>
+      <ellipse cx="28" cy="102" rx="24" ry="16" fill="#7D3C98"/>
+      <ellipse cx="108" cy="102" rx="24" ry="16" fill="#7D3C98"/>
+      <ellipse cx="68" cy="112" rx="15" ry="20" fill="#F0EDEA"/>
+      <polygon points="68,90 57,120 68,120" fill="#7D3C98"/>
+      <polygon points="68,90 79,120 68,120" fill="#7D3C98"/>
+      <rect x="62" y="82" width="12" height="16" rx="5" fill="#FFCBA4"/>
+      <circle cx="68" cy="60" r="30" fill="#FFCBA4"/>
+      <ellipse cx="68" cy="38" rx="28" ry="18" fill="#C8922A"/>
+      <ellipse cx="42" cy="48" rx="10" ry="16" fill="#C8922A"/>
+      <ellipse cx="94" cy="48" rx="10" ry="16" fill="#C8922A"/>
+      <rect x="64" y="12" width="8" height="20" rx="4" fill="#C8922A"/>
+      <ellipse cx="60" cy="10" rx="10" ry="8" fill="#C8922A"/>
+      <ellipse cx="76" cy="10" rx="10" ry="8" fill="#C8922A"/>
+      <ellipse cx="68" cy="6" rx="12" ry="9" fill="#D4A030"/>
+      <rect x="62" y="24" width="12" height="6" rx="3" fill="#9B6A10"/>
+      <path d="M54 50 Q59 47 64 50" stroke="#8B5A10" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+      <path d="M72 50 Q77 47 82 50" stroke="#8B5A10" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+      <ellipse cx="58" cy="57" rx="5" ry="4.5" fill="#3D2010"/>
+      <ellipse cx="78" cy="57" rx="5" ry="4.5" fill="#3D2010"/>
+      <circle cx="59.5" cy="55.5" r="1.5" fill="white"/>
+      <circle cx="79.5" cy="55.5" r="1.5" fill="white"/>
+      <path d="M61 74 Q65 71 68 73 Q71 71 75 74" fill="#E07878"/>
+      <path d="M61 74 Q68 81 75 74" fill="#C85858"/>
+      <ellipse cx="49" cy="67" rx="7" ry="4" fill="#F4A0A0" opacity="0.4"/>
+      <ellipse cx="87" cy="67" rx="7" ry="4" fill="#F4A0A0" opacity="0.4"/>
+    </svg>
+  ),
+  (size = 40) => (
+    <svg width={size} height={size} viewBox="0 0 136 136" preserveAspectRatio="xMidYMid slice" style={{ display: "block" }}>
+      <circle cx="68" cy="68" r="68" fill="#E8EEF5"/>
+      <rect x="18" y="104" width="100" height="60" fill="#1A3A6B"/>
+      <ellipse cx="28" cy="106" rx="20" ry="12" fill="#1A3A6B"/>
+      <ellipse cx="108" cy="106" rx="20" ry="12" fill="#1A3A6B"/>
+      <ellipse cx="68" cy="118" rx="14" ry="22" fill="#E8EEF5"/>
+      <polygon points="68,94 54,126 68,126" fill="#1A3A6B"/>
+      <polygon points="68,94 82,126 68,126" fill="#1A3A6B"/>
+      <rect x="62" y="86" width="14" height="18" rx="6" fill="#FFCBA4"/>
+      <circle cx="68" cy="62" r="30" fill="#FFCBA4"/>
+      <ellipse cx="68" cy="36" rx="32" ry="20" fill="#3E2A1A"/>
+      <ellipse cx="68" cy="28" rx="26" ry="12" fill="#3E2A1A"/>
+      <rect x="36" y="42" width="10" height="16" rx="5" fill="#3E2A1A"/>
+      <rect x="90" y="42" width="10" height="16" rx="5" fill="#3E2A1A"/>
+      <path d="M54 53 Q59 50 64 53" stroke="#5A3010" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+      <path d="M72 53 Q77 50 82 53" stroke="#5A3010" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+      <ellipse cx="58" cy="59" rx="5" ry="4.5" fill="#2C1808"/>
+      <ellipse cx="78" cy="59" rx="5" ry="4.5" fill="#2C1808"/>
+      <circle cx="59.5" cy="57.5" r="1.6" fill="white"/>
+      <circle cx="79.5" cy="57.5" r="1.6" fill="white"/>
+      <path d="M60 75 Q68 83 76 75" stroke="#C07050" strokeWidth="2" fill="none" strokeLinecap="round"/>
+    </svg>
+  ),
+  (size = 40) => (
+    <svg width={size} height={size} viewBox="0 0 136 136" preserveAspectRatio="xMidYMid slice" style={{ display: "block" }}>
+      <circle cx="68" cy="68" r="68" fill="#E8F5F0"/>
+      <rect x="18" y="104" width="100" height="60" fill="#1A6B5A"/>
+      <ellipse cx="28" cy="106" rx="20" ry="12" fill="#1A6B5A"/>
+      <ellipse cx="108" cy="106" rx="20" ry="12" fill="#1A6B5A"/>
+      <ellipse cx="68" cy="118" rx="14" ry="22" fill="#E8F5F0"/>
+      <polygon points="68,94 54,126 68,126" fill="#1A6B5A"/>
+      <polygon points="68,94 82,126 68,126" fill="#1A6B5A"/>
+      <rect x="38" y="40" width="14" height="75" rx="7" fill="#8B4513"/>
+      <rect x="84" y="40" width="14" height="75" rx="7" fill="#8B4513"/>
+      <rect x="62" y="86" width="12" height="18" rx="6" fill="#FDBCB4"/>
+      <circle cx="68" cy="62" r="30" fill="#FDBCB4"/>
+      <ellipse cx="68" cy="36" rx="30" ry="20" fill="#8B4513"/>
+      <path d="M46 53 Q52 50 58 53" stroke="#6B3010" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M78 53 Q84 50 90 53" stroke="#6B3010" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <ellipse cx="58" cy="59" rx="6" ry="5.5" fill="#2C1808"/>
+      <ellipse cx="78" cy="59" rx="6" ry="5.5" fill="#2C1808"/>
+      <ellipse cx="58" cy="59" rx="4" ry="4" fill="#6B3A1F"/>
+      <ellipse cx="78" cy="59" rx="4" ry="4" fill="#6B3A1F"/>
+      <circle cx="58" cy="59" r="2.2" fill="#1A0800"/>
+      <circle cx="78" cy="59" r="2.2" fill="#1A0800"/>
+      <circle cx="59.5" cy="57.5" r="1.6" fill="white"/>
+      <circle cx="79.5" cy="57.5" r="1.6" fill="white"/>
+      <path d="M61 75 Q65 72 68 74 Q71 72 75 75" fill="#E88080"/>
+      <path d="M61 75 Q68 82 75 75" fill="#D06060"/>
+      <ellipse cx="50" cy="69" rx="7" ry="4" fill="#F4A0A0" opacity="0.4"/>
+      <ellipse cx="86" cy="69" rx="7" ry="4" fill="#F4A0A0" opacity="0.4"/>
+    </svg>
+  ),
+  (size = 40) => (
+    <svg width={size} height={size} viewBox="0 0 136 136" preserveAspectRatio="xMidYMid slice" style={{ display: "block" }}>
+      <circle cx="68" cy="68" r="68" fill="#FDF0E8"/>
+      <rect x="18" y="104" width="100" height="60" fill="#B34A1A"/>
+      <ellipse cx="28" cy="106" rx="20" ry="12" fill="#B34A1A"/>
+      <ellipse cx="108" cy="106" rx="20" ry="12" fill="#B34A1A"/>
+      <ellipse cx="68" cy="118" rx="14" ry="22" fill="#FDF0E8"/>
+      <polygon points="68,94 54,126 68,126" fill="#B34A1A"/>
+      <polygon points="68,94 82,126 68,126" fill="#B34A1A"/>
+      <rect x="62" y="86" width="14" height="18" rx="6" fill="#FFCBA4"/>
+      <circle cx="68" cy="62" r="30" fill="#FFCBA4"/>
+      <ellipse cx="68" cy="36" rx="32" ry="20" fill="#1A1A1A"/>
+      <ellipse cx="56" cy="34" rx="14" ry="10" fill="#1A1A1A"/>
+      <rect x="44" y="54" width="16" height="12" rx="6" fill="none" stroke="#444" strokeWidth="2"/>
+      <rect x="64" y="54" width="16" height="12" rx="6" fill="none" stroke="#444" strokeWidth="2"/>
+      <line x1="60" y1="60" x2="64" y2="60" stroke="#444" strokeWidth="2"/>
+      <line x1="44" y1="60" x2="40" y2="59" stroke="#444" strokeWidth="1.5"/>
+      <line x1="80" y1="60" x2="84" y2="59" stroke="#444" strokeWidth="1.5"/>
+      <ellipse cx="52" cy="60" rx="4" ry="3.5" fill="#2C1808"/>
+      <ellipse cx="72" cy="60" rx="4" ry="3.5" fill="#2C1808"/>
+      <circle cx="53.5" cy="58.5" r="1.4" fill="white"/>
+      <circle cx="73.5" cy="58.5" r="1.4" fill="white"/>
+      <path d="M56 53 Q60 50 64 53" stroke="#5A3010" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M64 53 Q68 50 72 53" stroke="#5A3010" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M60 76 Q68 84 76 76" stroke="#C07050" strokeWidth="2" fill="none" strokeLinecap="round"/>
+    </svg>
+  ),
+  (size = 40) => (
+    <svg width={size} height={size} viewBox="0 0 136 136" preserveAspectRatio="xMidYMid slice" style={{ display: "block" }}>
+      <circle cx="68" cy="68" r="68" fill="#F5E8F0"/>
+      <rect x="18" y="104" width="100" height="60" fill="#8B1A5A"/>
+      <ellipse cx="28" cy="106" rx="20" ry="12" fill="#8B1A5A"/>
+      <ellipse cx="108" cy="106" rx="20" ry="12" fill="#8B1A5A"/>
+      <ellipse cx="68" cy="118" rx="14" ry="22" fill="#F5E8F0"/>
+      <polygon points="68,94 54,126 68,126" fill="#8B1A5A"/>
+      <polygon points="68,94 82,126 68,126" fill="#8B1A5A"/>
+      <rect x="62" y="86" width="14" height="18" rx="6" fill="#FDBCB4"/>
+      <circle cx="68" cy="62" r="30" fill="#FDBCB4"/>
+      <ellipse cx="68" cy="36" rx="30" ry="20" fill="#C0392B"/>
+      <ellipse cx="96" cy="32" rx="12" ry="8" fill="#C0392B"/>
+      <ellipse cx="101" cy="46" rx="8" ry="20" fill="#C0392B"/>
+      <ellipse cx="98" cy="66" rx="6" ry="12" fill="#C0392B"/>
+      <path d="M54 53 Q58 50 62 53" stroke="#5A3010" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+      <path d="M74 53 Q78 50 82 53" stroke="#5A3010" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+      <ellipse cx="58" cy="59" rx="5" ry="4.5" fill="#2C1808"/>
+      <ellipse cx="78" cy="59" rx="5" ry="4.5" fill="#2C1808"/>
+      <circle cx="59.5" cy="57.5" r="1.6" fill="white"/>
+      <circle cx="79.5" cy="57.5" r="1.6" fill="white"/>
+      <path d="M61 75 Q65 72 68 74 Q71 72 75 75" fill="#E88080"/>
+      <path d="M61 75 Q68 82 75 75" fill="#D06060"/>
+      <ellipse cx="51" cy="68" rx="7" ry="4" fill="#F4A0A0" opacity="0.45"/>
+      <ellipse cx="85" cy="68" rx="7" ry="4" fill="#F4A0A0" opacity="0.45"/>
+    </svg>
+  ),
+];
+
+// ── helpers ──────────────────────────────────────────────────
+function getUserId(token) {
+  try { return JSON.parse(atob(token.split(".")[1])).user_id; }
+  catch { return null; }
+}
+function getDefaultAvatarIndex(userId) {
+  const num = parseInt(String(userId).replace(/\D/g, ""), 10) || 0;
+  return num % AVATARS.length;
+}
+function getAvatarIndex(userId) {
+  if (!userId) return 0;
+  const saved = localStorage.getItem(`avatar_${userId}`);
+  if (saved !== null) return Number(saved);
+  return getDefaultAvatarIndex(userId);
+}
+
+// ── AvatarCircle ─────────────────────────────────────────────
+function AvatarCircle({ index, size = 40, border }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%",
+      overflow: "hidden", position: "relative", flexShrink: 0,
+      border: border || "none",
+    }}>
+      <div style={{
+        position: "absolute", inset: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        {AVATARS[index](size)}
+      </div>
+    </div>
+  );
+}
+
+// ── Edit Profile Modal ────────────────────────────────────────
+function EditProfileModal({ onClose, userId }) {
   const { userName, updateUserName } = useAuth();
   const [name, setName] = useState(userName || "");
+  const [selectedAvatar, setSelectedAvatar] = useState(() => getAvatarIndex(userId));
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [err, setErr] = useState("");
@@ -26,173 +204,92 @@ function EditProfileModal({ onClose }) {
     try {
       setLoading(true);
       const res = await request("/auth/profile", {
-        method: "PATCH",
-        body: { user_name: name.trim() },
-        auth: true,
+        method: "PATCH", body: { user_name: name.trim() }, auth: true,
       });
       updateUserName(res.user_name);
+      if (userId) localStorage.setItem(`avatar_${userId}`, selectedAvatar);
       setSuccess("บันทึกสำเร็จ!");
       setTimeout(onClose, 1000);
     } catch (e) {
       setErr(e?.message || "เกิดข้อผิดพลาด");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    // Overlay
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0,
-        background: "rgba(0,0,0,.5)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 9999, padding: 20,
-      }}
-    >
-      {/* Card */}
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 420,
-          background: "#fff", borderRadius: 24,
-          boxShadow: "0 8px 40px rgba(0,0,0,.15)",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,.5)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 9999, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 420, background: "#fff",
+        borderRadius: 24, boxShadow: "0 8px 40px rgba(0,0,0,.15)", overflow: "hidden",
+      }}>
         <div style={{
-          background: "#29B6E8", padding: "24px 28px",
+          background: "#87c7eb", padding: "24px 28px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: "50%",
-              background: "rgba(255,255,255,.25)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              border: "2px solid rgba(255,255,255,.5)",
-            }}>
-              <Icon icon="fluent:person-28-filled" width="32" color="#fff" />
-            </div>
+            <AvatarCircle index={selectedAvatar} size={56} border="2px solid rgba(255,255,255,.6)"/>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
-                แก้ไขข้อมูลส่วนตัว
-              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>แก้ไขข้อมูลส่วนตัว</div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,.8)", marginTop: 2 }}>
                 {ROLE_LABEL["user"]}
               </div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "rgba(255,255,255,.2)", border: "none",
-              borderRadius: "50%", width: 32, height: 32,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: "#fff",
-            }}
-          >
-            <Icon icon="mdi:close" width="18" />
+          <button onClick={onClose} style={{
+            background: "rgba(255,255,255,.2)", border: "none", borderRadius: "50%",
+            width: 32, height: 32, display: "flex", alignItems: "center",
+            justifyContent: "center", cursor: "pointer", color: "#fff",
+          }}>
+            <Icon icon="mdi:close" width="18"/>
           </button>
         </div>
 
-        {/* Form */}
         <div style={{ padding: "24px 28px" }}>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 10 }}>เลือก Avatar</div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              {AVATARS.map((_, i) => (
+                <div key={i} onClick={() => setSelectedAvatar(i)} style={{
+                  width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
+                  cursor: "pointer", overflow: "hidden", position: "relative",
+                  border: selectedAvatar === i ? "3px solid #87c7eb" : "3px solid #E5E7EB",
+                  boxShadow: selectedAvatar === i ? "0 0 0 2px rgba(41,182,232,.3)" : "none",
+                  transition: "all .15s",
+                }}>
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {AVATARS[i](52)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* ชื่อ */}
             <div>
-              <label style={{
-                fontSize: 13, fontWeight: 600, color: "#374151",
-                display: "block", marginBottom: 6,
-              }}>
-                ชื่อผู้ใช้
-              </label>
-              <input
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="ชื่อ-นามสกุล"
-                style={{
-                  width: "100%", padding: "11px 14px",
-                  border: "1.5px solid #E5E7EB", borderRadius: 10,
-                  fontSize: 14, color: "#1a1a2e", outline: "none",
-                  boxSizing: "border-box", background: "#F9FAFB",
-                }}
-                onFocus={e => e.target.style.borderColor = "#29B6E8"}
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>ชื่อผู้ใช้</label>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="ชื่อ-นามสกุล"
+                style={{ width: "100%", padding: "11px 14px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#1a1a2e", outline: "none", boxSizing: "border-box", background: "#F9FAFB" }}
+                onFocus={e => e.target.style.borderColor = "#87c7eb"}
                 onBlur={e => e.target.style.borderColor = "#E5E7EB"}
               />
             </div>
-
-            {/* อีเมล */}
             <div>
-              <label style={{
-                fontSize: 13, fontWeight: 600, color: "#374151",
-                display: "block", marginBottom: 6,
-              }}>
-                อีเมล
-                <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400, marginLeft: 6 }}>
-                  (ไม่สามารถเปลี่ยนได้)
-                </span>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+                อีเมล <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400, marginLeft: 6 }}>(ไม่สามารถเปลี่ยนได้)</span>
               </label>
-              <div style={{
-                padding: "11px 14px", border: "1.5px solid #F3F4F6",
-                borderRadius: 10, fontSize: 14, color: "#9ca3af",
-                background: "#F3F4F6", display: "flex",
-                justifyContent: "space-between", alignItems: "center",
-              }}>
+              <div style={{ padding: "11px 14px", border: "1.5px solid #F3F4F6", borderRadius: 10, fontSize: 14, color: "#9ca3af", background: "#F3F4F6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>—</span>
-                <Icon icon="mdi:lock-outline" width="16" color="#9ca3af" />
+                <Icon icon="mdi:lock-outline" width="16" color="#9ca3af"/>
               </div>
             </div>
-
-            {/* Error / Success */}
-            {err && (
-              <div style={{
-                background: "#FEF2F2", border: "1px solid #FECACA",
-                borderRadius: 10, padding: "10px 14px",
-                fontSize: 13, color: "#dc2626",
-                display: "flex", alignItems: "center", gap: 8,
-              }}>
-                <Icon icon="mdi:alert-circle" width="16" />{err}
-              </div>
-            )}
-            {success && (
-              <div style={{
-                background: "#F0FDF4", border: "1px solid #86EFAC",
-                borderRadius: 10, padding: "10px 14px",
-                fontSize: 13, color: "#16a34a",
-                display: "flex", alignItems: "center", gap: 8,
-              }}>
-                <Icon icon="mdi:check-circle" width="16" />{success}
-              </div>
-            )}
-
-            {/* Buttons */}
+            {err && <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8 }}><Icon icon="mdi:alert-circle" width="16"/>{err}</div>}
+            {success && <div style={{ background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#16a34a", display: "flex", alignItems: "center", gap: 8 }}><Icon icon="mdi:check-circle" width="16"/>{success}</div>}
             <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-              <button
-                type="button"
-                onClick={onClose}
-                style={{
-                  flex: 1, padding: "12px", background: "#F3F4F6",
-                  color: "#1a1a2e", border: "none", borderRadius: 12,
-                  fontSize: 14, fontWeight: 600, cursor: "pointer",
-                }}
-              >
-                ยกเลิก
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  flex: 2, padding: "12px", background: "#29B6E8",
-                  color: "#fff", border: "none", borderRadius: 12,
-                  fontSize: 14, fontWeight: 700,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1,
-                }}
-              >
-                {loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
-              </button>
+              <button type="button" onClick={onClose} style={{ flex: 1, padding: "12px", background: "#F3F4F6", color: "#1a1a2e", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>ยกเลิก</button>
+              <button type="submit" disabled={loading} style={{ flex: 2, padding: "12px", background: "#5285e8", color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>{loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}</button>
             </div>
           </form>
         </div>
@@ -201,15 +298,232 @@ function EditProfileModal({ onClose }) {
   );
 }
 
-// ── Main Dropdown ───────────────────────────────────────────
+// ── Manage Admins Modal ───────────────────────────────────────
+function ManageAdminsModal({ onClose, currentUserId }) {
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await request("/auth/school-admins", { auth: true });
+        setAdmins(data);
+      } catch { setErr("โหลดข้อมูลไม่สำเร็จ"); }
+      finally { setLoading(false); }
+    })();
+  }, []);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    setErr(""); setSuccess("");
+    if (!newName.trim() || !newEmail.trim() || !newPass) return setErr("กรุณากรอกข้อมูลให้ครบ");
+    try {
+      setAddLoading(true);
+      const res = await request("/auth/school-admins", {
+        method: "POST",
+        body: { user_name: newName.trim(), user_email: newEmail.trim(), password: newPass },
+        auth: true,
+      });
+      setAdmins(prev => [...prev, { ...res, created_at: new Date().toISOString() }]);
+      setNewName(""); setNewEmail(""); setNewPass("");
+      setShowAdd(false);
+      setSuccess("เพิ่มผู้ดูแลสำเร็จ!");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e) {
+      setErr(e?.message || "เกิดข้อผิดพลาด");
+    } finally { setAddLoading(false); }
+  };
+
+  const handleRemove = async (userId, name) => {
+    if (!confirm(`ต้องการลบผู้ดูแล "${name}" ออกจากระบบ?`)) return;
+    try {
+      await request(`/auth/school-admins/${userId}`, { method: "DELETE", auth: true });
+      setAdmins(prev => prev.filter(a => a.user_id !== userId));
+    } catch (e) { setErr(e?.message || "ลบไม่สำเร็จ"); }
+  };
+
+  return (
+    <>
+      <style>{`.ph-gray::placeholder { color: #B0BEC5 !important; opacity: 1 !important; }`}</style>
+      <div onClick={onClose} style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,.5)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 9999, padding: 20,
+      }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 480, background: "#fff", borderRadius: 24,
+        boxShadow: "0 8px 40px rgba(0,0,0,.15)", overflow: "hidden",
+        display: "flex", flexDirection: "column",
+      }}>
+        {/* Header */}
+        <div style={{
+          background: "#87c7eb", padding: "24px 28px",
+          display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: "50%",
+              background: "rgba(255,255,255,.25)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              border: "2px solid rgba(255,255,255,.5)",
+            }}>
+              <Icon icon="mdi:account-group" width="24" color="#fff"/>
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>จัดการผู้ดูแลโรงเรียน</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,.8)", marginTop: 2 }}>{admins.length} คน</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: "rgba(255,255,255,.2)", border: "none", borderRadius: "50%",
+            width: 32, height: 32, display: "flex", alignItems: "center",
+            justifyContent: "center", cursor: "pointer", color: "#fff",
+          }}>
+            <Icon icon="mdi:close" width="18"/>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: "20px 28px", flex: 1 }}>
+          {err && (
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <Icon icon="mdi:alert-circle" width="16"/>{err}
+            </div>
+          )}
+          {success && (
+            <div style={{ background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#16a34a", display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <Icon icon="mdi:check-circle" width="16"/>{success}
+            </div>
+          )}
+
+          {/* รายชื่อ */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 12 }}>ผู้ดูแลทั้งหมด</div>
+            {loading ? (
+              <div style={{ textAlign: "center", padding: "24px 0", color: "#9ca3af", fontSize: 13 }}>กำลังโหลด...</div>
+            ) : admins.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "24px 0", color: "#9ca3af", fontSize: 13 }}>ไม่พบผู้ดูแล</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {admins.map((a, index) => (
+  <div key={a.user_id} style={{
+    display: "flex", alignItems: "center", gap: 12,
+    padding: "12px 14px", background: "#F9FAFB",
+    borderRadius: 12, border: "1px solid #F3F4F6",
+  }}>
+    <AvatarCircle index={getAvatarIndex(a.user_id)} size={40} border="2px solid #E5E7EB"/>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        {a.user_name}
+        {/* badge แอดมินหลัก / แอดมิน 1 2 3... */}
+        <span style={{
+          fontSize: 11, borderRadius: 6, padding: "2px 8px",
+          background: index === 0 ? "#FFF7E6" : "#DBEAFE",
+          color: index === 0 ? "#B45309" : "#5285e8",
+        }}>
+          {index === 0 ? "แอดมิน 1 (หลัก)" : `แอดมิน ${index + 1}`}
+        </span>
+        {/* badge คุณ */}
+        {Number(a.user_id) === Number(currentUserId) && (
+          <span style={{ fontSize: 11, color: "#87C7EB", background: "#EFF6FF", borderRadius: 6, padding: "2px 8px" }}>คุณ</span>
+        )}
+      </div>
+      <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{a.user_email}</div>
+    </div>
+    {Number(a.user_id) !== Number(currentUserId) && index !== 0 && (
+  <button onClick={() => handleRemove(a.user_id, a.user_name)} style={{
+    background: "#FEF2F2", border: "none", borderRadius: 8,
+    padding: "7px", cursor: "pointer", color: "#DC2626",
+    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+  }}>
+    <Icon icon="mdi:trash-can-outline" width="18"/>
+  </button>
+)}
+  </div>
+))}
+              </div>
+            )}
+          </div>
+
+          {/* ฟอร์มเพิ่ม */}
+          {showAdd ? (
+            <div style={{ background: "#F0F9FF", borderRadius: 14, border: "1.5px solid #BAE6FD", padding: "18px" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 14 }}>เพิ่มผู้ดูแลใหม่</div>
+              <form onSubmit={handleAdd} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <style>{`.adm-ph::placeholder{color:#B0BEC5;}`}</style>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>ชื่อผู้ดูแล</label>
+                  <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="ชื่อ-นามสกุล"
+                    className="adm-ph"
+                    style={{ width: "100%", padding: "7px 12px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }}
+                    onFocus={e => e.target.style.borderColor = "#87c7eb"}
+                    onBlur={e => e.target.style.borderColor = "#E5E7EB"}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>อีเมล</label>
+                  <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="teacher1234@gmail.com" type="email"
+                    className="adm-ph"
+                    style={{ width: "100%", padding: "7px 12px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }}
+                    onFocus={e => e.target.style.borderColor = "#87c7eb"}
+                    onBlur={e => e.target.style.borderColor = "#E5E7EB"}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>รหัสผ่าน</label>
+                  <input value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร" type="password"
+                    className="adm-ph"
+                    style={{ width: "100%", padding: "7px 12px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 13, outline: "none", background: "#fff", boxSizing: "border-box" }}
+                    onFocus={e => e.target.style.borderColor = "#87c7eb"}
+                    onBlur={e => e.target.style.borderColor = "#E5E7EB"}
+                  />
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" onClick={() => { setShowAdd(false); setErr(""); }}
+                    style={{ flex: 1, padding: "10px", background: "#Fff", color: "#1a1a2e", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>ยกเลิก</button>
+                  <button type="submit" disabled={addLoading}
+                    style={{ flex: 2, padding: "10px", background: "#5285e8", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: addLoading ? "not-allowed" : "pointer", opacity: addLoading ? 0.7 : 1 }}>
+                    {addLoading ? "กำลังเพิ่ม..." : "เพิ่มผู้ดูแล"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <button onClick={() => { setShowAdd(true); setErr(""); setSuccess(""); }} style={{
+              width: "100%", padding: "11px", background: "#EFF6FF", color: "#87c7eb",
+              border: "1.5px dashed #BAE6FD", borderRadius: 12, fontSize: 14, fontWeight: 600,
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}>
+              <Icon icon="mdi:plus" width="18"/>เพิ่มผู้ดูแลใหม่
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+    </>
+  );
+}
+
+// ── Main Dropdown ─────────────────────────────────────────────
 export default function ProfileDropdown() {
-  const { userName, role, logout } = useAuth();
+  const { userName, role, logout, token } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
   const [openDonate, setOpenDonate] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false); // ← เพิ่ม
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [avatarKey, setAvatarKey] = useState(0);
   const ref = useRef(null);
+
+  const userId = getUserId(token);
 
   useEffect(() => {
     const handler = (e) => {
@@ -221,20 +535,20 @@ export default function ProfileDropdown() {
 
   const handleLogout = () => { setOpen(false); logout(); navigate("/"); };
   const handleNavigate = (path) => { setOpen(false); navigate(path); };
+  const handleModalClose = () => { setShowEditModal(false); setAvatarKey(k => k + 1); };
 
   return (
     <>
-      {/* Edit Profile Modal */}
-      {showEditModal && (
-        <EditProfileModal onClose={() => setShowEditModal(false)} />
-      )}
+      {showEditModal && <EditProfileModal onClose={handleModalClose} userId={userId}/>}
+      {showAdminModal && <ManageAdminsModal onClose={() => setShowAdminModal(false)} currentUserId={userId}/>}
 
       <div className="pd-outer" ref={ref}>
         <div className="pd-wrap">
-          {/* Trigger */}
-          <div className="pd-trigger" onClick={() => setOpen((o) => !o)}>
-            <div className="pd-avatar">
-              <Icon icon="fluent:person-circle-28-filled" width="38" height="38" color="#fff" />
+          <div className="pd-trigger" onClick={() => setOpen(o => !o)}>
+            <div className="pd-avatar" style={{ width: 38, height: 38, borderRadius: "50%", overflow: "hidden", position: "relative" }}>
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {AVATARS[getAvatarIndex(userId)](38)}
+              </div>
             </div>
             <div className="pd-info">
               <div className="pd-name">{userName || "ผู้ใช้"}</div>
@@ -247,10 +561,8 @@ export default function ProfileDropdown() {
             </div>
           </div>
 
-          {/* Dropdown */}
           {open && (
             <div className="pd-menu">
-              {/* school_admin */}
               {role === "school_admin" && (
                 <>
                   <div className="pd-item" onClick={() => handleNavigate("/school/welcome")}>
@@ -262,28 +574,31 @@ export default function ProfileDropdown() {
                     </span>
                     <span className="pd-item-label">หน้าหลักโรงเรียน</span>
                   </div>
-                  <div className="pd-divider" />
+                  <div className="pd-item" onClick={() => { setOpen(false); setShowEditModal(true); }}>
+                    <span className="pd-item-icon"><Icon icon="mdi:account-edit-outline" width="18"/></span>
+                    <span className="pd-item-label">แก้ไขข้อมูลส่วนตัว</span>
+                  </div>
+                  <div className="pd-item" onClick={() => { setOpen(false); setShowAdminModal(true); }}>
+                    <span className="pd-item-icon"><Icon icon="mdi:account-group-outline" width="18"/></span>
+                    <span className="pd-item-label">จัดการผู้ดูแลโรงเรียน</span>
+                  </div>
+                  <div className="pd-divider"/>
                 </>
               )}
 
-              {/* admin */}
               {role === "admin" && (
                 <>
                   <div className="pd-item" onClick={() => handleNavigate("/admin/backoffice")}>
-                    <span className="pd-item-icon">
-                      <Icon icon="material-symbols:dashboard-rounded" width="18" />
-                    </span>
+                    <span className="pd-item-icon"><Icon icon="material-symbols:dashboard-rounded" width="18"/></span>
                     <span className="pd-item-label">แดชบอร์ดผู้ดูแลระบบ</span>
                   </div>
-                  <div className="pd-divider" />
+                  <div className="pd-divider"/>
                 </>
               )}
 
-              {/* user */}
               {role !== "admin" && role !== "school_admin" && (
                 <>
-                  {/* บัญชีของฉัน */}
-                  <div className="pd-item pd-item--expand" onClick={() => setOpenAccount((o) => !o)}>
+                  <div className="pd-item pd-item--expand" onClick={() => setOpenAccount(o => !o)}>
                     <span className="pd-item-icon">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/>
@@ -299,21 +614,17 @@ export default function ProfileDropdown() {
                   </div>
                   {openAccount && (
                     <div className="pd-sub">
-                      {/* ← เปลี่ยนจาก navigate เป็นเปิด modal */}
                       <div className="pd-sub-item" onClick={() => { setOpen(false); setShowEditModal(true); }}>
-                        <span className="pd-sub-dot" />แก้ไขข้อมูลส่วนตัว
+                        <span className="pd-sub-dot"/>แก้ไขข้อมูลส่วนตัว
                       </div>
                       <div className="pd-sub-item" onClick={() => handleNavigate("/profile/certificates")}>
-                        <span className="pd-sub-dot" />ประกาศนียบัตร
+                        <span className="pd-sub-dot"/>ประกาศนียบัตร
                       </div>
                     </div>
                   )}
 
-                  {/* รายการบริจาค */}
-                  <div className="pd-item pd-item--expand" onClick={() => setOpenDonate((o) => !o)}>
-                    <span className="pd-item-icon">
-                      <Icon icon="mdi:gift-outline" width="18" />
-                    </span>
+                  <div className="pd-item pd-item--expand" onClick={() => setOpenDonate(o => !o)}>
+                    <span className="pd-item-icon"><Icon icon="mdi:gift-outline" width="18"/></span>
                     <span className="pd-item-label">รายการบริจาคของฉัน</span>
                     <span className={`pd-sub-arrow ${openDonate ? "pd-sub-arrow--open" : ""}`}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -324,10 +635,10 @@ export default function ProfileDropdown() {
                   {openDonate && (
                     <div className="pd-sub">
                       <div className="pd-sub-item" onClick={() => handleNavigate("/donations/history")}>
-                        <span className="pd-sub-dot" />ประวัติการบริจาค
+                        <span className="pd-sub-dot"/>ประวัติการบริจาค
                       </div>
                       <div className="pd-sub-item" onClick={() => handleNavigate("/donations/tracking")}>
-                        <span className="pd-sub-dot" />ติดตามสถานะการนัดหมาย
+                        <span className="pd-sub-dot"/>ติดตามสถานะการนัดหมาย
                       </div>
                     </div>
                   )}
@@ -354,9 +665,8 @@ export default function ProfileDropdown() {
                 </>
               )}
 
-              <div className="pd-divider" />
+              <div className="pd-divider"/>
 
-              {/* ออกจากระบบ */}
               <div className="pd-item pd-item--logout" onClick={handleLogout}>
                 <span className="pd-item-icon pd-item-icon--red">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">

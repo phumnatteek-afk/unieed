@@ -87,7 +87,7 @@ export async function googleLogin(req, res, next) {
   } catch (e) { next(e); }
 }
 
-// ─── OTP (existing) ───────────────────────────────────────────
+// ─── OTP ─────────────────────────────────────────────────────
 
 export async function requestOtp(req, res, next) {
   try {
@@ -103,9 +103,52 @@ export async function verifyOtp(req, res, next) {
   } catch (e) { next(e); }
 }
 
+// ─── User Profile ─────────────────────────────────────────────
+
 export async function updateProfile(req, res, next) {
   try {
     const result = await svc.updateProfile(req.user.user_id, req.body);
     res.json(result);
   } catch (err) { next(err); }
+}
+
+// ─── School Admins ────────────────────────────────────────────
+
+// GET /auth/school-admins — ดึงรายชื่อแอดมินทั้งหมดของโรงเรียน
+export async function getSchoolAdmins(req, res, next) {
+  try {
+    const schoolId = req.user.school_id;
+    if (!schoolId) {
+      return res.status(400).json({ message: "ไม่พบข้อมูลโรงเรียน" });
+    }
+    const admins = await svc.getSchoolAdmins(schoolId);
+    res.json(admins);
+  } catch (e) { next(e); }
+}
+
+// POST /auth/school-admins — เพิ่มแอดมินใหม่
+export async function addSchoolAdmin(req, res, next) {
+  try {
+    const schoolId = req.user.school_id;
+    if (!schoolId) {
+      return res.status(400).json({ message: "ไม่พบข้อมูลโรงเรียน" });
+    }
+    const result = await svc.addSchoolAdmin(schoolId, req.body);
+    res.status(201).json(result);
+  } catch (e) { next(e); }
+}
+
+// DELETE /auth/school-admins/:userId — ลบแอดมิน
+export async function removeSchoolAdmin(req, res, next) {
+  try {
+    const schoolId = req.user.school_id;
+    const targetUserId = req.params.userId;
+    const requesterId = req.user.user_id;
+
+    if (!schoolId) {
+      return res.status(400).json({ message: "ไม่พบข้อมูลโรงเรียน" });
+    }
+    const result = await svc.removeSchoolAdmin(schoolId, targetUserId, requesterId);
+    res.json(result);
+  } catch (e) { next(e); }
 }

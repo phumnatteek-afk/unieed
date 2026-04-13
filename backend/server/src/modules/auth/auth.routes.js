@@ -13,6 +13,9 @@ import {
   resetPassword,
   googleLogin,
   updateProfile,
+  getSchoolAdmins,
+  addSchoolAdmin,
+  removeSchoolAdmin,
 } from "./auth.controller.js";
 
 const r = Router();
@@ -23,10 +26,10 @@ r.post("/register/school", registerSchoolOneStep);
 
 // ─── Login ───────────────────────────────────────────────────
 r.post("/login", login);
-r.post("/login/google", googleLogin);            // ✅ Google OAuth
+r.post("/login/google", googleLogin);
 
 // ─── Email Verification ──────────────────────────────────────
-r.get("/verify-email", verifyEmail);             // ?token=xxx
+r.get("/verify-email", verifyEmail);
 r.post("/resend-verification", resendVerification);
 
 // ─── Password Reset ──────────────────────────────────────────
@@ -40,7 +43,12 @@ r.get("/school/status", auth, mySchoolStatus);
 r.post("/otp/request", requestOtp);
 r.post("/otp/verify", verifyOtp);
 
-// ─── User Profile ───────────────────────────────────────────
+// ─── User Profile ────────────────────────────────────────────
 r.patch("/profile", auth, updateProfile);
+
+// ─── School Admins (school_admin only) ───────────────────────
+r.get("/school-admins", auth, getSchoolAdmins);
+r.post("/school-admins", auth, addSchoolAdmin);
+r.delete("/school-admins/:userId", auth, removeSchoolAdmin);
 
 export default r;
