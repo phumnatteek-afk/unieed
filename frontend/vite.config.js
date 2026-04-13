@@ -13,15 +13,15 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "unsafe-none",
     },
     proxy: {
-  "/api": {
-    target: "http://localhost:3000",
-    changeOrigin: true,
-  },
-  "^/school/(?!accept-invite)": {
-    target: "http://localhost:3000",
-    changeOrigin: true,
-    rewrite: (path) => path,
-  },
-},
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+      "^/school/(?!accept-invite)": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        rewrite: (path) => path,
+      },
+    },
   },
 })
