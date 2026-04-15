@@ -93,15 +93,15 @@ function AutoCheckBadge({ donation }) {
   }
   if (donation.auto_approved) {
     return (
-      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"#7c3aed", background:"#f3e8ff", padding:"3px 9px", borderRadius:20 }}>
-        <Icon icon="mdi:robot-outline" width={12} /> Auto-approved
+      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"#7c3aed", background:"#f3e8ff", padding:"3px 9px", borderRadius:20, whiteSpace:"nowrap"}}>
+        <Icon icon="mdi:robot-outline" width={12} /> ตรวจสอบโดยแอดมิน
       </span>
     );
   }
   return (
     <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"#d97706", background:"#fef3c7", padding:"3px 9px", borderRadius:20, whiteSpace:"nowrap" }}>
       <Icon icon="mdi:clock-alert-outline" width={12} />
-      รอ Auto-check · {getDaysElapsed(donation.created_at)} วัน
+      รอแอดมินตรวจสอบ · {getDaysElapsed(donation.created_at)} วัน
     </span>
   );
 }
@@ -364,7 +364,7 @@ export default function SchoolDonationPage() {
       {overdueCount > 0 && (
         <div className="sdOverdueBanner">
           <Icon icon="mdi:clock-alert-outline" width={20} color="#d97706" style={{ flexShrink:0 }} />
-          <span>มี <strong>{overdueCount} รายการ</strong> ที่ผ่านมาแล้วเกิน 7 วันและยังไม่ได้รับการยืนยัน — ระบบจะทำการ Auto-check สถานะพัสดุให้อัตโนมัติ</span>
+          <span>มี <strong>{overdueCount} รายการ</strong> ที่ผ่านมาแล้วเกิน 7 วันและยังไม่ได้รับการยืนยัน — แอดมินจะทำการตรวจสอบและดำเนินการให้ภายหลัง</span>
           <Icon icon="mdi:robot-outline" width={18} color="#d97706" className="sdOverdueBannerIcon" />
         </div>
       )}
@@ -434,7 +434,7 @@ export default function SchoolDonationPage() {
                 <Icon icon="mdi:robot-outline" color="#7c3aed" />
               </div>
             </div>
-            <span className="sdSummaryLabel">รอ Auto-check</span>
+            <span className="sdSummaryLabel">รอแอดมินตรวจสอบ</span>
             <span className="sdSummaryVal" style={{ color:"#7c3aed" }}>{overdueCount}</span>
           </div>
         )}
@@ -480,15 +480,15 @@ export default function SchoolDonationPage() {
               <th>รายการบริจาค</th>
               <th>สถานะ</th>
               <th>การใช้งาน</th>
-              <th>Auto-check</th>
+              <th>การตรวจสอบ</th>
               <th>จัดการ</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={9} style={{ textAlign:"center", padding:"48px", color:"#94a3b8" }}>กำลังโหลด...</td></tr>
+              <tr><td colSpan={8} style={{ textAlign:"center", padding:"48px", color:"#94a3b8" }}>กำลังโหลด...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={9} style={{ textAlign:"center", padding:"48px", color:"#94a3b8" }}>ยังไม่มีรายการ</td></tr>
+              <tr><td colSpan={8} style={{ textAlign:"center", padding:"48px", color:"#94a3b8" }}>ยังไม่มีรายการ</td></tr>
             ) : paginated.map(d => {
               const isExpanded    = expandedRow === d.donation_id;
               const items         = parseItems(d.items_snapshot);
@@ -497,6 +497,8 @@ export default function SchoolDonationPage() {
               const overdue = isOverdue(d.created_at) && d.status === "pending" && d.delivery_method === "parcel";
               // market_purchase rows: ไฮไลต์สีฟ้าอ่อน
               const isMarket = d.delivery_method === "market_purchase";
+
+              console.log("donation_id:", d.donation_id, "status:", d.status, "auto_approved:", d.auto_approved);
  
               return (
                 <>
@@ -539,7 +541,7 @@ export default function SchoolDonationPage() {
                     {/* รายการ */}
                     <td>
                       {items.length > 0 ? (
-                        <span className="sdItemCount">
+                        <span className="sdItemCount" style={{ whiteSpace:"nowrap"}}>
                           {items.length} รายการ · {items.reduce((s, i) => s + (Number(i.quantity) || 0), 0)} ชิ้น
                         </span>
                       ) : (
@@ -571,29 +573,53 @@ export default function SchoolDonationPage() {
                       <AutoCheckBadge donation={d} />
                     </td>
  
-                    {/* จัดการ */}
-                    <td onClick={e => e.stopPropagation()}>
-                      <div className="sdActions">
-                        {d.status === "pending" && (
-                          <>
-                            <button className="sdBtnConfirm" onClick={() => openVerifyPopup(d)}>ยืนยัน</button>
-                            <button className="sdBtnVerify"  onClick={() => openVerifyPopup(d)}>ตรวจสอบ</button>
-                          </>
-                        )}
-                        {d.status === "approved" && !d.condition_status && (
-                          <button className="sdBtnVerify" onClick={() => openVerifyPopup(d)}>ตรวจสอบ</button>
-                        )}
-                        {d.status === "approved" && d.condition_status && (
-                          <button className="sdBtnMore"><Icon icon="mdi:dots-vertical" width="18" /></button>
-                        )}
-                      </div>
-                    </td>
+                    
+                 {/* จัดการ */}
+                <td onClick={e => e.stopPropagation()}>
+                <div className="sdActions">
+
+                  {/* pending + ยังไม่เกิน 7 วัน → แสดงปุ่ม */}
+                  {d.status === "pending" && !isOverdue(d.created_at) && (
+                    <>
+                      <button className="sdBtnConfirm" onClick={() => openVerifyPopup(d)}>ยืนยัน</button>
+                      <button className="sdBtnVerify"  onClick={() => openVerifyPopup(d)}>ตรวจสอบ</button>
+                    </>
+                  )}
+
+                  {/* pending + เกิน 7 วันแล้ว → รอแอดมิน */}
+                  {d.status === "pending" && isOverdue(d.created_at) && (
+                    <span style={{ fontSize:11, color:"#d97706", background:"#fef3c7", padding:"3px 9px", borderRadius:20, fontWeight:600, display:"inline-flex", alignItems:"center", gap:4 , whiteSpace:"nowrap"}}>
+                      <Icon icon="mdi:clock-outline" width={13} />
+                      รอแอดมินตรวจสอบ
+                    </span>
+                  )}
+
+                  {/* approved โรงเรียนเอง + ยังไม่ตรวจสภาพ */}
+                  {d.status === "approved" && !d.condition_status && !Number(d.auto_approved) && (
+                    <button className="sdBtnVerify" onClick={() => openVerifyPopup(d)}>ตรวจสอบ</button>
+                  )}
+
+                  {/* approved + ตรวจสภาพแล้ว */}
+                  {d.status === "approved" && d.condition_status && (
+                    <button className="sdBtnMore"><Icon icon="mdi:dots-vertical" width="18" /></button>
+                  )}
+
+                  {/* Admin อนุมัติแล้ว */}
+                  {Number(d.auto_approved) === 1 && (
+                    <span style={{ fontSize:11, color:"#16a34a", background:"#dcfce7", padding:"3px 9px", borderRadius:20, fontWeight:600, display:"inline-flex", alignItems:"center", gap:4 , whiteSpace:"nowrap"}}>
+                      <Icon icon="mdi:check-circle-outline" width={13} />
+                      แอดมินอนุมัติแล้ว
+                    </span>
+                  )}
+
+                </div>
+              </td>
                   </tr>
  
                   {/* Expanded row */}
                   {isExpanded && (
                     <tr key={`${d.donation_id}-exp`} className="sdExpandRow">
-                      <td colSpan={9}>
+                      <td colSpan={8}>
                         <div className="sdExpandInner">
                           {/* market_purchase: แสดง order reference */}
                           {isMarket && d.market_order_id && (
@@ -695,7 +721,7 @@ export default function SchoolDonationPage() {
             {isOverdue(verifyPopup.created_at) && verifyPopup.delivery_method === "parcel" && (
               <div style={{ display:"flex", alignItems:"center", gap:8, background:"#fffbeb", border:"1px solid #fde68a", borderRadius:8, padding:"10px 12px", marginBottom:14, fontSize:12, color:"#92400e" }}>
                 <Icon icon="mdi:clock-alert-outline" width={16} color="#d97706" />
-                <span>รายการนี้เกิน 7 วันแล้ว — ระบบกำลังติดตามสถานะพัสดุให้อัตโนมัติ การยืนยันด้วยตนเองจะยกเลิก auto-check</span>
+                <span>รายการนี้ผ่านมาเกิน 7 วันแล้ว — แอดมินจะเข้ามาตรวจสอบและดำเนินการให้ หากโรงเรียนได้รับของแล้วสามารถยืนยันได้เลยค่ะ</span>
               </div>
             )}
  

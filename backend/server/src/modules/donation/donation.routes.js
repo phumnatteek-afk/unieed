@@ -79,7 +79,7 @@ r.post("/:requestId", (req, _res, next) => {
 }, upload.single("image"), createDonation);
 
 r.get("/:donationId",  auth, getDonationDetail);
-r.patch("/:donationId/status", auth, requireRole(["school_admin"]), updateDonationStatus);
-r.patch("/:donationId/verify", auth, requireRole(["school_admin"]), verifyAndIssueCertificate);
+r.patch("/:donationId/status", auth, requireRole(["school_admin", "admin"]), updateDonationStatus);
+r.patch("/:donationId/verify", auth, requireRole(["school_admin", "admin"]), verifyAndIssueCertificate);
 
 export default r;

@@ -141,15 +141,18 @@ export async function getDonationDetail(req, res, next) {
 export async function updateDonationStatus(req, res, next) {
   try {
     const donation_id = req.params.donationId;
-    const school_id   = req.user.school_id;
-    const { status }  = req.body;
+    const { role, school_id } = req.user;
+    const { status } = req.body;
 
     if (!["approved", "rejected"].includes(status))
       return res.status(400).json({ message: "status ต้องเป็น approved หรือ rejected" });
 
-    const owned = await isDonationOwnedBySchool(donation_id, school_id);
-    if (!owned)
-      return res.status(403).json({ message: "ไม่พบรายการ หรือไม่มีสิทธิ์" });
+    // ✅ Admin ข้ามการเช็ค school ownership ได้เลย
+    if (role !== "admin") {
+      const owned = await isDonationOwnedBySchool(donation_id, school_id);
+      if (!owned)
+        return res.status(403).json({ message: "ไม่พบรายการ หรือไม่มีสิทธิ์" });
+    }
 
     await setDonationStatus(donation_id, status);
     res.json({ message: `อัปเดตสถานะเป็น ${status} แล้ว` });

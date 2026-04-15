@@ -146,8 +146,10 @@ export async function verifyAndIssueCertificate(req, res, next) {
         );
         if (!current)
             return res.status(404).json({ message: "ไม่พบรายการบริจาค" });
-        if (current.status !== "pending")
+        if (current.status !== "pending" && current.status !== "approved")
             return res.status(400).json({ message: "รายการนี้ถูกอัปเดตแล้ว" });
+        if (current.status === "approved" && current.condition_status)
+            return res.status(400).json({ message: "รายการนี้ตรวจสอบแล้ว" });
         // 1. อัปเดต donation_record
         await db.query(
             `UPDATE donation_record
