@@ -1,7 +1,25 @@
 import { useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { resetPassword } from "../services/auth.service.js";
-import "../styles/reset.css"; // ← เปลี่ยน path ตาม project ของคุณ
+import "../styles/auth.css";
+
+const LeftPanel = () => (
+  <div className="lgLeftPanel">
+    <div className="lgBgImage" />
+    <img className="lgLogo" src="/src/unieed_pic/logo1.png" alt="Unieed" />
+    <div className="lgWelcomeBlock">
+      <div className="lgWelcomeTitle">ตั้งรหัสผ่านใหม่</div>
+      <div className="lgWelcomeSub">
+        ปกป้องบัญชีของคุณ<br />ด้วยรหัสผ่านที่แข็งแกร่ง
+      </div>
+    </div>
+    <div className="lgBadge">
+      <div className="lgBadgeText">
+        " สร้างโอกาสทางการศึกษา<br />ผ่านการบริจาคชุดนักเรียน <span>"</span>
+      </div>
+    </div>
+  </div>
+);
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -19,16 +37,8 @@ export default function ResetPasswordPage() {
   const submit = async (e) => {
     e.preventDefault();
     setErr("");
-
-    if (newPassword.length < 6) {
-      setErr("รหัสผ่านต้องอย่างน้อย 6 ตัวอักษร");
-      return;
-    }
-    if (newPassword !== confirm) {
-      setErr("รหัสผ่านไม่ตรงกัน");
-      return;
-    }
-
+    if (newPassword.length < 6) return setErr("รหัสผ่านต้องอย่างน้อย 6 ตัวอักษร");
+    if (newPassword !== confirm) return setErr("รหัสผ่านไม่ตรงกัน");
     setLoading(true);
     try {
       await resetPassword({ token, newPassword });
@@ -56,15 +66,18 @@ export default function ResetPasswordPage() {
   /* ── ลิงก์ไม่ถูกต้อง ── */
   if (!token) {
     return (
-      <div className="rpPage">
-        <div className="rpCard">
-          <div className="rpSuccessIcon" style={{ background: "#fef2f2" }}>⚠️</div>
-          <div className="rpHeader" style={{ textAlign: "center" }}>
-            <h2 className="rpTitle">ลิงก์ไม่ถูกต้อง</h2>
-            <p className="rpSubtitle">ลิงก์นี้หมดอายุหรือไม่ถูกต้อง</p>
-          </div>
-          <div className="rpFooter">
-            <Link to="/forgot-password" className="rpLink">← ขอลิงก์ใหม่</Link>
+      <div className="lgPage">
+        <div className="lgCardForgot">
+          <LeftPanel />
+          <div className="lgRightPanel">
+            <div className="lgHeader">
+              <h2 className="lgTitle">ลิงก์ไม่ถูกต้อง</h2>
+              <p className="lgSubtitle">ลิงก์นี้หมดอายุหรือไม่ถูกต้อง</p>
+            </div>
+            <div className="lgAlert lgAlert--error">❌ กรุณาขอลิงก์รีเซ็ตรหัสผ่านใหม่</div>
+            <div className="lgFooter" style={{ marginTop: "24px" }}>
+              <Link to="/forgot-password" className="lgLink">← ขอลิงก์ใหม่</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -74,15 +87,20 @@ export default function ResetPasswordPage() {
   /* ── สำเร็จ ── */
   if (done) {
     return (
-      <div className="rpPage">
-        <div className="rpCard">
-          <div className="rpSuccessIcon">✓</div>
-          <div className="rpHeader" style={{ textAlign: "center" }}>
-            <h2 className="rpTitle">เปลี่ยนรหัสผ่านสำเร็จ</h2>
-            <p className="rpSubtitle">กำลังพาไปหน้าเข้าสู่ระบบ...</p>
-          </div>
-          <div className="rpAlert rpAlert--success">
-            รหัสผ่านใหม่ถูกบันทึกแล้ว คุณสามารถเข้าสู่ระบบได้ทันที
+      <div className="lgPage">
+        <div className="lgCardForgot">
+          <LeftPanel />
+          <div className="lgRightPanel">
+            <div className="lgHeader">
+              <h2 className="lgTitle">เปลี่ยนรหัสผ่านสำเร็จ</h2>
+              <p className="lgSubtitle">กำลังพาไปหน้าเข้าสู่ระบบ...</p>
+            </div>
+            <div className="lgAlert lgAlert--success">
+              ✅ รหัสผ่านใหม่ถูกบันทึกแล้ว คุณสามารถเข้าสู่ระบบได้ทันที
+            </div>
+            <div className="lgFooter" style={{ marginTop: "24px" }}>
+              <Link to="/login" className="lgLink">ไปหน้าเข้าสู่ระบบ →</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -91,66 +109,85 @@ export default function ResetPasswordPage() {
 
   /* ── ฟอร์มหลัก ── */
   return (
-    <div className="rpPage">
-      <div className="rpCard">
+    <div className="lgPage">
+      <div className="lgCardForgot">
+        <LeftPanel />
 
-        <div className="rpIcon">🔐</div>
-
-        <div className="rpHeader">
-          <h2 className="rpTitle">ตั้งรหัสผ่านใหม่</h2>
-          <p className="rpSubtitle">กรอกรหัสผ่านใหม่ที่ต้องการใช้งาน</p>
-        </div>
-
-        {err && <div className="rpAlert rpAlert--error">{err}</div>}
-
-        <form className="rpForm" onSubmit={submit}>
-
-          {/* รหัสผ่านใหม่ */}
-          <div className="rpField">
-            <label className="rpLabel">รหัสผ่านใหม่</label>
-            <div className="rpInputWrap">
-              <input
-                className="rpInput"
-                type={showNew ? "text" : "password"}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="อย่างน้อย 6 ตัวอักษร"
-                style={{ paddingRight: "44px" }}
-                required
-              />
-              <button type="button" className="rpEyeBtn" onClick={() => setShowNew(!showNew)}>
-                {showNew ? <EyeOffIcon /> : <EyeIcon />}
-              </button>
-            </div>
+        <div className="lgRightPanel">
+          <div className="lgHeader">
+            <h2 className="lgTitle">ตั้งรหัสผ่านใหม่</h2>
+            <p className="lgSubtitle">กรอกรหัสผ่านใหม่ที่ต้องการใช้งาน</p>
           </div>
 
-          {/* ยืนยันรหัสผ่าน */}
-          <div className="rpField">
-            <label className="rpLabel">ยืนยันรหัสผ่านใหม่</label>
-            <div className="rpInputWrap">
-              <input
-                className="rpInput"
-                type={showConfirm ? "text" : "password"}
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="••••••••"
-                style={{ paddingRight: "44px" }}
-                required
-              />
-              <button type="button" className="rpEyeBtn" onClick={() => setShowConfirm(!showConfirm)}>
-                {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
-              </button>
+          {err && <div className="lgAlert lgAlert--error">{err}</div>}
+
+          <form className="lgForm" onSubmit={submit}>
+            {/* รหัสผ่านใหม่ */}
+            <div className="lgField">
+              <label className="lgLabel">รหัสผ่านใหม่</label>
+              <div className="lgInputWrap" style={{ position: "relative" }}>
+                <span className="lgInputIcon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input
+                  className="lgInput"
+                  type={showNew ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="อย่างน้อย 6 ตัวอักษร"
+                  style={{ paddingRight: "44px" }}
+                  required
+                />
+                <button type="button" onClick={() => setShowNew(!showNew)} style={{
+                  position: "absolute", right: "14px", top: "50%",
+                  transform: "translateY(-50%)", background: "none", border: "none",
+                  cursor: "pointer", padding: 0, color: "#9ca3af", display: "flex", alignItems: "center",
+                }}>
+                  {showNew ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+              </div>
             </div>
+
+            {/* ยืนยันรหัสผ่าน */}
+            <div className="lgField">
+              <label className="lgLabel">ยืนยันรหัสผ่านใหม่</label>
+              <div className="lgInputWrap" style={{ position: "relative" }}>
+                <span className="lgInputIcon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input
+                  className="lgInput"
+                  type={showConfirm ? "text" : "password"}
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="••••••••"
+                  style={{ paddingRight: "44px" }}
+                  required
+                />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{
+                  position: "absolute", right: "14px", top: "50%",
+                  transform: "translateY(-50%)", background: "none", border: "none",
+                  cursor: "pointer", padding: 0, color: "#9ca3af", display: "flex", alignItems: "center",
+                }}>
+                  {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" className="lgBtn" disabled={loading}>
+              {loading ? "กำลังบันทึก..." : "บันทึกรหัสผ่านใหม่"}
+            </button>
+          </form>
+
+          <div className="lgFooter">
+            <Link to="/login" className="lgLink">← กลับหน้าเข้าสู่ระบบ</Link>
           </div>
-
-          <button type="submit" className="rpBtn" disabled={loading}>
-            {loading ? "กำลังบันทึก..." : "บันทึกรหัสผ่านใหม่"}
-          </button>
-
-        </form>
-
-        <div className="rpFooter">
-          <Link to="/login" className="rpLink">← กลับหน้าเข้าสู่ระบบ</Link>
         </div>
 
       </div>

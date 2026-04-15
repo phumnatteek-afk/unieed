@@ -168,3 +168,10 @@ export async function acceptSchoolAdminInvite(req, res, next) {
     res.json(result);
   } catch (e) { next(e); }
 }
+
+export async function checkInviteToken(req, res, next) {
+  try {
+    const result = await svc.checkInviteToken(req.query.token);
+    res.json(result);
+  } catch (e) { next(e); }
+}

@@ -424,7 +424,7 @@ const handleAdd = async (e) => {
         </div>
 
         {/* Content */}
-        <div style={{ padding: "20px 28px", flex: 1 }}>
+        <div style={{ padding: "20px 28px", flex: 1, overflowY: "auto", maxHeight: "70vh" }}>
           {err && (
             <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <Icon icon="mdi:alert-circle" width="16"/>{err}

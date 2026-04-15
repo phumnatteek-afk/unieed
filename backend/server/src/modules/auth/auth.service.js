@@ -229,9 +229,9 @@ export async function registerSchoolOneStep(payload) {
 
     await conn.query(
       `INSERT INTO users
-        (user_name, user_email, password_hash, role, school_id, status,
-         verification_token, verification_expired_at, email_verified)
-       VALUES (?,?,?,?,?, 'pending', ?, ?, 0)`,
+    (user_name, user_email, password_hash, role, school_id, status,
+     verification_token, verification_expired_at, email_verified, is_primary)
+   VALUES (?,?,?,?,?, 'pending', ?, ?, 0, 1)`,
       [cleanUserName, email, password_hash, "school_admin", school_id,
        verificationToken, verificationExpires]
     );
@@ -519,7 +519,7 @@ export async function getSchoolAdmins(schoolId) {
     `SELECT user_id, user_name, user_email, created_at
      FROM users
      WHERE school_id = ? AND role = 'school_admin'
-     ORDER BY created_at ASC`,
+     ORDER BY is_primary DESC, joined_school_at ASC`,
     [schoolId]
   );
   return rows;
@@ -567,12 +567,13 @@ export async function addSchoolAdmin(schoolId, { user_name, user_email, password
 
 // ลบแอดมิน (ป้องกันลบตัวเอง)
 export async function removeSchoolAdmin(schoolId, targetUserId, requesterId) {
+  console.log("🔔 removeSchoolAdmin called", { schoolId, targetUserId, requesterId });
   if (Number(targetUserId) === Number(requesterId)) {
     throw Object.assign(new Error("ไม่สามารถลบบัญชีตัวเองได้"), { status: 400 });
   }
 
   const [rows] = await db.query(
-    `SELECT user_id FROM users
+    `SELECT user_id, user_email FROM users
      WHERE user_id = ? AND school_id = ? AND role = 'school_admin'`,
     [targetUserId, schoolId]
   );
@@ -581,6 +582,14 @@ export async function removeSchoolAdmin(schoolId, targetUserId, requesterId) {
     throw Object.assign(new Error("ไม่พบผู้ดูแลคนนี้"), { status: 404 });
   }
 
+  // ลบ invite ของอีเมลนี้ออกด้วย
+  console.log("🔔 ลบ invite ของ email:", rows[0].user_email);
+  await db.query(
+    "DELETE FROM school_admin_invites WHERE email = ? AND school_id = ?",
+    [rows[0].user_email, schoolId]
+  );
+
+  console.log("🔔 ลบ user สำเร็จ");
   await db.query(
     "DELETE FROM users WHERE user_id = ? AND school_id = ? AND role = 'school_admin'",
     [targetUserId, schoolId]
@@ -621,6 +630,9 @@ export async function inviteSchoolAdmin(schoolId, invitedBy, { user_email }) {
   );
   if (exist.length && exist[0].role === "school_admin" && exist[0].school_id === schoolId) {
     throw Object.assign(new Error("อีเมลนี้เป็นผู้ดูแลโรงเรียนนี้อยู่แล้ว"), { status: 409 });
+  }
+  if (exist.length && exist[0].role === "school_admin") {
+  throw Object.assign(new Error("อีเมลนี้เป็นผู้ดูแลโรงเรียนอื่นอยู่แล้ว"), { status: 409 });
   }
 
   // เช็ค invite ที่ยังไม่หมดอายุ
@@ -710,19 +722,19 @@ export async function acceptSchoolAdminInvite({ token, user_name, password }) {
   const password_hash = await hashPassword(password);
 
   if (exist.length) {
-    // มีบัญชีอยู่แล้ว → แค่เพิ่ม school_id + เปลี่ยน role
-    await db.query(
-      `UPDATE users SET role = 'school_admin', school_id = ?, user_name = ?
-       WHERE user_id = ?`,
-      [invite.school_id, user_name.trim(), exist[0].user_id]
-    );
+  await db.query(
+    `UPDATE users SET role = 'school_admin', school_id = ?, joined_school_at = NOW()
+     WHERE user_id = ?`,
+    [invite.school_id, exist[0].user_id]
+  );
   } else {
     // ยังไม่มีบัญชี → สร้างใหม่
+    console.log("🔔 กำลัง INSERT บัญชีใหม่ joined_school_at = NOW()");
     await db.query(
-      `INSERT INTO users
-        (user_name, user_email, password_hash, role, school_id, status, email_verified)
-       VALUES (?, ?, ?, 'school_admin', ?, 'active', 1)`,
-      [user_name.trim(), invite.email, password_hash, invite.school_id]
+    `INSERT INTO users
+      (user_name, user_email, password_hash, role, school_id, status, email_verified, joined_school_at)
+    VALUES (?, ?, ?, 'school_admin', ?, 'active', 1, NOW())`,
+    [user_name.trim(), invite.email, password_hash, invite.school_id]
     );
   }
 
@@ -733,4 +745,25 @@ export async function acceptSchoolAdminInvite({ token, user_name, password }) {
   );
 
   return { message: "รับคำเชิญสำเร็จ กรุณาเข้าสู่ระบบ", email: invite.email };
+}
+
+export async function checkInviteToken(token) {
+  const [rows] = await db.query(
+    `SELECT i.email, i.school_id, s.school_name,
+            u.user_id, u.user_name
+     FROM school_admin_invites i
+     LEFT JOIN schools s ON s.school_id = i.school_id
+     LEFT JOIN users u ON u.user_email = i.email
+     WHERE i.token = ? AND i.used_at IS NULL AND i.expires_at > NOW()`,
+    [token]
+  );
+  if (!rows[0]) {
+    throw Object.assign(new Error("ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว"), { status: 400 });
+  }
+  return {
+    email: rows[0].email,
+    school_name: rows[0].school_name,
+    has_account: !!rows[0].user_id,
+    user_name: rows[0].user_name,
+  };
 }
