@@ -60,8 +60,10 @@ export const getCheckoutItemsByProductHandler = async (req, res) => {
 // ── Shipping Options (คำนวณค่าส่งแต่ละ seller) ───────────
 export const getShippingOptionsHandler = async (req, res) => {
   try {
-    const ids = String(req.query.items || "").split(",").map(Number).filter(Boolean);
-    res.json(await getShippingOptions(ids));
+    const ids  = String(req.query.items || "").split(",").map(Number).filter(Boolean);
+    // type: "cart" (จากตะกร้า) | "product" (ซื้อเลย/บริจาค)
+    const type = req.query.type || "cart";
+    res.json(await getShippingOptions(ids, type));
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 

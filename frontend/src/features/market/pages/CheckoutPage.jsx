@@ -1,5 +1,5 @@
 // frontend/src/features/market/pages/CheckoutPage.jsx
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
@@ -118,10 +118,129 @@ function AddressModal({ address, onSave, onClose }) {
   );
 }
 
+
+// ── Shipping Logo Map ─────────────────────────────────────
+// match ด้วย code (KEX, FLX ฯลฯ) หรือ name (ไม่ case-sensitive)
+const SHIPPING_LOGO_MAP = {
+  // Kerry Express — official CDN
+  KEX:   "https://www.kerryexpress.com/img/kerry-logo.svg",
+  KERRY: "https://www.kerryexpress.com/img/kerry-logo.svg",
+  // Flash Express — official asset
+  FLX:   "https://www.flashexpress.co.th/wp-content/uploads/2021/04/flash_logo-1.png",
+  FLASH: "https://www.flashexpress.co.th/wp-content/uploads/2021/04/flash_logo-1.png",
+  // Thailand Post / EMS
+  THP:      "https://www.thaipost.go.th/main/img/logo-thaipost.png",
+  THAIPOST: "https://www.thaipost.go.th/main/img/logo-thaipost.png",
+  EMS:      "https://www.thaipost.go.th/main/img/logo-thaipost.png",
+  // J&T Express
+  JNT: "https://th.jtexpress.co.th/dist/img/logo.svg",
+  JT:  "https://th.jtexpress.co.th/dist/img/logo.svg",
+  // Ninja Van
+  NJV:      "https://www.ninjavan.co/static/logo.svg",
+  NINJAVAN: "https://www.ninjavan.co/static/logo.svg",
+  // Shopee Express
+  SHOPEE: "https://deo.shopeemobile.com/shopee/shopee-pcmall-live-sg/homepage/6d9f0d1b41d4f4c9.png",
+  SPX:    "https://deo.shopeemobile.com/shopee/shopee-pcmall-live-sg/homepage/6d9f0d1b41d4f4c9.png",
+  // Lazada Logistics
+  LAZADA: "https://lzd-img-global.slatic.net/g/tsp/tb/img/logo/lazada_logo_160.png",
+  LZD:    "https://lzd-img-global.slatic.net/g/tsp/tb/img/logo/lazada_logo_160.png",
+  // DHL
+  DHL: "https://www.dhl.com/content/dam/dhl/global/core/images/logos/dhl-logo.svg",
+  // SCG Logistics
+  SCG: "https://www.scglogistics.co.th/wp-content/uploads/2023/01/logo-scgl.png",
+};
+
+// ── Brand identity สำหรับ fallback badge ─────────────────
+// แต่ละแบรนด์มีสีและ icon เป็นของตัวเอง
+const SHIPPING_BRAND = {
+  kerry:   { bg: "#e8f0fe", color: "#1a56db", icon: "mdi:truck-fast",      abbr: "KEX" },
+  flash:   { bg: "#fff3e0", color: "#e65100", icon: "mdi:lightning-bolt",  abbr: "FLX" },
+  thai:    { bg: "#fce4ec", color: "#c62828", icon: "mdi:mailbox-outline",  abbr: "THP" },
+  post:    { bg: "#fce4ec", color: "#c62828", icon: "mdi:mailbox-outline",  abbr: "EMS" },
+  ems:     { bg: "#fce4ec", color: "#c62828", icon: "mdi:mailbox-outline",  abbr: "EMS" },
+  "j&t":   { bg: "#fff8e1", color: "#f57f17", icon: "mdi:truck-delivery",  abbr: "J&T" },
+  jnt:     { bg: "#fff8e1", color: "#f57f17", icon: "mdi:truck-delivery",  abbr: "J&T" },
+  ninja:   { bg: "#e8f5e9", color: "#2e7d32", icon: "mdi:ninja",           abbr: "NJV" },
+  shopee:  { bg: "#fff3e0", color: "#ee4d2d", icon: "simple-icons:shopee", abbr: "SPX" },
+  lazada:  { bg: "#f3e5f5", color: "#6a1b9a", icon: "mdi:shopping-outline",abbr: "LZD" },
+  dhl:     { bg: "#fff9c4", color: "#b71c1c", icon: "mdi:truck-outline",   abbr: "DHL" },
+  scg:     { bg: "#e3f2fd", color: "#1565c0", icon: "mdi:truck-check",     abbr: "SCG" },
+  default: { bg: "#f1f5f9", color: "#475569", icon: "mdi:truck-outline",   abbr: "???" },
+};
+
+function getShippingLogo(code, name) {
+  const codeKey = (code || "").toUpperCase();
+  const nameLower = (name || "").toLowerCase();
+  if (SHIPPING_LOGO_MAP[codeKey]) return SHIPPING_LOGO_MAP[codeKey];
+  for (const [key, url] of Object.entries(SHIPPING_LOGO_MAP)) {
+    if (nameLower.includes(key.toLowerCase())) return url;
+  }
+  return null;
+}
+
+function getShippingBrand(code, name) {
+  const n = ((name || "") + " " + (code || "")).toLowerCase();
+  for (const [key, brand] of Object.entries(SHIPPING_BRAND)) {
+    if (key !== "default" && n.includes(key)) return brand;
+  }
+  return SHIPPING_BRAND.default;
+}
+
+function ShippingLogo({ code, name, size = 40 }) {
+  const [imgError, setImgError] = React.useState(false);
+  const logoUrl = getShippingLogo(code, name);
+  const brand   = getShippingBrand(code, name);
+
+  // ── Fallback badge: มีสีประจำแบรนด์ + icon + abbr ──
+  if (!logoUrl || imgError) {
+    return (
+      <div style={{
+        width: size, height: size,
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        background: brand.bg,
+        borderRadius: size * 0.22,
+        border: `1.5px solid ${brand.color}22`,
+        overflow: "hidden",
+        gap: 1,
+      }}>
+        <Icon icon={brand.icon} style={{ fontSize: size * 0.44, color: brand.color }} />
+        <span style={{
+          fontSize: size * 0.22,
+          fontWeight: 700,
+          color: brand.color,
+          letterSpacing: "0.02em",
+          lineHeight: 1,
+          fontFamily: "monospace",
+        }}>{brand.abbr}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={logoUrl}
+      alt={name}
+      onError={() => setImgError(true)}
+      style={{
+        width: size, height: size,
+        objectFit: "contain",
+        borderRadius: size * 0.18,
+        background: "#fff",
+        padding: size * 0.08,
+        border: "1px solid #e5e7eb",
+      }}
+    />
+  );
+}
+
 // ── Seller Shipping Block ─────────────────────────────────
 function SellerShippingBlock({ group, shippingOptions, selectedShipping, setSelectedShipping }) {
   const subtotal = group.items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-  const options  = shippingOptions[group.seller_id] || [];
+  // undefined = ยังโหลด, [] = ไม่มีขนส่ง, [...] = มีตัวเลือก
+  const optionsRaw = shippingOptions[group.seller_id];
+  const isLoading  = optionsRaw === undefined;
+  const options    = Array.isArray(optionsRaw) ? optionsRaw : [];
 
   return (
     <div className="coSellerBlock">
@@ -162,9 +281,14 @@ function SellerShippingBlock({ group, shippingOptions, selectedShipping, setSele
         <div className="coShipSectionTitle">
           <Icon icon="mdi:truck-outline" /> การจัดส่ง
         </div>
-        {options.length === 0 ? (
+        {isLoading ? (
           <div className="coShipEmpty">
-            <Icon icon="mdi:truck-alert-outline" /> ไม่มีตัวเลือกขนส่งจากผู้ขายรายนี้
+            <Icon icon="mdi:loading" className="coSpinner" /> กำลังโหลดตัวเลือกขนส่ง...
+          </div>
+        ) : options.length === 0 ? (
+          <div className="coShipEmpty">
+            <Icon icon="mdi:truck-outline" style={{ color: "#94a3b8" }} />
+            ผู้ขายรายนี้ยังไม่ได้กำหนดขนส่ง — สามารถดำเนินการต่อได้
           </div>
         ) : (
           <>
@@ -185,7 +309,9 @@ function SellerShippingBlock({ group, shippingOptions, selectedShipping, setSele
                       checked={selected}
                       onChange={() => setSelectedShipping(prev => ({ ...prev, [group.seller_id]: { ...opt, seller_id: group.seller_id } }))}
                     />
-                    <div className="coShipOptionCode">{opt.code || "📦"}</div>
+                    <div className="coShipOptionLogo">
+                      <ShippingLogo code={opt.code} name={opt.name} size={42} />
+                    </div>
                     <div className="coShipOptionInfo">
                       <div className="coShipOptionName">{opt.name}</div>
                       <div className="coShipOptionDesc">{opt.est_days || "2-5 วัน"}</div>
@@ -455,20 +581,31 @@ export default function CheckoutPage() {
   // ── Load shipping options ─────────────────────────────
   useEffect(() => {
     if (!items.length || !token) return;
-    const ids = items.map(i => i.cart_item_id);
-    fetch(`/api/checkout/shipping-options?items=${ids.join(",")}`, {
+
+    // buyType = "product" → ids คือ product_id (ซื้อเลย/บริจาค)
+    // buyType = "cart"    → ids คือ cart_item_id (จากตะกร้า)
+    const type = buyType === "product" ? "product" : "cart";
+    const ids  = buyType === "product"
+      ? itemIds                              // ← ใช้ product_id จาก URL params โดยตรง
+      : items.map(i => i.cart_item_id);     // ← ใช้ cart_item_id
+
+    fetch(`/api/checkout/shipping-options?items=${ids.join(",")}&type=${type}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
       .then(data => {
-        setShippingOptions(typeof data === "object" ? data : {});
+        const opts = typeof data === "object" && !Array.isArray(data) ? data : {};
+        setShippingOptions(opts);
+        // auto-select ถ้า seller มีตัวเลือกเดียว
         const autoSel = {};
-        for (const [sellerId, opts] of Object.entries(data || {})) {
-          if (opts.length === 1) autoSel[sellerId] = { ...opts[0], seller_id: Number(sellerId) };
+        for (const [sellerId, selOpts] of Object.entries(opts)) {
+          if (Array.isArray(selOpts) && selOpts.length === 1) {
+            autoSel[sellerId] = { ...selOpts[0], seller_id: Number(sellerId) };
+          }
         }
         if (Object.keys(autoSel).length) setSelectedShipping(autoSel);
       })
-      .catch(console.error);
+      .catch(err => console.error("[shipping-options]", err));
   }, [items, token]);
 
   // ── Address CRUD ──────────────────────────────────────
@@ -505,7 +642,20 @@ export default function CheckoutPage() {
   const useSchoolAddr  = isDonation && donationAddrMode === "school";
   const step1Valid    = useSchoolAddr ? true : !!selAddress;
   const validGroups   = groups.filter(g => g.seller_id !== "unknown");
-  const step2Valid    = isDonation || (validGroups.length > 0 && validGroups.every(g => !!selectedShipping[g.seller_id]));
+  // step2Valid: ผ่านถ้า donation, หรือทุก seller มี shipping ที่เลือกแล้ว
+  // กรณี seller ไม่มี shipping options เลย (options = []) → ถือว่า skip ได้ (ไม่บังคับ)
+  const step2Valid = isDonation || (
+    validGroups.length > 0 &&
+    validGroups.every(g => {
+      const opts = shippingOptions[g.seller_id];
+      // ถ้ายังไม่มี options (loading) → ยังเลือกไม่ได้
+      if (opts === undefined) return false;
+      // ถ้า seller ไม่มีขนส่งเลย (opts = []) → ข้ามได้
+      if (Array.isArray(opts) && opts.length === 0) return true;
+      // ปกติ → ต้องเลือก
+      return !!selectedShipping[g.seller_id];
+    })
+  );
   const subtotal      = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
   const shippingTotal = Object.values(selectedShipping).reduce((s, v) => s + (Number(v.price) || 0), 0);
   const total         = subtotal + shippingTotal;

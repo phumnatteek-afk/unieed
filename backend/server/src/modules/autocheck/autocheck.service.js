@@ -164,10 +164,8 @@ export async function runAutoCheck() {
        dr.shipping_carrier, dr.tracking_number, dr.created_at,
        TIMESTAMPDIFF(DAY, dr.created_at, NOW()) AS days_elapsed
      FROM donation_record dr
-     WHERE dr.status          = 'pending'
-       AND dr.delivery_method = 'parcel'
-       AND dr.tracking_number IS NOT NULL
-       AND TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7
+     WHERE dr.status = 'pending'
+  AND TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7
      ORDER BY dr.created_at ASC`
   );
 

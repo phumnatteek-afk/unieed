@@ -704,31 +704,48 @@ const getCheckoutItemsByProduct = async (userId, productIds) => {
 //   ถ้า price > max_price → ใช้ max_price
 //   ถ้า subtotal >= free_threshold → price = 0 (ฟรี)
 // ────────────────────────────────────────────────────────
-const getShippingOptions = async (cartItemIds) => {
-  console.log("[getShippingOptions] received ids:", cartItemIds);
-  if (!cartItemIds.length) return {};
+const getShippingOptions = async (ids, type = "cart") => {
+  // type: "cart" = ids คือ cart_item_id, "product" = ids คือ product_id โดยตรง
+  console.log("[getShippingOptions] ids:", ids, "type:", type);
+  if (!ids.length) return {};
 
   try {
-    const placeholders = cartItemIds.map(() => "?").join(",");
+    const placeholders = ids.map(() => "?").join(",");
+    let effectiveItems = [];
 
-    // ดึงสินค้าพร้อม seller_id
-    const [itemRows] = await db.execute(
-      `SELECT ci.cart_item_id, ci.quantity, p.product_id, p.seller_id, p.price, p.weight
-       FROM cart_item ci
-       JOIN products p ON p.product_id = ci.product_id
-       WHERE ci.cart_item_id IN (${placeholders})`,
-      cartItemIds
-    );
-
-    // ถ้าไม่มี cart_item (ซื้อเลยจาก product_id) ให้ดึงจาก products โดยตรง
-    const effectiveItems = itemRows.length > 0 ? itemRows : await (async () => {
+    if (type === "product") {
+      // ซื้อเลยจากหน้า product detail หรือ donate → ids คือ product_id
       const [rows] = await db.execute(
         `SELECT product_id AS cart_item_id, 1 AS quantity, product_id, seller_id, price, weight
-         FROM products WHERE product_id IN (${placeholders})`,
-        cartItemIds
+         FROM products WHERE product_id IN (${placeholders}) AND status = 'available'`,
+        ids
       );
-      return rows;
-    })();
+      effectiveItems = rows;
+    } else {
+      // มาจากตะกร้า → ids คือ cart_item_id
+      const [itemRows] = await db.execute(
+        `SELECT ci.cart_item_id, ci.quantity, p.product_id, p.seller_id, p.price, p.weight
+         FROM cart_item ci
+         JOIN products p ON p.product_id = ci.product_id
+         WHERE ci.cart_item_id IN (${placeholders})`,
+        ids
+      );
+      effectiveItems = itemRows;
+
+      // fallback: ถ้าหาใน cart ไม่เจอ (อาจส่ง product_id มาแทน) → query products โดยตรง
+      if (!effectiveItems.length) {
+        console.warn("[getShippingOptions] cart_item not found, trying product_id fallback");
+        const [rows] = await db.execute(
+          `SELECT product_id AS cart_item_id, 1 AS quantity, product_id, seller_id, price, weight
+           FROM products WHERE product_id IN (${placeholders}) AND status = 'available'`,
+          ids
+        );
+        effectiveItems = rows;
+      }
+    }
+
+    // alias ให้ code ด้านล่างใช้งานได้เหมือนเดิม
+    const cartItemIds = ids;
 
     if (!effectiveItems.length) return {};
 

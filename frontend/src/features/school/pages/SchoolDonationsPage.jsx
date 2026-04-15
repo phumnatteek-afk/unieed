@@ -256,6 +256,8 @@ export default function SchoolDonationPage() {
   const [thankMsg,     setThankMsg]     = useState("");
   const [condition,    setCondition]    = useState("");
   const [verifying,    setVerifying]    = useState(false);
+  const [currentPage,  setCurrentPage]  = useState(1);
+  const PAGE_SIZE = 15;
  
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
  
@@ -291,14 +293,20 @@ export default function SchoolDonationPage() {
     ).length,
   [donations]);
  
-  const filtered = useMemo(() => donations.filter(d => {
-    const matchMethod = filterMethod === "all" || d.delivery_method === filterMethod;
-    const matchSearch = !search ||
-      d.donor_name?.toLowerCase().includes(search.toLowerCase()) ||
-      d.tracking_number?.toLowerCase().includes(search.toLowerCase()) ||
-      d.market_order_id?.toLowerCase().includes(search.toLowerCase());
-    return matchMethod && matchSearch;
-  }), [donations, filterMethod, search]);
+  const filtered = useMemo(() => {
+    setCurrentPage(1);
+    return donations.filter(d => {
+      const matchMethod = filterMethod === "all" || d.delivery_method === filterMethod;
+      const matchSearch = !search ||
+        d.donor_name?.toLowerCase().includes(search.toLowerCase()) ||
+        d.tracking_number?.toLowerCase().includes(search.toLowerCase()) ||
+        d.market_order_id?.toLowerCase().includes(search.toLowerCase());
+      return matchMethod && matchSearch;
+    });
+  }, [donations, filterMethod, search]);
+
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated   = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
  
   const openTracking = (carrier, trackingNo) => {
     window.open(getTrackingUrl(carrier, trackingNo), "_blank");
@@ -344,77 +352,118 @@ export default function SchoolDonationPage() {
  
   return (
     <div className="sdPage">
-      <h1 className="sdTitle">ติดตามการบริจาค</h1>
- 
+      {/* Page header */}
+      <div className="sdPageHeader">
+        <div>
+          <h1 className="sdTitle">ติดตามการบริจาค</h1>
+          <p className="sdTitleSub">{donations.length} รายการทั้งหมด</p>
+        </div>
+      </div>
+
       {/* Warning: รายการเกิน 7 วัน */}
       {overdueCount > 0 && (
-        <div style={{ display:"flex", alignItems:"center", gap:12, background:"#fffbeb", border:"1px solid #fde68a", borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:13, color:"#92400e" }}>
+        <div className="sdOverdueBanner">
           <Icon icon="mdi:clock-alert-outline" width={20} color="#d97706" style={{ flexShrink:0 }} />
           <span>มี <strong>{overdueCount} รายการ</strong> ที่ผ่านมาแล้วเกิน 7 วันและยังไม่ได้รับการยืนยัน — ระบบจะทำการ Auto-check สถานะพัสดุให้อัตโนมัติ</span>
-          <Icon icon="mdi:robot-outline" width={18} color="#d97706" style={{ marginLeft:"auto", flexShrink:0 }} />
+          <Icon icon="mdi:robot-outline" width={18} color="#d97706" className="sdOverdueBannerIcon" />
         </div>
       )}
- 
-      {/* Summary cards */}
+
+      {/* Summary cards — modern with icon */}
       <div className="sdSummaryRow">
-        <div className="sdSummaryCard" style={{ borderColor:"#2563eb" }}>
+        <div className="sdSummaryCard" style={{ color:"#2563eb" }}>
+          <div className="sdSummaryTop">
+            <div className="sdSummaryIcon" style={{ background:"#eff6ff" }}>
+              <Icon icon="mdi:check-circle-outline" color="#2563eb" />
+            </div>
+          </div>
           <span className="sdSummaryLabel">ใช้งานได้</span>
           <span className="sdSummaryVal" style={{ color:"#2563eb" }}>{summary.usable}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor:"#d97706" }}>
+        <div className="sdSummaryCard" style={{ color:"#d97706" }}>
+          <div className="sdSummaryTop">
+            <div className="sdSummaryIcon" style={{ background:"#fef3c7" }}>
+              <Icon icon="mdi:swap-horizontal-circle-outline" color="#d97706" />
+            </div>
+          </div>
           <span className="sdSummaryLabel">รายการไม่ตรง</span>
           <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.wrong_item}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor:"#dc2626" }}>
+        <div className="sdSummaryCard" style={{ color:"#dc2626" }}>
+          <div className="sdSummaryTop">
+            <div className="sdSummaryIcon" style={{ background:"#fee2e2" }}>
+              <Icon icon="mdi:alert-circle-outline" color="#dc2626" />
+            </div>
+          </div>
           <span className="sdSummaryLabel">เสียหาย</span>
           <span className="sdSummaryVal" style={{ color:"#dc2626" }}>{summary.damaged}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor:"#16a34a" }}>
-          <span className="sdSummaryDot" style={{ background:"#16a34a" }} />
+        <div className="sdSummaryCard" style={{ color:"#16a34a" }}>
+          <div className="sdSummaryTop">
+            <div className="sdSummaryIcon" style={{ background:"#dcfce7" }}>
+              <Icon icon="mdi:package-variant-closed-check" color="#16a34a" />
+            </div>
+          </div>
           <span className="sdSummaryLabel">ได้รับแล้ว</span>
           <span className="sdSummaryVal" style={{ color:"#16a34a" }}>{summary.approved}</span>
         </div>
-        <div className="sdSummaryCard" style={{ borderColor:"#d97706" }}>
-          <span className="sdSummaryDot" style={{ background:"#d97706" }} />
+        <div className="sdSummaryCard" style={{ color:"#d97706" }}>
+          <div className="sdSummaryTop">
+            <div className="sdSummaryIcon" style={{ background:"#fef3c7" }}>
+              <Icon icon="mdi:clock-outline" color="#d97706" />
+            </div>
+          </div>
           <span className="sdSummaryLabel">รอตรวจสอบ</span>
           <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.pending}</span>
         </div>
-        {/* ซื้อเพื่อบริจาค */}
         {summary.market > 0 && (
-          <div className="sdSummaryCard" style={{ borderColor:"#5285E8" }}>
-            <span className="sdSummaryDot" style={{ background:"#5285E8" }} />
+          <div className="sdSummaryCard" style={{ color:"#5285E8" }}>
+            <div className="sdSummaryTop">
+              <div className="sdSummaryIcon" style={{ background:"#eff6ff" }}>
+                <Icon icon="mdi:shopping-outline" color="#5285E8" />
+              </div>
+            </div>
             <span className="sdSummaryLabel">ซื้อเพื่อบริจาค</span>
             <span className="sdSummaryVal" style={{ color:"#5285E8" }}>{summary.market}</span>
           </div>
         )}
         {overdueCount > 0 && (
-          <div className="sdSummaryCard" style={{ borderColor:"#7c3aed" }}>
-            <span className="sdSummaryDot" style={{ background:"#7c3aed" }} />
+          <div className="sdSummaryCard" style={{ color:"#7c3aed" }}>
+            <div className="sdSummaryTop">
+              <div className="sdSummaryIcon" style={{ background:"#f3e8ff" }}>
+                <Icon icon="mdi:robot-outline" color="#7c3aed" />
+              </div>
+            </div>
             <span className="sdSummaryLabel">รอ Auto-check</span>
             <span className="sdSummaryVal" style={{ color:"#7c3aed" }}>{overdueCount}</span>
           </div>
         )}
       </div>
- 
-      {/* Toolbar */}
+
+      {/* Toolbar — filter tabs */}
       <div className="sdToolbar">
         <div className="sdSearchWrap">
-          <Icon icon="mdi:magnify" width="18" color="#aaa" />
+          <Icon icon="mdi:magnify" width="18" color="#94a3b8" />
           <input className="sdSearch" placeholder="ค้นหาชื่อผู้บริจาค หรือ เลขพัสดุ / คำสั่งซื้อ..."
             value={search} onChange={e => setSearch(e.target.value)} />
+          {search && (
+            <button onClick={() => setSearch("")} style={{ background:"none", border:"none", cursor:"pointer", color:"#94a3b8", display:"flex", padding:0 }}>
+              <Icon icon="mdi:close-circle" width={16} />
+            </button>
+          )}
         </div>
-        <div className="sdFilterGroup">
+        <div className="sdFilterTabs">
           {[
-            ["all",              "ทั้งหมด"],
-            ["parcel",           "จัดส่งพัสดุ"],
-            ["dropoff",          "Drop-Off"],
-            ["market_purchase",  "ซื้อเพื่อบริจาค"],
+            ["all",             "ทั้งหมด"],
+            ["parcel",          "พัสดุ"],
+            ["dropoff",         "Drop-Off"],
+            ["market_purchase", "ซื้อเพื่อบริจาค"],
           ].map(([v, l]) => (
-            <label key={v} className="sdRadio">
-              <input type="radio" name="method" value={v}
-                checked={filterMethod === v} onChange={() => setFilterMethod(v)} />
+            <button key={v}
+              className={`sdFilterTab ${filterMethod === v ? "sdFilterTabActive" : ""}`}
+              onClick={() => setFilterMethod(v)}>
               {l}
-            </label>
+            </button>
           ))}
         </div>
       </div>
@@ -440,7 +489,7 @@ export default function SchoolDonationPage() {
               <tr><td colSpan={9} style={{ textAlign:"center", padding:"48px", color:"#94a3b8" }}>กำลังโหลด...</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={9} style={{ textAlign:"center", padding:"48px", color:"#94a3b8" }}>ยังไม่มีรายการ</td></tr>
-            ) : filtered.map(d => {
+            ) : paginated.map(d => {
               const isExpanded    = expandedRow === d.donation_id;
               const items         = parseItems(d.items_snapshot);
               const statusMeta    = STATUS_META[d.status] || STATUS_META.pending;
@@ -489,7 +538,15 @@ export default function SchoolDonationPage() {
  
                     {/* รายการ */}
                     <td>
-                      <span className="sdItemCount">{items.length} รายการ · {d.quantity} ชิ้น</span>
+                      {items.length > 0 ? (
+                        <span className="sdItemCount">
+                          {items.length} รายการ · {items.reduce((s, i) => s + (Number(i.quantity) || 0), 0)} ชิ้น
+                        </span>
+                      ) : (
+                        <span className="sdItemCount">
+                          {d.quantity ? `${d.quantity} ชิ้น` : '—'}
+                        </span>
+                      )}
                     </td>
  
                     {/* สถานะ */}
@@ -566,6 +623,40 @@ export default function SchoolDonationPage() {
         </table>
       </div>
  
+      {/* ── Pagination ── */}
+      {totalPages > 1 && (
+        <div className="sdPagination">
+          <button
+            className="sdPageBtn"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            ‹ ก่อนหน้า
+          </button>
+          <div className="sdPageNumbers">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                className={`sdPageNum ${currentPage === page ? "sdPageNumActive" : ""}`}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+          <button
+            className="sdPageBtn"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            ถัดไป ›
+          </button>
+          <span className="sdPageInfo">
+            {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} จาก {filtered.length} รายการ
+          </span>
+        </div>
+      )}
+
       {/* ── Popup: ยืนยัน ── */}
       {confirmPopup && (
         <div className="sdOverlay" onClick={() => setConfirmPopup(null)}>
@@ -727,4 +818,3 @@ export default function SchoolDonationPage() {
     </div>
   );
 }
- 
