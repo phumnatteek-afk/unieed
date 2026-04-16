@@ -139,6 +139,7 @@ function _mockAdapter(trackingNumber, carrier) {
   return { delivered: true, status: "mock_delivered", checkedAt: new Date() };
 }
 
+
 // ── 3. checkTracking ─────────────────────────────────────────────────────────
 async function checkTracking(carrier, trackingNumber) {
   const adapter = TRACKING_ADAPTERS[carrier];
@@ -280,17 +281,23 @@ export async function getOverdueDonations() {
     `SELECT
        dr.donation_id, dr.donor_name, dr.shipping_carrier,
        dr.tracking_number, dr.created_at, dr.auto_approved, dr.auto_approved_at,
+       dr.admin_approved, dr.admin_approved_at,
        dr.donation_pic, dr.delivery_method,
        dr.donation_date, dr.donation_time,
        dr.items_snapshot, dr.quantity,
        dr.condition_status, dr.status,
+       dr.reject_reason,
        TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) AS days_elapsed,
        req.school_id, s.school_name
      FROM donation_record dr
      JOIN donation_request req ON req.request_id = dr.request_id
      JOIN schools s ON s.school_id = req.school_id
-     WHERE dr.status = 'pending'
-       AND TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7
+      WHERE (
+        dr.status = 'pending'
+        OR (dr.status IN ('approved', 'rejected') AND dr.admin_approved = 1)
+      )
+      AND NOT (dr.delivery_method = 'market_purchase' AND dr.tracking_number IS NULL) 
+      AND TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7
      ORDER BY days_elapsed DESC`
   );
   return rows;

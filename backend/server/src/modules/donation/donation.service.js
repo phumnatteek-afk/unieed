@@ -83,6 +83,7 @@ export async function getDonationsByProject(request_id) {
    market_order_id,
    quantity, status, condition_status,
    auto_approved, auto_approved_at,
+   reject_reason,
    created_at
     FROM donation_record
     WHERE request_id = ?

@@ -81,9 +81,10 @@ function AutoCheckBadge({ donation }) {
   if (donation.delivery_method === "market_purchase") {
     return <span style={{ color: "#e2e8f0" }}>—</span>;
   }
-  if (!isOverdue(donation.created_at) || donation.delivery_method !== "parcel") {
-    return <span style={{ color: "#e2e8f0" }}>—</span>;
-  }
+
+  if (!isOverdue(donation.created_at) || donation.status !== "pending")
+    return <span style={{ color:"#e2e8f0" }}>—</span>;
+  
   if (donation.status === "approved" && !donation.auto_approved) {
     return (
       <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"#16a34a", background:"#dcfce7", padding:"3px 9px", borderRadius:20 }}>
@@ -288,7 +289,6 @@ export default function SchoolDonationPage() {
   const overdueCount = useMemo(() =>
     donations.filter(d =>
       d.status === "pending" &&
-      d.delivery_method === "parcel" &&
       isOverdue(d.created_at)
     ).length,
   [donations]);
@@ -494,10 +494,15 @@ export default function SchoolDonationPage() {
               const items         = parseItems(d.items_snapshot);
               const statusMeta    = STATUS_META[d.status] || STATUS_META.pending;
               const conditionMeta = d.condition_status ? CONDITION_META[d.condition_status] : null;
-              const overdue = isOverdue(d.created_at) && d.status === "pending" && d.delivery_method === "parcel";
+              const overdue = isOverdue(d.created_at) && (
+                d.status === "pending" ||
+                (d.status === "approved" && Number(d.auto_approved) === 1) ||
+                (d.status === "rejected" && Number(d.auto_approved) === 1)
+              );
+                            
               // market_purchase rows: ไฮไลต์สีฟ้าอ่อน
               const isMarket = d.delivery_method === "market_purchase";
-
+              console.log("donation_id:", d.donation_id, "status:", d.status, "auto_approved:", d.auto_approved, "overdue:", overdue);
               console.log("donation_id:", d.donation_id, "status:", d.status, "auto_approved:", d.auto_approved);
  
               return (
@@ -604,13 +609,27 @@ export default function SchoolDonationPage() {
                     <button className="sdBtnMore"><Icon icon="mdi:dots-vertical" width="18" /></button>
                   )}
 
-                  {/* Admin อนุมัติแล้ว */}
-                  {Number(d.auto_approved) === 1 && (
-                    <span style={{ fontSize:11, color:"#16a34a", background:"#dcfce7", padding:"3px 9px", borderRadius:20, fontWeight:600, display:"inline-flex", alignItems:"center", gap:4 , whiteSpace:"nowrap"}}>
+                  {/* Admin อนุมัติแล้ว — แสดงเฉพาะ approved เท่านั้น */}
+                  {d.status === "approved" && Number(d.auto_approved) === 1 && (
+                    <span style={{ fontSize:11, color:"#16a34a", background:"#dcfce7", padding:"3px 9px", borderRadius:20, fontWeight:600, display:"inline-flex", alignItems:"center", gap:4, whiteSpace:"nowrap" }}>
                       <Icon icon="mdi:check-circle-outline" width={13} />
                       แอดมินอนุมัติแล้ว
                     </span>
                   )}
+
+                  {/* Admin ไม่อนุมัติ */}
+                  {d.status === "rejected" && (
+                  <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                    <span style={{ fontSize:11, color:"#dc2626", background:"#fee2e2", padding:"3px 9px", borderRadius:20, fontWeight:600, whiteSpace:"nowrap", display:"inline-flex", alignItems:"center", gap:4 }}>
+                      <Icon icon="mdi:close-circle-outline" width={13} />แอดมินไม่อนุมัติ
+                    </span>
+                    {d.reject_reason && (
+                      <span style={{ fontSize:11, color:"#64748b", background:"#f8fafc", border:"1px solid #e2e8f0", padding:"3px 8px", borderRadius:8, maxWidth:160 }}>
+                        {d.reject_reason}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 </div>
               </td>

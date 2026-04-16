@@ -168,15 +168,16 @@ function RejectPopup({ donation, onReject, onCancel, loading }) {
   );
 }
 
-function DonationRow({ donation, onRefresh, token }) {
+function DonationRow({ donation, token, doneStatus, onDone }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showReject,  setShowReject]  = useState(false);
   const [showImage,   setShowImage]   = useState(false);
   const [expanded,    setExpanded]    = useState(false);
   const [approving,   setApproving]   = useState(false);
   const [rejecting,   setRejecting]   = useState(false);
-  const [done,        setDone]        = useState(false);
-  const [doneType,    setDoneType]    = useState(null);
+  const done     = !!doneStatus;
+  const doneType = doneStatus?.type ?? doneStatus;
+  const doneReason = doneStatus?.reason ?? null;
 
   const authHeaders = { "Content-Type":"application/json", ...(token ? { Authorization:`Bearer ${token}` } : {}) };
   const items = parseItems(donation.items_snapshot);
@@ -188,11 +189,10 @@ function DonationRow({ donation, onRefresh, token }) {
       setApproving(true);
       await fetch(`${BASE}/donations/${donation.donation_id}/verify`, {
         method:"PATCH", headers:authHeaders,
-        body: JSON.stringify({ condition_status:"usable", thank_message:"แอดมินได้ตรวจสอบและอนุมัติการบริจาคของท่านเรียบร้อยแล้ว ขอขอบคุณสำหรับน้ำใจของท่าน" }),
+        body: JSON.stringify({thank_message:"แอดมินได้ตรวจสอบและอนุมัติการบริจาคของท่านเรียบร้อยแล้ว ขอขอบคุณสำหรับน้ำใจของท่าน" }),
       });
-      setDone(true); setDoneType("approved");
+      onDone(donation.donation_id, "approved");
       setShowConfirm(false);
-      onRefresh?.();
     } catch(e) { console.error(e); }
     finally { setApproving(false); }
   };
@@ -204,9 +204,8 @@ function DonationRow({ donation, onRefresh, token }) {
         method:"PATCH", headers:authHeaders,
         body: JSON.stringify({ status:"rejected", reject_reason:reason }),
       });
-      setDone(true); setDoneType("rejected");
+      onDone(donation.donation_id, { type:"rejected", reason });
       setShowReject(false);
-      onRefresh?.();
     } catch(e) { console.error(e); }
     finally { setRejecting(false); }
   };
@@ -243,40 +242,72 @@ function DonationRow({ donation, onRefresh, token }) {
               : donation.quantity ? `${donation.quantity} ชิ้น` : "—"}
           </span>
         </td>
-        <td style={{ padding:"12px 16px" }}>
-          {done ? (
-            <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:600,
-              color:doneType==="approved"?"#16a34a":"#dc2626",
-              background:doneType==="approved"?"#dcfce7":"#fee2e2",
-              padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
-              <Icon icon={doneType==="approved"?"mdi:check":"mdi:close"} width={13} />
-              {doneType==="approved" ? "อนุมัติแล้ว" : "ไม่อนุมัติ"}
-            </span>
-          ) : (
-            <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:600, color:statusMeta.color, background:statusMeta.bg, padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
-              {donation.status==="approved" && <Icon icon="mdi:check" width={13} />}
-              {statusMeta.label}
-            </span>
-          )}
-        </td>
-        <td style={{ padding:"12px 16px" }}>
+        {/* สถานะ */}
+{/* สถานะ */}
+<td style={{ padding:"12px 16px" }}>
+  {done ? (
+    <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:600,
+        color:doneType==="approved"?"#16a34a":"#dc2626",
+        background:doneType==="approved"?"#dcfce7":"#fee2e2",
+        padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
+        <Icon icon={doneType==="approved"?"mdi:check":"mdi:close"} width={13} />
+        {doneType==="approved" ? "อนุมัติแล้ว" : "ไม่อนุมัติ"}
+      </span>
+      {/* ✅ เพิ่มตรงนี้ — แสดงเหตุผลเมื่อ reject */}
+      {doneType==="rejected" && donation.reject_reason && (
+        <span style={{ fontSize:11, color:"#64748b", background:"#f8fafc", border:"1px solid #e2e8f0", padding:"3px 8px", borderRadius:8 }}>
+          {donation.reject_reason}
+        </span>
+      )}
+    </div>
+  ) : (
+    <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:600, color:statusMeta.color, background:statusMeta.bg, padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
+        {donation.status==="approved" && <Icon icon="mdi:check" width={13} />}
+        {statusMeta.label}
+      </span>
+      {donation.status==="rejected" && donation.reject_reason && (
+        <span style={{ fontSize:11, color:"#64748b", background:"#f8fafc", border:"1px solid #e2e8f0", padding:"3px 8px", borderRadius:8 }}>
+          {donation.reject_reason}
+        </span>
+      )}
+    </div>
+  )}
+</td>
+        {/* <td style={{ padding:"12px 16px" }}>
           {conditionMeta ? (
             <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:600, color:conditionMeta.color, background:conditionMeta.bg, padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
               {conditionMeta.label}
             </span>
           ) : <span style={{ color:"#e2e8f0" }}>—</span>}
-        </td>
+        </td> */}
         <td style={{ padding:"12px 16px" }} onClick={e => e.stopPropagation()}>
           {!done && (
             <div style={{ display:"flex", gap:8, flexWrap:"nowrap" }}>
-              <button onClick={() => setShowConfirm(true)}
-                style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"6px 12px", borderRadius:8, border:"none", background:"#2563eb", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap" }}>
-                <Icon icon="mdi:check-circle-outline" width={14} />อนุมัติ
-              </button>
-              <button onClick={() => setShowReject(true)}
-                style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"6px 12px", borderRadius:8, border:"1.5px solid #fca5a5", background:"#fff5f5", color:"#dc2626", fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap" }}>
-                <Icon icon="mdi:close-circle-outline" width={14} />ไม่อนุมัติ
-              </button>
+              {/* ปุ่มอนุมัติ */}
+<button onClick={() => setShowConfirm(true)}
+  style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"6px 12px", borderRadius:8, border:"none", background:"#2563eb", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap",
+    transition:"background 0.15s",  // ← เปลี่ยนจาก "all"
+    transform:"none",               // ← เพิ่ม
+  }}
+  onMouseEnter={e => e.currentTarget.style.background = "#1d4ed8"}
+  onMouseLeave={e => e.currentTarget.style.background = "#2563eb"}
+>
+  <Icon icon="mdi:check-circle-outline" width={14} />อนุมัติ
+</button>
+
+      {/* ปุ่มไม่อนุมัติ */}
+      <button onClick={() => setShowReject(true)}
+        style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"6px 12px", borderRadius:8, border:"1.5px solid #fca5a5", background:"#fff5f5", color:"#dc2626", fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap",
+          transition:"background 0.15s",  // ← เปลี่ยนจาก "all"
+          transform:"none",               // ← เพิ่ม
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = "#fee2e2"}
+        onMouseLeave={e => e.currentTarget.style.background = "#fff5f5"}
+      >
+        <Icon icon="mdi:close-circle-outline" width={14} />ไม่อนุมัติ
+      </button>
             </div>
           )}
         </td>
@@ -284,7 +315,7 @@ function DonationRow({ donation, onRefresh, token }) {
 
       {expanded && items.length > 0 && (
         <tr style={{ background:"#f8fafc" }}>
-          <td colSpan={8} style={{ padding:"8px 16px 12px 32px" }}>
+          <td colSpan={7} style={{ padding:"8px 16px 12px 32px" }}>
             <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
               {items.map((item, i) => (
                 <span key={i} style={{ fontSize:12, color:"#475569", background:"#fff", border:"1px solid #e2e8f0", borderRadius:8, padding:"4px 10px" }}>
@@ -309,8 +340,8 @@ function SchoolCard({ school, onSelect }) {
   return (
     <div onClick={() => onSelect(school)}
       style={{ background:"#fff", border:urgent?"1.5px solid #fca5a5":"1.5px solid #e2e8f0", borderRadius:14, padding:"18px 20px", cursor:"pointer", transition:"box-shadow 0.15s, transform 0.15s", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow="0 4px 20px rgba(0,0,0,0.08)"; e.currentTarget.style.transform="translateY(-1px)"; }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow="none"; e.currentTarget.style.transform="none"; }}>
+      onMouseEnter={e => { e.currentTarget.style.background = urgent ? "#fff0f0" : "#f8faff"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
       <div style={{ display:"flex", alignItems:"center", gap:14 }}>
         <div style={{ width:44, height:44, borderRadius:12, background:urgent?"#fee2e2":"#eff6ff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
           <Icon icon="teenyicons:school-outline" width={22} color={urgent?"#dc2626":"#2563eb"} />
@@ -344,14 +375,19 @@ function FilterTabs({ filterMethod, setFilterMethod, tabCounts }) {
         const active = filterMethod === v;
         return (
           // ใน FilterTabs component เพิ่ม onMouseEnter/onMouseLeave
-            <button key={v} onClick={() => setFilterMethod(v)}
-              style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer", border:"none", transition:"background 0.15s",
-                background: active ? "#2563eb" : "#f1f5f9",
-                color:      active ? "#fff"    : "#64748b",
-              }}
-              onMouseEnter={e => { if (!active) e.currentTarget.style.background = "#e2e8f0"; }}
-              onMouseLeave={e => { if (!active) e.currentTarget.style.background = "#f1f5f9"; }}
-            >
+           <button key={v} onClick={() => setFilterMethod(v)}
+            style={{ 
+              display:"inline-flex", alignItems:"center", gap:6, 
+              padding:"6px 14px", borderRadius:20, fontSize:12, fontWeight:600, 
+              cursor:"pointer", border:"none", 
+              transition:"background 0.15s", // ← เปลี่ยนจาก "all" เป็น "background"
+              transform:"none",              // ← เพิ่ม
+              background: active ? "#2563eb" : "#f1f5f9",
+              color:      active ? "#fff"    : "#64748b",
+            }}
+            onMouseEnter={e => { if (!active) e.currentTarget.style.background = "#e2e8f0"; }}
+            onMouseLeave={e => { if (!active) e.currentTarget.style.background = "#f1f5f9"; }}
+          >
             {l}
             {count > 0 && (
               <span style={{ background: active ? "rgba(255,255,255,0.3)" : "#e2e8f0", color: active ? "#fff" : "#475569", borderRadius:10, padding:"1px 7px", fontSize:11, fontWeight:700 }}>
@@ -375,6 +411,11 @@ export default function AdminDonationManagement() {
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [search,         setSearch]         = useState("");
   const [filterMethod,   setFilterMethod]   = useState("all");
+  const [doneMap, setDoneMap] = useState(() => {
+      try {
+        return JSON.parse(localStorage.getItem("adminDoneMap") || "{}");
+      } catch { return {}; }
+    });
 
   const loadData = async () => {
     try {
@@ -391,6 +432,10 @@ export default function AdminDonationManagement() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+  localStorage.setItem("adminDoneMap", JSON.stringify(doneMap));
+  }, [doneMap]);
 
   const filteredSchools = useMemo(() =>
     schools.filter(sc => !search || sc.school_name.toLowerCase().includes(search.toLowerCase())),
@@ -446,7 +491,12 @@ export default function AdminDonationManagement() {
           {/* ── แถวเดียวกัน: ปุ่มกลับ (ซ้าย) + Filter Tabs (ขวา) ── */}
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
             <button onClick={() => { setSelectedSchool(null); setFilterMethod("all"); }}
-              style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"#2563eb", fontSize:13, fontWeight:600, cursor:"pointer", padding:0 }}
+              style={{ 
+                display:"flex", alignItems:"center", gap:6, 
+                background:"none", border:"none", color:"#2563eb", 
+                fontSize:13, fontWeight:600, cursor:"pointer", padding:0,
+                transform:"none",  // ← เพิ่ม
+              }}
               onMouseEnter={e => e.currentTarget.style.color = "#1d4ed8"}
               onMouseLeave={e => e.currentTarget.style.color = "#2563eb"}
             >
@@ -471,17 +521,24 @@ export default function AdminDonationManagement() {
               <table style={{ width:"100%", borderCollapse:"collapse", minWidth:900 }}>
                 <thead>
                   <tr style={{ background:"#f8fafc" }}>
-                    {["วันที่บริจาค","ผู้บริจาค","ข้อมูลการจัดส่ง","หลักฐาน","รายการบริจาค","สถานะ","การใช้งาน","จัดการ"].map(h => (
+                    {["วันที่บริจาค","ผู้บริจาค","ข้อมูลการจัดส่ง","หลักฐาน","รายการบริจาค","สถานะ","จัดการ"].map(h => (
                       <th key={h} style={{ padding:"10px 16px", fontSize:12, fontWeight:600, color:"#64748b", textAlign:"left", borderBottom:"1px solid #e2e8f0", whiteSpace:"nowrap" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredDonations.length === 0 ? (
-                    <tr><td colSpan={8} style={{ textAlign:"center", padding:32, color:"#94a3b8", fontSize:13 }}>ไม่มีรายการในหมวดนี้</td></tr>
+                    <tr><td colSpan={7} style={{ textAlign:"center", padding:32, color:"#94a3b8", fontSize:13 }}>ไม่มีรายการในหมวดนี้</td></tr>
                   ) : filteredDonations.map(d => (
-                    <DonationRow key={d.donation_id} donation={d} onRefresh={loadData} token={token} />
-                  ))}
+                    <DonationRow 
+                      key={d.donation_id} 
+                      donation={d} 
+                      onRefresh={loadData} 
+                      token={token}
+                      doneStatus={doneMap[d.donation_id] ?? null}
+                      onDone={(id, data) => setDoneMap(prev => ({ ...prev, [id]: data }))}
+                    />
+                      ))}
                 </tbody>
               </table>
             </div>
@@ -489,12 +546,22 @@ export default function AdminDonationManagement() {
         </div>
       ) : (
         <div>
-          <div style={{ display:"flex", alignItems:"center", gap:10, background:"#fff", border:"1.5px solid #e2e8f0", borderRadius:10, padding:"9px 14px", marginBottom:16, maxWidth:400,  outline:"none" }} tabIndex="-1">
+          <div style={{ display:"flex", alignItems:"center", gap:10, background:"#fff", 
+            border:"1.5px solid #e2e8f0", borderRadius:10, padding:"9px 14px", 
+            marginBottom:16, maxWidth:400 , outline:"none"}}
+            // ✅ เพิ่ม 2 บรรทัดนี้
+            onFocus={e => e.currentTarget.style.border = "1.5px solid #e2e8f0"}
+            onBlur={e => e.currentTarget.style.border = "1.5px solid #e2e8f0"}
+          >
             <Icon icon="mdi:magnify" width={18} color="#94a3b8" />
-            <input style={{ border:"none", outline:"none", fontSize:13, flex:1, color:"#334155" , WebkitAppearance:"none", background:"transparent"}}
-              placeholder="ค้นหาชื่อโรงเรียน..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input
+              style={{ border:"none", outline:"none", fontSize:13, flex:1, color:"#334155", background:"transparent" }}
+              onFocus={e => { e.target.style.outline = "none"; e.target.style.boxShadow = "none"; }}
+              placeholder="ค้นหาชื่อโรงเรียน..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
           </div>
-
           {loading ? (
             <div style={{ textAlign:"center", padding:48, color:"#94a3b8", fontSize:13 }}>กำลังโหลด...</div>
           ) : filteredSchools.length === 0 ? (

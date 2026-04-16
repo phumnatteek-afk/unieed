@@ -142,21 +142,56 @@ export async function updateDonationStatus(req, res, next) {
   try {
     const donation_id = req.params.donationId;
     const { role, school_id } = req.user;
-    const { status } = req.body;
+    const { status, reject_reason } = req.body;
 
     if (!["approved", "rejected"].includes(status))
       return res.status(400).json({ message: "status ต้องเป็น approved หรือ rejected" });
 
-    // ✅ Admin ข้ามการเช็ค school ownership ได้เลย
     if (role !== "admin") {
       const owned = await isDonationOwnedBySchool(donation_id, school_id);
       if (!owned)
         return res.status(403).json({ message: "ไม่พบรายการ หรือไม่มีสิทธิ์" });
     }
 
-    await setDonationStatus(donation_id, status);
-    res.json({ message: `อัปเดตสถานะเป็น ${status} แล้ว` });
-  } catch (err) { next(err); }
+    // ✅ ถ้า Admin ให้ set admin_approved = 1 ด้วย
+    if (role === "admin") {
+  await db.query(
+    `UPDATE donation_record 
+     SET status = ?, admin_approved = 1, admin_approved_at = NOW(),
+         auto_approved = 1, auto_approved_at = NOW(),
+         reject_reason = ?
+     WHERE donation_id = ?`,
+    [status, reject_reason ?? null, donation_id]
+  );
+
+  // ส่ง notification ไปหา school_admin ถ้า reject
+  if (status === "rejected" && reject_reason) {
+    const [projRows] = await db.query(
+      `SELECT dr.school_id FROM donation_record d
+       JOIN donation_request dr ON dr.request_id = d.request_id
+       WHERE d.donation_id = ? LIMIT 1`,
+      [donation_id]
+    );
+    if (projRows[0]) {
+      const [admins] = await db.query(
+        `SELECT user_id FROM users WHERE school_id = ? AND role = 'school_admin'`,
+        [projRows[0].school_id]
+      );
+      for (const admin of admins) {
+        await db.query(
+          `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
+           VALUES (?, 'donation_rejected', 'แอดมินไม่อนุมัติรายการบริจาค', ?, ?, 0, NOW())`,
+          [admin.user_id, reject_reason, donation_id]
+        );
+      }
+    }
+  }
+} else {
+  await setDonationStatus(donation_id, status);
+}
+
+res.json({ message: `อัปเดตสถานะเป็น ${status} แล้ว` });
+} catch (err) { next(err); }
 }
 
 export async function createDonationFromOrder(req, res, next) {

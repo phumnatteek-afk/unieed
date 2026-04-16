@@ -138,7 +138,9 @@ export async function verifyAndIssueCertificate(req, res, next) {
         const donation_id = Number(req.params.donationId);
         const { condition_status, thank_message } = req.body;
 
-        if (!condition_status)
+        const isAdmin = req.user?.role === "admin";
+
+            if (!condition_status && !isAdmin)
             return res.status(400).json({ message: "condition_status required" });
         const [[current]] = await db.query(
             `SELECT status FROM donation_record WHERE donation_id = ?`,
@@ -150,13 +152,26 @@ export async function verifyAndIssueCertificate(req, res, next) {
             return res.status(400).json({ message: "รายการนี้ถูกอัปเดตแล้ว" });
         if (current.status === "approved" && current.condition_status)
             return res.status(400).json({ message: "รายการนี้ตรวจสอบแล้ว" });
-        // 1. อัปเดต donation_record
-        await db.query(
-            `UPDATE donation_record
-   SET condition_status = ?, status = 'approved', updated_at = NOW()
-   WHERE donation_id = ?`,
-            [condition_status, donation_id]
-        );
+
+
+            if (isAdmin) {
+            // Admin approve — ไม่ set condition_status
+            await db.query(
+                `UPDATE donation_record
+                SET status = 'approved', updated_at = NOW(),
+                    admin_approved = 1, admin_approved_at = NOW()
+                WHERE donation_id = ?`,
+                [donation_id]
+            );
+            } else {
+            // โรงเรียน approve — set condition_status ด้วย
+            await db.query(
+                `UPDATE donation_record
+                SET condition_status = ?, status = 'approved', updated_at = NOW()
+                WHERE donation_id = ?`,
+                [condition_status, donation_id]
+            );
+            }
         // ✅ เพิ่ม step 1.5: INSERT fulfillment เมื่อ condition_status = 'usable'
         if (condition_status === "usable") {
             // ดึง items_snapshot และ request_id ก่อน (ยังไม่มี donation object ตอนนี้)
