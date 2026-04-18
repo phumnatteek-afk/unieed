@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef} from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
@@ -71,18 +72,104 @@ const TYPE_COLORS = {
   "กระโปรง": {bg:"#FFEDBF", hover: "#5285E8"},
 };
 
-function ProjectCard({ p, navigate }) {
+function UniformIcon({ name }) {
+  if (name?.includes("เสื้อ")) return (
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M34 30.2222C34 32.3085 32.3085 34 30.2222 34H3.77778C1.6915 34 0 32.3085 0 30.2222V3.77778C0 1.6915 1.6915 0 3.77778 0H30.2222C32.3085 0 34 1.6915 34 3.77778V30.2222Z" fill="white"/>
+      <path d="M18.2668 33.4857C17.5698 34.1713 16.4308 34.1713 15.7347 33.4857L9.47022 27.3194C8.77417 26.6337 8.59 25.4003 9.06033 24.5767L16.1437 7.15456C16.6149 6.33194 17.3856 6.33194 17.8559 7.15456L24.9393 24.5767C25.4096 25.3993 25.2254 26.6337 24.5294 27.3184L18.2668 33.4857Z" fill="#053F5C"/>
+      <path d="M16.9996 13.8535C17.8959 13.8535 18.8923 12.9544 19.7376 11.7842L17.8553 7.15456C17.384 6.33194 16.6134 6.33194 16.143 7.15456L14.2607 11.7842C15.1079 12.9544 16.1034 13.8535 16.9996 13.8535Z" fill="#292F33"/>
+      <path d="M21.7228 5.45667C21.7228 7.31156 19.0868 12.1736 17.0005 12.1736C14.9143 12.1736 12.2783 7.31156 12.2783 5.45667C12.2783 3.77273 14.9143 2.83301 17.0005 2.83301C19.0868 2.83301 21.7228 3.77273 21.7228 5.45667Z" fill="#053F5C"/>
+      <path d="M0 3.77778V5.90656C1.95878 8.52267 6.40239 13.2269 7.55555 13.2269C9.64183 13.2269 17.9444 3.03072 17.9444 0.944444C17.9444 0 17 0 16.0556 0H3.77778C1.6915 0 0 1.6915 0 3.77778Z" fill="#D9D9D9"/>
+      <path d="M16.0547 0.944444C16.0547 3.03072 24.3573 13.2269 26.4436 13.2269C27.5967 13.2269 32.0404 8.52267 33.9991 5.90656V3.77778C33.9991 1.6915 32.3076 0 30.2214 0H17.9436C16.9991 0 16.0547 0 16.0547 0.944444Z" fill="#D9D9D9"/>
+    </svg>
+  );
+  if (name?.includes("กางเกง")) return (
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g clipPath="url(#clip0_2847_991)">
+        <path d="M29.2778 5.66656V1.84628C29.2778 1.34856 28.8736 0.944336 28.3758 0.944336H5.62417C5.12644 0.944336 4.72222 1.34856 4.72222 1.84628V5.66656L0 29.2777L13.2222 33.0554L17 23.0963L20.7778 33.0554L34 29.2777L29.2778 5.66656Z" fill="#8C5543"/>
+        <path d="M4.72259 3.77783H29.2782V5.66672H4.72259V3.77783ZM13.0167 5.66672H11.0579C9.75648 9.54556 5.90126 10.7658 3.62515 11.1511L3.22754 13.1411C6.63321 12.7557 11.6331 10.8716 13.0167 5.66672Z" fill="#662113"/>
+        <path d="M30.7729 13.1408L30.3753 11.1509C28.0992 10.7656 24.2449 9.54439 22.9426 5.6665H20.9838C22.3664 10.8713 27.3673 12.7555 30.7729 13.1408ZM16.0557 5.6665V25.5858L17.0001 23.0962L17.9446 25.5858V5.6665H16.0557Z" fill="#662113"/>
+      </g>
+    </svg>
+  );
+  // กระโปรง (default)
+  return (
+    <svg width="34" height="34" viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path opacity="0.8" d="M19.1667 10.5415H26.8334L30.5901 41.5493C28.0822 41.9699 25.543 42.1763 23.0001 42.1665C20.1347 42.1665 17.6085 41.9269 15.4062 41.5493L19.1667 10.5415Z" fill="#053F5C"/>
+      <path opacity="0.5" d="M11.1897 10.5415L3.98683 34.4098C3.57283 35.7821 3.98875 37.256 5.24033 38.0054C7.12633 39.1382 10.4479 40.6964 15.4063 41.5493L19.1649 10.5415H11.1897Z" fill="#053F5C"/>
+      <path opacity="0.9" d="M40.7595 38.0073C42.0092 37.256 42.427 35.7821 42.013 34.4098L34.8102 10.5415H26.833L30.5897 41.5493C35.5481 40.6983 38.8697 39.1401 40.7595 38.0073Z" fill="#053F5C"/>
+      <path d="M30.8755 3.8335H15.1263C13.271 3.8335 12.3433 3.8335 11.7664 4.39508C11.1895 4.95666 11.1895 5.85941 11.1895 7.66683V10.5418H34.8124V7.66683C34.8124 5.85941 34.8124 4.95666 34.2355 4.39508C33.6605 3.8335 32.7309 3.8335 30.8755 3.8335Z" fill="#053F5C"/>
+    </svg>
+  );
+}
+
+// ── helper: จัดกลุ่ม items ตามประเภท (name) รวมจำนวน + เก็บรูปแรก
+function groupItems(items = []) {
+  const map = {};
+  items.forEach(item => {
+    const key = item.name || "อื่นๆ";
+    if (!map[key]) {
+      map[key] = {
+        name: key,
+        total: 0,
+        image_url: item.image_url || item.uniform_image_url || null,
+      };
+    }
+    map[key].total += Number(item.quantity_needed || item.quantity || 0);
+    // ถ้ายังไม่มีรูป ลองอัปเดต
+    if (!map[key].image_url) {
+      map[key].image_url = item.image_url || item.uniform_image_url || null;
+    }
+  });
+  return Object.values(map);
+}
+
+function ProjectCard({ p, navigate, details }) {
+  const [hovered, setHovered] = useState(false);
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+  const handleScroll = () => setHovered(false);
+  window.addEventListener("scroll", handleScroll, { passive: true });
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+
+  const items    = details || [];
+  const grouped  = useMemo(() => groupItems(items).slice(0, 3), [items]);
+  const itemRows = useMemo(() => items.slice(0, 3), [items]);
+  const hasMore  = items.length > 3;
+
+  const totalNeeded    = items.length > 0
+    ? items.reduce((sum, item) => sum + Number(item.quantity_needed || item.quantity || 0), 0)
+    : Number(p.total_needed || 0);
+  const totalFulfilled = Number(p.total_fulfilled || 0);
+
+  const handleMouseEnter = () => {
+    if (cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      setPopupPos({
+        top:  rect.top,
+        left: rect.left + rect.width / 2,
+        width: rect.width - 20,
+      });
+    }
+    setHovered(true);
+  };
+
   return (
     <div
+      ref={cardRef}
       className="dpCard"
       onClick={() => navigate(`/projects/${p.request_id}`)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setHovered(false)}
+      style={{ position: "relative" }}
     >
       <div className="dpCardImg" style={{ position: "relative" }}>
         {p.request_image_url
           ? <img src={p.request_image_url} alt={p.request_title} />
           : <div className="dpCardImgPlaceholder" />}
-
-        {/* ✅ Badge มุมขวาบน */}
         {p._row === "urgent" && (
           <div className="dpSliderTag dpSliderTagUrgent">🚨 เร่งด่วน</div>
         )}
@@ -90,6 +177,7 @@ function ProjectCard({ p, navigate }) {
           <div className="dpSliderTag dpSliderTagMost">🔥 ต้องการมากที่สุด</div>
         )}
       </div>
+
       <div className="dpCardBody">
         <div className="dpCardBadge">โครงการ</div>
         <div className="dpCardTitle">{p.request_title}</div>
@@ -106,7 +194,7 @@ function ProjectCard({ p, navigate }) {
               <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            ส่งถึงโรงเรียนแล้ว <strong>{p.total_fulfilled || 0}</strong> ชุด
+            ส่งถึงโรงเรียนแล้ว <strong>{totalFulfilled}</strong> ชุด
           </div>
           <button
             className="dpCardBtn"
@@ -116,6 +204,81 @@ function ProjectCard({ p, navigate }) {
           </button>
         </div>
       </div>
+
+      {/* Popup fixed — rendered via portal to escape transform stacking context */}
+      {hovered && createPortal(
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: "fixed",
+            top:  popupPos.top,
+            left: popupPos.left,
+            transform: "translate(-50%, -100%)",
+            width: "360px",
+            background: "#fff",
+            borderRadius: "16px",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+            padding: "16px",
+            zIndex: 9999,
+            pointerEvents: "auto",
+            animation: "dpHoverIn 0.15s ease",
+          }}
+        >
+          <div className="dpHoverHeader">
+            <div className="dpHoverSchool">{p.school_name}</div>
+            <div className="dpHoverMeta">
+              <span className="dpHoverNeed">ต้องการ {totalNeeded}</span>
+              <span className="dpHoverSep">|</span>
+              <span className="dpHoverGot">ได้ {totalFulfilled} ชุด</span>
+            </div>
+          </div>
+          <div className="dpHoverLine" />
+          <div className="dpHoverSection">รายละเอียดชุดที่ต้องการ</div>
+          <div className="dpHoverImgRow">
+            {grouped.length > 0 ? grouped.map((g, i) => (
+              <div key={i} className="dpHoverImgItem">
+                <div className="dpHoverImgBox">
+                  {g.image_url
+                    ? <img src={g.image_url} alt={g.name} />
+                    : <div className="dpHoverImgPlaceholder">{g.name?.charAt(0)}</div>}
+                </div>
+                <div className="dpHoverImgQty">{g.total} ชุด</div>
+              </div>
+            )) : <div className="dpHoverEmpty">ยังไม่มีข้อมูล</div>}
+          </div>
+          {itemRows.length > 0 && (
+            <div className="dpHoverItemList">
+              {itemRows.map((item, i) => {
+                const genderLabel = item.gender === "male" ? "เพศชาย"
+                  : item.gender === "female" ? "เพศหญิง" : "";
+                let sizeStr = "";
+                try {
+                  const s = typeof item.size === "string"
+                    ? JSON.parse(item.size) : item.size;
+                  if (s?.chest) sizeStr = `อก ${s.chest}`;
+                  else if (s?.waist) sizeStr = `เอว ${s.waist}`;
+                } catch {}
+                const qty = Number(item.quantity_needed || item.quantity || 0);
+                return (
+                  <div key={i} className="dpHoverItemRow">
+                    {genderLabel && (
+                      <span className="dpHoverItemBadge dpHoverBadgeGender">{genderLabel}</span>
+                    )}
+                    {item.education_level && (
+                      <span className="dpHoverItemBadge dpHoverBadgeLevel">{item.education_level}</span>
+                    )}
+                    <span className="dpHoverItemName">{item.name}</span>
+                    {sizeStr && <span className="dpHoverItemSize">{sizeStr}</span>}
+                    <span className="dpHoverItemQtyBadge">{qty} ชิ้น</span>
+                  </div>
+                );
+              })}
+              {hasMore && <div className="dpHoverMore">...</div>}
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -645,7 +808,7 @@ useEffect(() => {
           <h3 className="dpRowLabel">🚨 โครงการเร่งด่วน</h3>
           <div className="dpGrid">
             {displayProjects.filter(p => p._row === "urgent").map(p => (
-              <ProjectCard key={p.request_id} p={p} navigate={navigate} />
+              <ProjectCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]}/>
             ))}
           </div>
         </>
@@ -657,7 +820,7 @@ useEffect(() => {
           <h3 className="dpRowLabel">🔥 ต้องการรับบริจาคมากที่สุด</h3>
           <div className="dpGrid">
             {displayProjects.filter(p => p._row === "most").map(p => (
-              <ProjectCard key={p.request_id} p={p} navigate={navigate} />
+              <ProjectCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} />
             ))}
           </div>
         </>
@@ -669,7 +832,7 @@ useEffect(() => {
           <h3 className="dpRowLabel">📋 โครงการทั้งหมด</h3>
           <div className="dpGrid">
             {displayProjects.filter(p => p._row === "rest").map(p => (
-              <ProjectCard key={p.request_id} p={p} navigate={navigate} />
+              <ProjectCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} />
             ))}
           </div>
         </>

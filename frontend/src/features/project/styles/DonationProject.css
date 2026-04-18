@@ -389,16 +389,16 @@ display: flex;
   background: #fff;
   width: 400px;
   border-radius: 16px;
-  overflow: hidden;
+  overflow: hidden;          /* ← คืนค่าเดิม */
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
   cursor: pointer;
   transition: transform 0.18s, box-shadow 0.18s;
   border: 1px solid #f0f4f8;
 }
 
-.dpCard:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(82, 133, 232, 0.13);
+.dpCard.dpCardHoverWrap {
+  overflow: visible !important;
+  border-radius: 16px;
 }
 
 .dpCardImg {
@@ -416,8 +416,9 @@ display: flex;
   transition: transform 0.3s;
 }
 
-.dpCard:hover .dpCardImg img {
-  transform: scale(1.03);
+.dpCard:hover {
+  transform: none;
+  box-shadow: 0 8px 24px rgba(82, 133, 232, 0.13);
 }
 
 .dpCardImgPlaceholder {
@@ -428,10 +429,13 @@ display: flex;
 
 .dpCardBody {
   padding: 18px 20px;
+  background: #fff;              /* ← เพิ่ม */
+  border-radius: 0 0 16px 16px; /* ← เพิ่ม */
 }
 
 .dpCardBadge {
   display: inline-block;
+  align-self: flex-start;
   background: #e8f0fe;
   color: #5285E8;
   font-size: 12px;
@@ -687,6 +691,234 @@ display: flex;
 .dpSliderDotActive {
   background: #5285E8;
 }
+/* ── Wrapper: ไม่ยกการ์ดตอน hover ── */
+.dpCardHoverWrap {
+  position: relative;
+  /* ลบ overflow: visible ออก */
+}
+.dpCardHoverWrap:hover {
+  transform: none !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07) !important;
+  overflow: visible !important;  /* ← ใส่เฉพาะตอน hover */
+}
+
+/* แก้ .dpCard:hover ไม่ให้ขัดกับ overflow: visible */
+.dpCard.dpCardHoverWrap {
+  overflow: visible !important;
+  border-radius: 16px;
+}
+
+/* ── แก้มุมการ์ดให้มน ── */
+/* เพิ่ม border-radius ให้ทั้ง thumb และ body ส่วนบน */
+.dpCard.dpCardHoverWrap .dpCardImg {
+  border-radius: 16px 16px 0 0;  /* ← มนเฉพาะมุมบน */
+}
+
+/* projCard ใน Homepage */
+.projCard.dpCardHoverWrap:hover {
+  overflow: visible !important;
+}
+
+.projCard.dpCardHoverWrap .thumb {
+  border-radius: 14px 14px 0 0;
+}
+
+.projCard .dpCardOverlay {
+  border-radius: 14px;
+}
+
+.projCard.dpCardHoverWrap .thumb {
+  border-radius: 14px 14px 0 0;  /* ← มนเฉพาะมุมบน */
+}
+
+/* ── Overlay มืดทับทั้งการ์ด ── */
+.dpCardOverlay {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  transition: background 0.2s ease;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 16px;           /* ← ทำให้ overlay มนตาม */
+}
+
+/* สำหรับ projCard ใน Homepage */
+.projCard .dpCardOverlay {
+  border-radius: 14px;   /* ← projCard radius */
+}
+
+.dpCardOverlayVisible {
+  background: rgba(0, 0, 0, 0.50);
+}
+
+/* ── Popup Card ── */
+.dpHoverCard {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  padding: 16px;
+  z-index: 20;
+  pointer-events: auto;
+  animation: dpHoverIn 0.15s ease;
+}
+
+@keyframes dpHoverIn {
+  from { opacity: 0; transform: translate(-50%, -47%); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* Header */
+.dpHoverHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+.dpHoverSchool {
+  font-weight: 700;
+  font-size: 15px;
+  color: #053F5C;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dpHoverMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.dpHoverNeed { color: #e53935; font-weight: 700; }
+.dpHoverGot  { color: #43a047; font-weight: 700; }
+.dpHoverSep  { color: #ccc; }
+
+/* Divider */
+.dpHoverLine {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 6px 0;
+}
+
+/* Section label */
+.dpHoverSection {
+  font-size: 12px;
+  color: #888;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* รูปภาพชุด 3 ช่อง */
+.dpHoverImgRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  justify-content: flex-start;  /* ← เพิ่ม: ชิดซ้าย ไม่ขยาย */
+}
+/* แก้ .dpHoverImgItem ให้ล็อกขนาดคงที่ */
+.dpHoverImgItem {
+  width: 70px;        /* ← ล็อกขนาดตายตัว */
+  flex: none;         /* ← ไม่ stretch */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.dpHoverImgBox {
+  width: 70px;   /* ← เล็กลงนิดหน่อย */
+  height: 70px;
+  aspect-ratio: unset; /* ← เอา aspect-ratio ออก */
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f0f4ff;
+  border: 1.5px solid #e0e7ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dpHoverImgBox img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.dpHoverImgPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: #5285E8;
+  background: #e8eeff;
+}
+.dpHoverImgQty {
+  font-size: 11px;
+  font-weight: 600;
+  color: #053F5C;
+}
+
+/* รายการ item แต่ละชิ้น */
+.dpHoverItemList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 2px;
+  width: 100%;   /* ← เพิ่ม */
+}
+.dpHoverItemRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+.dpHoverItemBadge {
+  padding: 2px 6px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dpHoverBadgeGender { background: #e3f0ff; color: #1565c0; }
+.dpHoverBadgeLevel  { background: #fff3e0; color: #e65100; }
+.dpHoverItemName    { color: #333; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dpHoverItemSize    { color: #5285E8; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.dpHoverItemQtyBadge {
+  background: #FDD888;
+  color: #7a4f00;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.dpHoverMore  { font-size: 11px; color: #aaa; text-align: center; padding: 2px 0; }
+.dpHoverEmpty { font-size: 12px; color: #aaa; }
+
+/* CTA */
+.dpHoverBtn {
+  width: 100%;
+  background: #053F5C;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Kanit', sans-serif;
+}
+.dpHoverBtn:hover { background: #5285E8; }
 
 @media (max-width: 640px) {
   .dpSliderWrapper {

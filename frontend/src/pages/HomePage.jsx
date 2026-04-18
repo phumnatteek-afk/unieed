@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getJson } from "../api/http.js";
@@ -17,6 +18,188 @@ import { Icon } from "@iconify/react";
   rel="stylesheet"
   href="https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css"
 ></link>;
+
+// ── helper: จัดกลุ่ม items ตามประเภท (name) รวมจำนวน + เก็บรูปแรก
+function groupItems(items = []) {
+  const map = {};
+  items.forEach(item => {
+    const key = item.name || "อื่นๆ";
+    if (!map[key]) {
+      map[key] = {
+        name: key,
+        total: 0,
+        image_url: item.image_url || item.uniform_image_url || null,
+      };
+    }
+    map[key].total += Number(item.quantity_needed || item.quantity || 0);
+    // ถ้ายังไม่มีรูป ลองอัปเดต
+    if (!map[key].image_url) {
+      map[key].image_url = item.image_url || item.uniform_image_url || null;
+    }
+  });
+  return Object.values(map);
+}
+
+function ProjCard({ p, navigate, details }) {
+  const [hovered, setHovered] = useState(false);
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+  const handleScroll = () => setHovered(false);
+  window.addEventListener("scroll", handleScroll, { passive: true });
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+
+  const items    = details || [];
+  const grouped  = useMemo(() => groupItems(items).slice(0, 3), [items]);
+  const itemRows = useMemo(() => items.slice(0, 3), [items]);
+  const hasMore  = items.length > 3;
+
+  const totalNeeded    = items.length > 0
+    ? items.reduce((sum, item) => sum + Number(item.quantity_needed || item.quantity || 0), 0)
+    : Number(p.total_needed || 0);
+  const totalFulfilled = Number(p.total_fulfilled || 0);
+
+  const handleMouseEnter = () => {
+    if (cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      setPopupPos({
+        top:  rect.top,                      // ← บนสุดของการ์ด
+        left: rect.left + rect.width / 2,   // ← กึ่งกลางแนวนอน
+        width: rect.width - 20,
+      });
+    }
+    setHovered(true);
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      className="projCard"
+      onClick={() => navigate(`/projects/${p.request_id}`)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setHovered(false)}
+      style={{ position: "relative" }}
+    >
+
+      <div className="thumb" style={{ position: "relative" }}>
+        {p.request_image_url
+          ? <img src={p.request_image_url} alt={p.request_title} />
+          : <div className="dpCardImgPlaceholder" />}
+        {p._row === "urgent" && (
+          <div className="dpSliderTag dpSliderTagUrgent">🚨 เร่งด่วน</div>
+        )}
+        {p._row === "most" && (
+          <div className="dpSliderTag dpSliderTagMost">🔥 ต้องการมากที่สุด</div>
+        )}
+      </div>
+
+      <div className="projBody">
+        <div className="dpCardBadge">โครงการ</div>
+        <div className="dpCardTitle">{p.request_title}</div>
+        <div className="dpCardSchool">{p.school_name}</div>
+        <div className="dpCardAddr">
+          <Icon icon="fluent:location-20-filled" width="14"
+            style={{ flexShrink: 0, marginTop: "2px" }} />
+          {p.school_address}
+        </div>
+        <div className="dpCardBottom">
+          <div className="dpCardFulfilled"
+            style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            ส่งถึงโรงเรียนแล้ว <strong>{totalFulfilled}</strong> ชุด
+          </div>
+          <button
+            className="dpCardBtn"
+            onClick={e => { e.stopPropagation(); navigate(`/projects/${p.request_id}`); }}
+          >
+            ส่งต่อ
+          </button>
+        </div>
+      </div>
+
+      {/* Popup fixed — rendered via portal to escape transform stacking context */}
+      {hovered && createPortal(
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: "fixed",
+            top:  popupPos.top,
+            left: popupPos.left,
+            transform: "translate(-50%, -100%)",
+            width: "360px",
+            background: "#fff",
+            borderRadius: "16px",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+            padding: "16px",
+            zIndex: 9999,
+            pointerEvents: "auto",
+            animation: "dpHoverIn 0.15s ease",
+          }}
+        >
+          <div className="dpHoverHeader">
+            <div className="dpHoverSchool">{p.school_name}</div>
+            <div className="dpHoverMeta">
+              <span className="dpHoverNeed">ต้องการ {totalNeeded}</span>
+              <span className="dpHoverSep">|</span>
+              <span className="dpHoverGot">ได้ {totalFulfilled} ชุด</span>
+            </div>
+          </div>
+          <div className="dpHoverLine" />
+          <div className="dpHoverSection">รายละเอียดชุดที่ต้องการ</div>
+          <div className="dpHoverImgRow">
+            {grouped.length > 0 ? grouped.map((g, i) => (
+              <div key={i} className="dpHoverImgItem">
+                <div className="dpHoverImgBox">
+                  {g.image_url
+                    ? <img src={g.image_url} alt={g.name} />
+                    : <div className="dpHoverImgPlaceholder">{g.name?.charAt(0)}</div>}
+                </div>
+                <div className="dpHoverImgQty">{g.total} ชุด</div>
+              </div>
+            )) : <div className="dpHoverEmpty">ยังไม่มีข้อมูล</div>}
+          </div>
+          {itemRows.length > 0 && (
+            <div className="dpHoverItemList">
+              {itemRows.map((item, i) => {
+                const genderLabel = item.gender === "male" ? "เพศชาย"
+                  : item.gender === "female" ? "เพศหญิง" : "";
+                let sizeStr = "";
+                try {
+                  const s = typeof item.size === "string"
+                    ? JSON.parse(item.size) : item.size;
+                  if (s?.chest) sizeStr = `อก ${s.chest}`;
+                  else if (s?.waist) sizeStr = `เอว ${s.waist}`;
+                } catch {}
+                const qty = Number(item.quantity_needed || item.quantity || 0);
+                return (
+                  <div key={i} className="dpHoverItemRow">
+                    {genderLabel && (
+                      <span className="dpHoverItemBadge dpHoverBadgeGender">{genderLabel}</span>
+                    )}
+                    {item.education_level && (
+                      <span className="dpHoverItemBadge dpHoverBadgeLevel">{item.education_level}</span>
+                    )}
+                    <span className="dpHoverItemName">{item.name}</span>
+                    {sizeStr && <span className="dpHoverItemSize">{sizeStr}</span>}
+                    <span className="dpHoverItemQtyBadge">{qty} ชิ้น</span>
+                  </div>
+                );
+              })}
+              {hasMore && <div className="dpHoverMore">...</div>}
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 export default function HomePage() {
   const { token, role, userName, logout } = useAuth();
   const navigate = useNavigate();
@@ -41,6 +224,9 @@ export default function HomePage() {
   // ===== Projects random + auto slide (เพิ่ม)
   const [projectMode, setProjectMode] = useState("newest"); // "newest" | "random"
   const [randomProjects, setRandomProjects] = useState([]);
+
+  const [projectDetails, setProjectDetails] = useState({});
+  const detailsFetchedRef = useRef(false);
 
   const [autoPlay, setAutoPlay] = useState(true);
   const autoTimerRef = useRef(null);
@@ -91,6 +277,28 @@ export default function HomePage() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+  if (projects.length === 0 || detailsFetchedRef.current) return;
+  detailsFetchedRef.current = true;
+  
+  const fetchDetails = async () => {
+    const map = {};
+    for (const p of projects) {
+      try {
+        const d = await getJson(`/school/projects/public/${p.request_id}`, false);
+        if (d?.request_id) map[d.request_id] = d.uniform_items || [];
+        console.log("fetched:", p.request_id, map[d.request_id]); // ← เช็ค
+      } catch (e) {
+        console.error("fetch failed:", p.request_id, e);
+      }
+    }
+    setProjectDetails(map);
+    console.log("projectDetails set:", map); 
+  };
+  
+  fetchDetails();
+  }, [projects]);
 
   // ถ้า projects โหลดใหม่/เปลี่ยนจำนวน -> รีเซ็ตหน้า + สถานะ slide
   useEffect(() => {
@@ -693,54 +901,12 @@ export default function HomePage() {
                     return (
                       <div className="carouselPage" key={pageIndex}>
                         {slice.map((p) => (
-                          <div
-                            className="projCard"
+                          <ProjCard
                             key={p.request_id}
-                            onClick={() => navigate(`/projects/${p.request_id}`)}
-                            style={{ cursor: "pointer" }}
-                          >
-                            <div className="thumb">
-                              {p.request_image_url ? (
-                                <img src={p.request_image_url} alt={p.request_title} />
-                              ) : (
-                                <div className="thumbPlaceholder" />
-                              )}
-                            </div>
-
-                            <div className="projBody">
-                              <div className="projTitle">{p.school_name}</div>
-                              <div className="projMeta">
-                                <span>{p.request_title}</span>
-                              </div>
-                              <div className="adr">
-                                <span>ที่ตั้ง: {p.school_address}</span>
-                              </div>
-
-                              <div className="projBottom">
-                                <div className="projFilled">
-  {/* บริจาคแล้ว <span><b>{p.total_donated || p.total_fulfilled || 0}</b></span> ชิ้น */}
-  <div className="projFilled" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-  ส่งถึงโรงเรียนแล้ว <span><b>{p.total_fulfilled || 0}</b></span> ชุด
-</div>
-</div>
-
-                                {/* ✅ e.stopPropagation() กันไม่ให้ click ลามไปที่กล่อง */}
-                                <button
-                                  className="btnSend"
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/projects/${p.request_id}`);
-                                  }}
-                                >
-                                  ส่งต่อ
-                                </button>
-                              </div>
-                            </div>
-                          </div>
+                            p={p}
+                            navigate={navigate}
+                            details={projectDetails[p.request_id]}
+                          />
                         ))}
 
                         {slice.length < 2 && (
