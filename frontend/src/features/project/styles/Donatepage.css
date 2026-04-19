@@ -114,7 +114,7 @@
   
   display: flex;
   gap: 12px;
-  margin-bottom: 28px;
+  margin-bottom: 8px;
 }
 
 .dnMethodTab {
@@ -148,10 +148,8 @@
 .dnStep {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-.dnBackBtn svg{
-  color: #053f5c;
+  gap: 5px;
+  
 }
 .dnBackBtn {
   display: inline-flex;
@@ -161,11 +159,23 @@
   border: none;
   font-size: 16px;
   font-weight: 600;
+  margin-top: 20px;
   color: #053f5c;
   cursor: pointer;
   font-family: 'Kanit', sans-serif;
   padding: 0;
   width: fit-content;
+  transition: none;
+}
+.dnBackBtn svg {
+  color: #053f5c;
+  transition: color 0.15s ease;
+}
+.dnBackBtn:hover {
+  transform: none !important;
+}
+.dnBackBtn:hover svg {
+  color: #87C7EB;
 }
 
 .dnStepTitle {

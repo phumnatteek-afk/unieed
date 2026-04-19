@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import NotificationBell from "../../../pages/NotificationBell.jsx";
 import CartIcon from "../../market/components/CartIcon.jsx";
+import { QRLabelPage } from "../../project/pages/Donatepage.jsx";
 import "../../../pages/styles/Homepage.css";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
@@ -37,6 +39,35 @@ export default function DonationHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [expanded, setExpanded] = useState(null);
+  const [trackingInputs, setTrackingInputs] = useState({});
+  const [trackingSaving, setTrackingSaving] = useState({});
+  const [trackingMsg, setTrackingMsg] = useState({});
+  const [slipDonation, setSlipDonation] = useState(null);
+
+  const saveTracking = async (donationId, carrier) => {
+    const val = (trackingInputs[donationId] || "").trim();
+    if (!val) return;
+    setTrackingSaving(p => ({ ...p, [donationId]: true }));
+    try {
+      const res = await fetch(`${BASE}/donations/${donationId}/tracking`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ shipping_carrier: carrier || null, tracking_number: val }),
+      });
+      if (!res.ok) throw new Error("บันทึกไม่สำเร็จ");
+      setDonations(prev => prev.map(d =>
+        d.donation_id === donationId ? { ...d, tracking_number: val } : d
+      ));
+      setTrackingMsg(p => ({ ...p, [donationId]: "บันทึกแล้ว ✓" }));
+    } catch (e) {
+      setTrackingMsg(p => ({ ...p, [donationId]: e.message }));
+    } finally {
+      setTrackingSaving(p => ({ ...p, [donationId]: false }));
+    }
+  };
 
   useEffect(() => {
     if (!token) { navigate("/login"); return; }
@@ -263,6 +294,21 @@ export default function DonationHistoryPage() {
                     ))}
                   </div>
 
+                  {/* ปุ่มใบสรุป */}
+                  <button
+                    onClick={() => setSlipDonation(d)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "8px 14px", borderRadius: 10,
+                      background: "#EFF6FF", color: "#378ADD",
+                      border: "1px solid #BFDBFE", fontSize: 13,
+                      fontWeight: 600, cursor: "pointer", width: "fit-content",
+                    }}
+                  >
+                    <Icon icon="fluent:document-checkmark-20-filled" width="16" />
+                    ใบสรุป / QR
+                  </button>
+
                   {/* ข้อมูลการส่ง */}
                   {d.delivery_method === "parcel" && d.tracking_number && (
                     <div style={{
@@ -272,6 +318,48 @@ export default function DonationHistoryPage() {
                     }}>
                       <Icon icon="mdi:truck-outline" width="16" />
                       <span>{d.shipping_carrier} · <strong style={{ fontFamily: "monospace" }}>{d.tracking_number}</strong></span>
+                    </div>
+                  )}
+
+                  {/* กรอกเลขพัสดุภายหลัง */}
+                  {d.delivery_method === "parcel" && !d.tracking_number && (
+                    <div style={{
+                      background: "#FFFBEB", border: "1px dashed #FCD34D",
+                      borderRadius: 10, padding: "12px 14px", marginTop: 8,
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#92400e", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                        <Icon icon="mdi:truck-outline" width="14" />
+                        ยังไม่ได้กรอกเลขพัสดุ
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                          value={trackingInputs[d.donation_id] || ""}
+                          onChange={e => setTrackingInputs(p => ({ ...p, [d.donation_id]: e.target.value }))}
+                          placeholder="กรอกเลขพัสดุ"
+                          style={{
+                            flex: 1, padding: "8px 12px", borderRadius: 8,
+                            border: "1px solid #D1D5DB", fontSize: 13,
+                            fontFamily: "monospace", outline: "none",
+                          }}
+                        />
+                        <button
+                          onClick={() => saveTracking(d.donation_id, d.shipping_carrier)}
+                          disabled={trackingSaving[d.donation_id] || !trackingInputs[d.donation_id]?.trim()}
+                          style={{
+                            padding: "8px 16px", borderRadius: 8,
+                            background: trackingSaving[d.donation_id] ? "#9CA3AF" : "#29B6E8",
+                            color: "#fff", border: "none", fontSize: 13,
+                            fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                          }}
+                        >
+                          {trackingSaving[d.donation_id] ? "..." : "บันทึก"}
+                        </button>
+                      </div>
+                      {trackingMsg[d.donation_id] && (
+                        <div style={{ fontSize: 12, marginTop: 6, color: trackingMsg[d.donation_id].includes("✓") ? "#16a34a" : "#DC2626" }}>
+                          {trackingMsg[d.donation_id]}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -292,6 +380,57 @@ export default function DonationHistoryPage() {
           );
         })}
       </div>
+
+      {/* QR Slip Modal */}
+      {slipDonation && createPortal(
+        <div
+          onClick={() => setSlipDonation(null)}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 9999,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 640 }}>
+            <QRLabelPage
+              donationId={slipDonation.donation_id}
+              donorName={slipDonation.donor_name}
+              projectTitle={slipDonation.request_title}
+              schoolName={slipDonation.school_name}
+              donateMethod={slipDonation.delivery_method}
+              courier={slipDonation.shipping_carrier}
+              trackingNo={slipDonation.tracking_number || ""}
+              selectedItems={parseItems(slipDonation.items_snapshot).map(it => ({
+                name: it.name, qty: it.quantity,
+              }))}
+              totalQty={slipDonation.quantity}
+              baseUrl={window.location.origin}
+              onUpdateTracking={async (newTracking) => {
+                await fetch(`${BASE}/donations/${slipDonation.donation_id}/tracking`, {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({
+                    shipping_carrier: slipDonation.shipping_carrier || null,
+                    tracking_number: newTracking,
+                  }),
+                });
+                setDonations(prev => prev.map(d =>
+                  d.donation_id === slipDonation.donation_id
+                    ? { ...d, tracking_number: newTracking } : d
+                ));
+                setSlipDonation(s => ({ ...s, tracking_number: newTracking }));
+              }}
+              onViewProject={() => setSlipDonation(null)}
+            />
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

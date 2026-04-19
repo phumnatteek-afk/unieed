@@ -320,8 +320,22 @@ export default function HomePage() {
       </div>
     );
   }
+  const isDonor = token && role !== "admin" && role !== "school_admin";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      {isDonor && (
+        <Link
+          to="/donations/history"
+          style={{
+            fontSize: 16, color: "#ffffff",
+            textDecoration: "underline", marginRight: 6,
+            whiteSpace: "nowrap", lineHeight: 1,
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          รอกรอกเลขพัสดุ
+        </Link>
+      )}
       <NotificationBell />
       <ProfileDropdown />
       <CartIcon />

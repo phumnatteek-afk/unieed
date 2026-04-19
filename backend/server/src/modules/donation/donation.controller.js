@@ -30,8 +30,7 @@ export async function createDonation(req, res, next) {
     if (delivery_method === "parcel") {
       if (!shipping_carrier?.trim())
         return res.status(400).json({ message: "กรุณาเลือกบริการขนส่ง" });
-      if (!tracking_number?.trim())
-        return res.status(400).json({ message: "กรุณากรอกเลขพัสดุ" });
+      // tracking_number ไม่บังคับ — กรอกภายหลังได้
     }
 
     let items = [];
