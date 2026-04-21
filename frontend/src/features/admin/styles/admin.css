@@ -266,7 +266,7 @@ button{
   font-weight: 800;
   transition: .18s ease;
 }
-button:hover{
+.boShell button:hover{
   transform: translateY(-1px);
   background: rgba(255,255,255,.09);
 }

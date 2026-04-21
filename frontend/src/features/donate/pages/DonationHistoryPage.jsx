@@ -8,6 +8,7 @@ import NotificationBell from "../../../pages/NotificationBell.jsx";
 import CartIcon from "../../market/components/CartIcon.jsx";
 import { QRLabelPage } from "../../project/pages/Donatepage.jsx";
 import "../../../pages/styles/Homepage.css";
+import "../../project/styles/Donatepage.css";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
@@ -27,9 +28,10 @@ function parseItems(snapshot) {
 }
 
 const STATUS_CONFIG = {
-  pending:  { label: "รอยืนยัน",   bg: "#FEF3C7", color: "#D97706", icon: "mdi:clock-outline" },
-  approved: { label: "ยืนยันแล้ว", bg: "#D1FAE5", color: "#16a34a", icon: "mdi:check-circle-outline" },
-  rejected: { label: "ปฏิเสธ",     bg: "#FEE2E2", color: "#DC2626", icon: "mdi:close-circle-outline" },
+  pending:   { label: "รอยืนยัน",   bg: "#FEF3C7", color: "#D97706", icon: "mdi:clock-outline" },
+  approved:  { label: "ยืนยันแล้ว", bg: "#D1FAE5", color: "#16a34a", icon: "mdi:check-circle-outline" },
+  rejected:  { label: "ปฏิเสธ",     bg: "#FEE2E2", color: "#DC2626", icon: "mdi:close-circle-outline" },
+  cancelled: { label: "ยกเลิกแล้ว", bg: "#F3F4F6", color: "#6b7280", icon: "mdi:cancel" },
 };
 
 export default function DonationHistoryPage() {
@@ -42,7 +44,40 @@ export default function DonationHistoryPage() {
   const [trackingInputs, setTrackingInputs] = useState({});
   const [trackingSaving, setTrackingSaving] = useState({});
   const [trackingMsg, setTrackingMsg] = useState({});
+  const [trackingEditing, setTrackingEditing] = useState({});
   const [slipDonation, setSlipDonation] = useState(null);
+  const [cancelConfirm, setCancelConfirm] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelErr, setCancelErr] = useState("");
+  const [previewImg, setPreviewImg] = useState(null); // { url, donationId, status }
+  const [uploadingPic, setUploadingPic] = useState(false);
+
+  const handlePicChange = async (donationId, file) => {
+    if (!file) return;
+    setUploadingPic(true);
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch(`${BASE}/donations/${donationId}/pic`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || `อัปโหลดไม่สำเร็จ (${res.status})`);
+      }
+      const data = await res.json();
+      setDonations(prev => prev.map(d =>
+        d.donation_id === donationId ? { ...d, donation_pic: data.donation_pic } : d
+      ));
+      setPreviewImg(p => ({ ...p, url: data.donation_pic }));
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setUploadingPic(false);
+    }
+  };
 
   const saveTracking = async (donationId, carrier) => {
     const val = (trackingInputs[donationId] || "").trim();
@@ -62,10 +97,31 @@ export default function DonationHistoryPage() {
         d.donation_id === donationId ? { ...d, tracking_number: val } : d
       ));
       setTrackingMsg(p => ({ ...p, [donationId]: "บันทึกแล้ว ✓" }));
+      setTrackingEditing(p => ({ ...p, [donationId]: false }));
     } catch (e) {
       setTrackingMsg(p => ({ ...p, [donationId]: e.message }));
     } finally {
       setTrackingSaving(p => ({ ...p, [donationId]: false }));
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!cancelConfirm) return;
+    setCancelling(true);
+    setCancelErr("");
+    try {
+      const res = await fetch(`${BASE}/donations/${cancelConfirm}/cancel`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) { setCancelErr(data.message || "เกิดข้อผิดพลาด"); return; }
+      setDonations(prev => prev.filter(d => d.donation_id !== cancelConfirm));
+      setCancelConfirm(null);
+    } catch {
+      setCancelErr("เกิดข้อผิดพลาด กรุณาลองใหม่");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -255,7 +311,12 @@ export default function DonationHistoryPage() {
                       fontSize: 11, color: "#FFBE1B", fontWeight: 600,
                       display: "flex", alignItems: "center", gap: 4,
                     }}>
-                      🏅 มีใบเกียรติบัตร
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+                        <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
+                          <path d="M12 15a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/><path d="M13 17.5V22l2-1.5l2 1.5v-4.5"/><path d="M10 19H5a2 2 0 0 1-2-2V7c0-1.1.9-2 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-1 1.73M6 9h12M6 12h3m-3 3h2"/>
+                        </g>
+                      </svg>
+                      มีใบเกียรติบัตร
                     </div>
                   )}
                   <Icon
@@ -294,60 +355,130 @@ export default function DonationHistoryPage() {
                     ))}
                   </div>
 
-                  {/* ปุ่มใบสรุป */}
-                  <button
-                    onClick={() => setSlipDonation(d)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6,
-                      padding: "8px 14px", borderRadius: 10,
-                      background: "#EFF6FF", color: "#378ADD",
-                      border: "1px solid #BFDBFE", fontSize: 13,
-                      fontWeight: 600, cursor: "pointer", width: "fit-content",
-                    }}
-                  >
-                    <Icon icon="fluent:document-checkmark-20-filled" width="16" />
-                    ใบสรุป / QR
-                  </button>
+                  {/* ปุ่มใบสรุป + ยกเลิก (ซ่อนถ้า cancelled) */}
+                  {d.status === "cancelled" ? null : <>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+                    <button
+                      onClick={() => setSlipDonation(d)}
+                      className="dnCloseBtn"
+                      style={{
+                        flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                        padding: "10px 18px", borderRadius: 10,
+                        background: "#EFF6FF", color: "#378ADD",
+                        border: "1.5px solid #BFDBFE", fontSize: 13,
+                        fontWeight: 600, cursor: "pointer",
+                      }}
+                    >
+                      <Icon icon="fluent:document-checkmark-20-filled" width="16" />
+                      ใบสรุป / QR
+                    </button>
 
-                  {/* ข้อมูลการส่ง */}
-                  {d.delivery_method === "parcel" && d.tracking_number && (
+                    {d.status === "pending" && !d.tracking_number && (
+                      <button
+                        onClick={() => { setCancelConfirm(d.donation_id); setCancelErr(""); }}
+                        className="dnCloseBtn"
+                        style={{
+                          flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                          padding: "10px 18px", borderRadius: 10,
+                          background: "#fff", color: "#DC2626",
+                          border: "1.5px solid #FECACA", fontSize: 13,
+                          fontWeight: 600, cursor: "pointer",
+                        }}
+                      >
+                        <Icon icon="mdi:close-circle-outline" width="16" />
+                        ยกเลิกรายการ
+                      </button>
+                    )}
+                  </div>
+
+                  {/* ข้อมูลการส่ง + ปุ่มแก้ไข */}
+                  {d.delivery_method === "parcel" && d.tracking_number && !trackingEditing[d.donation_id] && (
                     <div style={{
                       display: "flex", alignItems: "center", gap: 8,
                       background: "#EFF6FF", borderRadius: 10, padding: "10px 14px",
                       fontSize: 13, color: "#1e40af",
                     }}>
                       <Icon icon="mdi:truck-outline" width="16" />
-                      <span>{d.shipping_carrier} · <strong style={{ fontFamily: "monospace" }}>{d.tracking_number}</strong></span>
+                      <span style={{ flex: 1 }}>{d.shipping_carrier} · <strong style={{ fontFamily: "monospace" }}>{d.tracking_number}</strong></span>
+                      <button
+                        onClick={() => {
+                          setTrackingInputs(p => ({ ...p, [d.donation_id]: d.tracking_number }));
+                          setTrackingEditing(p => ({ ...p, [d.donation_id]: true }));
+                          setTrackingMsg(p => ({ ...p, [d.donation_id]: "" }));
+                        }}
+                        style={{
+                          background: "none", border: "1px solid #93c5fd", borderRadius: 6,
+                          color: "#3b82f6", fontSize: 11, fontWeight: 600,
+                          padding: "3px 8px", cursor: "pointer", whiteSpace: "nowrap",
+                        }}
+                      >
+                        แก้ไข
+                      </button>
                     </div>
                   )}
 
-                  {/* กรอกเลขพัสดุภายหลัง */}
-                  {d.delivery_method === "parcel" && !d.tracking_number && (
+                  {/* กรอก / แก้ไขเลขพัสดุ */}
+                  {d.delivery_method === "parcel" && d.status === "pending" && (!d.tracking_number || trackingEditing[d.donation_id]) && (
                     <div style={{
                       background: "#FFFBEB", border: "1px dashed #FCD34D",
                       borderRadius: 10, padding: "12px 14px", marginTop: 8,
                     }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "#92400e", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
                         <Icon icon="mdi:truck-outline" width="14" />
-                        ยังไม่ได้กรอกเลขพัสดุ
+                        {trackingEditing[d.donation_id] ? "แก้ไขเลขพัสดุ" : "ยังไม่ได้กรอกเลขพัสดุ"}
                       </div>
+
+                      {/* แสดงโลโก้ + ชื่อขนส่ง */}
+                      {d.shipping_carrier && (() => {
+                        const logos = {
+                          "ไปรษณีย์ไทย": "/src/unieed_pic/ship1.png",
+                          "Flash Express": "/src/unieed_pic/ship2.png",
+                          "J&T": "/src/unieed_pic/ship3.png",
+                          "Kerry": "/src/unieed_pic/ship4.png",
+                        };
+                        const logo = logos[d.shipping_carrier];
+                        return (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, background: "#fff", borderRadius: 8, padding: "6px 10px", border: "1px solid #FDE68A" }}>
+                            {logo
+                              ? <img src={logo} alt={d.shipping_carrier} style={{ height: 18, width: "auto", objectFit: "contain" }} />
+                              : <Icon icon="mdi:truck-outline" width="16" color="#92400e" />}
+                            <span style={{ fontSize: 12, fontWeight: 600, color: "#1a1a2e" }}>{d.shipping_carrier}</span>
+                            <span style={{ fontSize: 11, color: "#6b7280" }}>— กรอกเลขพัสดุของ {d.shipping_carrier}</span>
+                          </div>
+                        );
+                      })()}
+
                       <div style={{ display: "flex", gap: 8 }}>
                         <input
+                          className="dhTrackInput"
                           value={trackingInputs[d.donation_id] || ""}
-                          onChange={e => setTrackingInputs(p => ({ ...p, [d.donation_id]: e.target.value }))}
-                          placeholder="กรอกเลขพัสดุ"
+                          onChange={e => setTrackingInputs(p => ({ ...p, [d.donation_id]: e.target.value.replace(/[\u0E00-\u0E7F]/g, "") }))}
+                          placeholder={`เลขพัสดุ ${d.shipping_carrier || ""}`}
                           style={{
                             flex: 1, padding: "8px 12px", borderRadius: 8,
                             border: "1px solid #D1D5DB", fontSize: 13,
-                            fontFamily: "monospace", outline: "none",
+                            fontFamily: "monospace",
                           }}
                         />
+                        {trackingEditing[d.donation_id] && (
+                          <button
+                            onClick={() => setTrackingEditing(p => ({ ...p, [d.donation_id]: false }))}
+                            style={{
+                              padding: "8px 12px", borderRadius: 8,
+                              background: "#F3F4F6", color: "#6b7280",
+                              border: "none", fontSize: 13, cursor: "pointer",
+                            }}
+                          >
+                            ยกเลิก
+                          </button>
+                        )}
                         <button
                           onClick={() => saveTracking(d.donation_id, d.shipping_carrier)}
                           disabled={trackingSaving[d.donation_id] || !trackingInputs[d.donation_id]?.trim()}
+                          className="dnCloseBtn"
                           style={{
                             padding: "8px 16px", borderRadius: 8,
-                            background: trackingSaving[d.donation_id] ? "#9CA3AF" : "#29B6E8",
+                            background: trackingSaving[d.donation_id] ? "#9CA3AF" : "#5285e8",
                             color: "#fff", border: "none", fontSize: 13,
                             fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                           }}
@@ -367,13 +498,22 @@ export default function DonationHistoryPage() {
                   {d.donation_pic && (
                     <div style={{ marginTop: 12 }}>
                       <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>หลักฐานการจัดส่ง</div>
-                      <img
-                        src={d.donation_pic}
-                        alt="หลักฐาน"
-                        style={{ width: "100%", maxHeight: 180, objectFit: "cover", borderRadius: 10 }}
-                      />
+                      <div style={{ position: "relative", cursor: "pointer" }} onClick={() => setPreviewImg({ url: d.donation_pic, donationId: d.donation_id, status: d.status })}>
+                        <img
+                          src={d.donation_pic}
+                          alt="หลักฐาน"
+                          style={{ width: "100%", maxHeight: 180, objectFit: "cover", borderRadius: 10, display: "block" }}
+                        />
+                        <div style={{ position: "absolute", inset: 0, borderRadius: 10, background: "rgba(0,0,0,0.18)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s" }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                          onMouseLeave={e => e.currentTarget.style.opacity = 0}
+                        >
+                          <Icon icon="mdi:magnify-plus-outline" width="32" color="#fff" />
+                        </div>
+                      </div>
                     </div>
                   )}
+                  </>}
                 </div>
               )}
             </div>
@@ -399,13 +539,18 @@ export default function DonationHistoryPage() {
               donorName={slipDonation.donor_name}
               projectTitle={slipDonation.request_title}
               schoolName={slipDonation.school_name}
+              schoolAddress={slipDonation.school_address || ""}
               donateMethod={slipDonation.delivery_method}
               courier={slipDonation.shipping_carrier}
               trackingNo={slipDonation.tracking_number || ""}
+              appointDate={slipDonation.donation_date || ""}
+              appointTime={slipDonation.donation_time || ""}
+              donorPhone={slipDonation.donor_phone || ""}
               selectedItems={parseItems(slipDonation.items_snapshot).map(it => ({
                 name: it.name, qty: it.quantity,
               }))}
               totalQty={slipDonation.quantity}
+              donationStatus={slipDonation.status}
               baseUrl={window.location.origin}
               onUpdateTracking={async (newTracking) => {
                 await fetch(`${BASE}/donations/${slipDonation.donation_id}/tracking`, {
@@ -425,8 +570,85 @@ export default function DonationHistoryPage() {
                 ));
                 setSlipDonation(s => ({ ...s, tracking_number: newTracking }));
               }}
-              onViewProject={() => setSlipDonation(null)}
+              onViewProject={null}
+              onClose={() => setSlipDonation(null)}
             />
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Image Preview Modal ── */}
+      {previewImg && createPortal(
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20 }}
+          onClick={() => setPreviewImg(null)}
+        >
+          <div style={{ position: "relative", maxWidth: 560, width: "100%" }} onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewImg(null)}
+              className="dnCloseBtn"
+              style={{ position: "absolute", top: -40, right: 0, background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}
+            >
+              <Icon icon="mdi:close" width="20" /> ปิด
+            </button>
+            <img src={previewImg.url} alt="หลักฐาน" style={{ width: "100%", borderRadius: 12, display: "block", maxHeight: "70vh", objectFit: "contain" }} />
+            {previewImg.status === "pending" && (
+              <label style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                marginTop: 12, padding: "11px", borderRadius: 10,
+                background: uploadingPic ? "#9CA3AF" : "#5285e8", color: "#fff",
+                fontSize: 14, fontWeight: 600, cursor: uploadingPic ? "not-allowed" : "pointer",
+              }}>
+                <Icon icon="mdi:image-edit-outline" width="18" />
+                {uploadingPic ? "กำลังอัปโหลด..." : "เปลี่ยนรูปหลักฐาน"}
+                <input type="file" accept="image/*" style={{ display: "none" }} disabled={uploadingPic}
+                  onChange={e => handlePicChange(previewImg.donationId, e.target.files[0])} />
+              </label>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Confirm dialog ยกเลิก ── */}
+      {cancelConfirm && createPortal(
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 9999, padding: 16,
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: 28,
+            maxWidth: 380, width: "100%",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+          }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#1a1a2e", marginBottom: 10 }}>
+              ยืนยันยกเลิกรายการ?
+            </div>
+            <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, marginBottom: 20 }}>
+              รายการบริจาคนี้จะถูกยกเลิกและไม่สามารถเรียกคืนได้
+            </div>
+            {cancelErr && (
+              <div style={{ fontSize: 12, color: "#DC2626", marginBottom: 12, background: "#FEF2F2", padding: "8px 12px", borderRadius: 8 }}>
+                {cancelErr}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => { setCancelConfirm(null); setCancelErr(""); }}
+                style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: cancelling ? "#9CA3AF" : "#DC2626", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+              >
+                {cancelling ? "กำลังยกเลิก..." : "ยืนยัน"}
+              </button>
+            </div>
           </div>
         </div>,
         document.body

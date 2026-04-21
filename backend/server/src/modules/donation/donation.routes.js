@@ -4,6 +4,7 @@ import multer from "multer";
 import { auth } from "../../middleware/auth.js";
 import { requireRole } from "../../middleware/requireRole.js";
 import { db } from "../../config/db.js";
+import { uploadDonationPic } from "./donation.service.js";
 
 import {
   createDonation,
@@ -71,6 +72,54 @@ r.patch("/:donationId/donor-name", auth, async (req, res, next) => {
 
 // ── ✅ ร้านค้าอัปเดตเลขพัสดุ: PATCH /donations/:id/tracking ─────────────────
 r.patch("/:donationId/tracking", auth, updateDonationTracking);
+
+// ── ✅ ผู้บริจาคเปลี่ยนรูปหลักฐาน: PATCH /donations/:id/pic ─────────────────
+r.patch("/:donationId/pic", auth, upload.single("image"), async (req, res, next) => {
+  try {
+    const { donationId } = req.params;
+    const [rows] = await db.query(
+      "SELECT donor_id, status, donation_pic_public_id FROM donation_record WHERE donation_id = ? LIMIT 1",
+      [donationId]
+    );
+    if (!rows[0]) return res.status(404).json({ message: "ไม่พบรายการบริจาค" });
+    if (rows[0].donor_id !== req.user.user_id)
+      return res.status(403).json({ message: "ไม่มีสิทธิ์แก้ไข" });
+    if (rows[0].status !== "pending")
+      return res.status(400).json({ message: "ไม่สามารถแก้ไขได้ในสถานะนี้" });
+    if (!req.file) return res.status(400).json({ message: "กรุณาเลือกรูปภาพ" });
+
+    const uploaded = await uploadDonationPic(req.file.buffer, donationId);
+
+    await db.query(
+      "UPDATE donation_record SET donation_pic = ?, donation_pic_public_id = ? WHERE donation_id = ?",
+      [uploaded.url, uploaded.public_id, donationId]
+    );
+    res.json({ message: "อัปโหลดรูปเรียบร้อย", donation_pic: uploaded.url });
+  } catch (err) { next(err); }
+});
+
+// ── ✅ ผู้บริจาคยกเลิกรายการ: PATCH /donations/:id/cancel ────────────────────
+r.patch("/:donationId/cancel", auth, async (req, res, next) => {
+  try {
+    const { donationId } = req.params;
+    const [rows] = await db.query(
+      "SELECT donor_id, status, tracking_number FROM donation_record WHERE donation_id = ? LIMIT 1",
+      [donationId]
+    );
+    if (!rows[0]) return res.status(404).json({ message: "ไม่พบรายการบริจาค" });
+    if (rows[0].donor_id !== req.user.user_id)
+      return res.status(403).json({ message: "ไม่มีสิทธิ์ยกเลิก" });
+    if (rows[0].tracking_number)
+      return res.status(400).json({ message: "ไม่สามารถยกเลิกได้ เนื่องจากมีการจัดส่งพัสดุแล้ว หากมีปัญหากรุณาติดต่อทีมงาน" });
+    if (rows[0].status !== "pending")
+      return res.status(400).json({ message: "ไม่สามารถยกเลิกได้ในสถานะนี้" });
+    await db.query(
+      "UPDATE donation_record SET status = 'cancelled' WHERE donation_id = ?",
+      [donationId]
+    );
+    res.json({ message: "ยกเลิกรายการเรียบร้อย" });
+  } catch (err) { next(err); }
+});
 
 // ── dynamic routes (ต้องอยู่ท้ายสุด) ─────────────────────────────────────────
 r.post("/:requestId", (req, _res, next) => {

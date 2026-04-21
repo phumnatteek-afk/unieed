@@ -370,12 +370,13 @@ export async function getMyDonationHistory(req, res, next) {
     const user_id = req.user.user_id;
 
     const [rows] = await db.query(
-  `SELECT 
+  `SELECT
     d.donation_id, d.donor_name, d.donation_date,
     d.delivery_method, d.shipping_carrier, d.tracking_number,
     d.quantity, d.status, d.items_snapshot,
     d.donation_pic, d.created_at,
-    s.school_name,
+    d.donation_date, d.donation_time, d.donor_phone,
+    s.school_name, s.school_address,
     dr.request_title,
     dr.request_image_url
    FROM donation_record d

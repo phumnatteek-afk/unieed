@@ -578,13 +578,15 @@ export default function ProfileDropdown() {
               </div>
             </div>
             <div className="pd-info">
-              <div className="pd-name">{userName || "ผู้ใช้"}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="pd-name">{userName || "ผู้ใช้"}</div>
+                <div className={`pd-chevron ${open ? "pd-chevron--open" : ""}`}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
               <div className="pd-role">{ROLE_LABEL[role] ?? "บุคคลทั่วไป"}</div>
-            </div>
-            <div className={`pd-chevron ${open ? "pd-chevron--open" : ""}`}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
             </div>
           </div>
 

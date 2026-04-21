@@ -183,7 +183,8 @@
   font-family: 'Kanit', sans-serif;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.18s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transform: none !important;
 }
 /* ชาย — น้ำเงิน */
 .pdGenderTabMale { color: #5285E8; border-color: #5285E8; }
@@ -215,7 +216,10 @@
   transition: all 0.18s;
   box-sizing: border-box;
 }
-.pdLevelTab:hover { color: #374151; }
+.pdLevelTab {
+  transform: none !important;
+}
+.pdLevelTab:hover { color: #374151; transform: none !important; }
 .pdLevelTabActive { color: #5285E8; border-bottom-color: none; font-weight: 600; }
 
 /* ===== Type Tabs (pill) ===== */
@@ -235,7 +239,8 @@
   font-size: 13px;
   font-family: 'Kanit', sans-serif;
   cursor: pointer;
-  transition: all 0.18s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transform: none !important;
 }
 .pdTypeTab:hover { border-color: #FFBE1B; color: #FFBE1B; }
 .pdTypeTabActive { background: #FFBE1B; border-color: #FFBE1B; color: #fff;  font-weight: 500; }
@@ -309,8 +314,9 @@
   color: #5285E8; font-size: 16px; font-weight: 700;
   cursor: pointer; display:flex; align-items:center; justify-content:center;
   transition: background 0.15s;
+  transform: none !important;
 }
-.pdQtyBtn:hover:not(:disabled) { background: #f3f4f6; }
+.pdQtyBtn:hover:not(:disabled) { background: #f3f4f6; transform: none !important; }
 .pdQtyBtn:disabled { color: #d1d5db; cursor: not-allowed; }
 .pdQtyInput {
   width: 36px; height: 28px;

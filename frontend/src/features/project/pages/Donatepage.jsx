@@ -8,15 +8,17 @@ import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import QRCode from "https://esm.sh/qrcode@1.5.3";
 import NotificationBell from "../../../pages/NotificationBell.jsx";
 import CartIcon from "../../market/components/CartIcon.jsx";
+import kidsImg  from "../../../unieed_pic/kids.png";
+import logo3Img from "../../../unieed_pic/logo3.png";
 
 import "../../../pages/styles/Homepage.css";
 import "../styles/DonatePage.css";
 
 // ─── palette (match existing Unieed brand) ───────────────
 const C = {
-  blue: "#29B6E8",
+  blue: "#87c7eb",
   yellow: "#FFBE1B",
-  navy: "#378ADD",
+  navy: "#5285e8",
   green: "#16a34a",
   red: "#DD2E44",
   bg: "#F7F8FA",
@@ -26,7 +28,7 @@ const C = {
   border: "#E5E7EB",
 };
 
-const COURIERS = ["ไปรษณีย์ไทย", "Flash Express", "J&T Express", "Kerry Express", "Lazada Logistics", "อื่นๆ"];
+const COURIERS = ["ไปรษณีย์ไทย", "Flash Express", "J&T Express", "Kerry Express"];
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
 const TH_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
@@ -135,6 +137,8 @@ function ConfettiEffect() {
     </div>
   );
 }
+
+
 
 // ── DropoffCalendar ───────────────────────────────────────────────
 // mini calendar ให้เลือกวันนัด พร้อม disable วันที่โรงเรียนปิดรับ
@@ -372,12 +376,12 @@ export default function DonatePage() {
     setProofPreview(URL.createObjectURL(file));
   };
 
-  const handleSubmit = async () => {
+  // validate แล้วไปหน้า confirm (ยังไม่ call API)
+  const handleSubmit = () => {
     setErr("");
     if (!donorName.trim()) return setErr("กรุณากรอกชื่อผู้บริจาค");
     if (donateMethod === "parcel") {
       if (!courier) return setErr("กรุณาเลือกบริการขนส่ง");
-      // tracking number ไม่บังคับตอนนี้ — กรอกภายหลังได้
     } else {
       if (!appointDate) return setErr("กรุณาเลือกวันนัดหมาย");
       if (!donorPhone.trim()) return setErr("กรุณากรอกเบอร์ติดต่อ");
@@ -387,7 +391,11 @@ export default function DonatePage() {
         return setErr("เบอร์ 9 หลักต้องขึ้นต้นด้วย 02");
     }
     if (selectedItems.length === 0) return setErr("ไม่พบรายการที่เลือก กรุณากลับไปเลือกใหม่");
+    setStep("confirm");
+  };
 
+  // call API จริง หลังจาก confirm
+  const handleConfirmDonate = async () => {
     try {
       setSubmitting(true);
       const fd = new FormData();
@@ -540,6 +548,31 @@ export default function DonatePage() {
           )}
         </div>
 
+        {/* ── Pop-up: Confirm step ── */}
+        {step === "confirm" && (
+          <div style={S.overlay}>
+            <div style={S.modalContainer}>
+              <ConfirmationSummaryPage
+                donorName={donorName}
+                projectTitle={project?.request_title}
+                schoolName={project?.school_name}
+                schoolAddress={project?.school_full_address || project?.school_address}
+                proofPreview={proofPreview}
+                donateMethod={donateMethod}
+                courier={courier}
+                trackingNo={trackingNo}
+                appointDate={appointDate}
+                appointTime={appointTime}
+                donorPhone={donorPhone}
+                selectedItems={selectedItems.map(it => ({ name: it.name, qty: it.quantity }))}
+                totalQty={totalQty}
+                onBack={() => setStep("form")}
+                onConfirm={handleConfirmDonate}
+              />
+            </div>
+          </div>
+        )}
+
         {/* ── Pop-up: Summary + QR รวมกัน ── */}
         {step === "qr_label" && (
           <div style={S.overlay}>
@@ -569,12 +602,16 @@ export default function DonatePage() {
                     body: JSON.stringify({ tracking_number: newTracking }),
                   });
                 }}
-                onViewProject={() => navigate("/donations/history")}
+                onViewProject={null}
+                onClose={() => {
+                  setStep("form");
+                  if (donateMethod === "dropoff") setSubmitSuccess(true);
+                }}
+                onTrackingSaved={() => { setStep("form"); setSubmitSuccess(true); }}
               />
             </div>
           </div>
         )}
-
 
         {/* RIGHT */}
         <div className="dnRight">
@@ -750,10 +787,6 @@ export default function DonatePage() {
                 </select>
               </div>
               <div className="dnFormGroup">
-                <label className="dnLabel">กรอกเลขพัสดุ</label>
-                <input className="dnInput" value={trackingNo} onChange={e => setTrackingNo(e.target.value)} placeholder="เลข Tracking" />
-              </div>
-              <div className="dnFormGroup">
                 <label className="dnLabel">อัปโหลดหลักฐานการจัดส่งพัสดุ</label>
                 <label className="dnUploadBox">
                   {proofPreview
@@ -771,8 +804,8 @@ export default function DonatePage() {
               <button className="dnDraftBtn" onClick={handleSaveDraft}>
                 {draftSaved ? "✓ บันทึกแล้ว!" : "บันทึกฉบับร่าง"}
               </button>
-              <button className="dnSubmitBtn" onClick={handleSubmit} disabled={submitting}>
-                {submitting ? "กำลังส่ง..." : "ยืนยันการส่งต่อ"}
+              <button className="dnSubmitBtn" onClick={handleSubmit}>
+                ยืนยันการส่งต่อ
               </button>
               <div className="dnCertNote">*รับใบเกียรติบัตรเมื่อโรงเรียนยืนยันการรับของแล้ว*</div>
             </div>
@@ -974,7 +1007,7 @@ export default function DonatePage() {
             <div className="certPopupActions">
               <button
                 className="certBtnClose"
-                onClick={() => { setSubmitSuccess(false); navigate(`/projects/${requestId}`); }}
+                onClick={() => { setSubmitSuccess(false); navigate("/donations/history"); }}
               >
                 รับทราบ
               </button>
@@ -1033,12 +1066,14 @@ export function ConfirmationSummaryPage({
       background: "#fff", borderRadius: 20,
       boxShadow: "0 4px 32px rgba(0,0,0,.12)",
       width: "100%", maxWidth: 640, margin: "0 auto",
-      overflow: "hidden",
+      display: "flex", flexDirection: "column",
+      maxHeight: "88vh", overflow: "hidden",
     }}>
-      {/* Header */}
+      {/* Header — sticky */}
       <div style={{
-        padding: "20px 24px", borderBottom: "1px solid #E5E7EB",
+        padding: "12px 20px", borderBottom: "1px solid #E5E7EB",
         display: "flex", alignItems: "center", gap: 12,
+        flexShrink: 0,
       }}>
         <div style={{
           width: 40, height: 40, borderRadius: 12, background: "#29B6E8",
@@ -1047,27 +1082,30 @@ export function ConfirmationSummaryPage({
           <Icon icon="fluent:document-checkmark-20-filled" width="22" color="#fff" />
         </div>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 17, color: "#1a1a2e" }}>สรุปรายการบริจาค</div>
+          <div style={{ fontWeight: 700, fontSize: 17, color: "#1a1a2e" }}>ตรวจสอบรายการ</div>
           <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>โครงการ: {projectTitle}</div>
         </div>
       </div>
 
-      {/* Body — 2 columns */}
-      <div style={{ display: "flex", gap: 0 }}>
+      {/* Body — scrollable 2 columns */}
+      <div className="dnModalScroll" style={{
+        flex: 1, minHeight: 0,
+        display: "flex", gap: 0, overflowY: "auto",
+      }}>
 
         {/* LEFT — รายการชุด */}
         <div style={{
-          flex: 1, padding: "20px 20px",
+          flex: 1, padding: "14px 16px",
           borderRight: "1px solid #E5E7EB",
-          display: "flex", flexDirection: "column", gap: 12,
+          display: "flex", flexDirection: "column", gap: 10,
         }}>
 
-          {/* ✅ รูปหลักฐานที่อัปโหลด — อยู่บนสุด */}
+          {/* รูปหลักฐาน */}
           {proofPreview && (
-            <div style={{ width: "100%", borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ width: "100%", borderRadius: 10, overflow: "hidden" }}>
               <img src={proofPreview} alt="หลักฐานการจัดส่ง"
-                style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
-              <div style={{ fontSize: 11, color: "#6b7280", textAlign: "center", marginTop: 4 }}>
+                style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
+              <div style={{ fontSize: 11, color: "#6b7280", textAlign: "center", marginTop: 3 }}>
                 หลักฐานการจัดส่ง
               </div>
             </div>
@@ -1084,7 +1122,7 @@ export function ConfirmationSummaryPage({
               }}>
                 <span style={{ fontSize: 13, color: "#1a1a2e" }}>{item.name}</span>
                 <span style={{
-                  fontSize: 13, fontWeight: 600, color: "#378ADD",
+                  fontSize: 13, fontWeight: 600, color: "#5285e8",
                   background: "#EFF6FF", padding: "2px 10px", borderRadius: 20,
                 }}>
                   {item.qty} ชิ้น
@@ -1102,8 +1140,8 @@ export function ConfirmationSummaryPage({
           </div>
         </div>
 
-        {/* RIGHT — รายละเอียด + ปุ่ม */}
-        <div style={{ flex: 1, padding: "20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* RIGHT — รายละเอียด */}
+        <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
 
           {/* โรงเรียนปลายทาง */}
           <div>
@@ -1129,7 +1167,6 @@ export function ConfirmationSummaryPage({
               {donateMethod === "parcel" ? (
                 <>
                   <DetailRow label="ขนส่ง" value={courier} />
-                  <DetailRow label="เลข Tracking" value={trackingNo} mono />
                   <DetailRow label="วันที่ส่ง" value={formatThaiDate(new Date())} />
                 </>
               ) : (
@@ -1142,48 +1179,55 @@ export function ConfirmationSummaryPage({
               <DetailRow label="ผู้บริจาค" value={donorName} />
             </div>
           </div>
+        </div>
+      </div>
 
-          <div style={{ flex: 1 }} />
+      {/* Footer — sticky (notice + buttons) */}
+      <div style={{
+        flexShrink: 0,
+        borderTop: "1px solid #E5E7EB",
+        padding: "10px 16px",
+        display: "flex", flexDirection: "column", gap: 8,
+        background: "#fff", borderRadius: "0 0 20px 20px",
+      }}>
+        {/* Notice */}
+        <div style={{
+          display: "flex", alignItems: "flex-start", gap: 8,
+          background: "#FFFBEB", border: "1.5px solid #FFBE1B",
+          borderRadius: 10, padding: "10px 12px",
+          fontSize: 12, color: "#92400e", lineHeight: 1.5,
+        }}>
+          <Icon icon="fluent:info-20-filled" width="14" style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            {donateMethod === "parcel"
+              ? "หลังยืนยันแล้ว ระบบจะสร้าง QR Label สำหรับปริ้นแปะหน้ากล่องพัสดุ"
+              : "กรุณานำชุดนักเรียนไปส่งตามวันและเวลาที่นัดหมายไว้"
+            }
+          </span>
+        </div>
 
-          {/* Notice */}
-          <div style={{
-            display: "flex", alignItems: "flex-start", gap: 8,
-            background: "#FFFBEB", border: "1.5px solid #FFBE1B",
-            borderRadius: 10, padding: "10px 12px",
-            fontSize: 12, color: "#92400e", lineHeight: 1.5,
-          }}>
-            <Icon icon="fluent:info-20-filled" width="14" style={{ flexShrink: 0, marginTop: 1 }} />
-            <span>
-              {donateMethod === "parcel"
-                ? "หลังยืนยันแล้ว ระบบจะสร้าง QR Label สำหรับปริ้นแปะหน้ากล่องพัสดุ"
-                : "กรุณานำชุดนักเรียนไปส่งตามวันและเวลาที่นัดหมายไว้"
-              }
-            </span>
-          </div>
-
-          {/* Buttons */}
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              style={{
-                flex: 1, padding: "11px", background: "#F3F4F6", color: "#1a1a2e",
-                border: "none", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer",
-              }}
-              onClick={onBack} type="button"
-            >
-              ← กลับแก้ไข
-            </button>
-            <button
-              style={{
-                flex: 2, padding: "11px", background: "#29B6E8", color: "#fff",
-                border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700,
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                cursor: "pointer", opacity: confirming ? 0.7 : 1,
-              }}
-              onClick={handleConfirm} disabled={confirming} type="button"
-            >
-              {confirming ? <><Spinner /> กำลังยืนยัน...</> : "ยืนยันการส่งต่อ →"}
-            </button>
-          </div>
+        {/* Buttons */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            style={{
+              flex: 1, padding: "11px", background: "#F3F4F6", color: "#1a1a2e",
+              border: "none", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer",
+            }}
+            onClick={onBack} type="button"
+          >
+            ← กลับไปแก้ไข
+          </button>
+          <button
+            style={{
+              flex: 2, padding: "11px", background: "#5285e8", color: "#fff",
+              border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              cursor: "pointer", opacity: confirming ? 0.7 : 1,
+            }}
+            onClick={handleConfirm} disabled={confirming} type="button"
+          >
+            {confirming ? <><Spinner /> กำลังยืนยัน...</> : "ยืนยันการส่งต่อ →"}
+          </button>
         </div>
       </div>
     </div>
@@ -1220,10 +1264,13 @@ export function QRLabelPage({
   selectedItems = [],
   totalQty = 0,
   baseUrl = "http://localhost:5173",
+  donationStatus = "",
   onUpdateTracking = async () => {},
-  onViewProject = () => {},
+  onViewProject = null,
+  onClose,
+  onTrackingSaved,
 }) {
-  const printRef = useRef(null);
+  const slipRef = useRef(null);
   const id = donationId;
   const qrUrl = `${baseUrl}/confirm/${id}`;
   const isDropoff = donateMethod === "dropoff";
@@ -1231,9 +1278,10 @@ export function QRLabelPage({
   const [trackingInput, setTrackingInput] = useState(initialTrackingNo);
   const [savingTracking, setSavingTracking] = useState(false);
   const [trackingSaved, setTrackingSaved] = useState(false);
+  const [trackingConfirmed, setTrackingConfirmed] = useState(!!initialTrackingNo);
+  const [downloading, setDownloading] = useState("");
 
-  // QR re-render ทุกครั้งที่ trackingInput เปลี่ยน (QR ยังชี้ที่ /confirm/:id เหมือนเดิม)
-  const qrRef = useQRCanvas(qrUrl, 120);
+  const qrRef = useQRCanvas(qrUrl, 110);
 
   const handleSaveTracking = async () => {
     if (!trackingInput.trim()) return;
@@ -1241,167 +1289,243 @@ export function QRLabelPage({
     try {
       await onUpdateTracking(trackingInput.trim());
       setTrackingSaved(true);
-      setTimeout(() => setTrackingSaved(false), 2500);
+      setTrackingConfirmed(true);
+      setTimeout(() => {
+        setTrackingSaved(false);
+        onTrackingSaved?.();
+      }, 800);
     } finally {
       setSavingTracking(false);
     }
   };
 
-  const handlePrint = () => {
-    const w = window.open("", "_blank", "width=680,height=620");
-    w.document.write(`
-      <html><head><title>สรุปการบริจาค - ${id}</title>
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Sarabun',sans-serif; padding:20px; }
-        .wrap { display:flex; gap:20px; border:1.5px solid #e5e7eb; border-radius:12px; padding:16px; }
-        .left { flex:1; }
-        .right { width:160px; display:flex; flex-direction:column; align-items:center; gap:8px; border-left:1px solid #e5e7eb; padding-left:16px; }
-        .badge { display:inline-block; background:${isDropoff ? "#dcfce7" : "#eff6ff"}; color:${isDropoff ? "#16a34a" : "#378ADD"}; font-size:10px; padding:2px 8px; border-radius:20px; margin-bottom:8px; }
-        h2 { font-size:15px; font-weight:700; margin-bottom:4px; }
-        .sub { font-size:11px; color:#6b7280; margin-bottom:12px; }
-        .section-label { font-size:9px; color:#9ca3af; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
-        .divider { border:none; border-top:1px solid #e5e7eb; margin:10px 0; }
-        .item-row { display:flex; justify-content:space-between; font-size:11px; padding:3px 0; }
-        .field { margin-bottom:6px; }
-        .field-label { font-size:9px; color:#9ca3af; }
-        .field-val { font-size:12px; font-weight:600; }
-        .tracking { font-family:monospace; font-size:13px; font-weight:700; color:#1a1a2e; }
-        .qr-title { font-size:10px; color:#6b7280; text-align:center; }
-        .footer { font-size:8px; color:#bbb; margin-top:8px; text-align:center; }
-      </style></head><body>
-      ${printRef.current?.innerHTML || ""}
-      </body></html>
-    `);
-    w.document.close(); w.focus();
-    setTimeout(() => { w.print(); w.close(); }, 400);
+  const captureSlip = async () => {
+    const { default: html2canvas } = await import("html2canvas");
+    return html2canvas(slipRef.current, {
+      scale: 4,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+    });
   };
 
-  return (
-    <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 4px 32px rgba(0,0,0,.12)", width: "100%", maxWidth: 640, margin: "0 auto", overflow: "hidden" }}>
+  const downloadPNG = async () => {
+    setDownloading("png");
+    try {
+      const canvas = await captureSlip();
+      const link = document.createElement("a");
+      link.download = `donation-slip-${id}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } finally { setDownloading(""); }
+  };
 
-      {/* Header */}
-      <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: C.blue, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Icon icon="fluent:document-checkmark-20-filled" width="22" color="#fff" />
+  const downloadPDF = async () => {
+    setDownloading("pdf");
+    try {
+      const canvas = await captureSlip();
+      const imgData = canvas.toDataURL("image/png");
+      const { default: jsPDF } = await import("jspdf");
+      const pdf = new jsPDF({ format: "a6", orientation: "portrait", unit: "mm" });
+      pdf.addImage(imgData, "PNG", 0, 0, 105, 148);
+      pdf.save(`donation-slip-${id}.pdf`);
+    } finally { setDownloading(""); }
+  };
+
+  const carrierLogos = {
+    "ไปรษณีย์ไทย": "/src/unieed_pic/ship1.png",
+    "Flash Express": "/src/unieed_pic/ship2.png",
+    "J&T": "/src/unieed_pic/ship3.png",
+    "Kerry": "/src/unieed_pic/ship4.png",
+  };
+  const carrierLogo = carrierLogos[courier] || null;
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 8px 40px rgba(0,0,0,.18)", width: "100%", maxWidth: 500, margin: "0 auto", display: "flex", flexDirection: "column", maxHeight: "75vh" }}>
+
+      {/* ── Header ── */}
+      <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "flex-start", gap: 10, flexShrink: 0 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: C.navy, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon icon="mdi:hand-heart" width="20" color="#fff" />
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: 17, color: C.text }}>ใบสรุปการบริจาค</div>
-          <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>โครงการ: {projectTitle}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>ใบนำส่งพัสดุ</div>
+          <div style={{ fontSize: 11, color: C.sub, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>โครงการ: {projectTitle}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
+            <span style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>ช่องทางการจัดส่ง :</span>
+            <span style={{ background: isDropoff ? "#dcfce7" : "#eff6ff", color: isDropoff ? C.green : C.navy, fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 20, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Icon icon={isDropoff ? "mdi:walk" : "mdi:truck-outline"} width="12" />
+              {isDropoff ? "นัดหมาย" : "จัดส่งพัสดุ"}
+            </span>
+          </div>
         </div>
-        <span style={{ background: isDropoff ? "#dcfce7" : "#eff6ff", color: isDropoff ? C.green : C.navy, fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 20 }}>
-          {isDropoff ? "นัดหมายส่งมอบ" : "จัดส่งพัสดุ"}
-        </span>
+        <button onClick={onClose ?? onViewProject} className="dnCloseBtn" style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 2, flexShrink: 0, alignSelf: "flex-start", display: "flex" }}>
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16"><path fill="currentColor" d="M7.293 8L3.146 3.854a.5.5 0 1 1 .708-.708L8 7.293l4.146-4.147a.5.5 0 0 1 .708.708L8.707 8l4.147 4.146a.5.5 0 0 1-.708.708L8 8.707l-4.146 4.147a.5.5 0 0 1-.708-.708z"/></svg>
+</button>
       </div>
 
-      {/* Body */}
-      <div ref={printRef} style={{ display: "flex" }}>
+      {/* ── Scrollable middle ── */}
+      <div className="dnModalScroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
 
-        {/* LEFT — ข้อมูลสรุป */}
-        <div style={{ flex: 1, padding: "20px", borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* ── Slip body (captured for PNG/PDF) ── */}
+      <div
+        ref={slipRef}
+        style={{
+          position: "relative", overflow: "hidden",
+          background: "#fff", padding: "16px 18px",
+        }}
+      >
+        {/* watermark logo */}
+        <img src={logo3Img} alt="" aria-hidden style={{
+          position: "absolute", bottom: 10, left: "50%",
+          transform: "translateX(-50%)",
+          width: "55%", opacity: 0.05, pointerEvents: "none", userSelect: "none",
+        }} />
 
-          {/* โรงเรียนปลายทาง */}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: C.sub, textTransform: "uppercase", letterSpacing: .5, marginBottom: 4 }}>โรงเรียนปลายทาง</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{schoolName}</div>
-            {schoolAddress && <div style={{ fontSize: 11, color: C.sub, marginTop: 2, lineHeight: 1.5 }}>{schoolAddress}</div>}
-          </div>
+        {/* kids illustration */}
+        <img src={kidsImg} alt="" aria-hidden style={{
+          position: "absolute", top: 0, right: 0,
+          height: "38%", objectFit: "contain",
+          pointerEvents: "none", userSelect: "none",
+        }} />
 
-          <div style={{ borderTop: `1px solid ${C.border}` }} />
+        <div style={{ display: "flex", height: "100%", gap: 12 }}>
 
-          {/* ช่องทางการส่ง */}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: C.sub, textTransform: "uppercase", letterSpacing: .5, marginBottom: 6 }}>ข้อมูลการส่ง</div>
-            {isDropoff ? (
-              <>
-                <div style={{ fontSize: 12, color: C.text, marginBottom: 3 }}>📅 {formatThaiDate(appointDate)}{appointTime ? ` เวลา ${appointTime} น.` : ""}</div>
-                <div style={{ fontSize: 12, color: C.text }}>📞 {donorPhone}</div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 12, color: C.text, marginBottom: 3 }}>🚚 {courier}</div>
-                <div style={{ fontSize: 10, color: C.sub }}>ผู้บริจาค: {donorName}</div>
-              </>
-            )}
-          </div>
+          {/* LEFT column */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
 
-          <div style={{ borderTop: `1px solid ${C.border}` }} />
-
-          {/* รายการชุด */}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: C.sub, textTransform: "uppercase", letterSpacing: .5, marginBottom: 6 }}>รายการชุดนักเรียน</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {selectedItems.map((it, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#F7F8FA", borderRadius: 7, padding: "6px 10px" }}>
-                  <span style={{ fontSize: 12, color: C.text }}>{it.name}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: C.navy, background: "#EFF6FF", padding: "1px 8px", borderRadius: 20 }}>{it.qty} ชิ้น</span>
-                </div>
-              ))}
+            {/* ผู้รับ */}
+            <div>
+              <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 2 }}>ข้อมูลผู้รับ (Receiver)</div>
+              <div style={{ fontSize: 9, color: C.sub }}>โรงเรียนปลายทาง :</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.text, lineHeight: 1.3, marginTop: 1 }}>{schoolName}</div>
+              {schoolAddress && <div style={{ fontSize: 9, color: C.sub, marginTop: 2, lineHeight: 1.5 }}>{schoolAddress}</div>}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: `1px solid ${C.border}`, marginTop: 8, fontWeight: 700, fontSize: 13 }}>
-              <span style={{ color: C.sub }}>รวมทั้งหมด</span>
-              <span style={{ color: C.text }}>{totalQty} ชิ้น</span>
+
+            <div style={{ borderTop: `1px dashed ${C.border}` }} />
+
+            {/* ผู้บริจาค */}
+            <div>
+              <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 2 }}>ข้อมูลผู้บริจาค (Sender)</div>
+              <div style={{ fontSize: 11, color: C.text }}>ผู้บริจาค : <strong>{donorName}</strong></div>
             </div>
-          </div>
-        </div>
 
-        {/* RIGHT — QR + tracking */}
-        <div style={{ width: 200, padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <div style={{ borderTop: `1px dashed ${C.border}` }} />
 
-          {/* QR Code */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <canvas ref={qrRef} style={{ border: `1px solid ${C.border}`, borderRadius: 8 }} />
-            <div style={{ fontSize: 10, color: C.sub, textAlign: "center", lineHeight: 1.4 }}>
-              {isDropoff ? "แสดงให้เจ้าหน้าที่สแกน" : "โรงเรียนสแกนเพื่อยืนยัน"}
-            </div>
-            <div style={{ fontSize: 9, color: "#bbb", fontFamily: "monospace" }}>{id}</div>
-          </div>
-
-          <div style={{ borderTop: `1px solid ${C.border}`, width: "100%" }} />
-
-          {/* Tracking number section (parcel only) */}
-          {!isDropoff && (
-            <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: C.sub, textTransform: "uppercase", letterSpacing: .5 }}>เลขพัสดุ</div>
-              {trackingInput ? (
-                <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: C.text, background: "#F7F8FA", padding: "6px 8px", borderRadius: 7, wordBreak: "break-all" }}>
-                  {trackingInput}
-                </div>
+            {/* ข้อมูลการส่ง */}
+            <div>
+              <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 4 }}>ข้อมูลการส่ง</div>
+              {isDropoff ? (
+                <>
+                  <div style={{ fontSize: 11, color: C.text }}>📅 {formatThaiDate(appointDate)}{appointTime ? ` เวลา ${appointTime} น.` : ""}</div>
+                  <div style={{ fontSize: 11, color: C.text }}>📞 {donorPhone}</div>
+                </>
               ) : (
-                <div style={{ fontSize: 11, color: "#bbb", fontStyle: "italic" }}>ยังไม่ได้กรอก</div>
+                <>
+                  <div style={{ fontSize: 11, color: C.text, display: "flex", alignItems: "center", gap: 5 }}>
+                    {carrierLogo
+                      ? <img src={carrierLogo} alt={courier} style={{ height: 16, width: "auto", objectFit: "contain", flexShrink: 0 }} />
+                      : "🚚"}
+                    {courier}
+                  </div>
+                  {trackingInput && (
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ fontSize: 9, color: C.sub }}>เลขพัสดุ (Tracking Number) :</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: C.blue, fontFamily: "monospace", letterSpacing: 1 }}>{trackingInput}</div>
+                    </div>
+                  )}
+                </>
               )}
-              <input
-                value={trackingInput}
-                onChange={e => setTrackingInput(e.target.value)}
-                placeholder="กรอกเลข Tracking"
-                style={{ fontSize: 12, padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, outline: "none", fontFamily: "monospace", width: "100%", boxSizing: "border-box" }}
-              />
-              <button
-                onClick={handleSaveTracking}
-                disabled={savingTracking || !trackingInput.trim()}
-                style={{ padding: "7px", background: trackingSaved ? C.green : C.blue, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: (!trackingInput.trim() || savingTracking) ? 0.6 : 1 }}
-              >
-                {trackingSaved ? "✓ บันทึกแล้ว!" : savingTracking ? "กำลังบันทึก..." : "บันทึกเลขพัสดุ"}
-              </button>
-              <div style={{ fontSize: 9, color: C.sub, lineHeight: 1.4, textAlign: "center" }}>
-                กรอกได้ภายหลัง<br />โรงเรียนจะเห็นเลขพัสดุเมื่อสแกน QR
+            </div>
+
+            <div style={{ borderTop: `1px dashed ${C.border}` }} />
+
+            {/* รายการชุด */}
+            <div style={{ flex: 1 }}>
+              <div style={{ background: C.navy, borderRadius: "6px 6px 0 0", padding: "4px 10px" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#fff" }}>รายการชุดนักเรียน</span>
+              </div>
+              <div style={{ border: `1px solid ${C.border}`, borderTop: "none", borderRadius: "0 0 6px 6px", overflow: "hidden" }}>
+                {selectedItems.map((it, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 10px", background: i % 2 === 0 ? "#fff" : "#F7F8FA", borderBottom: `1px solid ${C.border}` }}>
+                    <span style={{ fontSize: 10, color: C.text }}>{it.name}</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: C.navy }}>{it.qty} ชิ้น</span>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 10px", background: "#EFF6FF" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: C.navy }}>รวมทั้งหมด</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: C.navy }}>{totalQty} ชิ้น</span>
+                </div>
               </div>
             </div>
-          )}
+          </div>
+
+          {/* RIGHT column — QR */}
+          <div style={{ width: 120, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, paddingTop: "38%" }}>
+            <div style={{ fontSize: 9, color: C.sub, textAlign: "center", lineHeight: 1.4, fontWeight: 600 }}>
+              สำหรับโรงเรียน<br />สแกนยืนยันรับของ
+            </div>
+            <canvas ref={qrRef} style={{ border: `1.5px solid ${C.border}`, borderRadius: 6 }} />
+            <div style={{ fontSize: 8, color: "#ccc", fontFamily: "monospace" }}>{id}</div>
+          </div>
         </div>
       </div>
 
-      {/* Footer buttons */}
-      <div style={{ padding: "14px 20px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 10 }}>
-        <button style={{ ...S.btnPrint, flex: 1 }} onClick={handlePrint} type="button">
-          <Icon icon="fluent:print-20-filled" width="16" /> ปริ้นใบสรุป
+      {/* ── Approved banner / Tracking input ── */}
+      {donationStatus === "approved" ? (
+        <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8, background: "#f0fdf4" }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0, color: "#16a34a" }}>
+            <path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/>
+          </svg>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#16a34a" }}>โรงเรียนยืนยันรับของเรียบร้อยแล้ว</span>
+        </div>
+      ) : !isDropoff && (
+        <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, alignItems: "center", background: "#FAFAFA" }}>
+          <div style={{ fontSize: 11, color: C.sub, flexShrink: 0 }}>กรอกเลขพัสดุ :</div>
+          <input
+            value={trackingInput}
+            onChange={e => setTrackingInput(e.target.value.replace(/[\u0E00-\u0E7F]/g, ""))}
+            placeholder="ยังไม่ได้กรอก"
+            style={{ flex: 1, fontSize: 12, padding: "6px 10px", borderRadius: 8, border: `1px solid ${C.border}`, outline: "none", boxShadow: "none", fontFamily: "monospace", boxSizing: "border-box" }}
+          />
+          <button
+            onClick={handleSaveTracking}
+            disabled={savingTracking || !trackingInput.trim()}
+            className="dnCloseBtn"
+            style={{ padding: "6px 12px", background: trackingSaved ? C.green : C.navy, color: "#fff", border: "none", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer", flexShrink: 0, opacity: !trackingInput.trim() ? 0.5 : 1 }}
+          >
+            {trackingSaved ? "✓" : savingTracking ? "..." : "บันทึก"}
+          </button>
+        </div>
+      )}
+      <div style={{ padding: "4px 18px 8px", fontSize: 9, color: "#bbb", textAlign: "center" }}>
+        {isDropoff
+          ? "*กรุณาปริ้นท์ใบนี้แนบไปพร้อมกับชุดนักเรียน หรือแสดง QR Code นี้ให้โรงเรียนสแกนเมื่อนำส่ง"
+          : "*กรอกเลขพัสดุได้ภายหลังที่เมนู ประวัติการบริจาค หลังจากนำส่งพัสดุแล้ว โรงเรียนจะเห็นเลขพัสดุเมื่อสแกน QR โปรดปริ้นท์ใบสรุปรายการนี้และนำส่งพร้อมกับพัสดุ"
+        }
+      </div>
+
+      </div>{/* ── end scrollable middle ── */}
+
+      {/* ── Footer buttons ── */}
+      <div style={{ padding: "10px 18px 16px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, flexShrink: 0 }}>
+        <button
+          onClick={downloadPNG}
+          disabled={!!downloading}
+          className={`qrSaveBtn qrSaveBtn--primary${downloading === "png" ? " qrSaveBtn--disabled" : ""}`}
+          style={downloading === "png" ? { background: "#9ca3af" } : {}}
+        >
+          <Icon icon="mdi:image-outline" width="16" />
+          {downloading === "png" ? "กำลังสร้าง..." : "บันทึก PNG"}
         </button>
         <button
-          style={{ flex: 1.5, padding: "11px", background: "#F0FDF4", color: C.green, border: `1px solid ${C.green}`, borderRadius: 12, fontWeight: 600, fontSize: 13, cursor: "pointer" }}
-          onClick={onViewProject} type="button"
+          onClick={downloadPDF}
+          disabled={!!downloading}
+          className={`qrSaveBtn qrSaveBtn--outline${downloading === "pdf" ? " qrSaveBtn--disabled" : ""}`}
+          style={downloading === "pdf" ? { background: "#9ca3af", color: "#fff", border: "none" } : {}}
         >
-          ดูผลการส่งต่อ →
+          <Icon icon="mdi:file-pdf-box" width="16" />
+          {downloading === "pdf" ? "กำลังสร้าง..." : "บันทึก PDF"}
         </button>
       </div>
     </div>
@@ -1999,8 +2123,6 @@ const S = {
   modalContainer: {
     width: "100%",
     maxWidth: "700px",
-    // maxHeight: "90vh",
-    // overflowY: "auto",
     borderRadius: "20px",
     position: "relative",
     background: "transparent",

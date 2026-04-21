@@ -161,7 +161,7 @@ function DeliveryCell({ d, onOpenTracking, onOpenAppt }) {
             #{d.tracking_number}
           </button>
         ) : (
-          <span className="sdTrackPending">รอร้านค้าอัปเดต</span>
+          <span className="sdTrackPending">รอผู้บริจาคกรอกเลขพัสดุ</span>
         )}
       </div>
     );

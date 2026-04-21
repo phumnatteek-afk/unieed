@@ -1,9 +1,11 @@
 // src/features/donate/pages/QRScanPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
-import { login as loginService } from "../../auth/services/auth.service.js";
+import { login as loginService, googleLogin } from "../../auth/services/auth.service.js";
 import { Icon } from "@iconify/react";
+import { GoogleLogin } from "@react-oauth/google";
+import "../../auth/styles/auth.css";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
@@ -24,12 +26,35 @@ function parseItems(snapshot) {
 
 // ── หน้า Login ──────────────────────────────────────────────────
 function QRLoginPanel({ onLoginSuccess }) {
-  const [email, setEmail]     = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw]   = useState(false);
-  const [err, setErr]         = useState("");
-  const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw]     = useState(false);
+  const [err, setErr]           = useState("");
+  const [loading, setLoading]   = useState(false);
+  const googleWrapperRef        = useRef(null);
+  const [googleWidth, setGoogleWidth] = useState(400);
   const { login } = useAuth();
+
+  useEffect(() => {
+    const update = () => {
+      if (googleWrapperRef.current) {
+        const w = googleWrapperRef.current.offsetWidth;
+        setGoogleWidth(Math.min(Math.max(w, 140), 400));
+      }
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  const handleSuccess = (res) => {
+    if (res.role !== "school_admin") {
+      setErr("บัญชีนี้ไม่ใช่บัญชีโรงเรียน กรุณาใช้บัญชีโรงเรียน");
+      return;
+    }
+    login({ token: res.token, role: res.role, user_name: res.user_name });
+    onLoginSuccess(res.token);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,12 +62,7 @@ function QRLoginPanel({ onLoginSuccess }) {
     setLoading(true);
     try {
       const res = await loginService({ user_email: email, password });
-      if (res.role !== "school_admin") {
-        setErr("บัญชีนี้ไม่ใช่บัญชีโรงเรียน กรุณาใช้บัญชีโรงเรียน");
-        return;
-      }
-      login({ token: res.token, role: res.role, user_name: res.user_name });
-      onLoginSuccess(res.token);
+      handleSuccess(res);
     } catch (e) {
       setErr(e?.data?.message || e?.message || "เข้าสู่ระบบไม่สำเร็จ");
     } finally {
@@ -50,63 +70,114 @@ function QRLoginPanel({ onLoginSuccess }) {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setErr("");
+    try {
+      const res = await googleLogin({ idToken: credentialResponse.credential });
+      handleSuccess(res);
+    } catch (e) {
+      setErr(e?.data?.message || e?.message || "Google login ไม่สำเร็จ");
+    }
+  };
+
   return (
-    <div style={S.loginWrap}>
-      <div style={S.loginCard}>
-        {/* Header */}
-        <div style={S.loginHeader}>
-          <img src="/src/unieed_pic/logo.png" alt="Unieed" style={S.loginLogo} />
-          <div style={S.loginTitle}>เข้าสู่ระบบโรงเรียน</div>
-          <div style={S.loginSub}>สแกน QR เพื่อยืนยันรับบริจาค</div>
+    <div className="lgPage">
+      <div className="lgCard">
+
+        {/* ===== LEFT PANEL ===== */}
+        <div className="lgLeftPanel">
+          <div className="lgBgImage" />
+          <img className="lgLogo" src="/src/unieed_pic/logo1.png" alt="Unieed" />
+          <div className="lgWelcomeBlock">
+            <div className="lgWelcomeTitle">ยินดีต้อนรับ</div>
+            <div className="lgWelcomeSub">
+              ยืนยันรับบริจาค<br />ชุดนักเรียนผ่าน QR
+            </div>
+          </div>
+          <div className="lgBadge">
+            <div className="lgBadgeText">
+              " สร้างโอกาสทางการศึกษา<br />ผ่านการบริจาคชุดนักเรียน <span>"</span>
+            </div>
+          </div>
         </div>
 
-        {err && (
-          <div style={S.errBox}>
-            <Icon icon="mdi:alert-circle" width="16" />
-            {err}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={S.fieldWrap}>
-            <label style={S.label}>อีเมลโรงเรียน</label>
-            <div style={S.inputWrap}>
-              <Icon icon="mdi:email-outline" width="18" color="#9ca3af" style={S.inputIcon} />
-              <input
-                style={S.input}
-                type="email"
-                placeholder="school@email.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
+        {/* ===== RIGHT PANEL ===== */}
+        <div className="lgRightPanel">
+          {err && (
+            <div className="lgAlert lgAlert--error">
+              <Icon icon="mdi:alert-circle" width="16" />
+              {err}
             </div>
+          )}
+
+          <div className="lgHeader">
+            <h2 className="lgTitle">เข้าสู่ระบบโรงเรียน</h2>
+            <p className="lgSubtitle">สแกน QR เพื่อยืนยันรับบริจาค</p>
           </div>
 
-          <div style={S.fieldWrap}>
-            <label style={S.label}>รหัสผ่าน</label>
-            <div style={S.inputWrap}>
-              <Icon icon="mdi:lock-outline" width="18" color="#9ca3af" style={S.inputIcon} />
-              <input
-                style={{ ...S.input, paddingRight: 44 }}
-                type={showPw ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
-              <button type="button" onClick={() => setShowPw(p => !p)} style={S.eyeBtn}>
-                <Icon icon={showPw ? "mdi:eye-off" : "mdi:eye"} width="20" color="#9ca3af" />
-              </button>
+          <form className="lgForm" onSubmit={handleSubmit}>
+            <div className="lgField">
+              <label className="lgLabel">อีเมลโรงเรียน</label>
+              <div className="lgInputWrap">
+                <span className="lgInputIcon">
+                  <Icon icon="mdi:email-outline" width="18" />
+                </span>
+                <input
+                  className="lgInput"
+                  type="email"
+                  placeholder="school@email.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
             </div>
-          </div>
 
-          <button type="submit" style={{ ...S.btnPrimary, opacity: loading ? 0.7 : 1 }} disabled={loading}>
-            {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
-          </button>
-        </form>
+            <div className="lgField">
+              <label className="lgLabel">รหัสผ่าน</label>
+              <div className="lgInputWrap" style={{ position: "relative" }}>
+                <span className="lgInputIcon">
+                  <Icon icon="mdi:lock-outline" width="18" />
+                </span>
+                <input
+                  className="lgInput"
+                  type={showPw ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  style={{ paddingRight: 44 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(p => !p)}
+                  style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0, color: "#9ca3af", display: "flex", alignItems: "center" }}
+                >
+                  <Icon icon={showPw ? "mdi:eye-off" : "mdi:eye"} width="20" />
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" className="lgBtn" style={{ opacity: loading ? 0.7 : 1 }} disabled={loading}>
+              {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+            </button>
+          </form>
+
+          <div className="lgDivider"><span>หรือ</span></div>
+
+          <div className="lgGoogleWrapper" ref={googleWrapperRef}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setErr("Google login ไม่สำเร็จ")}
+              width={googleWidth}
+              text="signin_with"
+              locale="th"
+            />
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -208,7 +279,11 @@ function DonationDetailPanel({ donationId, token }) {
         {/* ยืนยันแล้ว */}
         {confirmed ? (
           <div style={S.successBox}>
-            <div style={S.successIcon}>✅</div>
+            <div style={S.successIcon}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" style={{ color: "#16a34a" }}>
+                <path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/>
+              </svg>
+            </div>
             <div style={S.successTitle}>ยืนยันรับของเรียบร้อยแล้ว!</div>
             <div style={S.successSub}>
               ผู้บริจาค <strong>{donation?.donor_name}</strong> จะได้รับแจ้งเตือนและใบเกียรติบัตรโดยอัตโนมัติ
@@ -302,7 +377,11 @@ function DonationDetailPanel({ donationId, token }) {
 
             {/* Note */}
             <div style={S.noteBox}>
-              <Icon icon="mdi:certificate-outline" width="16" style={{ flexShrink: 0, marginTop: 1 }} />
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: 1 }}>
+                <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
+                  <path d="M12 15a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/><path d="M13 17.5V22l2-1.5l2 1.5v-4.5"/><path d="M10 19H5a2 2 0 0 1-2-2V7c0-1.1.9-2 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-1 1.73M6 9h12M6 12h3m-3 3h2"/>
+                </g>
+              </svg>
               <span>เมื่อยืนยัน ระบบจะออกใบประกาศนียบัตรอัตโนมัติและส่ง notification ให้ผู้บริจาคทันที</span>
             </div>
 
@@ -314,7 +393,14 @@ function DonationDetailPanel({ donationId, token }) {
               disabled={confirming}
               type="button"
             >
-              {confirming ? "กำลังยืนยัน..." : "✅ ยืนยันรับของแล้ว"}
+              {confirming ? "กำลังยืนยัน..." : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/>
+                  </svg>
+                  ยืนยันรับของแล้ว
+                </>
+              )}
             </button>
           </>
         )}

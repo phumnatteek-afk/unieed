@@ -1,5 +1,65 @@
 /* ===== DONATE PAGE ===== */
 
+.certOverlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 3000;
+  backdrop-filter: blur(4px);
+}
+.certPopup {
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px;
+  max-width: 480px; width: 95%;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+  animation: certPopIn 0.2s ease;
+}
+@keyframes certPopIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+.certPopupTitle { font-size: 24px; font-weight: 800; color: #1e293b; margin-bottom: 8px; }
+.certPopupName  { font-size: 20px; color: #29B6E8; font-weight: 700; margin-bottom: 12px; }
+.certPopupMsg   { font-size: 14px; color: #64748b; line-height: 1.8; margin-bottom: 20px; }
+.certPopupActions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.certBtnClose {
+  padding: 10px 28px; border-radius: 10px;
+  border: 1.5px solid #e2e8f0; background: #fff;
+  color: #555; font-size: 14px; cursor: pointer;
+}
+.certBtnClose:hover { background: #f9fafb; }
+
+.dnCloseBtn {
+  transform: none !important;
+  transition: none !important;
+}
+.dnCloseBtn:hover {
+  transform: none !important;
+  opacity: 0.7;
+}
+
+.dnModalScroll {
+  overflow-y: scroll !important;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+.dnModalScroll::-webkit-scrollbar {
+  width: 6px;
+}
+.dnModalScroll::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 20px;
+}
+.dnModalScroll::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 20px;
+}
+.dnModalScroll::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
 .dnLayout {
   display: grid;
   grid-template-columns: 520px 500px;  /* ← ล็อกขนาดทั้งสองคอลัมน์ */
@@ -126,15 +186,18 @@
   font-family: 'Kanit', sans-serif;
   color: #555;
   cursor: pointer;
-    display: inline-flex;      /* ← เพิ่ม */
-  align-items: center;       /* ← เพิ่ม */
-  gap: 8px;                  /* ← เพิ่ม */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   box-sizing: border-box;
+  transform: none !important;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .dnMethodTab:hover {
   border-color: #87C7EB;
   color: #87C7EB;
+  transform: none !important;
 }
 
 .dnMethodTabActive {
@@ -1080,3 +1143,67 @@ Copy
   margin-left: 4px;
 }
  
+/* ── QR slip save buttons ── */
+.qrSaveBtn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s, color 0.15s, opacity 0.15s;
+  transform: none !important;
+}
+.qrSaveBtn:hover:not(:disabled) {
+  opacity: 0.85;
+  transform: none !important;
+}
+.qrSaveBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.qrSaveBtn--primary {
+  background: #5285e8;
+  color: #fff;
+  border: none;
+}
+.qrSaveBtn--primary:hover:not(:disabled) {
+  background: #3d6fd6;
+  opacity: 1;
+}
+.qrSaveBtn--outline {
+  background: #fff;
+  color: #5285e8;
+  border: 1.5px solid #5285e8;
+}
+.qrSaveBtn--outline:hover:not(:disabled) {
+  background: #eff6ff;
+  opacity: 1;
+}
+
+/* ── History tracking input — no focus ring ── */
+.dhTrackInput {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.dhTrackInput:focus,
+.dhTrackInput:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: #5285e8 !important;
+}
+
+/* ── Override global button:hover lift from admin.css ── */
+button.dnMethodTab:hover,
+button.dnMethodTab:focus,
+button.pdGenderTab:hover,
+button.pdLevelTab:hover,
+button.pdTypeTab:hover,
+button.pdQtyBtn:hover {
+  transform: none !important;
+  background: revert;
+}

@@ -214,6 +214,7 @@ export default function HomePage() {
   const [products, setProducts] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasPendingTracking, setHasPendingTracking] = useState(false);
 
   const [q, setQ] = useState("");
 
@@ -279,6 +280,18 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (!token) return;
+    const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
+    fetch(`${BASE}/donations/my/history`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const pending = data.some(d => d.delivery_method === "parcel" && !d.tracking_number);
+        setHasPendingTracking(pending);
+      })
+      .catch(() => {});
+  }, [token]);
+
+  useEffect(() => {
   if (projects.length === 0 || detailsFetchedRef.current) return;
   detailsFetchedRef.current = true;
   
@@ -323,7 +336,7 @@ export default function HomePage() {
   const isDonor = token && role !== "admin" && role !== "school_admin";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-      {isDonor && (
+      {isDonor && hasPendingTracking && (
         <Link
           to="/donations/history"
           style={{
