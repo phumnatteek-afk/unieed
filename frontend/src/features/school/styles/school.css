@@ -273,8 +273,8 @@ height: auto;
 }
 
 .btnPrimary:hover {
-  background: #5285E8;
-  transform: translateY(-1px);
+  background: #3a6fd4;
+  transform: none;
 }
 
 .btnGhost {
@@ -286,6 +286,7 @@ height: auto;
 
 .btnGhost:hover {
   background: #eff6ff;
+  transform: none;
 }
 
 /* layoutschool */

@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
+import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
@@ -463,9 +464,14 @@ export default function AdminDonationManagement() {
   return (
     <div style={{ padding:"28px 32px", maxWidth:1200, margin:"0 auto" }}>
 
-      <div style={{ marginBottom:24 }}>
-        <h1 style={{ fontSize:22, fontWeight:700, color:"#0f172a", margin:0 }}>จัดการการบริจาค</h1>
-        <p style={{ fontSize:13, color:"#64748b", margin:"4px 0 0" }}>รายการที่เกิน 7 วันและยังรอแอดมินตรวจสอบ</p>
+      <div className="boTop" style={{ marginBottom:24 }}>
+        <div>
+          <div className="boTitle">จัดการการบริจาค</div>
+          <p style={{ fontSize:13, color:"#64748b", margin:"4px 0 0" }}>รายการที่เกิน 7 วันและยังรอแอดมินตรวจสอบ</p>
+        </div>
+        <div className="boAdmin">
+          <div className="boAdminText"><ProfileDropdown /></div>
+        </div>
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:28 }}>

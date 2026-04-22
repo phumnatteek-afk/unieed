@@ -334,6 +334,7 @@ function ManageAdminsModal({ onClose, currentUserId }) {
   const [addLoading, setAddLoading] = useState(false);
   const [err, setErr] = useState("");
   const [success, setSuccess] = useState("");
+  const [pendingRemove, setPendingRemove] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -367,11 +368,16 @@ const handleAdd = async (e) => {
 };
 
   const handleRemove = async (userId, name) => {
-    if (!confirm(`ต้องการลบผู้ดูแล "${name}" ออกจากระบบ?`)) return;
+    setPendingRemove({ userId, name });
+  };
+
+  const confirmRemove = async () => {
+    if (!pendingRemove) return;
     try {
-      await request(`/auth/school-admins/${userId}`, { method: "DELETE", auth: true });
-      setAdmins(prev => prev.filter(a => a.user_id !== userId));
-    } catch (e) { setErr(e?.message || "ลบไม่สำเร็จ"); }
+      await request(`/auth/school-admins/${pendingRemove.userId}`, { method: "DELETE", auth: true });
+      setAdmins(prev => prev.filter(a => a.user_id !== pendingRemove.userId));
+      setPendingRemove(null);
+    } catch (e) { setErr(e?.message || "ลบไม่สำเร็จ"); setPendingRemove(null); }
   };
 
   return (
@@ -534,6 +540,42 @@ const handleAdd = async (e) => {
         </div>
       </div>
     </div>
+
+    {/* ── Confirm ลบผู้ดูแล ── */}
+    {pendingRemove && (
+      <div onClick={() => setPendingRemove(null)} style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 10000, padding: 20,
+      }}>
+        <div onClick={e => e.stopPropagation()} style={{
+          background: "#fff", borderRadius: 16, padding: 28,
+          maxWidth: 360, width: "100%",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.2)",
+        }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>
+            ลบผู้ดูแลออกจากระบบ?
+          </div>
+          <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, marginBottom: 20 }}>
+            ผู้ดูแล <strong style={{ color: "#1a1a2e" }}>"{pendingRemove.name}"</strong> จะถูกลบออกจากระบบและไม่สามารถเข้าใช้งานได้อีก
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={() => setPendingRemove(null)}
+              style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            >
+              ยกเลิก
+            </button>
+            <button
+              onClick={confirmRemove}
+              style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: "#DC2626", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+            >
+              ลบออก
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }

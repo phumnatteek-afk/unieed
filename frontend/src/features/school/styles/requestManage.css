@@ -1,4 +1,119 @@
 /* ── requestManage.css — Unieed Admin Dashboard ──────────── */
+
+/* ── Setup Checklist ─────────────────────────────────────── */
+.pm-checklist {
+  background: #fff;
+  border-radius: var(--pm-radius);
+  border: 1.5px solid #dbeafe;
+  padding: 18px 20px;
+  box-shadow: var(--pm-shadow);
+}
+
+.pm-cl-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5285e8;
+  margin-bottom: 14px;
+}
+
+.pm-cl-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.pm-cl-card {
+  border-radius: 12px;
+  padding: 16px;
+  border: 1.5px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pm-cl-done {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.pm-cl-todo {
+  background: #fafafa;
+  border-color: #e2e8f0;
+}
+
+.pm-cl-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.pm-cl-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+}
+
+.pm-cl-icon-done {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.pm-cl-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.pm-cl-badge-done {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.pm-cl-badge-todo {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.pm-cl-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f2a38;
+}
+
+.pm-cl-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.pm-cl-btn {
+  margin-top: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #5285e8;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.2s;
+}
+
+.pm-cl-btn:hover {
+  background: #3a6fd4;
+  transform: none;
+}
 /* @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@500;600;700&display=swap'); */
 
 :root {

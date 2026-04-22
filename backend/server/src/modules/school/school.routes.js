@@ -18,6 +18,7 @@ import {
   getProjectById,
   getProjectByIdPublic,
   updateProject,
+  closeProject,
   uploadProjectImage,
   uploadUniformImage,
   deleteUniformImage,
@@ -47,8 +48,9 @@ r.post("/projects",        auth, requireRole(["school_admin"]), createProject);
 r.get("/projects",         auth, requireRole(["school_admin"]), listSchoolProjects);
 
 // dynamic routes — ต้องอยู่หลัง static ทั้งหมด
-r.get("/projects/:request_id", auth, requireRole(["school_admin"]), getProjectById);
-r.put("/projects/:request_id", auth, requireRole(["school_admin"]), updateProject);
+r.get("/projects/:request_id",         auth, requireRole(["school_admin"]), getProjectById);
+r.put("/projects/:request_id",         auth, requireRole(["school_admin"]), updateProject);
+r.patch("/projects/:request_id/close", auth, requireRole(["school_admin"]), closeProject);
 
 // ── Project image ─────────────────────────────────────────────────────────────
 r.post(

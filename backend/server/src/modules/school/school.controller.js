@@ -641,31 +641,49 @@ export async function createProject(req, res, next) {
   try {
     const school_id = req.user?.school_id;
     if (!school_id) return res.status(401).json({ message: "Unauthorized" });
- 
+
     const {
       request_title,
       request_description,
       request_image_url,
       request_image_public_id,
+      duration_months,
     } = req.body;
- 
+
     if (!request_title?.trim()) {
       return res.status(400).json({ message: "กรุณากรอกชื่อโครงการ" });
     }
- 
+
+    const allowedDurations = [3, 6, 12];
+    const duration = allowedDurations.includes(Number(duration_months))
+      ? Number(duration_months)
+      : 3;
+
+    // เช็คว่ามีโครงการที่ยัง open หรือ closed อยู่มั้ย
+    const [existing] = await db.query(
+      `SELECT request_id FROM donation_request
+       WHERE school_id = ? AND status IN ('open','closed') LIMIT 1`,
+      [school_id]
+    );
+    if (existing[0]) {
+      return res.status(400).json({ message: "มีโครงการที่ยังเปิดอยู่ กรุณาปิดโครงการเก่าก่อน" });
+    }
+
     const [result] = await db.query(
       `INSERT INTO donation_request
-        (school_id, request_title, request_description, request_image_url, request_image_public_id, status, created_at)
-       VALUES (?, ?, ?, ?, ?, 'open', NOW())`,
+        (school_id, request_title, request_description, request_image_url, request_image_public_id, status, duration_months, end_date, created_at)
+       VALUES (?, ?, ?, ?, ?, 'open', ?, DATE_ADD(NOW(), INTERVAL ? MONTH), NOW())`,
       [
         school_id,
         request_title.trim(),
         request_description || null,
         request_image_url || null,
         request_image_public_id || null,
+        duration,
+        duration,
       ]
     );
- 
+
     return res.json({ request_id: result.insertId });
   } catch (err) {
     next(err);
@@ -677,7 +695,7 @@ export async function listSchoolProjects(req, res, next) {
     const school_id = req.user.school_id;
  
     const [rows] = await db.query(
-      `SELECT request_id, request_title, status, created_at
+      `SELECT request_id, request_title, status, created_at, duration_months, end_date
        FROM donation_request
        WHERE school_id = ?
        ORDER BY created_at DESC`,
@@ -695,7 +713,7 @@ export async function getLatestProject(req, res, next) {
     const school_id = req.user.school_id;
  
     const [rows] = await db.query(
-      `SELECT request_id, request_title, request_description, request_image_url, request_image_public_id, status, created_at
+      `SELECT request_id, request_title, request_description, request_image_url, request_image_public_id, status, created_at, duration_months, end_date
        FROM donation_request
        WHERE school_id = ?
        ORDER BY request_id DESC
@@ -722,6 +740,8 @@ export async function getProjectById(req, res, next) {
               dr.request_image_public_id,
               dr.status,
               dr.created_at,
+              dr.duration_months,
+              dr.end_date,
               s.school_name,
               s.school_address
        FROM donation_request dr
@@ -782,7 +802,30 @@ export async function updateProject(req, res, next) {
     next(err);
   }
 }
- 
+
+export async function closeProject(req, res, next) {
+  try {
+    const school_id = req.user.school_id;
+    const request_id = Number(req.params.request_id);
+
+    const [rows] = await db.query(
+      `SELECT status FROM donation_request WHERE request_id=? AND school_id=? LIMIT 1`,
+      [request_id, school_id]
+    );
+    if (!rows[0]) return res.status(404).json({ message: "ไม่พบโครงการ" });
+    if (rows[0].status !== "open") return res.status(400).json({ message: "โครงการนี้ไม่ได้อยู่ในสถานะเปิด" });
+
+    await db.query(
+      `UPDATE donation_request SET status='closed', end_date=CURDATE() WHERE request_id=? AND school_id=?`,
+      [request_id, school_id]
+    );
+
+    res.json({ message: "ปิดโครงการเรียบร้อย" });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function uploadProjectImage(req, res, next) {
   try {
     const school_id = req.user.school_id;

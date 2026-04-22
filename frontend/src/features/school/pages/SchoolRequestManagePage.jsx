@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { getJson, getBlob } from "../../../api/http.js";
 import { schoolRequestSvc } from "../services/schoolRequest.service.js";
 import StudentModal from "../components/StudentModal.jsx";
@@ -10,11 +11,12 @@ import { Icon } from "@iconify/react";
 // ── helpers ──────────────────────────────────────────────
 function projectStatusMeta(status) {
   switch (String(status || "").toLowerCase()) {
-    case "open":   return { label: "กำลังเปิดรับบริจาค", cls: "pill-green" };
-    case "closed": return { label: "ปิดรับบริจาคแล้ว",   cls: "pill-gray"  };
-    case "paused": return { label: "พักโครงการชั่วคราว", cls: "pill-yellow" };
-    case "draft":  return { label: "ฉบับร่าง",           cls: "pill-blue"  };
-    default:       return { label: "ไม่ทราบสถานะ",        cls: "pill-gray"  };
+    case "open":     return { label: "กำลังเปิดรับบริจาค", cls: "pill-green"  };
+    case "closed":   return { label: "ปิดรับบริจาคแล้ว",   cls: "pill-yellow" };
+    case "archived": return { label: "จบโครงการแล้ว",      cls: "pill-gray"   };
+    case "paused":   return { label: "พักโครงการชั่วคราว", cls: "pill-yellow" };
+    case "draft":    return { label: "ฉบับร่าง",           cls: "pill-blue"   };
+    default:         return { label: "ไม่ทราบสถานะ",        cls: "pill-gray"   };
   }
 }
 
@@ -85,6 +87,7 @@ function NeedsExpanded({ needs = [] }) {
 export default function SchoolRequestManagePage() {
   const { requestId } = useParams();
   const navigate      = useNavigate();
+  const location      = useLocation();
 
   const [project,      setProject]      = useState(null);
   const [loading,      setLoading]      = useState(true);
@@ -103,6 +106,8 @@ export default function SchoolRequestManagePage() {
   const [importOpen,  setImportOpen]  = useState(false);
   const [exporting,   setExporting]   = useState(false);
   const [expandedIds, setExpandedIds] = useState(new Set());
+  const [closeConfirm, setCloseConfirm] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   const meta = projectStatusMeta(project?.status);
 
@@ -133,6 +138,14 @@ export default function SchoolRequestManagePage() {
     if (!requestId) return;
     loadProject(); loadStudentsAndTypes();
   }, [requestId]);
+
+  // ── auto-open excel import เมื่อมาจากสร้างโครงการใหม่ ──
+  useEffect(() => {
+    if (location.state?.newProject) {
+      setImportOpen(true);
+      window.history.replaceState({}, "");
+    }
+  }, [location.state]);
 
   // ── reset page on filter change ───────────────────────
   useEffect(() => { setPage(1); }, [q, grade, status, urgFilter]);
@@ -196,6 +209,25 @@ export default function SchoolRequestManagePage() {
     finally { setExporting(false); }
   };
 
+  const handleCloseProject = async () => {
+    try {
+      setClosing(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`http://localhost:3000/school/projects/${requestId}/close`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "ปิดโครงการไม่สำเร็จ");
+      setCloseConfirm(false);
+      await loadProject();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setClosing(false);
+    }
+  };
+
   const formattedDate = project?.created_at
     ? new Date(project.created_at).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
     : "—";
@@ -219,16 +251,41 @@ export default function SchoolRequestManagePage() {
               </span>
               <span className="pm-meta-sep">·</span>
               <span className="pm-meta-date">สร้างเมื่อ {formattedDate}</span>
+              {project?.end_date && (
+                <>
+                  <span className="pm-meta-sep">·</span>
+                  <span className="pm-meta-date">
+                    สิ้นสุด {new Date(project.end_date).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
-        <button
-          className="pm-edit-btn"
-          onClick={() => navigate(`/school/projects/${requestId}/edit`)}
-          type="button"
-        >
-          <Icon icon="mdi:pencil-outline" width="16" /> แก้ไขโครงการ
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {project?.status === "open" && (
+            <button
+              type="button"
+              onClick={() => setCloseConfirm(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", borderRadius: 10,
+                background: "#FEF2F2", color: "#DC2626",
+                border: "1.5px solid #FECACA",
+                fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              <Icon icon="mdi:lock-outline" width="16" /> ปิดโครงการ
+            </button>
+          )}
+          <button
+            className="pm-edit-btn"
+            onClick={() => navigate(`/school/projects/${requestId}/edit`)}
+            type="button"
+          >
+            <Icon icon="mdi:pencil-outline" width="16" /> แก้ไขโครงการ
+          </button>
+        </div>
       </div>
 
       {err && <div className="pm-err"><Icon icon="mdi:alert-circle" width="16" /> {err}</div>}
@@ -557,6 +614,45 @@ export default function SchoolRequestManagePage() {
         requestId={requestId}
         onDone={loadStudentsAndTypes}
       />
+
+      {/* ── Confirm ปิดโครงการ ── */}
+      {closeConfirm && createPortal(
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 9999, padding: 16,
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: 28,
+            maxWidth: 380, width: "100%",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+          }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#1a1a2e", marginBottom: 10 }}>
+              ยืนยันปิดโครงการ?
+            </div>
+            <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, marginBottom: 20 }}>
+              โครงการจะหยุดรับบริจาคทันที และจะไม่สามารถเปิดใหม่ได้<br />
+              ยังสามารถอัปเดตสถานะรายการได้อีก <strong>14 วัน</strong> หลังปิด
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setCloseConfirm(false)}
+                style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleCloseProject}
+                disabled={closing}
+                style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: closing ? "#9CA3AF" : "#DC2626", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+              >
+                {closing ? "กำลังปิด..." : "ยืนยันปิดโครงการ"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
