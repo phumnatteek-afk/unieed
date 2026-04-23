@@ -1,5 +1,5 @@
 // src/pages/school/EditProjectPage.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getJson, request } from "../../../api/http.js";
 import "../styles/EditProjectPage.css";
@@ -60,6 +60,14 @@ export default function EditProjectPage() {
   const [uploading,   setUploading]   = useState(false);
   const [loading,     setLoading]     = useState(true);
   const [err,         setErr]         = useState("");
+  const [toast,       setToast]       = useState(false);
+  const toastTimer = useRef(null);
+
+  const showToast = () => {
+    setToast(true);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(false), 2500);
+  };
 
   // state ต่อ card: { preview, isCustom, customTypeName, uploading, msg }
   const [cardState,   setCardState]   = useState({});
@@ -244,7 +252,7 @@ for (const cat of MAIN_CATEGORIES) {
         body: { request_title: title.trim(), request_description: description || null, request_image_url: image || null, status },
         auth: true,
       });
-      alert("บันทึกสำเร็จ");
+      showToast();
       const fresh = await loadProject();
       setProject(fresh); setStatus(fresh?.status || status); setImage(fresh?.request_image_url || image);
       await loadCardState();
@@ -386,6 +394,13 @@ for (const cat of MAIN_CATEGORIES) {
 
   return (
     <div className="epPage">
+      {/* Toast */}
+      {toast && (
+        <div className="epToast">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#22c55e"/><path d="M7 12.5l3.5 3.5 6.5-7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          บันทึกสำเร็จ
+        </div>
+      )}
       {/* ===== TOP: Form + Preview ===== */}
       <div className="epTopSection">
       <div className="epLeft">

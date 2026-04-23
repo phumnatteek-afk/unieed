@@ -78,7 +78,36 @@ export async function getHomeData() {
     LIMIT 10
   `);
 
-  // 3) Products (เอารูปแรก)
+  // 3) Closed/Archived projects
+  const [closedProjects] = await db.query(`
+    SELECT
+      dr.request_id,
+      dr.request_title,
+      dr.request_image_url,
+      dr.status,
+      dr.end_date,
+      dr.created_at,
+      s.school_name,
+      s.school_address,
+      COALESCE((
+        SELECT SUM(f.quantity_fulfilled)
+        FROM fulfillment f
+        WHERE f.request_id = dr.request_id
+      ), 0) AS total_fulfilled,
+      COALESCE((
+        SELECT SUM(sn.quantity_needed)
+        FROM student_need sn
+        JOIN students st ON st.student_id = sn.student_id
+        WHERE st.request_id = dr.request_id
+      ), 0) AS total_needed
+    FROM donation_request dr
+    JOIN schools s ON s.school_id = dr.school_id
+    WHERE dr.status IN ('closed', 'archived')
+    ORDER BY dr.end_date DESC
+    LIMIT 8
+  `);
+
+  // 4) Products (เอารูปแรก)
   const [products] = await db.query(`
   SELECT
   p.product_id,
@@ -134,5 +163,5 @@ const [testimonials] = await db.query(`
   ORDER BY t.review_date DESC
   LIMIT 10
 `);
-return { stats, projects, products: productsWithImages, testimonials };
+return { stats, projects, closed_projects: closedProjects, products: productsWithImages, testimonials };
 }

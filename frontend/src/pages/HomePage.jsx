@@ -211,6 +211,7 @@ export default function HomePage() {
     total_paid: 0,
   });
   const [projects, setProjects] = useState([]);
+  const [closedProjects, setClosedProjects] = useState([]);
   const [products, setProducts] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -268,6 +269,7 @@ export default function HomePage() {
         const list = Array.isArray(data.projects) ? data.projects : [];
         setProjects(list);
         setRandomProjects(shuffleArray(list));
+        setClosedProjects(Array.isArray(data.closed_projects) ? data.closed_projects : []);
 
         setProducts(Array.isArray(data.products) ? data.products : []);
         setTestimonials(
@@ -958,6 +960,7 @@ export default function HomePage() {
         )}
       </section>
 
+
       {/* ===== Steps ===== */}
       <section className="steps">
         <div className="stepsWrap">
@@ -1120,6 +1123,39 @@ export default function HomePage() {
   </div>
 )}
       </section>
+
+      {/* ===== Closed Projects ===== */}
+      {closedProjects.length > 0 && (
+        <section className="section closedSection">
+          <div className="sectionHead">
+            <div className="closedSecTitle">ผลลัพธ์จากการร่วมส่งต่อ</div>
+            <div className="closedSecSub">โครงการที่สำเร็จแล้ว ขอบคุณทุกท่านที่ร่วมส่งต่อความห่วงใย</div>
+          </div>
+          <div className="closedGrid">
+            {closedProjects.map(p => {
+              const pct = p.total_needed > 0 ? Math.min(Math.round((p.total_fulfilled / p.total_needed) * 100), 100) : 0;
+              return (
+                <div key={p.request_id} className="closedCard" onClick={() => navigate(`/projects/${p.request_id}`)}>
+                  <div className="closedCardImg">
+                    {p.request_image_url
+                      ? <img src={p.request_image_url} alt={p.school_name} />
+                      : <div className="closedCardImgEmpty">🎒</div>}
+                    <span className="closedBadge">🏁 รายงานปิดโครงการ</span>
+                  </div>
+                  <div className="closedCardBody">
+                    <div className="closedCardSchool">{p.school_name}</div>
+                    <div className="closedCardTitle">{p.request_title}</div>
+                    <div className="closedCardBar">
+                      <div className="closedCardBarFill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="closedCardPct">ส่งต่อแล้ว {p.total_fulfilled} / {p.total_needed} ชุด ({pct}%)</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ===== Testimonials ===== */}
       <section className="section sectionSoftBlue">

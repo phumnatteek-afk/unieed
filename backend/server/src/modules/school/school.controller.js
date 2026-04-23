@@ -27,6 +27,8 @@ export async function getProjectByIdPublic(req, res, next) {
          dr.request_image_url,
          dr.status,
          dr.created_at,
+         dr.end_date,
+         dr.duration_months,
          s.school_name,
          s.school_address        AS school_full_address,
          s.school_phone,
