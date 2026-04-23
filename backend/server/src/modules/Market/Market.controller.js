@@ -8,7 +8,8 @@ import {
   getUniformTypes     as svcGetTypes,
   getUniformTypesBySchool as svcGetTypesBySchool,
   getRelatedProducts  as svcGetRelated,
-    getMatchedProducts  as svcGetMatched,
+  getMatchedProducts  as svcGetMatched,
+  getRecommendedProjectsByProduct as svcGetRecommendedProjectsByProduct,
   
 } from "./Market.service.js";
 
@@ -168,6 +169,18 @@ const getMatchedProducts = async (req, res) => {
   }
 };
 
+const getRecommendedProjectsByProduct = async (req, res) => {
+  try {
+    const productId = Number(req.params.id);
+    if (!productId) return res.status(400).json({ message: "product id ไม่ถูกต้อง" });
+    const result = await svcGetRecommendedProjectsByProduct(productId);
+    res.json(result);
+  } catch (err) {
+    console.error("[Market.getRecommendedProjectsByProduct]", err);
+    res.status(err.status || 500).json({ message: err.message || "เกิดข้อผิดพลาด" });
+  }
+};
+
 export {
   batchCreateProducts,
   getProducts,
@@ -177,5 +190,6 @@ export {
   getUniformTypes,
   getUniformTypesBySchool,
   getRelatedProducts,
-    getMatchedProducts,
+  getMatchedProducts,
+  getRecommendedProjectsByProduct,
 };

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
+import { getJson } from "../../../api/http.js";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import NotificationBell from "../../../pages/NotificationBell.jsx";
 import CartIcon from "../components/CartIcon.jsx";
@@ -70,6 +71,112 @@ function RelatedCard({ product, navigate }) {
     );
 }
 
+function RecommendedProjectCard({ project, selected, onSelect }) {
+  // ✅ ดึงข้อมูลจาก endpoint เดียวกับ ProjectDetailPage เพื่อให้ยอดตรงกัน 100%
+  const [detail, setDetail] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!project?.request_id) return;
+    (async () => {
+      try {
+        const data = await getJson(`/school/projects/public/${project.request_id}`, false);
+        if (!cancelled) setDetail(data);
+      } catch {
+        if (!cancelled) setDetail(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [project?.request_id]);
+
+  // ✅ คำนวณแบบเดียวกับ ProjectDetailPage เป๊ะ ๆ
+  //    const needed = project?.total_needed || 0;
+  //    const fulfilled = project?.total_fulfilled || 0;
+  //    const remaining = Math.max(needed - fulfilled, 0);
+  const needed = Number(detail?.total_needed ?? project.total_needed ?? 0);
+  const fulfilled = Number(detail?.total_fulfilled ?? project.total_fulfilled ?? 0);
+  const remaining = needed > 0
+    ? Math.max(needed - fulfilled, 0)
+    : Math.max(Number(project.remaining_needed || 0), 0);
+  const pct = needed > 0 ? Math.min(Math.round((fulfilled / needed) * 100), 100) : 0;
+
+  const isUrgent = project.recommended_tag === "urgent";
+  const tagIcon = isUrgent ? "mdi:alarm-light" : "mdi:fire";
+  const tagText = isUrgent ? "แนะนำเร่งด่วน" : "ต้องการมาก";
+
+  const coverImg = detail?.request_image_url || project.request_image_url;
+
+  return (
+    <div className={`pdProjCard${selected ? " pdProjCardSelected" : ""}`}>
+      {/* รูปโครงการ */}
+      <div className="pdProjCover">
+        {coverImg ? (
+          <img src={coverImg} alt={project.school_name} loading="lazy" />
+        ) : (
+          <div className="pdProjCoverPh">
+            <Icon icon="mdi:image-outline" />
+          </div>
+        )}
+        <span className={`pdProjBadge ${isUrgent ? "pdProjBadgeUrgent" : "pdProjBadgeMost"}`}>
+          <Icon icon={tagIcon} /> {tagText}
+        </span>
+        {selected && (
+          <span className="pdProjSelectedMark">
+            <Icon icon="mdi:check-circle" />
+          </span>
+        )}
+      </div>
+
+      {/* เนื้อหา */}
+      <div className="pdProjBody">
+        <div className="pdProjTitle">{project.request_title || "โครงการรับบริจาคชุดนักเรียน"}</div>
+        <div className="pdProjSchool">
+          <Icon icon="mdi:school-outline" /> <span>{project.school_name}</span>
+        </div>
+        <div className="pdProjAddr">
+          <Icon icon="mdi:map-marker-outline" /> <span>{project.school_address}</span>
+        </div>
+
+        {/* Progress bar — ตรงกับหน้ารายละเอียดโครงการ */}
+        {needed > 0 ? (
+          <div className="pdProjProgress">
+            <div className="pdProjProgressTop">
+              <span>ยอดที่ยืนยันแล้ว <b>{fulfilled.toLocaleString()}</b> / {needed.toLocaleString()} ชุด</span>
+              <span className="pdProjProgressPct">{pct}%</span>
+            </div>
+            <div className="pdProjProgressTrack">
+              <div className="pdProjProgressFill" style={{ width: `${pct}%` }} />
+            </div>
+            <div className="pdProjMeta">
+              <Icon icon="mdi:gift-outline" />
+              ต้องการอีก <b>{remaining.toLocaleString()}</b> ชุด
+            </div>
+          </div>
+        ) : (
+          <div className="pdProjMeta">
+            <Icon icon="mdi:gift-outline" />
+            ต้องการอีก <b>{remaining.toLocaleString()}</b> ชุด
+          </div>
+        )}
+
+        <div className="pdProjActions">
+          <Link to={`/projects/${project.request_id}`} className="pdProjDetailBtn">
+            <Icon icon="mdi:open-in-new" /> ดูรายละเอียด
+          </Link>
+          <button
+            type="button"
+            className={`pdProjSelectBtn${selected ? " pdProjSelectBtnOn" : ""}`}
+            onClick={() => onSelect(project)}
+          >
+            <Icon icon={selected ? "mdi:check-circle" : "mdi:gift-outline"} />
+            {selected ? "เลือกแล้ว" : "เลือกโครงการนี้"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────
 export default function ProductDetailPage() {
     const { id } = useParams();
@@ -105,6 +212,8 @@ export default function ProductDetailPage() {
     const [addingCart, setAddingCart] = useState(false);
     const [cartMsg, setCartMsg] = useState("");
     const [err, setErr] = useState("");
+    const [recommendedProjects, setRecommendedProjects] = useState([]);
+    const [selectedProject, setSelectedProject] = useState(null);
 
     // fetch product
     // แก้ใน ProductDetailPage.jsx — เฉพาะส่วน useEffect ที่ fetch related
@@ -136,6 +245,22 @@ export default function ProductDetailPage() {
             .catch(() => setErr("ไม่สามารถโหลดข้อมูลสินค้าได้"))
             .finally(() => setLoading(false));
     }, [id]);
+
+    useEffect(() => {
+        if (!id) return;
+        fetch(`/api/market/${id}/recommended-projects`)
+            .then(r => r.json())
+            .then(data => {
+                const projects = Array.isArray(data?.projects) ? data.projects : [];
+                setRecommendedProjects(projects);
+
+                if (isDonation && project?.project_id) {
+                    const found = projects.find((p) => Number(p.request_id) === Number(project.project_id));
+                    if (found) setSelectedProject(found);
+                }
+            })
+            .catch(() => setRecommendedProjects([]));
+    }, [id]); // eslint-disable-line
     const handleAddCart = async () => {
         if (!token) { navigate("/login"); return; }
         setAddingCart(true);
@@ -177,7 +302,16 @@ export default function ProductDetailPage() {
     await refreshCart();
 
     // 🔥 แยก logic
-    if (isDonation) {
+    if (selectedProject) {
+      navigate(`/checkout?items=${id}&type=product`, {
+        state: {
+          isDonation: true,
+          shippingAddress: selectedProject.shipping_address,
+          project_id: selectedProject.request_id,
+          project_title: selectedProject.request_title,
+        }
+      });
+    } else if (isDonation) {
       navigate(`/checkout?items=${id}&type=product`, {
         state: {
           isDonation: true,
@@ -384,7 +518,7 @@ export default function ProductDetailPage() {
                                         disabled={addingCart || product.quantity === 0}
                                     >
                                         <Icon icon="mdi:lightning-bolt" />
-                                        ซื้อเลย
+                                        {selectedProject ? "ซื้อส่งต่อโครงการที่เลือก" : "ซื้อเลย"}
                                     </button>
 
                                     <Link to="/market" className="pdBackBtn">
@@ -401,8 +535,23 @@ export default function ProductDetailPage() {
                             </div>
                         </div>
 
-                        {/* ── Related ── */}
-                        {related.length > 0 && (
+                        {/* ── Recommended Projects (แทนสินค้าแนะนำ) ── */}
+                        {recommendedProjects.length > 0 ? (
+                            <section className="pdRelated">
+                                <h2 className="pdRelatedTitle">โครงการที่แนะนำสำหรับการซื้อส่งต่อ</h2>
+                                <p className="pdProjSub">เลือกโครงการที่ท่านต้องการสนับสนุน ระบบจะจัดส่งสินค้าไปยังโรงเรียนปลายทางให้โดยอัตโนมัติ</p>
+                                <div className="pdProjGrid">
+                                    {recommendedProjects.map((p) => (
+                                        <RecommendedProjectCard
+                                            key={p.request_id}
+                                            project={p}
+                                            selected={Number(selectedProject?.request_id) === Number(p.request_id)}
+                                            onSelect={setSelectedProject}
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+                        ) : related.length > 0 && (
                             <section className="pdRelated">
                                 <h2 className="pdRelatedTitle">สินค้าอื่นๆ ที่อาจถูกใจ</h2>
                                 <div className="pdRelGrid">

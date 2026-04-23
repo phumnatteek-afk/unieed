@@ -696,6 +696,91 @@ const getMatchedProducts = async (project_id) => {
   };
 };
 
+const getRecommendedProjectsByProduct = async (productId) => {
+  const [[product]] = await db.execute(
+    `SELECT product_id, status
+     FROM products
+     WHERE product_id = ?`,
+    [productId]
+  );
+  if (!product) throw { status: 404, message: "ไม่พบสินค้า" };
+  if (product.status !== "available") return { projects: [] };
+
+  const [openProjects] = await db.execute(
+    `SELECT
+       dr.request_id,
+       dr.request_title,
+       dr.request_image_url,
+       dr.created_at,
+       s.school_name,
+       s.school_address,
+       s.school_phone,
+       COALESCE((
+         SELECT SUM(ri.quantity) FROM request_item ri WHERE ri.request_id = dr.request_id
+       ), 0) AS total_needed,
+       COALESCE((
+         SELECT SUM(f.quantity_fulfilled) FROM fulfillment f WHERE f.request_id = dr.request_id
+       ), 0) AS total_fulfilled,
+       (SELECT COUNT(*) FROM students st WHERE st.request_id = dr.request_id AND st.urgency = 'very_urgent') AS very_urgent_count,
+       (SELECT COUNT(*) FROM students st WHERE st.request_id = dr.request_id AND st.urgency = 'urgent') AS urgent_count
+     FROM donation_request dr
+     JOIN schools s ON s.school_id = dr.school_id
+     WHERE dr.status = 'open'
+     ORDER BY dr.created_at DESC`
+  );
+
+  const matchedProjects = [];
+  for (const projectRow of openProjects) {
+    const matched = await getMatchedProducts(projectRow.request_id);
+    const hasProduct = (matched.products || []).some(
+      (p) => Number(p.product_id) === Number(productId)
+    );
+    if (!hasProduct) continue;
+
+    const remaining = Math.max(
+      Number(projectRow.total_needed || 0) - Number(projectRow.total_fulfilled || 0),
+      0
+    );
+    const recommendedTag =
+      Number(projectRow.very_urgent_count || 0) > 0 || Number(projectRow.urgent_count || 0) > 0
+        ? "urgent"
+        : "most_needed";
+    const parsed = parseThaiAddress(projectRow.school_address);
+
+    matchedProjects.push({
+      request_id: projectRow.request_id,
+      request_title: projectRow.request_title,
+      request_image_url: projectRow.request_image_url,
+      school_name: projectRow.school_name,
+      school_address: projectRow.school_address,
+      school_phone: projectRow.school_phone,
+      total_needed: Number(projectRow.total_needed || 0),
+      total_fulfilled: Number(projectRow.total_fulfilled || 0),
+      remaining_needed: remaining,
+      very_urgent_count: Number(projectRow.very_urgent_count || 0),
+      urgent_count: Number(projectRow.urgent_count || 0),
+      recommended_tag: recommendedTag,
+      shipping_address: {
+        name: projectRow.school_name || "",
+        address: parsed.address_line || projectRow.school_address || "",
+        district: parsed.district || "",
+        province: parsed.province || "",
+        postal_code: parsed.postal_code || "",
+        phone: projectRow.school_phone || "",
+      },
+    });
+  }
+
+  matchedProjects.sort((a, b) => {
+    const aUrgent = a.recommended_tag === "urgent" ? 1 : 0;
+    const bUrgent = b.recommended_tag === "urgent" ? 1 : 0;
+    if (bUrgent !== aUrgent) return bUrgent - aUrgent;
+    return Number(b.remaining_needed || 0) - Number(a.remaining_needed || 0);
+  });
+
+  return { projects: matchedProjects };
+};
+
 export {
   batchCreateProducts,
   getProducts,
@@ -706,4 +791,5 @@ export {
   getUniformTypesBySchool,
   getRelatedProducts,
   getMatchedProducts,
+  getRecommendedProjectsByProduct,
 };
