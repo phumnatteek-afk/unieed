@@ -10,6 +10,7 @@ import {
   getUniformTypesBySchool,
   getRelatedProducts,
   getMatchedProducts,
+  getRecommendedProjectsByProduct,
 } from "./Market.controller.js";
 import { auth }                from "../../middleware/auth.js";
 import { uploadProductImages } from "../../config/cloudinary.js";
@@ -39,6 +40,9 @@ router.get("/matched", getMatchedProducts);
 
 // GET  /api/market/:id/related
 router.get("/:id/related", getRelatedProducts);
+
+// GET /api/market/:id/recommended-projects
+router.get("/:id/recommended-projects", getRecommendedProjectsByProduct);
 
 // GET  /api/market/:id
 router.get("/:id", getProductById);
