@@ -13,11 +13,25 @@ const EDUCATION_LEVELS = [
   { value: "มัธยมตอนปลาย", label: "มัธยมตอนปลาย (ม.4–ม.6)",emoji: "🎓" },
 ];
 
+function FemaleUniformIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M34 30.2222C34 32.3085 32.3085 34 30.2222 34H3.77778C1.6915 34 0 32.3085 0 30.2222V3.77778C0 1.6915 1.6915 0 3.77778 0H30.2222C32.3085 0 34 1.6915 34 3.77778V30.2222Z" fill="#FBF0F0"/>
+      <path d="M18.2665 33.4853C17.5695 34.1709 16.4305 34.1709 15.7344 33.4853L9.46994 27.319C8.77389 26.6333 8.58972 25.3999 9.06005 24.5763L16.1434 7.15417C16.6147 6.33156 17.3853 6.33156 17.8557 7.15417L24.939 24.5763C25.4093 25.3989 25.2252 26.6333 24.5291 27.3181L18.2665 33.4853Z" fill="#FF88C2"/>
+      <path d="M17 13.8531C17.8963 13.8531 18.8927 12.954 19.7379 11.7838L17.8557 7.15417C17.3844 6.33156 16.6137 6.33156 16.1434 7.15417L14.2611 11.7838C15.1083 12.954 16.1037 13.8531 17 13.8531Z" fill="#A0041E"/>
+      <path d="M21.7222 5.457C21.7222 7.31189 19.0863 12.1739 17 12.1739C14.9137 12.1739 12.2778 7.31189 12.2778 5.457C12.2778 3.77305 14.9137 2.83333 17 2.83333C19.0863 2.83333 21.7222 3.77305 21.7222 5.457Z" fill="#FF88C2"/>
+      <path d="M0 3.77778V5.90656C1.95878 8.52267 6.40239 13.2269 7.55556 13.2269C9.64183 13.2269 17.9444 3.03072 17.9444 0.944444C17.9444 0 17 0 16.0556 0H3.77778C1.6915 0 0 1.6915 0 3.77778Z" fill="#B5B5B5"/>
+      <path d="M16.0556 0.944444C16.0556 3.03072 24.3582 13.2269 26.4444 13.2269C27.5976 13.2269 32.0412 8.52267 34 5.90656V3.77778C34 1.6915 32.3085 0 30.2222 0H17.9444C17 0 16.0556 0 16.0556 0.944444Z" fill="#B5B5B5"/>
+      <path d="M3.77778 0C3.52561 0 3.281 0.0273889 3.043 0.0746111C4.16028 1.63956 9.97522 2.83333 17 2.83333C24.0248 2.83333 29.8397 1.63956 30.957 0.0746111C30.719 0.0273889 30.4744 0 30.2222 0H3.77778Z" fill="#383838"/>
+    </svg>
+  );
+}
+
 // หมวดหมู่หลัก 4 ตัว (ตรงกับ category_item ใน DB)
 const MAIN_CATEGORIES = [
   { id: 1, name: "เสื้อนักเรียนชาย",    gender: "male",   icon: "👔", color: "#1D4ED8", bg: "#EFF6FF" },
   { id: 3, name: "กางเกงนักเรียนชาย",   gender: "male",   icon: "👖", color: "#1D4ED8", bg: "#EFF6FF" },
-  { id: 2, name: "เสื้อนักเรียนหญิง",   gender: "female", icon: "👗", color: "#BE185D", bg: "#FDF2F8" },
+  { id: 2, name: "เสื้อนักเรียนหญิง",   gender: "female", icon: "👗", Svg: FemaleUniformIcon, color: "#BE185D", bg: "#FDF2F8" },
   { id: 4, name: "กระโปรงนักเรียนหญิง", gender: "female", icon: "👗", color: "#BE185D", bg: "#FDF2F8" },
 ];
 
@@ -372,7 +386,8 @@ for (const cat of MAIN_CATEGORIES) {
 
   return (
     <div className="epPage">
-      {/* ===== LEFT ===== */}
+      {/* ===== TOP: Form + Preview ===== */}
+      <div className="epTopSection">
       <div className="epLeft">
         <h2>แก้ไขข้อมูลโครงการ</h2>
         {err && <div className="epError">{err}</div>}
@@ -404,16 +419,38 @@ for (const cat of MAIN_CATEGORIES) {
           </div>
         </div>
 
-        {/* ════════════════════════════════════════════════════════════
-            อัปโหลดรูปชุดนักเรียน — แสดงตามหมวดหมู่หลัก
-        ════════════════════════════════════════════════════════════ */}
+      </div>{/* end epLeft */}
+
+      {/* ===== RIGHT: Preview ===== */}
+      <div className="epRight">
+        <div className="epRightHead"><div className="ttl">ตัวอย่างการ์ดโครงการ</div></div>
+        <div className="epPreviewWrap">
+          <div className="projectCard">
+            <div className="cover">
+              {image ? <img src={image} alt="" /> : <div className="coverPlaceholder" />}
+            </div>
+            <div className="cardBody">
+              <div className="cardSchool">{project?.school_name || "-"}</div>
+              <div className="cardTitle">{title || "ชื่อโครงการ"}</div>
+              <div className="cardDesc">{description || "รายละเอียดโครงการจะแสดงตรงนี้..."}</div>
+              <div className="cardAddr">ที่ตั้ง: {project?.school_address || "-"}</div>
+              <div className="cardMeta"><span>สร้างเมื่อ: {formattedDate}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </div>{/* end epTopSection */}
+
+      {/* ===== UNIFORM SECTION (full width) ===== */}
+      <div className="epUniformSection">
+        <label className="epUniformLabel">
+          รูปภาพชุดนักเรียน
+          <span className="epUniformLabelSub">
+            แต่ละหมวดหมู่มีรูป default ให้ — กด "แก้ไข" เพื่อเปลี่ยนรูปและระบุ type ของโรงเรียน
+          </span>
+        </label>
         <div className="epField">
-          <label className="epUniformLabel">
-            รูปภาพชุดนักเรียน
-            <span className="epUniformLabelSub">
-              แต่ละหมวดหมู่มีรูป default ให้ — กด "แก้ไข" เพื่อเปลี่ยนรูปและระบุ type ของโรงเรียน
-            </span>
-          </label>
 
           {/* Step 1: เลือกระดับชั้น */}
           <div className="epLevelStepBox">
@@ -520,26 +557,7 @@ for (const cat of MAIN_CATEGORIES) {
             {uploading ? "กำลังอัปโหลด..." : "บันทึก"}
           </button>
         </div>
-      </div>
-
-      {/* ===== RIGHT: Preview ===== */}
-      <div className="epRight">
-        <div className="epRightHead"><div className="ttl">ตัวอย่างการ์ดโครงการ</div></div>
-        <div className="epPreviewWrap">
-          <div className="projectCard">
-            <div className="cover">
-              {image ? <img src={image} alt="" /> : <div className="coverPlaceholder" />}
-            </div>
-            <div className="cardBody">
-              <div className="cardSchool">{project?.school_name || "-"}</div>
-              <div className="cardTitle">{title || "ชื่อโครงการ"}</div>
-              <div className="cardDesc">{description || "รายละเอียดโครงการจะแสดงตรงนี้..."}</div>
-              <div className="cardAddr">ที่ตั้ง: {project?.school_address || "-"}</div>
-              <div className="cardMeta"><span>สร้างเมื่อ: {formattedDate}</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </div>{/* end epUniformSection */}
 
       {/* ═══════════════════════════════════════════════════════════════
           Modal แก้ไข type + รูป
@@ -560,7 +578,7 @@ for (const cat of MAIN_CATEGORIES) {
             <div className="epModalBody">
               {/* รูป default ปัจจุบัน */}
               <div className="epModalDefaultStrip">
-                <div className="epModalDefaultIcon">{modalCat.icon}</div>
+                <div className="epModalDefaultIcon">{modalCat.Svg ? <modalCat.Svg size={28} /> : modalCat.icon}</div>
                 <div className="epModalDefaultInfo">
                   <div className="epModalDefaultTitle">{modalCat.name}</div>
                   <div className="epModalDefaultSub">หมวดหมู่หลักของระบบ</div>
@@ -645,7 +663,7 @@ function CategoryCard({ cat, level, state, onEdit, onReset }) {
           ? <img src={state.preview} alt={displayName} />
           : (
             <div className="epUniCardEmpty">
-              <span style={{ fontSize: 28 }}>{cat.icon}</span>
+              {cat.Svg ? <cat.Svg size={32} /> : <span style={{ fontSize: 28 }}>{cat.icon}</span>}
               <span>ยังไม่มีรูป</span>
             </div>
           )}
@@ -660,7 +678,7 @@ function CategoryCard({ cat, level, state, onEdit, onReset }) {
 
       {/* ชื่อ type ใต้รูป */}
       <div className="epUniCardTypeName">
-        {cat.icon} <span>{displayName}</span>
+        {cat.Svg ? <cat.Svg size={16} /> : cat.icon} <span>{displayName}</span>
       </div>
       <div className="epUniCardSubCat" style={{ color: "#94A3B8", fontSize: 10, padding: "0 10px 4px" }}>
         {cat.name} · {level}

@@ -77,6 +77,7 @@ export default function AdminSchoolsPage() {
         setToast({ type: "success", message: "นำออกสำเร็จ" });
       }
       setConfirmData(null);
+      closeSchoolModal();
       await load();
     } catch (e) {
       setToast({ type: "error", message: e?.data?.message || e.message || "ทำรายการไม่สำเร็จ" });
@@ -99,6 +100,7 @@ export default function AdminSchoolsPage() {
       setToast({ type: "success", message: "ปฏิเสธเรียบร้อย" });
       setRejectData(null);
       setRejectNote("");
+      closeSchoolModal();
       await load();
     } catch (e) {
       setToast({ type: "error", message: e?.data?.message || e.message || "ทำรายการไม่สำเร็จ" });

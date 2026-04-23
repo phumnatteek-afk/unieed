@@ -17,6 +17,7 @@ import checkoutRoutes from "./modules/checkout/checkout.routes.js";
 
 import autocheckRoutes from "./modules/autocheck/autocheck.routes.js";
 import { initAutoCheckScheduler } from "./modules/autocheck/autocheck.controller.js";
+import { runProjectLifecycleCron } from "./cron/projectLifecycle.js";
 
 const app = express();
 app.use(cors());
@@ -55,5 +56,9 @@ app.use((err, req, res, next) => {
 });
 
 initAutoCheckScheduler();
+
+// รัน cron ทันทีตอน server start แล้วตั้ง interval ทุก 24 ชั่วโมง
+runProjectLifecycleCron();
+setInterval(runProjectLifecycleCron, 24 * 60 * 60 * 1000);
 
 export default app;

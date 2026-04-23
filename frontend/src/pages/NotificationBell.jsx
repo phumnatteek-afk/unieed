@@ -286,7 +286,7 @@ export default function NotificationBell() {
             {/* Footer */}
             {notifs.length > 0 && (
               <div className="nb-footer">
-                <a href="/my-donations">ดูประวัติการบริจาคทั้งหมด →</a>
+                <a href="/donations/history">ดูประวัติการบริจาคทั้งหมด →</a>
               </div>
             )}
 

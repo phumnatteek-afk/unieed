@@ -34,6 +34,11 @@
   gap: 20px;
 }
 
+.sdTitleWrap {
+  flex: 1;
+  min-width: 0;
+}
+
 .sdTitle {
   font-size: 20px;
   font-weight: 600;
@@ -43,6 +48,33 @@
   font-size: 14px;
   color: #666;
   margin-top: 4px;
+}
+
+.sdHeadActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sdIconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #374151;
+  cursor: pointer;
+  font-size: 20px;
+  transition: background 0.2s;
+}
+
+.sdIconBtn:hover {
+  background: #f3f4f6 !important;
+  transform: none !important;
 }
 
 /* ===== Body (Scrollable) ===== */
@@ -159,7 +191,7 @@
   padding: 18px 24px;
   border-top: 1px solid #eee;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
 }
 
@@ -171,11 +203,12 @@
   font-size: 14px;
   cursor: pointer;
   background: #f0f2f5;
-  transition: 0.2s;
+  transition: background 0.2s;
 }
 
 .sdBtn:hover {
-  background: #e3e6ea;
+  background: #e3e6ea !important;
+  transform: none !important;
 }
 
 .sdBtn--ok {
@@ -183,14 +216,29 @@
   color: white;
 }
 
+.sdBtn--ok:hover {
+  background: #43a047 !important;
+  transform: none !important;
+}
+
 .sdBtn--bad {
   background: #e53935;
   color: white;
 }
 
+.sdBtn--bad:hover {
+  background: #c62828 !important;
+  transform: none !important;
+}
+
 .sdBtn--warn {
   background: #f59e0b;
   color: white;
+}
+
+.sdBtn--warn:hover {
+  background: #d97706 !important;
+  transform: none !important;
 }
 
 .sdFooterRight {

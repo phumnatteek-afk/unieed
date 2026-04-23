@@ -2,23 +2,34 @@
 
 /* ===== Edit Project Page ===== */
 .epPage{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
   padding: 24px;
   min-height: calc(100vh - 80px);
   background:#f6f7fb;
 }
 
-.epLeft, .epRight{
+.epTopSection {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.epLeft, .epUniformSection{
   background:#fff;
   border-radius: 18px;
-  padding: 20px;
+  padding: 24px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, .08);
 }
+
 .epRight{
-    background: none;
-    box-shadow: none;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  position: sticky;
+  top: 24px;
 }
 
 /* ===== Left: Form ===== */
@@ -266,6 +277,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  font-size: 20px;
+  font-weight: 800;
 }
 .epUniformLabelSub {
   font-size: 12px;

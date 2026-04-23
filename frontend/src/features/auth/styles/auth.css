@@ -208,8 +208,10 @@ html, body, #root {
   justify-content: center;
   padding: 48px 44px;
   background: #fff;
-  height: 100%; /* ← เพิ่มตรงนี้ */
-  box-sizing: border-box; 
+  height: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Override: lgHeader / lgForm / etc. now render inside lgRightPanel */

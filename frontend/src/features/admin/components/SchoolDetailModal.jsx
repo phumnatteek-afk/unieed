@@ -342,8 +342,6 @@ export default function SchoolDetailModal({
 
         {/* Footer */}
         <div className="sdFooter">
-          <button className="sdBtn" onClick={onClose} disabled={busy} type="button">ปิด</button>
-
           {editMode ? (
             <div className="sdFooterRight">
               <button className="sdBtn" onClick={cancelEdit} disabled={busy} type="button">ยกเลิก</button>

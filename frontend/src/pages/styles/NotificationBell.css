@@ -23,6 +23,7 @@
 
 .nb-btn:hover {
   background: rgba(255, 255, 255, 0.15);
+  transform: none;
 }
 
 .nb-badge {
@@ -243,19 +244,22 @@
   border-radius: 20px;
   width: 100%;
   max-width: 460px;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
 }
 
 .nb-cert-modal-top {
   background: linear-gradient(135deg, #29B6E8 0%, #5285E8 100%);
-  padding: 28px 24px 24px;
+  padding: 16px 24px 14px;
   text-align: center;
 }
 
 .nb-cert-modal-emoji {
-  font-size: 42px;
-  margin-bottom: 10px;
+  font-size: 32px;
+  margin-bottom: 6px;
 }
 
 .nb-cert-modal-title {
@@ -271,30 +275,34 @@
 }
 
 .nb-cert-modal-body {
-  padding: 20px 22px;
+  padding: 14px 18px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 /* Certificate image preview */
 .nb-cert-img-wrap {
   background: #f0f9ff;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 14px;
+  border-radius: 10px;
+  padding: 8px;
+  margin-bottom: 10px;
   border: 1px solid #bae6fd;
 }
 
 .nb-cert-img-wrap img {
   width: 100%;
-  border-radius: 8px;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 6px;
   display: block;
 }
 
 /* Thank message */
 .nb-cert-thank {
   background: #fffbeb;
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
   border-left: 3px solid #FFBE1B;
 }
 
@@ -302,23 +310,23 @@
   font-size: 11px;
   font-weight: 600;
   color: #b45309;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
 .nb-cert-thank-text {
-  font-size: 13px;
+  font-size: 12.5px;
   color: #78350f;
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
 /* Meta row */
 .nb-cert-meta {
   font-size: 12px;
   color: #64748b;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
@@ -370,6 +378,12 @@
 
 .nb-cert-btn--close:hover {
   background: #f8fafc;
+  transform: none;
+}
+
+.nb-cert-btn--png:hover,
+.nb-cert-btn--pdf:hover {
+  transform: none;
 }
 
 /* ── Confetti ────────────────────────────────────────────────────── */

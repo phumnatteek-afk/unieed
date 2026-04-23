@@ -271,15 +271,17 @@ export default function RegisterSchoolPage() {
             <form className="lgForm rsSchoolForm" onSubmit={onSubmit}>
               <div className="lgField">
   <label className="lgLabel">ตราโรงเรียน (ไฟล์รูป)</label>
-  <label className="rsFile" style={{ 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '10px', 
+  <label className="rsFile" style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
     cursor: 'pointer',
     border: '1px solid #ccc',
     padding: '8px 12px',
     borderRadius: '999px',
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+    minWidth: 0,
   }}>
     <input
       type="file"
@@ -296,7 +298,7 @@ export default function RegisterSchoolPage() {
     }}>
       เลือกไฟล์
     </span>
-    <span className="rsFileName" style={{ fontSize: '14px', color: '#666' }}>
+    <span className="rsFileName" style={{ fontSize: '14px', color: '#666', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
       {logoFile?.name || "ยังไม่ได้เลือกไฟล์"}
     </span>
   </label>
@@ -305,16 +307,18 @@ export default function RegisterSchoolPage() {
   <label className="lgLabel">รูปภาพโรงเรียน</label>
   
   {/* เราใช้ <label> มาครอบ UI ทั้งหมด เพื่อให้เวลาคลิกตรงไหนก็ได้ (เช่น คำว่า เลือกไฟล์) หน้าต่างเลือกไฟล์ก็จะเปิดขึ้นมาครับ */}
-  <label className="rsFileWrap" style={{ 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '12px', 
+  <label className="rsFileWrap" style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
     cursor: 'pointer',
     border: '1px solid #d1d5db',
     padding: '8px',
     borderRadius: '999px',
     backgroundColor: '#fff',
-    minHeight: '42px' // ปรับความสูงให้พอดีกับช่อง Input อื่นๆ
+    minHeight: '42px',
+    overflow: 'hidden',
+    minWidth: 0,
   }}>
     
     {/* 1. ซ่อน Input จริงทิ้งไปเลยครับ */}
@@ -338,11 +342,13 @@ export default function RegisterSchoolPage() {
     </span>
     
     {/* 3. แสดงชื่อไฟล์หรือข้อความ "ยังไม่ได้เลือกไฟล์" เอง */}
-    <span className="rsFileName" style={{ 
-      fontSize: '14px', 
-      color: '#666', 
-      overflow: 'hidden', // กันชื่อไฟล์ยาวเกินไป
-      textOverflow: 'ellipsis', 
+    <span className="rsFileName" style={{
+      fontSize: '14px',
+      color: '#666',
+      flex: 1,
+      minWidth: 0,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
     }}>
       {file?.name || "ยังไม่ได้เลือกไฟล์"}
