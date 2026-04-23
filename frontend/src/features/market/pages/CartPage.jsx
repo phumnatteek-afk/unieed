@@ -45,6 +45,15 @@ function groupBySeller(items) {
   return Array.from(map.values());
 }
 
+function isItemBuyable(item) {
+  return (
+    item &&
+    item.status === "available" &&
+    Number(item.stock) > 0 &&
+    Number(item.quantity) <= Number(item.stock)
+  );
+}
+
 // ── Main ─────────────────────────────────────────────────
 export default function CartPage() {
   const { token } = useAuth();
@@ -63,8 +72,8 @@ export default function CartPage() {
       });
       const data = await res.json();
       setCart(data);
-      // select all by default
-      const all = new Set((data.items || []).map(i => i.cart_item_id));
+      // select only buyable items by default
+      const all = new Set((data.items || []).filter(isItemBuyable).map(i => i.cart_item_id));
       setSelected(all);
     } catch (e) {
       console.error(e);
@@ -74,6 +83,15 @@ export default function CartPage() {
   }, [token, navigate]);
 
   useEffect(() => { fetchCart(); }, [fetchCart]);
+
+  useEffect(() => {
+    if (!cart?.items) return;
+    const buyableIdSet = new Set(cart.items.filter(isItemBuyable).map(i => i.cart_item_id));
+    setSelected(prev => {
+      const next = new Set([...prev].filter(id => buyableIdSet.has(id)));
+      return next;
+    });
+  }, [cart]);
 
   const updateQty = async (cartItemId, qty) => {
     setUpdating(cartItemId);
@@ -107,6 +125,8 @@ export default function CartPage() {
   };
 
   const toggleSelect = (id) => {
+    const item = cart?.items?.find(i => i.cart_item_id === id);
+    if (!isItemBuyable(item)) return;
     setSelected(prev => {
       const s = new Set(prev);
       s.has(id) ? s.delete(id) : s.add(id);
@@ -116,20 +136,22 @@ export default function CartPage() {
 
   const toggleSelectAll = () => {
     if (!cart) return;
-    if (selected.size === cart.items.length) {
+    const buyableItems = cart.items.filter(isItemBuyable);
+    if (selected.size === buyableItems.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(cart.items.map(i => i.cart_item_id)));
+      setSelected(new Set(buyableItems.map(i => i.cart_item_id)));
     }
   };
 
   // คำนวณยอด
   // ✅ ใหม่
-const selectedItems = (cart?.items || []).filter(i => selected.has(i.cart_item_id));
+const selectedItems = (cart?.items || []).filter(i => selected.has(i.cart_item_id) && isItemBuyable(i));
 const subtotal      = selectedItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
 const shippingTotal = selectedItems.reduce((s, i) => s + Number(i.shipping_price || 0), 0);
 const total         = subtotal + shippingTotal;
 const groups        = groupBySeller(cart?.items || []);
+const buyableCount  = (cart?.items || []).filter(isItemBuyable).length;
 
   if (!token) return null;
 
@@ -183,10 +205,11 @@ const groups        = groupBySeller(cart?.items || []);
                 <label className="cpCheckLabel">
                   <input
                     type="checkbox"
-                    checked={selected.size === cart.items.length}
+                    checked={buyableCount > 0 && selected.size === buyableCount}
                     onChange={toggleSelectAll}
+                    disabled={buyableCount === 0}
                   />
-                  <span>เลือกทั้งหมด ({cart.items.length} รายการ)</span>
+                  <span>เลือกทั้งหมด ({buyableCount} รายการที่สั่งซื้อได้)</span>
                 </label>
               </div>
 
@@ -207,11 +230,14 @@ const groups        = groupBySeller(cart?.items || []);
                     const sizeText = getSizeText(item.size, item.category_id);
                     const isSelected = selected.has(item.cart_item_id);
                     const isUpdating = updating === item.cart_item_id;
+                    const buyable = isItemBuyable(item);
+                    const soldOut = item.status !== "available" || Number(item.stock) <= 0;
 
                     return (
                       <div
                         key={item.cart_item_id}
                         className={`cpItem${isSelected ? " cpItemSelected" : ""}`}
+                        style={!buyable ? { opacity: 0.72 } : undefined}
                       >
                         {/* Checkbox */}
                         <input
@@ -219,6 +245,7 @@ const groups        = groupBySeller(cart?.items || []);
                           className="cpItemCheck"
                           checked={isSelected}
                           onChange={() => toggleSelect(item.cart_item_id)}
+                          disabled={!buyable}
                         />
 
                         {/* Image */}
@@ -248,8 +275,12 @@ const groups        = groupBySeller(cart?.items || []);
     {item.shipping_price > 0 && ` · ฿${Number(item.shipping_price).toLocaleString()}`}
   </div>
 )}
-                          <div className="cpItemStock">
-                            {item.stock > 0 ? `มีสินค้า ${item.stock} ชิ้น` : "สินค้าหมด"}
+                          <div className={`cpItemStock${!buyable ? " cpItemStockWarn" : ""}`}>
+                            {soldOut
+                              ? "สินค้าหมด"
+                              : Number(item.quantity) > Number(item.stock)
+                                ? `เหลือ ${item.stock} ชิ้น (ในตะกร้าเกินจำนวน)`
+                                : `มีสินค้า ${item.stock} ชิ้น`}
                           </div>
                         </div>
 
@@ -262,13 +293,13 @@ const groups        = groupBySeller(cart?.items || []);
                             <button
                               className="cpQtyBtn"
                               onClick={() => updateQty(item.cart_item_id, item.quantity - 1)}
-                              disabled={isUpdating}
+                              disabled={isUpdating || !buyable}
                             >−</button>
                             <span className="cpQty">{item.quantity}</span>
                             <button
                               className="cpQtyBtn"
                               onClick={() => updateQty(item.cart_item_id, item.quantity + 1)}
-                              disabled={isUpdating || item.quantity >= item.stock}
+                              disabled={isUpdating || !buyable || item.quantity >= item.stock}
                             >+</button>
                           </div>
                           <div className="cpItemSubtotal">
@@ -320,7 +351,7 @@ const groups        = groupBySeller(cart?.items || []);
                   className="cpCheckoutBtn"
                   disabled={selectedItems.length === 0}
                   onClick={() => {
-                    const ids = [...selected].join(",");
+                    const ids = selectedItems.map(i => i.cart_item_id).join(",");
                     navigate(`/checkout?items=${ids}`);
                   }}
                 >

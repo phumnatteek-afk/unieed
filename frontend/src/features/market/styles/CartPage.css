@@ -114,6 +114,7 @@
   display: flex; align-items: center; gap: 4px;
 }
 .cpItemStock { font-size: 11px; color: #22c55e; margin-top: 2px; }
+.cpItemStockWarn { color: #dc2626; font-weight: 600; }
 
 .cpItemRight {
   display: flex; flex-direction: column;

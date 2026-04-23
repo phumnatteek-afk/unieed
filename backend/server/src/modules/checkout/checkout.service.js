@@ -885,6 +885,7 @@ const placeOrder = async ({
   omiseToken,      // card token จาก OmiseJS
   paymentMethod,   // "card" | "promptpay" | null
 }) => {
+  const isOmiseTestMode = String(process.env.OMISE_SECRET_KEY || "").startsWith("skey_test_");
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
@@ -961,21 +962,25 @@ const placeOrder = async ({
     );
     const orderId = orderResult.insertId;
 
-    // ── INSERT order_items + ลด stock ────────────────────
+    const shouldDeductStockNow = paymentMethod !== "promptpay";
+
+    // ── INSERT order_items (+ ลด stock ทันทีเฉพาะ non-PromptPay) ──
     for (const item of items) {
       await conn.execute(
         `INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase)
          VALUES (?, ?, ?, ?)`,
         [orderId, item.product_id, item.quantity, item.price]
       );
-      await conn.execute(
-        `UPDATE products SET quantity = quantity - ? WHERE product_id = ?`,
-        [item.quantity, item.product_id]
-      );
-      await conn.execute(
-        `UPDATE products SET status = 'sold' WHERE product_id = ? AND quantity <= 0`,
-        [item.product_id]
-      );
+      if (shouldDeductStockNow) {
+        await conn.execute(
+          `UPDATE products SET quantity = quantity - ? WHERE product_id = ?`,
+          [item.quantity, item.product_id]
+        );
+        await conn.execute(
+          `UPDATE products SET status = 'sold' WHERE product_id = ? AND quantity <= 0`,
+          [item.product_id]
+        );
+      }
     }
 
     // ── INSERT order_shipping ─────────────────────────────
@@ -1003,6 +1008,7 @@ const placeOrder = async ({
     // ── Omise: Card Payment ───────────────────────────────
     let chargeId = null;
     let qrBase64 = null;
+    let qrMimeType = null;
     let authorizeUri = null; 
 
     if (omiseToken && paymentMethod === "card") {
@@ -1071,8 +1077,10 @@ const placeOrder = async ({
             },
           });
           if (imgRes.ok) {
+            const contentType = imgRes.headers.get("content-type") || "";
             const imgBuf = await imgRes.arrayBuffer();
             qrBase64 = Buffer.from(imgBuf).toString("base64");
+            qrMimeType = contentType.includes("image/") ? contentType : "image/png";
           }
         } catch (qrErr) {
           console.warn("[PromptPay] QR fetch failed:", qrErr.message);
@@ -1180,11 +1188,14 @@ const placeOrder = async ({
 
     await conn.commit();
     return {
-  order_id:      orderId,
-  charge_id:     chargeId,
-  qr_image_url:  chargeId ? `/api/checkout/qr-image/${chargeId}` : null,
-  authorize_uri: authorizeUri || null,
-};
+      order_id:      orderId,
+      charge_id:     chargeId,
+      qr_base64:     qrBase64 || null,
+      qr_mime_type:  qrMimeType || null,
+      qr_image_url:  chargeId ? `/api/checkout/qr-image/${chargeId}` : null,
+      authorize_uri: authorizeUri || null,
+      mock_mode: isOmiseTestMode && paymentMethod === "promptpay",
+    };
 
   } catch (err) {
     await conn.rollback();
@@ -1197,23 +1208,79 @@ const placeOrder = async ({
 // ────────────────────────────────────────────────────────
 // CHECK PAYMENT STATUS (PromptPay polling)
 // ────────────────────────────────────────────────────────
-const checkPaymentStatus = async (orderId, userId) => {
+const checkPaymentStatus = async (orderId, userId, options = {}) => {
   const [[order]] = await db.execute(
-    "SELECT order_id, omise_charge_id, payment_status FROM orders WHERE order_id = ? AND buyer_id = ?",
+    "SELECT order_id, omise_charge_id, payment_status, payment_method FROM orders WHERE order_id = ? AND buyer_id = ?",
     [orderId, userId]
   );
   if (!order) throw { status: 404, message: "ไม่พบ order" };
   if (order.payment_status === "paid") return { paid: true };
   if (!order.omise_charge_id) return { paid: false };
 
-  // ดึงสถานะจาก Omise
+  const finalizePaidOrder = async () => {
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      // lock order row กันแข่งกันอัปเดตซ้ำจาก polling หลาย request
+      const [[lockedOrder]] = await conn.execute(
+        "SELECT order_id, payment_status FROM orders WHERE order_id = ? FOR UPDATE",
+        [orderId]
+      );
+      if (!lockedOrder) throw { status: 404, message: "ไม่พบ order" };
+
+      // ถ้าจ่ายแล้วจาก request อื่น ให้จบทันที (idempotent)
+      if (lockedOrder.payment_status !== "paid") {
+        const [itemRows] = await conn.execute(
+          `SELECT oi.product_id, oi.quantity, p.quantity AS stock
+           FROM order_items oi
+           JOIN products p ON p.product_id = oi.product_id
+           WHERE oi.order_id = ?`,
+          [orderId]
+        );
+
+        for (const item of itemRows) {
+          // ชำระเงินสำเร็จแล้ว: พยายามตัด stock ตามจริงเท่าที่เหลือ (กันติดลบ)
+          const deductQty = Math.min(Number(item.quantity), Math.max(Number(item.stock), 0));
+          if (deductQty > 0) {
+            await conn.execute(
+              "UPDATE products SET quantity = quantity - ? WHERE product_id = ?",
+              [deductQty, item.product_id]
+            );
+          }
+          await conn.execute(
+            "UPDATE products SET status = 'sold' WHERE product_id = ? AND quantity <= 0",
+            [item.product_id]
+          );
+        }
+
+        await conn.execute(
+          "UPDATE orders SET payment_status = 'paid', order_status = 'confirmed' WHERE order_id = ?",
+          [orderId]
+        );
+      }
+
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+    return { paid: true };
+  };
+
+  const isOmiseTestMode = String(process.env.OMISE_SECRET_KEY || "").startsWith("skey_test_");
+  const isMockConfirm = isOmiseTestMode && order.payment_method === "promptpay" && options.forceMock === true;
+  if (isMockConfirm) {
+    // test/mock mode: allow success flow without real payment
+    return await finalizePaidOrder();
+  }
+
+  // ดึงสถานะจาก Omise (production flow)
   const charge = await omise.charges.retrieve(order.omise_charge_id);
   if (charge.status === "successful") {
-    await db.execute(
-      "UPDATE orders SET payment_status = 'paid', order_status = 'confirmed' WHERE order_id = ?",
-      [orderId]
-    );
-    return { paid: true };
+    return await finalizePaidOrder();
   }
   return { paid: false, omise_status: charge.status };
 };

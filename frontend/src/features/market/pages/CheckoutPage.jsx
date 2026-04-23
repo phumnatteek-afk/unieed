@@ -468,20 +468,27 @@ function OmiseCardForm({ amount, onToken, onError, disabled }) {
 
 // ── PromptPay Block ───────────────────────────────────────
 // FIX: รับ qrImageUrl (URL ตรงๆ จาก Omise) แทน qrBase64
-function PromptPayBlock({ qrImageUrl, amount, onConfirm }) {
+function PromptPayBlock({ qrImageUrl, amount, onConfirm, mockMode = false }) {
   const [polling, setPolling] = useState(false);
+  const [checkingNow, setCheckingNow] = useState(false);
   const pollRef = useRef(null);
 
   useEffect(() => {
     if (!qrImageUrl) return;
     setPolling(true);
     pollRef.current = setInterval(() => {
-      onConfirm();
+      onConfirm(false);
     }, 3000);
     return () => { clearInterval(pollRef.current); setPolling(false); };
   }, [qrImageUrl]); // eslint-disable-line
 
   if (!qrImageUrl) return null;
+
+  const handleCheckNow = async () => {
+    setCheckingNow(true);
+    try { await onConfirm(true); }
+    finally { setCheckingNow(false); }
+  };
 
   return (
     <div className="coQrBlock">
@@ -489,14 +496,33 @@ function PromptPayBlock({ qrImageUrl, amount, onConfirm }) {
         <Icon icon="mdi:qrcode-scan" />
         <span>สแกน QR Code ด้วย Mobile Banking</span>
       </div>
-      {/* FIX: ใช้ URL โดยตรง ไม่ต้อง encode base64 */}
-      <img src={qrImageUrl} alt="PromptPay QR" className="coQrImage" />
+      <div className="coQrHint">
+        เปิดแอปธนาคาร &gt; เลือกสแกนจ่าย &gt; ยืนยันยอดเงิน
+      </div>
+      {mockMode && (
+        <div className="coQrMockTag">
+          โหมดทดสอบ: กดปุ่มตรวจสอบเพื่อจำลองการชำระสำเร็จ
+        </div>
+      )}
+      <div className="coQrFrame">
+        <img src={qrImageUrl} alt="PromptPay QR" className="coQrImage" />
+      </div>
+      <div className="coQrAmtLabel">ยอดที่ต้องชำระ</div>
       <div className="coQrAmt">{Number(amount).toLocaleString()} บาท</div>
-      <div className="coQrNote">
+      <div className="coQrNote" aria-live="polite">
         {polling
           ? <><Icon icon="mdi:loading" className="coSpinner" /> กำลังรอการชำระเงิน...</>
           : "กรุณาสแกนและชำระภายใน 15 นาที"}
       </div>
+      <button
+        className="coQrCheckBtn"
+        onClick={handleCheckNow}
+        disabled={checkingNow}
+      >
+        {checkingNow
+          ? <><Icon icon="mdi:loading" className="coSpinner" /> กำลังตรวจสอบ...</>
+          : <><Icon icon="mdi:check-circle-outline" /> {mockMode ? "ยืนยันการชำระ" : "ฉันชำระแล้ว ตรวจสอบตอนนี้"}</>}
+      </button>
     </div>
   );
 }
@@ -547,7 +573,16 @@ export default function CheckoutPage() {
   const [orderId,          setOrderId]          = useState(null);
   const [qrImageUrl,       setQrImageUrl]       = useState(null);
   const [authorizeUri,     setAuthorizeUri]      = useState(null);
+  const [mockMode,         setMockMode]         = useState(false);
   const pollRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (qrImageUrl && String(qrImageUrl).startsWith("blob:")) {
+        URL.revokeObjectURL(qrImageUrl);
+      }
+    };
+  }, [qrImageUrl]);
 
   const groups = groupBySeller(items);
 
@@ -736,18 +771,46 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "เกิดข้อผิดพลาด");
       setOrderId(data.order_id);
-      setQrImageUrl(data.qr_image_url || null);
+      // qr_image_url endpoint requires auth header, so fetch it first
+      // then convert to a temporary object URL for <img src=...>.
+      if (data.qr_image_url) {
+        if (String(data.qr_image_url).startsWith("data:image/")) {
+          setQrImageUrl(data.qr_image_url);
+        } else {
+          const qrRes = await fetch(data.qr_image_url, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!qrRes.ok) throw new Error("โหลด QR Code ไม่สำเร็จ");
+          const contentType = qrRes.headers.get("content-type") || "";
+          if (!contentType.includes("image/")) {
+            let detail = "";
+            try {
+              const maybeJson = await qrRes.json();
+              detail = maybeJson?.message || "";
+            } catch {
+              try { detail = await qrRes.text(); } catch {}
+            }
+            throw new Error(detail || "รูป QR ไม่ถูกต้อง");
+          }
+          const qrBlob = await qrRes.blob();
+          setQrImageUrl(URL.createObjectURL(qrBlob));
+        }
+      } else {
+        setQrImageUrl(null);
+      }
+      setMockMode(Boolean(data.mock_mode));
       setAuthorizeUri(data.authorize_uri || null);
     } catch (e) { setErr(e.message); }
     finally { setPlacing(false); }
   };
 
   // ── Poll PromptPay status ─────────────────────────────
-  const checkPromptPayStatus = useCallback(async () => {
+  const checkPromptPayStatus = useCallback(async (forceMock = false) => {
     if (!orderId) return;
     try {
-      const res  = await fetch(`/api/checkout/orders/${orderId}/payment-status`, { headers: { Authorization: `Bearer ${token}` } });
+      const res  = await fetch(`/api/checkout/orders/${orderId}/payment-status${forceMock ? "?mock=1" : ""}`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "ตรวจสอบสถานะชำระเงินไม่สำเร็จ");
       if (data.paid) {
         clearInterval(pollRef.current);
         navigate("/checkout/success", {
@@ -769,7 +832,9 @@ export default function CheckoutPage() {
           }
         });
       }
-    } catch { /* silent */ }
+    } catch (e) {
+      setErr(e.message || "ตรวจสอบสถานะชำระเงินไม่สำเร็จ");
+    }
   }, [orderId, token, navigate]); // eslint-disable-line
 
   if (!token) return null;
@@ -1091,6 +1156,7 @@ export default function CheckoutPage() {
                       qrImageUrl={qrImageUrl}
                       amount={total}
                       onConfirm={checkPromptPayStatus}
+                      mockMode={mockMode}
                     />
                   )}
 

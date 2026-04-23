@@ -95,10 +95,12 @@ export const placeOrderHandler = async (req, res) => {
       message:    "สั่งซื้อสำเร็จ",
       order_id:   result.order_id,
       charge_id:  result.charge_id,
+      // prefer base64 ที่ดึงได้แล้วจาก Omise เพื่อลดปัญหา auth/cors ตอนโหลดรูป
       qr_image_url: result.qr_base64
-    ? `data:image/png;base64,${result.qr_base64}`
-    : null,
-  authorize_uri: result.authorize_uri || null, // fallback URL ถ้าดึง QR ไม่ได้
+        ? `data:${result.qr_mime_type || "image/png"};base64,${result.qr_base64}`
+        : (result.qr_image_url || null),
+      authorize_uri: result.authorize_uri || null, // fallback URL ถ้าดึง QR ไม่ได้
+      mock_mode: !!result.mock_mode,
     });
   } catch (err) {
     console.error("[placeOrder]", err);
@@ -109,7 +111,8 @@ export const placeOrderHandler = async (req, res) => {
 // ── Check Payment Status (PromptPay polling) ──────────────
 export const checkPaymentStatusHandler = async (req, res) => {
   try {
-    const result = await checkPaymentStatus(Number(req.params.id), req.user.user_id);
+    const forceMock = String(req.query.mock || "") === "1";
+    const result = await checkPaymentStatus(Number(req.params.id), req.user.user_id, { forceMock });
     res.json(result);
   } catch (err) {
     res.status(err.status || 500).json({ message: err.message });
@@ -130,9 +133,11 @@ export const getQrImageHandler = async (req, res) => {
 
     if (!imgRes.ok) return res.status(502).json({ message: "โหลด QR จาก Omise ไม่สำเร็จ" });
 
-    res.setHeader("Content-Type", "image/png");
+    const contentType = imgRes.headers.get("content-type") || "application/octet-stream";
+    const imgBuf = Buffer.from(await imgRes.arrayBuffer());
+    res.setHeader("Content-Type", contentType);
     res.setHeader("Cache-Control", "no-store");
-    imgRes.body.pipe(res);
+    res.send(imgBuf);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

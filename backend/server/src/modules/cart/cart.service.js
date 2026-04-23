@@ -36,7 +36,11 @@ const getCart = async (userId) => {
        u.user_name AS seller_name,
        pi.image_url AS cover_image, 
        p.shipping_name,   
-        p.shipping_price 
+        p.shipping_price,
+       CASE
+         WHEN p.status = 'available' AND p.quantity > 0 AND ci.quantity <= p.quantity THEN 1
+         ELSE 0
+       END AS is_buyable
 
        
      FROM cart_item ci
@@ -97,6 +101,23 @@ const updateCartItem = async (userId, cartItemId, quantity) => {
       [cartItemId, cartId]
     );
   } else {
+    const [[item]] = await db.execute(
+      `SELECT
+         p.quantity AS stock,
+         p.status
+       FROM cart_item ci
+       JOIN products p ON p.product_id = ci.product_id
+       WHERE ci.cart_item_id = ? AND ci.cart_id = ?`,
+      [cartItemId, cartId]
+    );
+    if (!item) throw { status: 404, message: "ไม่พบสินค้าในตะกร้า" };
+    if (item.status !== "available" || Number(item.stock) < 1) {
+      throw { status: 400, message: "สินค้าหมดหรือไม่พร้อมขาย" };
+    }
+    if (Number(quantity) > Number(item.stock)) {
+      throw { status: 400, message: `มีสินค้าเหลือ ${item.stock} ชิ้น` };
+    }
+
     await db.execute(
       "UPDATE cart_item SET quantity = ? WHERE cart_item_id = ? AND cart_id = ?",
       [quantity, cartItemId, cartId]
