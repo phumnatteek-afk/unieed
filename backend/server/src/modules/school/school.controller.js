@@ -207,12 +207,30 @@ export async function getProjectByIdPublic(req, res, next) {
   }
  
   project.uniform_items = [...itemMap.values()];
- 
+
 } catch (uniformErr) {
   console.error("[getProjectByIdPublic] uniform_items query failed:", uniformErr.message);
   project.uniform_items = [];
 }
- 
+
+// ── Query: testimonials (published) ──────────────────────────
+try {
+  const [testimonials] = await db.query(
+    `SELECT t.testimonial_id, t.review_title, t.review_text,
+            t.image_url, t.review_date,
+            s.school_name
+     FROM testimonials t
+     JOIN schools s ON s.school_id = t.school_id
+     WHERE t.request_id = ? AND t.is_published = 1
+     ORDER BY t.review_date DESC`,
+    [request_id]
+  );
+  project.testimonials = testimonials;
+} catch (tErr) {
+  console.error("[testimonials query error]", tErr.message);
+  project.testimonials = [];
+}
+
     res.json(project);
  
   } catch (err) {
@@ -663,12 +681,17 @@ export async function createProject(req, res, next) {
 
     // เช็คว่ามีโครงการที่ยัง open หรือ closed อยู่มั้ย
     const [existing] = await db.query(
-      `SELECT request_id FROM donation_request
+      `SELECT request_id, status FROM donation_request
        WHERE school_id = ? AND status IN ('open','closed') LIMIT 1`,
       [school_id]
     );
     if (existing[0]) {
-      return res.status(400).json({ message: "มีโครงการที่ยังเปิดอยู่ กรุณาปิดโครงการเก่าก่อน" });
+      const isClosed = existing[0].status === 'closed';
+      return res.status(400).json({
+        message: isClosed
+          ? "โครงการเก่าอยู่ในช่วง 14 วันหลังปิด ระบบจะเปิดให้สร้างโครงการใหม่ได้เมื่อโครงการเก่าถูกจัดเก็บอัตโนมัติ"
+          : "มีโครงการที่ยังเปิดอยู่ กรุณาปิดโครงการก่อนสร้างใหม่"
+      });
     }
 
     const [result] = await db.query(
@@ -697,13 +720,13 @@ export async function listSchoolProjects(req, res, next) {
     const school_id = req.user.school_id;
  
     const [rows] = await db.query(
-      `SELECT request_id, request_title, status, created_at, duration_months, end_date
+      `SELECT request_id, request_title, request_image_url, status, created_at, duration_months, end_date
        FROM donation_request
        WHERE school_id = ?
        ORDER BY created_at DESC`,
       [school_id]
     );
- 
+
     res.json(rows);
   } catch (err) {
     next(err);
@@ -1213,15 +1236,18 @@ export async function deleteUniformImage(req, res, next) {
   }
 }
  
-// GET /school/testimonials
+// GET /school/testimonials?request_id=
 export async function getTestimonials(req, res, next) {
   try {
     const school_id = req.user.school_id;
+    const request_id = req.query.request_id ? Number(req.query.request_id) : null;
+
     const [rows] = await db.query(
       `SELECT * FROM testimonials
        WHERE school_id = ?
+       ${request_id ? "AND request_id = ?" : ""}
        ORDER BY created_at DESC`,
-      [school_id]
+      request_id ? [school_id, request_id] : [school_id]
     );
     res.json(rows);
   } catch (err) { next(err); }
@@ -1251,13 +1277,16 @@ export async function createTestimonial(req, res, next) {
       image_public_id = result.public_id;
     }
  
+    const { request_id } = req.body;
+
     const [ins] = await db.query(
       `INSERT INTO testimonials
-     (school_id, review_title, review_text,
+     (school_id, request_id, review_title, review_text,
       image_url, image_public_id, is_published, review_date)
-   VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
+   VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())`,
       [
         school_id,
+        request_id ? Number(request_id) : null,
         review_title.trim(),
         review_text.trim(),
         image_url,

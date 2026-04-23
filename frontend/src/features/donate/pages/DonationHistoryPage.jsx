@@ -494,7 +494,36 @@ export default function DonationHistoryPage() {
                     </div>
                   )}
 
-                  {/* หลักฐาน */}
+                  {/* หลักฐาน drop-off — อัปโหลดได้ถ้า pending และยังไม่มีรูป */}
+                  {d.delivery_method === "dropoff" && d.status === "pending" && !d.donation_pic && (
+                    <div style={{
+                      marginTop: 12,
+                      background: "#FFFBEB", border: "1px dashed #FCD34D",
+                      borderRadius: 10, padding: "12px 14px",
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#92400e", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                        <Icon icon="mdi:camera-outline" width="14" />
+                        อัปโหลดหลักฐานการส่งของ
+                      </div>
+                      <div style={{ fontSize: 12, color: "#92400e", marginBottom: 10, lineHeight: 1.5 }}>
+                        ถ่ายรูปตอนส่งของ เช่น รูปกับครูที่รับ หรือรูปของที่วางไว้ที่โรงเรียน เพื่อให้แอดมินยืนยันได้เร็วขึ้น
+                      </div>
+                      <label style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        padding: "8px 16px", borderRadius: 8,
+                        background: uploadingPic ? "#9CA3AF" : "#f97316",
+                        color: "#fff", fontSize: 13, fontWeight: 600,
+                        cursor: uploadingPic ? "not-allowed" : "pointer",
+                      }}>
+                        <Icon icon="mdi:upload-outline" width="16" />
+                        {uploadingPic ? "กำลังอัปโหลด..." : "เลือกรูปภาพ"}
+                        <input type="file" accept="image/*" style={{ display: "none" }} disabled={uploadingPic}
+                          onChange={e => handlePicChange(d.donation_id, e.target.files[0])} />
+                      </label>
+                    </div>
+                  )}
+
+                  {/* หลักฐาน — แสดงรูปถ้ามี */}
                   {d.donation_pic && (
                     <div style={{ marginTop: 12 }}>
                       <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>หลักฐานการจัดส่ง</div>

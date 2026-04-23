@@ -213,7 +213,6 @@ export default function HomePage() {
   const [projects, setProjects] = useState([]);
   const [closedProjects, setClosedProjects] = useState([]);
   const [products, setProducts] = useState([]);
-  const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasPendingTracking, setHasPendingTracking] = useState(false);
 
@@ -254,8 +253,6 @@ export default function HomePage() {
     });
   }
 
-  // ===== Testimonials slider
-  const [tsIndex, setTsIndex] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -272,9 +269,6 @@ export default function HomePage() {
         setClosedProjects(Array.isArray(data.closed_projects) ? data.closed_projects : []);
 
         setProducts(Array.isArray(data.products) ? data.products : []);
-        setTestimonials(
-          Array.isArray(data.testimonials) ? data.testimonials : [],
-        );
       } finally {
         setLoading(false);
       }
@@ -287,7 +281,7 @@ export default function HomePage() {
     fetch(`${BASE}/donations/my/history`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : [])
       .then(data => {
-        const pending = data.some(d => d.delivery_method === "parcel" && !d.tracking_number);
+        const pending = data.some(d => d.delivery_method === "parcel" && d.status === "pending" && !d.tracking_number);
         setHasPendingTracking(pending);
       })
       .catch(() => {});
@@ -320,11 +314,6 @@ export default function HomePage() {
     setProjPage(0);
     setIsSliding(false);
   }, [projects.length]);
-
-  // ถ้า testimonials เปลี่ยน -> รีเซ็ต index
-  useEffect(() => {
-    setTsIndex(0);
-  }, [testimonials.length]);
 
   const rightAccount = () => {
   if (!token) {
@@ -425,26 +414,6 @@ export default function HomePage() {
     setIsSliding(true);
     setProjPage((p) => (p + 1) % projPages);
     resetAuto(); // ✅ กดเองแล้วรีเซ็ต auto
-  };
-
-  // ===== Testimonials logic (วนลูป ไม่ติดลบ)
-  const currentTs = useMemo(() => {
-    const a = testimonials || [];
-    if (!a.length) return null;
-    const idx = ((tsIndex % a.length) + a.length) % a.length;
-    return a[idx];
-  }, [testimonials, tsIndex]);
-
-  const tsPrev = () => {
-    const len = testimonials?.length || 0;
-    if (len <= 1) return;
-    setTsIndex((i) => (i - 1 + len) % len);
-  };
-
-  const tsNext = () => {
-    const len = testimonials?.length || 0;
-    if (len <= 1) return;
-    setTsIndex((i) => (i + 1) % len);
   };
 
   const steps = [
@@ -1127,20 +1096,21 @@ export default function HomePage() {
       {/* ===== Closed Projects ===== */}
       {closedProjects.length > 0 && (
         <section className="section closedSection">
-          <div className="sectionHead">
-            <div className="closedSecTitle">ผลลัพธ์จากการร่วมส่งต่อ</div>
-            <div className="closedSecSub">โครงการที่สำเร็จแล้ว ขอบคุณทุกท่านที่ร่วมส่งต่อความห่วงใย</div>
+          <div className="closedSecHead">
+            <div className="closedSecTitle">ผลลัพธ์จากการร่วมส่งต่อของทุกคน</div>
+            <div className="closedSecSub">ทุกชุดที่ท่านร่วมส่งต่อ ทำให้เกิดสิ่งเหล่านี้...</div>
           </div>
           <div className="closedGrid">
             {closedProjects.map(p => {
               const pct = p.total_needed > 0 ? Math.min(Math.round((p.total_fulfilled / p.total_needed) * 100), 100) : 0;
               return (
-                <div key={p.request_id} className="closedCard" onClick={() => navigate(`/projects/${p.request_id}`)}>
+                <div key={p.request_id} className="closedCard" onClick={() => navigate(`/projects/${p.request_id}`, { state: { tab: "review" } })}>
+                  <span className="closedCardArrow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h10m0 0v10m0-10L7 17"/></svg></span>
                   <div className="closedCardImg">
                     {p.request_image_url
                       ? <img src={p.request_image_url} alt={p.school_name} />
                       : <div className="closedCardImgEmpty">🎒</div>}
-                    <span className="closedBadge">🏁 รายงานปิดโครงการ</span>
+                    <span className="closedBadge"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" style={{display:"inline-block",verticalAlign:"middle",marginRight:"4px",color:"#f97316"}}><path fill="none" stroke="#f97316" strokeLinecap="round" strokeLinejoin="round" d="M2.5.5v13m0-13l9 4.5l-9 4.5" strokeWidth="1"/></svg>รายงานปิดโครงการ</span>
                   </div>
                   <div className="closedCardBody">
                     <div className="closedCardSchool">{p.school_name}</div>
@@ -1156,82 +1126,6 @@ export default function HomePage() {
           </div>
         </section>
       )}
-
-      {/* ===== Testimonials ===== */}
-      <section className="section sectionSoftBlue">
-        <div className="tsHead">
-          <div className="tsQuoteMark">
-            <Icon icon="bi:quote" width="60" height="60" />
-          </div>
-          <h3 className="tsTitle">ความประทับใจของโรงเรียน</h3>
-
-          <div className="tsControls">
-            <button
-              className="tsNav tsNavLeft"
-              onClick={tsPrev}
-              aria-label="prev"
-            >
-              <Icon icon="ep:d-arrow-left" width="24" height="24" />
-            </button>
-            <button
-              className="tsNav tsNavRight"
-              onClick={tsNext}
-              aria-label="next"
-            >
-              <Icon icon="ep:d-arrow-right" width="24" height="24" />
-            </button>
-          </div>
-        </div>
-
-        {!testimonials.length ? (
-          <div className="muted">ยังไม่มีรีวิวจากโรงเรียน</div>
-        ) : (
-          (() => {
-            const len = testimonials.length;
-            const getTs = (i) => testimonials[(i + len) % len];
-
-            const leftTs = getTs(tsIndex - 1);
-            const midTs = getTs(tsIndex);
-            const rightTs = getTs(tsIndex + 1);
-
-            const renderCard = (item, variant) => (
-              <div
-                className={`tsCard ${variant}`}
-                aria-hidden={variant === "tsCardSide"}
-              >
-                <div className="tsImageWrap">
-                  {item?.image_url ? (
-                    <img
-                      src={item.image_url}
-                      alt={item.school_name || "โรงเรียน"}
-                    />
-                  ) : (
-                    <div className="tsImgPlaceholder" />
-                  )}
-                </div>
-
-                <div className="tsCardInner">
-                  <div className="tsTextQuote">“{item?.review_text || ""}”</div>
-                  <div className="tsName">
-                    {item?.school_name || "โรงเรียน"}
-                  </div>
-                  <div className="tsSub">
-                    {formatThaiDate(item?.review_date)}
-                  </div>
-                </div>
-              </div>
-            );
-
-            return (
-              <div className="tsStage">
-                {renderCard(leftTs, "tsCardSide")}
-                {renderCard(midTs, "tsCardMain")}
-                {renderCard(rightTs, "tsCardSide")}
-              </div>
-            );
-          })()
-        )}
-      </section>
 
       {/* ===== Footer ===== */}
       <footer id="about" className="footer">

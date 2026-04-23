@@ -151,11 +151,44 @@
 .pdPersonSchool { font-size:14px; font-weight:600; color:#1a1a1a; }
 .pdPersonName { font-size:13px; color:#555; }
 
-/* Reviews */
-.pdReviews { display:flex; flex-direction:column; gap:20px; }
-.pdReviewCard { background:#fff; border-radius:14px; padding:24px 28px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border-left:4px solid #87C7EB; }
-.pdReviewText { font-size:16px; color:#374151; font-style:italic; line-height:1.7; margin:0 0 12px; }
-.pdReviewMeta { font-size:13px; color:#888; }
+/* Reviews / Progress tab */
+.pdReviews { display:flex; flex-direction:column; gap:24px; }
+.pdTestimonialsTitle { font-size:18px; font-weight:700; color:#374151; margin-top:8px; }
+
+/* Testimonial cards — horizontal layout */
+.pdReviewScroll { display:flex; flex-direction:column; gap:16px; }
+.pdReviewCard { background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1.5px solid #e2e8f0; overflow:hidden; display:flex; flex-direction:row; gap:0; }
+.pdReviewImgWrap { width:240px; flex-shrink:0; cursor:pointer; position:relative; overflow:hidden; }
+.pdReviewImgWrap:hover .pdReviewImgOverlay { opacity:1; }
+.pdReviewImg { width:100%; height:100%; object-fit:cover; display:block; transition:transform .2s; }
+.pdReviewImgWrap:hover .pdReviewImg { transform:scale(1.04); }
+.pdReviewImgOverlay { position:absolute; inset:0; background:rgba(0,0,0,.3); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .2s; }
+.pdReviewBody { padding:24px 28px; display:flex; flex-direction:column; justify-content:center; gap:8px; flex:1; }
+.pdReviewHeading { font-size:16px; font-weight:700; color:#1f2937; }
+.pdReviewText { font-size:15px; color:#374151; font-style:italic; line-height:1.7; margin:0; flex:1; }
+.pdReviewAuthor { font-size:13px; color:#5285E8; font-weight:600; }
+.pdReviewMeta { font-size:12px; color:#94a3b8; }
+
+/* Lightbox */
+.pdLightbox { position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; z-index:9999; cursor:zoom-out; }
+.pdLightboxImg { max-width:90vw; max-height:90vh; border-radius:12px; object-fit:contain; box-shadow:0 8px 40px rgba(0,0,0,.5); }
+.pdLightboxClose { position:absolute; top:20px; right:24px; color:#fff; background:none; border:none; font-size:32px; cursor:pointer; line-height:1; }
+
+/* Summary card for archived projects */
+.pdSummaryCard {
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  border: 1.5px solid #86efac;
+  border-radius: 16px;
+  padding: 28px 32px;
+}
+.pdSummaryTitle { font-size:20px; font-weight:700; color:#15803d; margin-bottom:20px; }
+.pdSummaryStats { display:flex; gap:32px; margin-bottom:20px; }
+.pdSummaryStat { text-align:center; }
+.pdSummaryVal { font-size:32px; font-weight:800; color:#1f2937; line-height:1; }
+.pdSummaryLabel { font-size:13px; color:#6b7280; margin-top:4px; }
+.pdSummaryBar { height:10px; background:#d1fae5; border-radius:999px; overflow:hidden; margin-bottom:16px; }
+.pdSummaryBarFill { height:100%; background:linear-gradient(90deg,#34d399,#10b981); border-radius:999px; transition:width 0.6s ease; }
+.pdSummaryThanks { font-size:14px; color:#374151; text-align:center; }
 
 /* Responsive */
 @media (max-width:900px) {

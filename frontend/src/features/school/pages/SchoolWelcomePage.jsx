@@ -35,14 +35,14 @@ export default function SchoolWelcomePage() {
         setCoordinatorName(me?.user_name || userName || "");
         setSchoolName(me?.school_name || "");
 
-        // ถ้ามีโครงการที่ยัง open อยู่ → ไป dashboard เลย
-        if (latest && latest.status === "open") {
+        // ถ้ามีโครงการ open หรือ closed (อยู่ในช่วง 14 วัน) → ไป dashboard
+        if (latest && ["open", "closed"].includes(latest.status)) {
           nav("/school/dashboard", { replace: true });
           return;
         }
 
-        // ถ้ามีโครงการแต่ปิดแล้ว → ไปสร้างโครงการใหม่เลย
-        if (latest && latest.status !== "open") {
+        // archived = จบแล้ว → ไปสร้างโครงการใหม่ได้
+        if (latest && latest.status === "archived") {
           nav("/school/request/new", { replace: true });
           return;
         }

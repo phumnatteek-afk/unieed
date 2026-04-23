@@ -290,6 +290,25 @@ export default function SchoolRequestManagePage() {
 
       {err && <div className="pm-err"><Icon icon="mdi:alert-circle" width="16" /> {err}</div>}
 
+      {/* ══ CLOSED BANNER ════════════════════════════════ */}
+      {project?.status === "closed" && (() => {
+        const canCreateDate = project.end_date
+          ? new Date(new Date(project.end_date).getTime() + 14 * 24 * 60 * 60 * 1000)
+          : null;
+        const formatted = canCreateDate
+          ? canCreateDate.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })
+          : null;
+        return (
+          <div className="pm-closed-banner">
+            <Icon icon="mdi:clock-outline" width="20" />
+            <span>
+              โครงการปิดแล้ว — ยังสามารถอัปเดตสถานะรายการได้อีก 14 วัน
+              {formatted && <> สร้างโครงการใหม่ได้ตั้งแต่ <strong>{formatted}</strong></>}
+            </span>
+          </div>
+        );
+      })()}
+
       {/* ══ STAT CARDS ═══════════════════════════════════ */}
       <div className="pm-stats">
         {[

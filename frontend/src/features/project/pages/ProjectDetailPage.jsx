@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
 import { Icon } from "@iconify/react";
@@ -14,12 +14,16 @@ export default function ProjectDetailPage() {
   const { token, userName, logout } = useAuth();
   const { requestId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("detail");
+  const [activeTab, setActiveTab] = useState(
+    location.state?.tab === "review" ? "review" : "detail"
+  );
   const [selectedMethod, setSelectedMethod] = useState("parcel");
   const [activeLevel, setActiveLevel] = useState(null);
+  const [lightboxImg, setLightboxImg] = useState(null);
 
   // ── Uniform filter states ──
   const [activeGender, setActiveGender] = useState("male");   // "male" | "female"
@@ -27,6 +31,25 @@ export default function ProjectDetailPage() {
 
   // ── Donate qty map: key = index ใน uniform_items array ──
   const [donateQty, setDonateQty] = useState({});
+
+  const reviewRef = useRef(null);
+  const shouldScrollRef = useRef(location.state?.tab === "review");
+
+  useEffect(() => {
+    if (location.state?.tab === "review") {
+      setActiveTab("review");
+      shouldScrollRef.current = true;
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    if (shouldScrollRef.current && project && activeTab === "review") {
+      shouldScrollRef.current = false;
+      setTimeout(() => {
+        reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 200);
+    }
+  }, [project, activeTab]);
 
   useEffect(() => {
     if (!project?.uniform_items?.length) return;
@@ -489,9 +512,9 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* Tabs */}
-            <div className="pdTabs">
+            <div className="pdTabs" ref={reviewRef}>
               <button className={`pdTab ${activeTab === "detail" ? "pdTabActive" : ""}`} onClick={() => setActiveTab("detail")}>รายละเอียด</button>
-              <button className={`pdTab ${activeTab === "review" ? "pdTabActive" : ""}`} onClick={() => setActiveTab("review")}>ความประทับใจจากโรงเรียน</button>
+              <button className={`pdTab ${activeTab === "review" ? "pdTabActive" : ""}`} onClick={() => setActiveTab("review")}>ความคืบหน้า</button>
             </div>
             <div className="pdTabLine" />
 
@@ -548,15 +571,65 @@ export default function ProjectDetailPage() {
 
             {activeTab === "review" && (
               <div className="pdReviews">
-                {project.reviews?.length ? (
-                  project.reviews.map((r, i) => (
-                    <div className="pdReviewCard" key={i}>
-                      <p className="pdReviewText">"{r.text}"</p>
-                      <div className="pdReviewMeta">{r.author} · {r.date}</div>
+                {project.status === "archived" && (
+                  <div className="pdSummaryCard">
+                    <div className="pdSummaryTitle">🎉 สรุปผลโครงการ</div>
+                    <div className="pdSummaryStats">
+                      <div className="pdSummaryStat">
+                        <div className="pdSummaryVal">{needed}</div>
+                        <div className="pdSummaryLabel">ชุดที่ขอรับบริจาค</div>
+                      </div>
+                      <div className="pdSummaryStat">
+                        <div className="pdSummaryVal" style={{ color: "#16a34a" }}>{fulfilled}</div>
+                        <div className="pdSummaryLabel">ชุดที่ได้รับแล้ว</div>
+                      </div>
+                      <div className="pdSummaryStat">
+                        <div className="pdSummaryVal" style={{ color: "#2563eb" }}>{pct}%</div>
+                        <div className="pdSummaryLabel">บรรลุเป้าหมาย</div>
+                      </div>
                     </div>
-                  ))
+                    <div className="pdSummaryBar">
+                      <div className="pdSummaryBarFill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="pdSummaryThanks">ขอบคุณทุกท่านที่มีส่วนร่วมในโครงการนี้</div>
+                  </div>
+                )}
+                {project.testimonials?.length ? (
+                  <>
+                    <div className="pdTestimonialsTitle">ความประทับใจจากโรงเรียน</div>
+                    <div className="pdReviewScroll">
+                      {project.testimonials.map((t, i) => (
+                        <div className="pdReviewCard" key={i}>
+                          {t.image_url && (
+                            <div className="pdReviewImgWrap" onClick={() => setLightboxImg(t.image_url)}>
+                              <img src={t.image_url} alt={t.review_title} className="pdReviewImg" />
+                              <div className="pdReviewImgOverlay">
+                                <Icon icon="mdi:magnify-plus-outline" width="36" color="#fff" />
+                              </div>
+                            </div>
+                          )}
+                          <div className="pdReviewBody">
+                            <div className="pdReviewHeading">{t.review_title}</div>
+                            <p className="pdReviewText">"{t.review_text}"</p>
+                            <div className="pdReviewAuthor">
+                              {project.contact_person && `${project.contact_person} · `}{project.school_name}
+                            </div>
+                            <div className="pdReviewMeta">{t.review_date ? new Date(t.review_date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) : ""}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <div className="muted" style={{ padding: "40px", textAlign: "center" }}>ยังไม่มีความประทับใจจากโรงเรียนนี้</div>
+                )}
+
+                {/* Lightbox */}
+                {lightboxImg && (
+                  <div className="pdLightbox" onClick={() => setLightboxImg(null)}>
+                    <button className="pdLightboxClose" onClick={() => setLightboxImg(null)}>×</button>
+                    <img src={lightboxImg} alt="ขยาย" className="pdLightboxImg" onClick={e => e.stopPropagation()} />
+                  </div>
                 )}
               </div>
             )}

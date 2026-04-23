@@ -196,6 +196,13 @@
   color: #991B1B; border-radius: 10px; padding: 10px 16px; font-size: 13px;
 }
 
+.pm-closed-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: #FFF8E1; border: 1px solid #FFD54F;
+  color: #78350F; border-radius: 10px; padding: 12px 16px;
+  font-size: 14px; font-weight: 500;
+}
+
 /* ── Stat cards ──────────────────────────────────────────── */
 .pm-stats {
   display: grid;

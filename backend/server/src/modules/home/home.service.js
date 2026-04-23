@@ -7,16 +7,8 @@ export async function getHomeData() {
     (SELECT COUNT(*) FROM products WHERE status='available') AS products_total,
     (SELECT COUNT(*) FROM schools WHERE verification_status='approved') AS schools_approved,
     (SELECT COUNT(*) FROM students) AS students_total,
-    (SELECT COALESCE(SUM(quantity), 0) FROM donation_record WHERE status != 'rejected') AS uniforms_fulfilled,
-    (SELECT COUNT(*) FROM donation_record WHERE status != 'rejected') AS donations_total,
-
-      -- ชุดที่ส่งต่อแล้ว = โรงเรียนยืนยันรับของแล้ว (fulfillment)
-(SELECT COALESCE(SUM(quantity), 0) 
- FROM donation_record 
- WHERE status != 'rejected') AS uniforms_fulfilled,
-
-      -- ยอดบริจาคทั้งหมด = จำนวนรายการที่ผู้บริจาคบันทึกเข้ามา
-      (SELECT COUNT(*) FROM donation_record WHERE status != 'rejected') AS donations_total
+    (SELECT COALESCE(SUM(quantity), 0) FROM donation_record WHERE status = 'approved') AS uniforms_fulfilled,
+    (SELECT COUNT(*) FROM donation_record WHERE status != 'rejected') AS donations_total
   `);
 
   // 2) Projects — ดึง total_donated จาก donation_record และ total_fulfilled จาก fulfillment

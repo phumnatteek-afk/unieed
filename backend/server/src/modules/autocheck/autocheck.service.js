@@ -287,17 +287,28 @@ export async function getOverdueDonations() {
        dr.items_snapshot, dr.quantity,
        dr.condition_status, dr.status,
        dr.reject_reason,
-       TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) AS days_elapsed,
+       CASE
+         WHEN dr.delivery_method = 'dropoff'
+           THEN TIMESTAMPDIFF(DAY, dr.donation_date, DATE_ADD(NOW(), INTERVAL 7 HOUR))
+         ELSE TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR))
+       END AS days_elapsed,
        req.school_id, s.school_name
      FROM donation_record dr
      JOIN donation_request req ON req.request_id = dr.request_id
      JOIN schools s ON s.school_id = req.school_id
-      WHERE (
-        dr.status = 'pending'
-        OR (dr.status IN ('approved', 'rejected') AND dr.admin_approved = 1)
-      )
-      AND NOT (dr.delivery_method = 'market_purchase' AND dr.tracking_number IS NULL) 
-      AND TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7
+     WHERE (
+       dr.status = 'pending'
+       OR (dr.status IN ('approved', 'rejected') AND dr.admin_approved = 1)
+     )
+     AND NOT (dr.delivery_method = 'market_purchase' AND dr.tracking_number IS NULL)
+     AND (
+       (dr.delivery_method = 'dropoff'
+         AND dr.donation_date IS NOT NULL
+         AND TIMESTAMPDIFF(DAY, dr.donation_date, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 3)
+       OR
+       (dr.delivery_method != 'dropoff'
+         AND TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7)
+     )
      ORDER BY days_elapsed DESC`
   );
   return rows;
