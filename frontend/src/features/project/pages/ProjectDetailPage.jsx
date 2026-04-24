@@ -133,10 +133,20 @@ export default function ProjectDetailPage() {
     );
   };
 
-  const needed = project?.total_needed || 0;
-  const fulfilled = project?.total_fulfilled || 0;
-  const remaining = Math.max(needed - fulfilled, 0);
-  const pct = needed > 0 ? Math.min(Math.round((fulfilled / needed) * 100), 100) : 0;
+  const needed    = project?.total_needed    || 0;
+  const fulfilled = project?.total_fulfilled || 0;  // 🟢 ถึงมือเด็กแล้ว
+  const received  = project?.total_received  || 0;  // 🟠 โรงเรียนรับแล้ว (approved ทั้งหมด)
+  const pending   = project?.total_pending   || 0;  // 🔵 กำลังดำเนินการ
+  const orange    = Math.max(received - fulfilled, 0);
+  const remaining = Math.max(needed - received, 0);
+  const pct       = needed > 0 ? Math.min(Math.round((fulfilled / needed) * 100), 100) : 0;
+
+  // progress bar widths — cap total ไม่เกิน 100%
+  const pctGreen  = needed > 0 ? Math.min((fulfilled / needed) * 100, 100) : 0;
+  const pctOrange = needed > 0 ? Math.min((orange   / needed) * 100, 100 - pctGreen) : 0;
+  const pctBlue   = needed > 0 ? Math.min((pending  / needed) * 100, 100 - pctGreen - pctOrange) : 0;
+
+  const isFulfilled = needed > 0 && received >= needed;
 
   // ── UniformBlock ──
   const UniformBlock = () => {
@@ -185,8 +195,8 @@ export default function ProjectDetailPage() {
       ? genderItems.filter(i => i.uniform_category === currentType)
       : genderItems;
 
-    // ✅ แสดงเฉพาะ item ที่มี quantity > 0 ใน stepper list (item quantity=0 มีไว้แค่แสดงรูป)
-    const donateItems = typeItems.filter(i => i.quantity > 0);
+    // แสดงเฉพาะ item ที่ยังเหลือ remaining > 0 (quantity_remaining คำนวณจาก approved donations แล้ว)
+    const donateItems = typeItems.filter(i => (i.quantity_remaining ?? i.quantity) > 0);
 
     // thumbMap: รูปต่อ category — priority item ที่มี uniform_subtype_name (school custom)
     const thumbMap = new Map();
@@ -290,6 +300,7 @@ export default function ProjectDetailPage() {
           {donateItems.map((item, i) => {
             const key = itemKey(item);
             const qty = donateQty[key] || 0;
+            const remaining = item.quantity_remaining ?? item.quantity;
             return (
               <div className="pdUniformRow" key={`${item.uniform_type_id}-${i}`}>
                 <span className="pdUniformName">
@@ -299,18 +310,18 @@ export default function ProjectDetailPage() {
                   )}
                 </span>
                 <div className="pdUniformRowRight">
-                  <span className="pdUniformQty">{item.quantity} ชิ้น</span>
+                  <span className="pdUniformQty">{remaining} ชิ้น</span>
                   <div className="pdQtyStepper">
                     <button className="pdQtyBtn" onClick={() => changeQty(item, -1)} disabled={qty <= 0}>−</button>
                     <input
                       className="pdQtyInput"
                       type="number"
                       min={0}
-                      max={item.quantity}
+                      max={remaining}
                       value={qty}
                       onChange={e => setQtyDirect(item, e.target.value)}
                     />
-                    <button className="pdQtyBtn" onClick={() => changeQty(item, 1)} disabled={qty >= item.quantity}>+</button>
+                    <button className="pdQtyBtn" onClick={() => changeQty(item, 1)} disabled={qty >= remaining || remaining <= 0}>+</button>
                   </div>
                 </div>
               </div>
@@ -404,18 +415,49 @@ export default function ProjectDetailPage() {
                 <div className="pdProgressBlock">
                   <div className="pdProgressTopRow">
                     <span className="pdProgressCount">
-                      {/* ยอดบริจาคปัจจุบัน: <strong>{fulfilled}</strong> / {needed} ชุด */}
-
-                      ยอดที่โรงเรียนยืนยันรับแล้ว: <strong>{fulfilled}</strong> / {needed} ชุด
+                      ยอดที่โรงเรียนยืนยันรับแล้ว: <strong>{received}</strong> / {needed} ชุด
                     </span>
                     <span className="pdProgressPct">{pct}%</span>
                   </div>
-                  <div className="pdProgressTrack">
-                    <div className="pdProgressFill" style={{ width: `${pct}%` }} />
+
+                  {/* ── 3-segment bar ── */}
+                  <div className="pdProgressTrack" style={{ display: "flex", overflow: "hidden" }}>
+                    {pctGreen  > 0 && <div style={{ width: `${pctGreen}%`,  background: "#34d399", height: "100%", transition: "width .5s" }} />}
+                    {pctOrange > 0 && <div style={{ width: `${pctOrange}%`, background: "#ffab7a", height: "100%", transition: "width .5s" }} />}
+                    {pctBlue   > 0 && <div style={{ width: `${pctBlue}%`,   background: "#818cf8", height: "100%", transition: "width .5s" }} />}
                   </div>
-                  <div className="pdProgressRemaining">
-                    เหลืออีก <strong>{remaining} ชุด</strong> เพียงช่วยคนละนิดก็ใกล้บรรลุเป้าหมายแล้ว!
+
+                  {/* ── Legend ── */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", marginTop: "8px", fontSize: "12px", color: "#374151" }}>
+                    {fulfilled > 0 && (
+                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#34d399", flexShrink: 0 }} />
+                        ถึงมือเด็กแล้ว <strong style={{ marginLeft: 2 }}>{fulfilled}</strong>
+                      </span>
+                    )}
+                    {orange > 0 && (
+                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ffab7a", flexShrink: 0 }} />
+                        โรงเรียนรับแล้ว รอแจก <strong style={{ marginLeft: 2 }}>{orange}</strong>
+                      </span>
+                    )}
+                    {pending > 0 && (
+                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#818cf8", flexShrink: 0 }} />
+                        กำลังดำเนินการ <strong style={{ marginLeft: 2 }}>{pending}</strong>
+                      </span>
+                    )}
                   </div>
+
+                  {isFulfilled ? (
+                    <div className="pdProgressRemaining" style={{ color: "#15803d", fontWeight: 600 }}>
+                      โครงการนี้ได้รับของครบตามเป้าหมายแล้ว ขอบคุณทุกท่านที่ร่วมส่งต่อ!
+                    </div>
+                  ) : (
+                    <div className="pdProgressRemaining">
+                      เหลืออีก <strong>{remaining} ชุด</strong> เพียงช่วยคนละนิดก็ใกล้บรรลุเป้าหมายแล้ว!
+                    </div>
+                  )}
                 </div>
                 {project.request_description && (
                   <blockquote className="pdQuote">"{project.request_description}"</blockquote>
@@ -452,7 +494,15 @@ export default function ProjectDetailPage() {
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M5 21h14c1.1 0 2-.9 2-2v-7h-2v7H5V5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2" /><path fill="currentColor" d="M7 13v3c0 .55.45 1 1 1h3c.27 0 .52-.11.71-.29l9-9a.996.996 0 0 0 0-1.41l-3-3a.996.996 0 0 0-1.41 0l-9.01 8.99A1 1 0 0 0 7 13m10-7.59L18.59 7L17.5 8.09L15.91 6.5zm-8 8l5.5-5.5l1.59 1.59l-5.5 5.5H9z" /></svg> ดูฉบับร่างที่บันทึกไว้
                   </button>
                 )}
-                <div className="pdBadge">โครงการขอรับบริจาคชุดนักเรียน</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+                  <div className="pdBadge">โครงการขอรับบริจาคชุดนักเรียน</div>
+                  {isFulfilled && (
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#f0fdf4", color: "#4ade80", border: "1.5px solid #86efac", borderRadius: 6, padding: "4px 12px", fontSize: 13, fontWeight: 600 }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/></svg>
+                      ได้รับครบแล้ว
+                    </div>
+                  )}
+                </div>
 
                 <h1 className="pdSchoolName">{project.school_name}</h1>
                 <p className="pdTitle">{project.request_title}</p>
@@ -497,14 +547,20 @@ export default function ProjectDetailPage() {
                         <span>ซื้อเพื่อบริจาค</span>
                       </div>
                     </div>
-                    <button
-                      className="pdDonateBtn"
-                      disabled={selectedMethod !== "buy" && totalSelected === 0}
-                      onClick={handleDonate}
-                      style={{ opacity: totalSelected === 0 ? 0.5 : 1, cursor: totalSelected === 0 ? "not-allowed" : "pointer" }}
-                    >
-                      {totalSelected > 0 ? `ส่งต่อ ${totalSelected} ชิ้น` : "ส่งต่อ"}
-                    </button>
+                    {isFulfilled ? (
+                      <button className="pdDonateBtn" disabled style={{ opacity: 0.5, cursor: "not-allowed" }}>
+                        โครงการนี้ได้รับของครบแล้ว
+                      </button>
+                    ) : (
+                      <button
+                        className="pdDonateBtn"
+                        disabled={selectedMethod !== "buy" && totalSelected === 0}
+                        onClick={handleDonate}
+                        style={{ opacity: (selectedMethod !== "buy" && totalSelected === 0) ? 0.5 : 1, cursor: (selectedMethod !== "buy" && totalSelected === 0) ? "not-allowed" : "pointer" }}
+                      >
+                        {totalSelected > 0 ? `ส่งต่อ ${totalSelected} ชิ้น` : "ส่งต่อ"}
+                      </button>
+                    )}
                     <p className="pdNote">*รับเกียรติบัตรออนไลน์ เพียงอัปโหลดหลักฐานการส่งต่อของท่าน*</p>
                   </>
                 )}
@@ -580,8 +636,12 @@ export default function ProjectDetailPage() {
                         <div className="pdSummaryLabel">ชุดที่ขอรับบริจาค</div>
                       </div>
                       <div className="pdSummaryStat">
+                        <div className="pdSummaryVal" style={{ color: "#3b82f6" }}>{received}</div>
+                        <div className="pdSummaryLabel">ได้รับแล้ว</div>
+                      </div>
+                      <div className="pdSummaryStat">
                         <div className="pdSummaryVal" style={{ color: "#16a34a" }}>{fulfilled}</div>
-                        <div className="pdSummaryLabel">ชุดที่ได้รับแล้ว</div>
+                        <div className="pdSummaryLabel">ใช้งานได้</div>
                       </div>
                       <div className="pdSummaryStat">
                         <div className="pdSummaryVal" style={{ color: "#2563eb" }}>{pct}%</div>

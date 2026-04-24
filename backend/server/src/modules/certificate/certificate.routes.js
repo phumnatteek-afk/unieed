@@ -5,6 +5,7 @@ import {
   generateCertificate,
   getCertificate,
   getMyCertificates,
+  reissueCert,
 } from "./certificate.controller.js";
 
 const r = Router();
@@ -26,5 +27,8 @@ r.get("/my", auth, getMyCertificates);
 // GET /certificates/donation/:donationId
 // ดึงใบเซอร์ที่มีอยู่แล้ว
 r.get("/donation/:donationId", getCertificate);
+
+// POST /certificates/reissue/:donationId — admin/school reissue cert ที่หาย
+r.post("/reissue/:donationId", auth, reissueCert);
 
 export default r;

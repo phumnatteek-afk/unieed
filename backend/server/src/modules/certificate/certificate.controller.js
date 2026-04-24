@@ -327,6 +327,79 @@ export async function verifyAndIssueCertificate(req, res, next) {
     }
 }
 
+// ── POST /certificates/reissue/:donationId ────────────────────────
+// สำหรับ admin/school — regenerate cert + notification สำหรับ donation ที่ approved แต่ไม่มี cert
+export async function reissueCert(req, res, next) {
+  try {
+    const donation_id = Number(req.params.donationId);
+
+    const [[current]] = await db.query(
+      `SELECT dr.*, req.request_title, s.school_name
+       FROM donation_record dr
+       JOIN donation_request req ON req.request_id = dr.request_id
+       JOIN schools s ON s.school_id = req.school_id
+       WHERE dr.donation_id = ? LIMIT 1`,
+      [donation_id]
+    );
+    if (!current) return res.status(404).json({ message: "ไม่พบรายการบริจาค" });
+    if (current.status !== "approved") return res.status(400).json({ message: "รายการยังไม่ถูก approve" });
+
+    let cert = await getCertByDonation(donation_id);
+    if (!cert) {
+      let items = [];
+      try {
+        items = typeof current.items_snapshot === "string"
+          ? JSON.parse(current.items_snapshot) : (current.items_snapshot || []);
+      } catch { items = []; }
+
+      const items_summary = items.length > 0
+        ? items.map(i => `${String(i.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} จำนวน ${i.quantity} ตัว`).join(", ")
+        : `ชุดนักเรียน จำนวน ${current.quantity} ชิ้น`;
+
+      const certificate_code = genCertCode();
+      const issued_at = new Date().toISOString().split("T")[0];
+      const html = await buildCertHtml({ donor_name: current.donor_name, items_summary, project_title: current.request_title, issued_at, certificate_code });
+      const { png, pdf } = await renderCert(html);
+
+      const [pngResult, pdfResult] = await Promise.all([
+        uploadBuffer(png, { folder: "unieed/certificates", public_id: `cert_${certificate_code}`, resource_type: "image" }),
+        uploadBuffer(pdf, { folder: "unieed/certificates", public_id: `cert_${certificate_code}_pdf`, resource_type: "raw" }),
+      ]);
+
+      await insertCert({
+        donation_id, user_id: current.donor_id ?? null,
+        donor_name: current.donor_name, certificate_code, items_summary,
+        project_title: current.request_title, school_name: current.school_name, issued_at,
+        certificate_url: pngResult.secure_url, certificate_public_id: pngResult.public_id,
+        pdf_url: pdfResult.secure_url, pdf_public_id: pdfResult.public_id,
+      });
+
+      cert = { certificate_url: pngResult.secure_url, pdf_url: pdfResult.secure_url, certificate_code, items_summary, issued_at };
+    }
+
+    if (current.donor_id) {
+      const [existing] = await db.query(
+        `SELECT notification_id FROM notifications WHERE ref_id = ? AND type = 'certificate' LIMIT 1`,
+        [donation_id]
+      );
+      if (!existing[0]) {
+        await db.query(
+          `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
+           VALUES (?, 'certificate', ?, ?, ?, 0, NOW())`,
+          [
+            current.donor_id,
+            `${current.school_name} ยืนยันการรับบริจาคแล้ว`,
+            JSON.stringify({ message: "", certificate_url: cert.certificate_url, pdf_url: cert.pdf_url, certificate_code: cert.certificate_code, items_summary: cert.items_summary, project_title: current.request_title, school_name: current.school_name, issued_at: cert.issued_at }),
+            donation_id,
+          ]
+        );
+      }
+    }
+
+    res.json({ success: true, certificate: cert });
+  } catch (err) { next(err); }
+}
+
 export async function getMyCertificates(req, res, next) {
   try {
     const user_id = req.user.user_id;

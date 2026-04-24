@@ -87,11 +87,11 @@ function ProjCard({ p, navigate, details }) {
         {p.request_image_url
           ? <img src={p.request_image_url} alt={p.request_title} />
           : <div className="dpCardImgPlaceholder" />}
-        {p._row === "urgent" && (
-          <div className="dpSliderTag dpSliderTagUrgent">🚨 เร่งด่วน</div>
-        )}
-        {p._row === "most" && (
-          <div className="dpSliderTag dpSliderTagMost">🔥 ต้องการมากที่สุด</div>
+        {p.total_needed > 0 && p.total_received >= p.total_needed && (
+          <div className="dpSliderTag" style={{ background: "#f0fdf4", color: "#4ade80", border: "1.5px solid #86efac", borderRadius: 6, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/></svg>
+            ได้รับครบแล้ว
+          </div>
         )}
       </div>
 

@@ -260,6 +260,30 @@ export async function runAutoCheck() {
             pdf_url:               pdfRes.secure_url,
             pdf_public_id:         pdfRes.public_id,
           });
+
+          // ส่ง notification ให้ผู้บริจาค
+          if (don.donor_id) {
+            const notifBody = JSON.stringify({
+              message: "",
+              certificate_url: imgRes.secure_url,
+              pdf_url:         pdfRes.secure_url,
+              certificate_code: certCode,
+              items_summary:   itemsSummary,
+              project_title:   don.request_title,
+              school_name:     don.school_name,
+              issued_at:       issuedAt,
+            });
+            await db.query(
+              `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
+               VALUES (?, 'certificate', ?, ?, ?, 0, NOW())`,
+              [
+                don.donor_id,
+                `${don.school_name} ยืนยันการรับบริจาคแล้ว`,
+                notifBody,
+                donation_id,
+              ]
+            );
+          }
         }
       }
 

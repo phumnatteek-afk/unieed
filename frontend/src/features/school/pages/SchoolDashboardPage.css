@@ -1,0 +1,143 @@
+.dbPage { display: flex; flex-direction: column; gap: 20px; }
+.dbLoading { padding: 40px; text-align: center; color: #6B7280; }
+
+/* ── Project banner ── */
+.dbProjectCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.dbProjectEmpty { align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #9CA3AF; }
+.dbProjectLeft { flex: 1; }
+.dbProjectTitle { font-size: 20px; font-weight: 700; color: #1E3A5F; margin-bottom: 8px; }
+.dbProjectMeta { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.dbStatusBadge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+}
+.dbStatusDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dbProjectDate { font-size: 13px; color: #5285E8; font-weight: 500; }
+.dbProgressLabel { display: flex; justify-content: space-between; font-size: 13px; color: #6B7280; margin-bottom: 6px; }
+.dbProgressCount { font-weight: 700; color: #5285E8; font-size: 14px; }
+.dbProgressBar { height: 10px; background: #E5E7EB; border-radius: 999px; overflow: hidden; }
+.dbProgressFill { height: 100%; background: linear-gradient(90deg, #5285E8, #3A6FD4); border-radius: 999px; transition: width .5s; }
+.dbProgressPct { font-size: 12px; color: #9CA3AF; margin-top: 4px; }
+.dbManageBtn {
+  background: #5285E8; color: #fff; border: none; border-radius: 10px;
+  padding: 10px 20px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: background .2s;
+}
+.dbManageBtn:hover { background: #3A6FD4; }
+
+/* ── Stat cards ── */
+.dbStatGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.dbStatCard {
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 14px; padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.dbStatIconWrap {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.dbStatCard--red    .dbStatIconWrap { background: #FEF2F2; color: #EF4444; }
+.dbStatCard--orange .dbStatIconWrap { background: #FFF7ED; color: #F59E0B; }
+.dbStatCard--green  .dbStatIconWrap { background: #D1FAE5; color: #10B981; }
+.dbStatCard--blue   .dbStatIconWrap { background: #EEF2FF; color: #5285E8; }
+.dbStatValue { font-size: 26px; font-weight: 700; line-height: 1; color: #111827; }
+.dbStatCard--red    .dbStatValue { color: #EF4444; }
+.dbStatCard--orange .dbStatValue { color: #F59E0B; }
+.dbStatCard--green  .dbStatValue { color: #10B981; }
+.dbStatCard--blue   .dbStatValue { color: #5285E8; }
+.dbStatLabel { font-size: 12px; color: #6B7280; margin-top: 3px; }
+
+/* ── Charts ── */
+.dbChartRow { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.dbChartCard {
+  background: #fff; border-radius: 14px; padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06); position: relative;
+}
+.dbChartTitle { font-size: 15px; font-weight: 700; color: #1E3A5F; margin-bottom: 12px; }
+.dbChartEmpty { text-align: center; color: #9CA3AF; padding: 40px 0; font-size: 14px; }
+.dbDonutLegend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 8px; }
+.dbDonutLegendItem { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #374151; }
+.dbDonutDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dbDonutCenter {
+  position: absolute; bottom: 52px; left: 50%; transform: translateX(-50%);
+  text-align: center; font-size: 20px; font-weight: 800; color: #1E3A5F; pointer-events: none;
+}
+.dbDonutCenter span { font-size: 11px; font-weight: 400; color: #9CA3AF; display: block; }
+
+/* ── Generic card ── */
+.dbCard {
+  background: #fff; border-radius: 14px; padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.dbCardHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
+.dbCardTitle { font-size: 16px; font-weight: 700; color: #1E3A5F; }
+.dbCardSub { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
+.dbBadgeCount {
+  background: #EF4444; color: #fff; font-size: 12px; font-weight: 700;
+  padding: 2px 8px; border-radius: 999px; min-width: 24px; text-align: center;
+}
+
+/* ── Action items ── */
+.dbActionList { display: flex; flex-direction: column; gap: 10px; }
+.dbActionItem {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 10px; background: #F9FAFB;
+}
+.dbActionIcon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.dbActionBody { flex: 1; min-width: 0; }
+.dbActionTitle { font-size: 14px; font-weight: 600; color: #111827; }
+.dbActionSub { font-size: 12px; color: #6B7280; margin-top: 2px; }
+.dbActionBtn {
+  background: #F3F4F6; border: none; border-radius: 8px;
+  padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; color: #374151;
+}
+.dbActionBtn:hover { background: #E5E7EB; }
+.dbActionEmpty {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 32px; color: #9CA3AF; font-size: 14px; text-align: center;
+}
+
+/* ── Testimonials ── */
+.dbTestiGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.dbTestiCard {
+  background: #F8FBFE; border: 1px solid #E0F0FA;
+  border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px;
+}
+.dbTestiQuote { font-size: 28px; color: #5285E8; line-height: 1; font-family: Georgia, serif; }
+.dbTestiText { font-size: 13px; color: #374151; line-height: 1.6; flex: 1; }
+.dbTestiMeta { margin-top: auto; }
+.dbTestiProject { display: block; font-size: 12px; font-weight: 600; color: #1E3A5F; }
+.dbTestiDate { font-size: 11px; color: #9CA3AF; }
+
+/* ── Buttons ── */
+.dbPriBtn {
+  background: #5285E8; color: #fff; border: none; border-radius: 8px;
+  padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.dbPriBtn:hover { background: #3A6FD4; }
+.dbSecBtn {
+  background: transparent; color: #5285E8; border: 1px solid #5285E8; border-radius: 8px;
+  padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.dbSecBtn:hover { background: #F0F9FF; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .dbStatGrid { grid-template-columns: repeat(2, 1fr); }
+  .dbChartRow { grid-template-columns: 1fr; }
+  .dbTestiGrid { grid-template-columns: 1fr; }
+}

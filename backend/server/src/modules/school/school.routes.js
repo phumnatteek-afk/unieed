@@ -24,9 +24,12 @@ import {
   deleteUniformImage,
 } from "./school.controller.js";
 
-import { getTestimonials, createTestimonial, updateTestimonial, patchTestimonial, deleteTestimonial } from "./school.controller.js";
+import { getTestimonials, createTestimonial, updateTestimonial, patchTestimonial, deleteTestimonial, getSchoolDashboard } from "./school.controller.js";
 
 const r = Router();
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+r.get("/dashboard", auth, requireRole(["school_admin"]), getSchoolDashboard);
 
 // ── School profile ────────────────────────────────────────────────────────────
 r.get("/me", auth, requireRole(["school_admin"]), schoolMe);

@@ -558,8 +558,8 @@
 /* ── Uniform type grid ── */
 .epUniformTypeGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
   margin-bottom: 16px;
 }
 

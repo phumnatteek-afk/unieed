@@ -312,16 +312,15 @@ html, body, #root {
   font-family: 'Kanit', sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: linear-gradient(135deg, #FFBE1B 0%, #f5ad10 100%);
+  background: #FFBE1B;
   box-shadow: 0 6px 20px rgba(255, 190, 27, 0.35);
   animation: lgFadeUp 0.6s ease both;
   animation-delay: 0.3s;
 }
 
 .lgBtn:hover {
-  background: linear-gradient(135deg, #ffd04f 0%, #FFBE1B 100%);
-  box-shadow: 0 8px 24px rgba(255, 190, 27, 0.45);
-  transform: translateY(-1px);
+  background: #f5ad10;
+  transform: none;
 }
 
 .lgBtn:active {

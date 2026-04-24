@@ -362,6 +362,7 @@ export default function DonatePage() {
         uniform_type_id: item.uniform_type_id,
         name: `${item.name}${item.size ? ` (${formatSize(item.size)})` : ""}`,
         education_level: item.education_level,
+        size: item.size ?? null,
         quantity: d.qty,
       };
     })
@@ -1326,8 +1327,11 @@ export function QRLabelPage({
       const canvas = await captureSlip();
       const imgData = canvas.toDataURL("image/png");
       const { default: jsPDF } = await import("jspdf");
-      const pdf = new jsPDF({ format: "a6", orientation: "portrait", unit: "mm" });
-      pdf.addImage(imgData, "PNG", 0, 0, 105, 148);
+      const pxToMm = 25.4 / 96;
+      const pageW = 105; // A6 width mm
+      const pageH = Math.round((canvas.height / canvas.width) * pageW * 10) / 10;
+      const pdf = new jsPDF({ format: [pageW, pageH], orientation: "portrait", unit: "mm" });
+      pdf.addImage(imgData, "PNG", 0, 0, pageW, pageH);
       pdf.save(`donation-slip-${id}.pdf`);
     } finally { setDownloading(""); }
   };

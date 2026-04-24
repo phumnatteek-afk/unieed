@@ -32,6 +32,14 @@ export async function getHomeData() {
           AND don.status != 'rejected'
       ), 0) AS total_donated,
 
+      -- ยอดที่โรงเรียน approve แล้ว (all conditions)
+      COALESCE((
+        SELECT SUM(don.quantity)
+        FROM donation_record don
+        WHERE don.request_id = dr.request_id
+          AND don.status = 'approved'
+      ), 0) AS total_received,
+
       -- ยอดที่โรงเรียนยืนยันรับแล้ว
       COALESCE((
         SELECT SUM(f.quantity_fulfilled)
@@ -148,9 +156,11 @@ const [testimonials] = await db.query(`
     t.review_title,
     t.review_text,
     DATE_FORMAT(t.review_date, '%e %b. %Y') AS review_date,
-    t.image_url
+    t.image_url,
+    u.user_name AS recorded_by_name
   FROM testimonials t
   LEFT JOIN schools s ON s.school_id = t.school_id
+  LEFT JOIN users u ON u.user_id = t.recorded_by_user_id
   WHERE t.is_published = 1
   ORDER BY t.review_date DESC
   LIMIT 10

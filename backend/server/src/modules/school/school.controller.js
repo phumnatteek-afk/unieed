@@ -49,7 +49,15 @@ export async function getProjectByIdPublic(req, res, next) {
           WHERE st.request_id = dr.request_id) AS total_needed,
          (SELECT COALESCE(SUM(f.quantity_fulfilled), 0)
           FROM fulfillment f
-          WHERE f.request_id = dr.request_id) AS total_fulfilled
+          WHERE f.request_id = dr.request_id) AS total_fulfilled,
+         (SELECT COALESCE(SUM(don.quantity), 0)
+          FROM donation_record don
+          WHERE don.request_id = dr.request_id
+            AND don.status = 'approved') AS total_received,
+         (SELECT COALESCE(SUM(don.quantity), 0)
+          FROM donation_record don
+          WHERE don.request_id = dr.request_id
+            AND don.status = 'pending') AS total_pending
        FROM donation_request dr
        JOIN schools s ON s.school_id = dr.school_id
        WHERE dr.request_id = ?
@@ -64,6 +72,8 @@ export async function getProjectByIdPublic(req, res, next) {
       school_address: rows[0].school_full_address,
       total_needed: Number(rows[0].total_needed) || 0,
       total_fulfilled: Number(rows[0].total_fulfilled) || 0,
+      total_received: Number(rows[0].total_received) || 0,
+      total_pending: Number(rows[0].total_pending) || 0,
       student_count: Number(rows[0].student_count) || 0,
       uniform_items: [],   // ✅ default ก่อน กัน undefined
     };
@@ -207,6 +217,82 @@ export async function getProjectByIdPublic(req, res, next) {
   }
  
   project.uniform_items = [...itemMap.values()];
+
+  // ── Approved qty per item (จาก donation_record items_snapshot) ──────────
+  try {
+    const [approvedRows] = await db.query(
+      `SELECT
+         jt.type_id          AS uniform_type_id,
+         jt.chest,
+         jt.waist,
+         SUM(jt.qty)         AS approved_qty
+       FROM donation_record dr
+       CROSS JOIN JSON_TABLE(
+         dr.items_snapshot, '$[*]'
+         COLUMNS (
+           type_id INT         PATH '$.uniform_type_id',
+           qty     INT         PATH '$.quantity',
+           chest   VARCHAR(20) PATH '$.size.chest',
+           waist   VARCHAR(20) PATH '$.size.waist'
+         )
+       ) AS jt
+       WHERE dr.request_id = ?
+         AND dr.status = 'approved'
+       GROUP BY jt.type_id, jt.chest, jt.waist`,
+      [request_id]
+    );
+
+    // แยก rows ที่มี size info (format ใหม่) vs ไม่มี (format เก่า)
+    const rowsWithSize    = approvedRows.filter(r => r.chest !== null || r.waist !== null);
+    const rowsWithoutSize = approvedRows.filter(r => r.chest === null && r.waist === null);
+
+    // คำนวณ total quantity per type_id สำหรับ proportional fallback
+    const totalQtyPerType = {};
+    for (const item of project.uniform_items) {
+      const tid = item.uniform_type_id;
+      totalQtyPerType[tid] = (totalQtyPerType[tid] || 0) + (item.quantity || 0);
+    }
+
+    for (const item of project.uniform_items) {
+      let sizeObj = null;
+      try {
+        sizeObj = item.size
+          ? (typeof item.size === "string" ? JSON.parse(item.size) : item.size)
+          : null;
+      } catch { sizeObj = null; }
+
+      const chest = sizeObj?.chest ?? null;
+      const waist = sizeObj?.waist ?? null;
+
+      // ลอง match ด้วย size (format ใหม่) ก่อน
+      const sizeMatch = rowsWithSize.find(r =>
+        r.uniform_type_id === item.uniform_type_id &&
+        String(r.chest ?? "") === String(chest ?? "") &&
+        String(r.waist ?? "") === String(waist ?? "")
+      );
+
+      let approvedQty = 0;
+      if (sizeMatch) {
+        approvedQty = Number(sizeMatch.approved_qty);
+      } else {
+        // fallback: format เก่าไม่มี size → กระจาย proportional ตาม item.quantity
+        const oldApproved = rowsWithoutSize
+          .filter(r => r.uniform_type_id === item.uniform_type_id)
+          .reduce((s, r) => s + Number(r.approved_qty), 0);
+        const typeTotal = totalQtyPerType[item.uniform_type_id] || 1;
+        approvedQty = Math.round(oldApproved * ((item.quantity || 0) / typeTotal));
+      }
+
+      item.quantity_approved = approvedQty;
+      item.quantity_remaining = Math.max((item.quantity || 0) - approvedQty, 0);
+    }
+  } catch (approvedErr) {
+    console.warn("[getProjectByIdPublic] approved qty query failed:", approvedErr.message);
+    for (const item of project.uniform_items) {
+      item.quantity_approved = 0;
+      item.quantity_remaining = item.quantity || 0;
+    }
+  }
 
 } catch (uniformErr) {
   console.error("[getProjectByIdPublic] uniform_items query failed:", uniformErr.message);
@@ -1243,10 +1329,12 @@ export async function getTestimonials(req, res, next) {
     const request_id = req.query.request_id ? Number(req.query.request_id) : null;
 
     const [rows] = await db.query(
-      `SELECT * FROM testimonials
-       WHERE school_id = ?
-       ${request_id ? "AND request_id = ?" : ""}
-       ORDER BY created_at DESC`,
+      `SELECT t.*, u.user_name AS recorded_by_name
+       FROM testimonials t
+       LEFT JOIN users u ON u.user_id = t.recorded_by_user_id
+       WHERE t.school_id = ?
+       ${request_id ? "AND t.request_id = ?" : ""}
+       ORDER BY t.created_at DESC`,
       request_id ? [school_id, request_id] : [school_id]
     );
     res.json(rows);
@@ -1257,6 +1345,7 @@ export async function getTestimonials(req, res, next) {
 export async function createTestimonial(req, res, next) {
   try {
     const school_id = req.user.school_id;
+    const recorded_by_user_id = req.user.user_id || null;
     const { review_title, review_text, rating, is_published, image_url: bodyImgUrl } = req.body;
  
     if (!review_title?.trim()) return res.status(400).json({ message: "กรุณากรอกหัวข้อ" });
@@ -1282,8 +1371,8 @@ export async function createTestimonial(req, res, next) {
     const [ins] = await db.query(
       `INSERT INTO testimonials
      (school_id, request_id, review_title, review_text,
-      image_url, image_public_id, is_published, review_date)
-   VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())`,
+      image_url, image_public_id, is_published, review_date, recorded_by_user_id)
+   VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE(), ?)`,
       [
         school_id,
         request_id ? Number(request_id) : null,
@@ -1292,6 +1381,7 @@ export async function createTestimonial(req, res, next) {
         image_url,
         image_public_id,
         is_published === "1" || is_published === 1 ? 1 : 0,
+        recorded_by_user_id,
       ]
     );
  
@@ -1387,5 +1477,149 @@ export async function deleteTestimonial(req, res, next) {
     );
  
     res.json({ message: "ลบสำเร็จ" });
+  } catch (err) { next(err); }
+}
+
+// GET /school/dashboard
+export async function getSchoolDashboard(req, res, next) {
+  try {
+    const school_id = req.user.school_id;
+
+    // ── 1. Latest project ─────────────────────────────────────────────────────
+    const [[project]] = await db.query(
+      `SELECT
+         dr.request_id, dr.request_title, dr.status,
+         dr.end_date, dr.request_image_url,
+         DATEDIFF(dr.end_date, CURDATE()) AS days_remaining,
+         COALESCE((SELECT SUM(sn.quantity_needed)
+                   FROM student_need sn JOIN students st ON st.student_id = sn.student_id
+                   WHERE st.request_id = dr.request_id), 0) AS total_needed,
+         COALESCE((SELECT SUM(f.quantity_fulfilled)
+                   FROM fulfillment f WHERE f.request_id = dr.request_id), 0) AS total_fulfilled,
+         COALESCE((SELECT COUNT(*) FROM students st WHERE st.request_id = dr.request_id), 0) AS student_count
+       FROM donation_request dr
+       WHERE dr.school_id = ?
+       ORDER BY dr.created_at DESC LIMIT 1`,
+      [school_id]
+    );
+
+    if (!project) return res.json({ project: null, stats: {}, chart_by_level: [], chart_by_status: {}, action_items: [], testimonials: [] });
+
+    const rid = project.request_id;
+
+    // ── 2. Stats ──────────────────────────────────────────────────────────────
+    const [[stats]] = await db.query(
+      `SELECT
+         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+         SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved,
+         SUM(CASE WHEN delivery_method = 'dropoff' AND DATE(donation_date) = CURDATE() THEN 1 ELSE 0 END) AS dropoff_today,
+         COUNT(*) AS total
+       FROM donation_record WHERE request_id = ?`,
+      [rid]
+    );
+
+    // ── 3. Chart by education level ───────────────────────────────────────────
+    const [levelRows] = await db.query(
+      `SELECT
+         CASE
+           WHEN st.education_level_group REGEXP 'อนุบาล|kg|Kindergarten' THEN 'อนุบาล'
+           WHEN st.education_level_group REGEXP 'ป\\\\.|ประถม' THEN 'ประถมศึกษา'
+           WHEN st.education_level_group REGEXP 'ม\\\\.[4-6]|มัธยมปลาย|มัธยมตอนปลาย' THEN 'มัธยมตอนปลาย'
+           ELSE 'มัธยมตอนต้น'
+         END AS level,
+         COALESCE(SUM(sn.quantity_needed), 0) AS total_needed
+       FROM students st
+       LEFT JOIN student_need sn ON sn.student_id = st.student_id
+       WHERE st.request_id = ?
+       GROUP BY level`,
+      [rid]
+    );
+
+    // กระจาย fulfilled proportionally ตาม level's share
+    const totalNeededAll = levelRows.reduce((s, r) => s + Number(r.total_needed), 0);
+    const totalFulfilled = Number(project.total_fulfilled) || 0;
+    const chart_by_level = ["อนุบาล", "ประถมศึกษา", "มัธยมตอนต้น", "มัธยมตอนปลาย"].map(level => {
+      const row = levelRows.find(r => r.level === level);
+      const needed = Number(row?.total_needed || 0);
+      const received = totalNeededAll > 0 ? Math.round((needed / totalNeededAll) * totalFulfilled) : 0;
+      return { level, received: Math.min(received, needed), remaining: Math.max(needed - received, 0) };
+    });
+
+    // ── 4. Chart by status ────────────────────────────────────────────────────
+    const [statusRows] = await db.query(
+      `SELECT status, COUNT(*) AS cnt FROM donation_record WHERE request_id = ? GROUP BY status`,
+      [rid]
+    );
+    const chart_by_status = { pending: 0, approved: 0, dropoff: 0, rejected: 0 };
+    for (const r of statusRows) {
+      if (r.status === 'pending') chart_by_status.pending = Number(r.cnt);
+      else if (r.status === 'approved') chart_by_status.approved = Number(r.cnt);
+      else if (r.status === 'rejected') chart_by_status.rejected = Number(r.cnt);
+    }
+    const [dropoffPending] = await db.query(
+      `SELECT COUNT(*) AS cnt FROM donation_record WHERE request_id = ? AND delivery_method = 'dropoff' AND status = 'pending'`,
+      [rid]
+    );
+    chart_by_status.dropoff = Number(dropoffPending[0]?.cnt || 0);
+
+    // ── 5. Action items ───────────────────────────────────────────────────────
+    const [pendingDonations] = await db.query(
+      `SELECT donation_id, donor_name, quantity, created_at, delivery_method
+       FROM donation_record
+       WHERE request_id = ? AND status = 'pending' AND delivery_method != 'dropoff'
+       ORDER BY created_at ASC LIMIT 5`,
+      [rid]
+    );
+
+    const [overdueDropoffs] = await db.query(
+      `SELECT donation_id, donor_name, donation_date, donor_phone
+       FROM donation_record
+       WHERE request_id = ? AND delivery_method = 'dropoff' AND status = 'pending'
+         AND donation_date IS NOT NULL
+         AND TIMESTAMPDIFF(DAY, donation_date, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 3
+       ORDER BY donation_date ASC LIMIT 5`,
+      [rid]
+    );
+
+    const [todayAppointments] = await db.query(
+      `SELECT donation_id, donor_name, donation_time, donor_phone
+       FROM donation_record
+       WHERE request_id = ? AND delivery_method = 'dropoff'
+         AND DATE(donation_date) = CURDATE()
+       ORDER BY donation_time ASC LIMIT 5`,
+      [rid]
+    );
+
+    // ── 6. Testimonials ───────────────────────────────────────────────────────
+    const [testimonials] = await db.query(
+      `SELECT t.testimonial_id, t.review_title, t.review_text,
+              DATE_FORMAT(t.review_date, '%e %b. %Y') AS review_date,
+              t.image_url, dr.request_title AS project_title,
+              u.user_name AS recorded_by_name
+       FROM testimonials t
+       LEFT JOIN donation_request dr ON dr.request_id = t.request_id
+       LEFT JOIN users u ON u.user_id = t.recorded_by_user_id
+       WHERE t.school_id = ? AND t.is_published = 1
+       ORDER BY t.review_date DESC LIMIT 3`,
+      [school_id]
+    );
+
+    res.json({
+      project: { ...project, total_needed: Number(project.total_needed), total_fulfilled: Number(project.total_fulfilled) },
+      stats: {
+        pending: Number(stats.pending || 0),
+        approved: Number(stats.approved || 0),
+        dropoff_today: Number(stats.dropoff_today || 0),
+        students_waiting: Number(project.student_count || 0),
+      },
+      chart_by_level,
+      chart_by_status,
+      action_items: {
+        pending_donations: pendingDonations,
+        overdue_dropoffs: overdueDropoffs,
+        today_appointments: todayAppointments,
+      },
+      testimonials,
+    });
   } catch (err) { next(err); }
 }

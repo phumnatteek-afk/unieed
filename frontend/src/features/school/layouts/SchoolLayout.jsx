@@ -1,10 +1,12 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import "../styles/school.css";
 
 export default function SchoolLayout() {
   const nav = useNavigate();
+  const { pathname } = useLocation();
+  const isProjectsSection = pathname.startsWith("/school/projects");
 
   return (
     <div className="scShell">
@@ -23,7 +25,7 @@ export default function SchoolLayout() {
           </NavLink>
 
           <NavLink to="projects/manage"
-            className={({ isActive }) => (isActive ? "scItem active" : "scItem")}>
+            className={({ isActive }) => (isActive || isProjectsSection ? "scItem active" : "scItem")}>
             <span className="scMenuIcon"><Icon icon="fa6-regular:pen-to-square" /></span>
             จัดการโครงการ
           </NavLink>
