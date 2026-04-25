@@ -1302,12 +1302,30 @@ export function QRLabelPage({
 
   const captureSlip = async () => {
     const { default: html2canvas } = await import("html2canvas");
-    return html2canvas(slipRef.current, {
-      scale: 4,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-    });
+
+    // แปลง QR canvas → img ก่อน capture (html2canvas ไม่ copy canvas pixels จาก clone)
+    const qrCanvas = qrRef.current;
+    let qrImg = null;
+    if (qrCanvas?.width > 0) {
+      qrImg = document.createElement("img");
+      qrImg.src = qrCanvas.toDataURL("image/png");
+      qrImg.style.width = qrCanvas.width + "px";
+      qrImg.style.height = qrCanvas.height + "px";
+      qrImg.style.border = "1.5px solid #e5e7eb";
+      qrImg.style.borderRadius = "6px";
+      qrCanvas.replaceWith(qrImg);
+    }
+
+    try {
+      return await html2canvas(slipRef.current, {
+        scale: 4,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+      });
+    } finally {
+      if (qrImg) qrImg.replaceWith(qrCanvas);
+    }
   };
 
   const downloadPNG = async () => {
@@ -1393,81 +1411,77 @@ export function QRLabelPage({
           pointerEvents: "none", userSelect: "none",
         }} />
 
-        <div style={{ display: "flex", height: "100%", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-          {/* LEFT column */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+          {/* ผู้รับ — paddingRight เพื่อเว้นที่ illustration */}
+          <div style={{ paddingRight: 110 }}>
+            <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 2 }}>ข้อมูลผู้รับ (Receiver)</div>
+            <div style={{ fontSize: 9, color: C.sub }}>โรงเรียนปลายทาง :</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.text, lineHeight: 1.3, marginTop: 1 }}>{schoolName}</div>
+            {schoolAddress && <div style={{ fontSize: 9, color: C.sub, marginTop: 2, lineHeight: 1.5 }}>{schoolAddress}</div>}
+          </div>
 
-            {/* ผู้รับ */}
-            <div>
-              <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 2 }}>ข้อมูลผู้รับ (Receiver)</div>
-              <div style={{ fontSize: 9, color: C.sub }}>โรงเรียนปลายทาง :</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.text, lineHeight: 1.3, marginTop: 1 }}>{schoolName}</div>
-              {schoolAddress && <div style={{ fontSize: 9, color: C.sub, marginTop: 2, lineHeight: 1.5 }}>{schoolAddress}</div>}
-            </div>
+          <div style={{ borderTop: `1px dashed ${C.border}` }} />
 
-            <div style={{ borderTop: `1px dashed ${C.border}` }} />
+          {/* ผู้บริจาค */}
+          <div>
+            <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 2 }}>ข้อมูลผู้บริจาค (Sender)</div>
+            <div style={{ fontSize: 11, color: C.text }}>ผู้บริจาค : <strong>{donorName}</strong></div>
+          </div>
 
-            {/* ผู้บริจาค */}
-            <div>
-              <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 2 }}>ข้อมูลผู้บริจาค (Sender)</div>
-              <div style={{ fontSize: 11, color: C.text }}>ผู้บริจาค : <strong>{donorName}</strong></div>
-            </div>
+          <div style={{ borderTop: `1px dashed ${C.border}` }} />
 
-            <div style={{ borderTop: `1px dashed ${C.border}` }} />
-
-            {/* ข้อมูลการส่ง */}
-            <div>
-              <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 4 }}>ข้อมูลการส่ง</div>
-              {isDropoff ? (
-                <>
-                  <div style={{ fontSize: 11, color: C.text }}>📅 {formatThaiDate(appointDate)}{appointTime ? ` เวลา ${appointTime} น.` : ""}</div>
-                  <div style={{ fontSize: 11, color: C.text }}>📞 {donorPhone}</div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 11, color: C.text, display: "flex", alignItems: "center", gap: 5 }}>
-                    {carrierLogo
-                      ? <img src={carrierLogo} alt={courier} style={{ height: 16, width: "auto", objectFit: "contain", flexShrink: 0 }} />
-                      : "🚚"}
-                    {courier}
-                  </div>
-                  {trackingInput && (
-                    <div style={{ marginTop: 4 }}>
-                      <div style={{ fontSize: 9, color: C.sub }}>เลขพัสดุ (Tracking Number) :</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: C.blue, fontFamily: "monospace", letterSpacing: 1 }}>{trackingInput}</div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div style={{ borderTop: `1px dashed ${C.border}` }} />
-
-            {/* รายการชุด */}
-            <div style={{ flex: 1 }}>
-              <div style={{ background: C.navy, borderRadius: "6px 6px 0 0", padding: "4px 10px" }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#fff" }}>รายการชุดนักเรียน</span>
-              </div>
-              <div style={{ border: `1px solid ${C.border}`, borderTop: "none", borderRadius: "0 0 6px 6px", overflow: "hidden" }}>
-                {selectedItems.map((it, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 10px", background: i % 2 === 0 ? "#fff" : "#F7F8FA", borderBottom: `1px solid ${C.border}` }}>
-                    <span style={{ fontSize: 10, color: C.text }}>{it.name}</span>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: C.navy }}>{it.qty} ชิ้น</span>
-                  </div>
-                ))}
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 10px", background: "#EFF6FF" }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: C.navy }}>รวมทั้งหมด</span>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: C.navy }}>{totalQty} ชิ้น</span>
+          {/* ข้อมูลการส่ง */}
+          <div>
+            <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 4 }}>ข้อมูลการส่ง</div>
+            {isDropoff ? (
+              <>
+                <div style={{ fontSize: 11, color: C.text }}>📅 {formatThaiDate(appointDate)}{appointTime ? ` เวลา ${appointTime} น.` : ""}</div>
+                <div style={{ fontSize: 11, color: C.text }}>📞 {donorPhone}</div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 11, color: C.text, display: "flex", alignItems: "center", gap: 5 }}>
+                  {carrierLogo
+                    ? <img src={carrierLogo} alt={courier} style={{ height: 16, width: "auto", objectFit: "contain", flexShrink: 0 }} />
+                    : "🚚"}
+                  {courier}
                 </div>
+                {trackingInput && (
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ fontSize: 9, color: C.sub }}>เลขพัสดุ (Tracking Number) :</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: C.blue, fontFamily: "monospace", letterSpacing: 1 }}>{trackingInput}</div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div style={{ borderTop: `1px dashed ${C.border}` }} />
+
+          {/* รายการชุด */}
+          <div>
+            <div style={{ background: C.navy, borderRadius: "6px 6px 0 0", padding: "4px 10px" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#fff" }}>รายการชุดนักเรียน</span>
+            </div>
+            <div style={{ border: `1px solid ${C.border}`, borderTop: "none", borderRadius: "0 0 6px 6px", overflow: "hidden" }}>
+              {selectedItems.map((it, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 10px", background: i % 2 === 0 ? "#fff" : "#F7F8FA", borderBottom: `1px solid ${C.border}` }}>
+                  <span style={{ fontSize: 10, color: C.text }}>{it.name}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: C.navy }}>{it.qty} ชิ้น</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 10px", background: "#EFF6FF" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: C.navy }}>รวมทั้งหมด</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.navy }}>{totalQty} ชิ้น</span>
               </div>
             </div>
           </div>
 
-          {/* RIGHT column — QR */}
-          <div style={{ width: 120, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, paddingTop: "38%" }}>
-            <div style={{ fontSize: 9, color: C.sub, textAlign: "center", lineHeight: 1.4, fontWeight: 600 }}>
-              สำหรับโรงเรียน<br />สแกนยืนยันรับของ
+          {/* QR code — ล่างสุด */}
+          <div style={{ borderTop: `1px dashed ${C.border}`, paddingTop: 10, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div style={{ fontSize: 9, color: C.sub, textAlign: "center", fontWeight: 600 }}>
+              สำหรับโรงเรียน · สแกนยืนยันรับของ
             </div>
             <canvas ref={qrRef} style={{ border: `1.5px solid ${C.border}`, borderRadius: 6 }} />
             <div style={{ fontSize: 8, color: "#ccc", fontFamily: "monospace" }}>{id}</div>

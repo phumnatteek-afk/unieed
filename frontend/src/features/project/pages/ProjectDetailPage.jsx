@@ -141,12 +141,15 @@ export default function ProjectDetailPage() {
   const remaining = Math.max(needed - received, 0);
   const pct       = needed > 0 ? Math.min(Math.round((fulfilled / needed) * 100), 100) : 0;
 
-  // progress bar widths — cap total ไม่เกิน 100%
-  const pctGreen  = needed > 0 ? Math.min((fulfilled / needed) * 100, 100) : 0;
-  const pctOrange = needed > 0 ? Math.min((orange   / needed) * 100, 100 - pctGreen) : 0;
-  const pctBlue   = needed > 0 ? Math.min((pending  / needed) * 100, 100 - pctGreen - pctOrange) : 0;
-
   const isFulfilled = needed > 0 && received >= needed;
+
+  // progress bar widths
+  // เมื่อ received >= needed ให้ scale ตาม (received + pending) จริง ไม่ใช่ needed
+  // เพื่อให้ทั้ง 3 สีแสดงสัดส่วนที่ถูกต้อง
+  const barTotal  = isFulfilled ? Math.max(received + pending, 1) : Math.max(needed, 1);
+  const pctGreen  = Math.min((fulfilled / barTotal) * 100, 100);
+  const pctOrange = Math.min((orange    / barTotal) * 100, 100 - pctGreen);
+  const pctBlue   = Math.min((pending   / barTotal) * 100, 100 - pctGreen - pctOrange);
 
   // ── UniformBlock ──
   const UniformBlock = () => {
@@ -438,7 +441,7 @@ export default function ProjectDetailPage() {
                     {orange > 0 && (
                       <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ffab7a", flexShrink: 0 }} />
-                        โรงเรียนรับแล้ว รอแจก <strong style={{ marginLeft: 2 }}>{orange}</strong>
+                        โรงเรียนรับแล้ว รอแจกจ่าย <strong style={{ marginLeft: 2 }}>{orange}</strong>
                       </span>
                     )}
                     {pending > 0 && (

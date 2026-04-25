@@ -47,9 +47,10 @@ export async function getProjectByIdPublic(req, res, next) {
           FROM student_need sn
           JOIN students st ON st.student_id = sn.student_id
           WHERE st.request_id = dr.request_id) AS total_needed,
-         (SELECT COALESCE(SUM(f.quantity_fulfilled), 0)
-          FROM fulfillment f
-          WHERE f.request_id = dr.request_id) AS total_fulfilled,
+         (SELECT COALESCE(SUM(sn2.quantity_received), 0)
+          FROM student_need sn2
+          JOIN students st2 ON st2.student_id = sn2.student_id
+          WHERE st2.request_id = dr.request_id) AS total_fulfilled,
          (SELECT COALESCE(SUM(don.quantity), 0)
           FROM donation_record don
           WHERE don.request_id = dr.request_id
@@ -1511,7 +1512,12 @@ export async function getSchoolDashboard(req, res, next) {
     const [[stats]] = await db.query(
       `SELECT
          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
-         SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved,
+         SUM(CASE WHEN status = 'approved' AND condition_status = 'usable'
+                       AND (SELECT COALESCE(SUM(sn.quantity_received), 0)
+                            FROM fulfillment f
+                            JOIN student_need sn ON sn.student_need_id = f.request_item_id
+                            WHERE f.donation_id = donation_record.donation_id) > 0
+             THEN 1 ELSE 0 END) AS approved,
          SUM(CASE WHEN delivery_method = 'dropoff' AND DATE(donation_date) = CURDATE() THEN 1 ELSE 0 END) AS dropoff_today,
          COUNT(*) AS total
        FROM donation_record WHERE request_id = ?`,
