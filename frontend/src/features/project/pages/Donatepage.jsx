@@ -982,21 +982,26 @@ export default function DonatePage() {
         <div className="certOverlay">
           <ConfettiEffect />
           <div className="certPopup">
-            <div className="certPopupTitle">✅ ส่งรายการเรียบร้อย!</div>
+            <div className="certPopupTitle">
+              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" style={{ color: "#22c55e" }}><path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/></svg>
+              ส่งรายการเรียบร้อย!
+            </div>
             <div className="certPopupName">{donorName}</div>
             <div className="certPopupMsg">
               ขอบคุณที่ร่วมส่งต่อโอกาสให้เด็กๆ ผ่าน Unieed
               <br /><br />
               <span style={{
-                display: "inline-block",
+                display: "block",
                 background: "#eff6ff",
                 border: "1px solid #bfdbfe",
                 borderRadius: "10px",
-                padding: "10px 14px",
+                padding: "14px 20px",
                 fontSize: "13px",
                 color: "#1e40af",
-                lineHeight: 1.7,
-                textAlign: "left",
+                lineHeight: 1.8,
+                textAlign: "center",
+                width: "100%",
+                boxSizing: "border-box",
               }}>
                 🏅 <strong>ใบประกาศนียบัตร</strong>จะถูกออกให้อัตโนมัติ
                 <br />

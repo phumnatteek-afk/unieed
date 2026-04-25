@@ -517,11 +517,11 @@ export default function ProjectDetailPage() {
                 <div className="pdDateRow">
                   <span className="pdDateLabel">ระยะเวลาโครงการ :</span>
                   <span>
-                    {project.created_at
-                      ? new Date(project.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })
+                    {(project.start_date || project.created_at)
+                      ? new Date(project.start_date || project.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })
                       : ""}
                     {project.end_date
-                      ? ` – ${new Date(project.end_date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}${project.duration_months ? ` (${project.duration_months} เดือน)` : ""}`
+                      ? ` – ${new Date(project.end_date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}`
                       : " – ไม่มีกำหนดสิ้นสุด"}
                   </span>
                 </div>

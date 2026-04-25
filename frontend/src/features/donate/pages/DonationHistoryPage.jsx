@@ -51,6 +51,7 @@ export default function DonationHistoryPage() {
   const [cancelErr, setCancelErr] = useState("");
   const [previewImg, setPreviewImg] = useState(null); // { url, donationId, status }
   const [uploadingPic, setUploadingPic] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
 
   const handlePicChange = async (donationId, file) => {
     if (!file) return;
@@ -144,6 +145,17 @@ export default function DonationHistoryPage() {
     })();
   }, [token]);
 
+  const filteredDonations = activeTab === "all"
+    ? donations
+    : donations.filter(d => d.delivery_method === activeTab);
+
+  const tabCounts = {
+    all:            donations.length,
+    parcel:         donations.filter(d => d.delivery_method === "parcel").length,
+    dropoff:        donations.filter(d => d.delivery_method === "dropoff").length,
+    market_purchase:donations.filter(d => d.delivery_method === "market_purchase").length,
+  };
+
   return (
     <div className="homePage">
       {/* Navbar */}
@@ -178,6 +190,48 @@ export default function DonationHistoryPage() {
             รายการบริจาคทั้งหมดของคุณ
           </div>
         </div>
+
+        {/* Tab bar */}
+        {!loading && !err && donations.length > 0 && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+            {[
+              { key: "all",            label: "ทั้งหมด",        icon: "mdi:format-list-bulleted" },
+              { key: "parcel",         label: "พัสดุ",          icon: "mdi:truck-outline" },
+              { key: "dropoff",        label: "Drop-off",       icon: "mdi:walk" },
+              { key: "market_purchase",label: "ซื้อเพื่อบริจาค", icon: "mdi:shopping-outline" },
+            ].map(tab => {
+              const isActive = activeTab === tab.key;
+              const count = tabCounts[tab.key];
+              if (tab.key !== "all" && count === 0) return null;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "7px 14px", borderRadius: 20,
+                    border: `1.5px solid ${isActive ? "#5285E8" : "#E5E7EB"}`,
+                    background: isActive ? "#EEF2FF" : "#fff",
+                    color: isActive ? "#5285E8" : "#6B7280",
+                    fontSize: 13, fontWeight: isActive ? 600 : 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Icon icon={tab.icon} width="14" />
+                  {tab.label}
+                  <span style={{
+                    background: isActive ? "#5285E8" : "#E5E7EB",
+                    color: isActive ? "#fff" : "#6B7280",
+                    borderRadius: 20, padding: "1px 7px",
+                    fontSize: 11, fontWeight: 700,
+                  }}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Loading */}
         {loading && (
@@ -228,8 +282,15 @@ export default function DonationHistoryPage() {
           </div>
         )}
 
+        {/* Empty (filtered) */}
+        {!loading && !err && donations.length > 0 && filteredDonations.length === 0 && (
+          <div style={{ textAlign: "center", padding: "48px 20px", color: "#9CA3AF", fontSize: 14 }}>
+            ไม่มีรายการในหมวดนี้
+          </div>
+        )}
+
         {/* List */}
-        {!loading && donations.map((d) => {
+        {!loading && filteredDonations.map((d) => {
           const status = STATUS_CONFIG[d.status] || STATUS_CONFIG.pending;
           const items = parseItems(d.items_snapshot);
           const isOpen = expanded === d.donation_id;
@@ -288,8 +349,14 @@ export default function DonationHistoryPage() {
                       {d.quantity} ชิ้น
                     </span>
                     <span style={{ fontSize: 12, color: "#6b7280", display: "flex", alignItems: "center", gap: 4 }}>
-                      <Icon icon={d.delivery_method === "dropoff" ? "mdi:walk" : "mdi:truck-outline"} width="14" />
-                      {d.delivery_method === "dropoff" ? "Drop-off" : "พัสดุ"}
+                      <Icon icon={
+                        d.delivery_method === "dropoff" ? "mdi:walk"
+                        : d.delivery_method === "market_purchase" ? "mdi:shopping-outline"
+                        : "mdi:truck-outline"
+                      } width="14" />
+                      {d.delivery_method === "dropoff" ? "Drop-off"
+                        : d.delivery_method === "market_purchase" ? "ซื้อเพื่อบริจาค"
+                        : "พัสดุ"}
                     </span>
                   </div>
                 </div>

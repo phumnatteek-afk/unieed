@@ -8,17 +8,31 @@ export default function SchoolRequestCreatePage() {
 
   const [request_title, setTitle] = useState("");
   const [request_description, setDesc] = useState("");
-  const [duration_months, setDuration] = useState(3);
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [dragOver, setDragOver] = useState(false);
 
-  const calcEndDate = (months) => {
-    const d = new Date();
+  const todayIso = new Date().toISOString().split("T")[0];
+
+  // วันเริ่มโครงการ — default วันนี้
+  const [startDate, setStartDate] = useState(todayIso);
+  // ระยะเวลา — default 3 เดือน
+  const [durationMonths, setDurationMonths] = useState(3);
+
+  // คำนวณ end_date = startDate + durationMonths
+  const calcEndDate = (start, months) => {
+    if (!start) return "";
+    const d = new Date(start);
     d.setMonth(d.getMonth() + months);
-    return d.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" });
+    return d.toISOString().split("T")[0];
+  };
+  const endDate = calcEndDate(startDate, durationMonths);
+
+  const formatThaiDate = (iso) => {
+    if (!iso) return "";
+    return new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" });
   };
 
   const handleImageChange = (file) => {
@@ -51,7 +65,8 @@ export default function SchoolRequestCreatePage() {
       const created = await postJson("/school/projects", {
         request_title,
         request_description,
-        duration_months,
+        start_date: startDate,
+        end_date: endDate,
         request_image_url: imageData?.image_url || null,
         request_image_public_id: imageData?.public_id || null,
       }, true);
@@ -133,30 +148,67 @@ export default function SchoolRequestCreatePage() {
             <label className="srcLabel">
               ระยะเวลาโครงการ <span className="srcReq">*</span>
             </label>
-            <div style={{ display: "flex", gap: 10 }}>
-              {[3, 6, 12].map((m) => (
+
+            {/* วันเริ่มต้น */}
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4, fontWeight: 500 }}>วันเริ่มต้นโครงการ</div>
+              <input
+                type="date"
+                value={startDate}
+                min={todayIso}
+                onChange={(e) => setStartDate(e.target.value)}
+                style={{
+                  width: "100%", padding: "10px 12px", borderRadius: 10,
+                  border: "1.5px solid #E5E7EB", fontSize: 14,
+                  color: "#1a1a2e", background: "#F9FAFB",
+                  boxSizing: "border-box", outline: "none",
+                }}
+              />
+            </div>
+
+            {/* ระยะเวลา quick-select */}
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, fontWeight: 500 }}>ระยะเวลา</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[
+                { label: "1 เดือน", months: 1 },
+                { label: "3 เดือน", months: 3 },
+                { label: "6 เดือน", months: 6 },
+                { label: "1 ปี",    months: 12 },
+              ].map(({ label, months }) => (
                 <button
-                  key={m}
+                  key={months}
                   type="button"
-                  onClick={() => setDuration(m)}
+                  onClick={() => setDurationMonths(months)}
                   style={{
-                    flex: 1, padding: "10px 8px", borderRadius: 10,
-                    border: duration_months === m ? "2px solid #5285e8" : "1.5px solid #E5E7EB",
-                    background: duration_months === m ? "#EFF6FF" : "#F9FAFB",
-                    color: duration_months === m ? "#5285e8" : "#6b7280",
-                    fontWeight: duration_months === m ? 700 : 500,
-                    fontSize: 14, cursor: "pointer",
-                    transform: "none",
+                    flex: 1, padding: "8px 4px", borderRadius: 10,
+                    border: durationMonths === months ? "2px solid #5285e8" : "1.5px solid #E5E7EB",
+                    background: durationMonths === months ? "#EFF6FF" : "#F9FAFB",
+                    color: durationMonths === months ? "#5285e8" : "#6b7280",
+                    fontWeight: durationMonths === months ? 700 : 500,
+                    fontSize: 13, cursor: "pointer",
                   }}
                 >
-                  {m === 12 ? "1 ปี" : `${m} เดือน`}
+                  {label}
                 </button>
               ))}
             </div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="#6b7280" d="M19 4h-2V3a1 1 0 0 0-2 0v1H9V3a1 1 0 0 0-2 0v1H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3m1 15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7h16Zm0-9H4V7a1 1 0 0 1 1-1h2v1a1 1 0 0 0 2 0V6h6v1a1 1 0 0 0 2 0V6h2a1 1 0 0 1 1 1Z"/></svg>
-              โครงการจะสิ้นสุด: <strong style={{ color: "#5285e8" }}>{calcEndDate(duration_months)}</strong>
-            </div>
+
+            {/* แสดงวันสิ้นสุดที่คำนวณอัตโนมัติ */}
+            {endDate && (
+              <div style={{
+                marginTop: 12, padding: "10px 14px", borderRadius: 10,
+                background: "#EFF6FF", border: "1.5px solid #c7d9f8",
+                display: "flex", alignItems: "center", gap: 8,
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="#5285e8" d="M19 4h-2V3a1 1 0 0 0-2 0v1H9V3a1 1 0 0 0-2 0v1H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3m1 15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7h16Zm0-9H4V7a1 1 0 0 1 1-1h2v1a1 1 0 0 0 2 0V6h6v1a1 1 0 0 0 2 0V6h2a1 1 0 0 1 1 1Z"/></svg>
+                <span style={{ fontSize: 13, color: "#4b6cb7" }}>
+                  โครงการจะดำเนินการ{" "}
+                  <strong>{formatThaiDate(startDate)}</strong>
+                  {" → "}
+                  <strong style={{ color: "#5285e8" }}>{formatThaiDate(endDate)}</strong>
+                </span>
+              </div>
+            )}
           </div>
 
           {/* ภาพโครงการ */}
@@ -234,7 +286,8 @@ export default function SchoolRequestCreatePage() {
               <span className="srcPreviewDot" /> กำลังเปิดรับบริจาค
             </div>
             <div style={{ fontSize: 12, color: "#6b7280", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="#6b7280" d="M19 4h-2V3a1 1 0 0 0-2 0v1H9V3a1 1 0 0 0-2 0v1H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3m1 15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7h16Zm0-9H4V7a1 1 0 0 1 1-1h2v1a1 1 0 0 0 2 0V6h6v1a1 1 0 0 0 2 0V6h2a1 1 0 0 1 1 1Z"/></svg> สิ้นสุด {calcEndDate(duration_months)}
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="#6b7280" d="M19 4h-2V3a1 1 0 0 0-2 0v1H9V3a1 1 0 0 0-2 0v1H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3m1 15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7h16Zm0-9H4V7a1 1 0 0 1 1-1h2v1a1 1 0 0 0 2 0V6h6v1a1 1 0 0 0 2 0V6h2a1 1 0 0 1 1 1Z"/></svg>
+              {formatThaiDate(startDate)} → {formatThaiDate(endDate)}
             </div>
           </div>
         </div>

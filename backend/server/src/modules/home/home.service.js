@@ -74,6 +74,7 @@ export async function getHomeData() {
     FROM donation_request dr
     JOIN schools s ON s.school_id = dr.school_id
     WHERE dr.status = 'open'
+      AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
     ORDER BY dr.created_at DESC
     LIMIT 10
   `);

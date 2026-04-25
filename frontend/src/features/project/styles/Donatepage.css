@@ -898,8 +898,9 @@
 }
  
 .certPopupTitle {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
   font-size: 24px; font-weight: 800;
-  color: #1e293b; margin-bottom: 8px;
+  color: #22c55e; margin-bottom: 8px;
 }
  
 .certPopupName {

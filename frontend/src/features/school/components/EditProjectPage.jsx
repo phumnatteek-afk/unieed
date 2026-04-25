@@ -158,8 +158,8 @@ export default function EditProjectPage() {
   const [modalTypeSel,setModalTypeSel]= useState("");    // dropdown
   const [modalTypeIn, setModalTypeIn] = useState("");    // free text
 
-  const formattedDate = project?.created_at
-    ? new Date(project.created_at).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
+  const formattedDate = (project?.start_date || project?.created_at)
+    ? new Date(project.start_date || project.created_at).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
     : "-";
   const canSave = !!title.trim() && !uploading;
 
@@ -520,7 +520,7 @@ for (const cat of MAIN_CATEGORIES) {
               <div className="cardTitle">{title || "ชื่อโครงการ"}</div>
               <div className="cardDesc">{description || "รายละเอียดโครงการจะแสดงตรงนี้..."}</div>
               <div className="cardAddr">ที่ตั้ง: {project?.school_address || "-"}</div>
-              <div className="cardMeta"><span>สร้างเมื่อ: {formattedDate}</span></div>
+              <div className="cardMeta"><span>เริ่มต้น: {formattedDate}</span></div>
             </div>
           </div>
         </div>

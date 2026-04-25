@@ -180,7 +180,7 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
         <div className="smHead">
           <div className="smHeadLeft">
             <div className="smHeadIcon">
-              <Icon icon={isEdit ? "mdi:pencil-outline" : "mdi:account-plus-outline"} width="22" />
+              <Icon icon={isEdit ? "mdi:pencil-outline" : "mdi:account-plus-outline"} width="22" color="white" />
             </div>
             <div>
               <div className="smTitle">{isEdit ? "แก้ไขข้อมูลนักเรียน" : "เพิ่มรายชื่อนักเรียน"}</div>
@@ -188,7 +188,7 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
             </div>
           </div>
           <button className="smClose" onClick={onClose} type="button">
-            <Icon icon="mdi:close" width="18" />
+            <Icon icon="mdi:close" width="24" />
           </button>
         </div>
 
@@ -208,7 +208,7 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
                   className={`smInput ${nameErrors.length ? "smInputErr" : dupWarning ? "smInputWarn" : ""}`}
                   value={student_name}
                   onChange={(e) => { setName(e.target.value); setSubmitErrors([]); }}
-                  placeholder="เช่น เด็กชายสมชาย ใจดี"
+                  placeholder="เช่น สมชาย ใจดี"
                 />
                 {/* แสดง error real-time */}
                 {nameErrors.length > 0 && (
@@ -237,16 +237,20 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
               <div className="smField">
                 <label className="smLabel">เพศ <span className="smReq">*</span></label>
                 <div className="smToggleGroup">
-                  {[
-                    { v: "male", l: "ชาย", icon: "mdi:human-male" },
-                    { v: "female", l: "หญิง", icon: "mdi:human-female" },
-                  ].map(({ v, l, icon }) => (
-                    <button key={v} type="button"
-                      className={`smToggleBtn ${gender === v ? "smToggleActive" : ""}`}
-                      onClick={() => setGender(v)}>
-                      <Icon icon={icon} width="16" /> {l}
-                    </button>
-                  ))}
+                  <button type="button"
+                    className="smToggleBtn"
+                    style={gender === "male" ? { background: "#F0F7FF", borderColor: "#A8C4F0", color: "#5285E8" } : {}}
+                    onClick={() => setGender("male")}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 48 48"><path fill="currentColor" fillRule="evenodd" d="M24 9.952c-3.393 7.667-10.766 13.18-19.5 13.915V24c0 10.77 8.73 19.5 19.5 19.5S43.5 34.77 43.5 24v-.133C34.766 23.131 27.393 17.62 24 9.952m19.058.296A23.4 23.4 0 0 1 47.5 24c0 12.979-10.521 23.5-23.5 23.5S.5 36.979.5 24c0-6.22 2.417-11.877 6.363-16.08A23.43 23.43 0 0 1 23.895.5h.21c7.61.033 14.366 3.684 18.638 9.321q.159.212.315.427M17.854 32.676a2 2 0 0 0-3.344 2.195c2.156 3.285 5.914 4.811 9.49 4.811s7.334-1.526 9.49-4.811a2 2 0 1 0-3.344-2.195c-1.264 1.927-3.614 3.006-6.146 3.006s-4.882-1.08-6.146-3.006m-.695-11.653a2 2 0 0 1 2 2v1.955a2 2 0 0 1-4 0v-1.955a2 2 0 0 1 2-2m11.682 2a2 2 0 0 1 4 0v1.955a2 2 0 1 1-4 0z" clipRule="evenodd"/></svg>
+                    ชาย
+                  </button>
+                  <button type="button"
+                    className="smToggleBtn"
+                    style={gender === "female" ? { background: "#FFF0F6", borderColor: "#F0A8C8", color: "#E8528A" } : {}}
+                    onClick={() => setGender("female")}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"><path fill="currentColor" d="M13.75 13a1.25 1.25 0 1 1 2.5 0a1.25 1.25 0 0 1-2.5 0M22 12v10H2V12C2 6.5 6.5 2 12 2s10 4.5 10 10M4 12c0 4.41 3.59 8 8 8s8-3.59 8-8c0-.79-.12-1.55-.33-2.26A9.97 9.97 0 0 1 9.26 5.77c-.98 2.39-2.85 4.32-5.21 5.37c-.05.28-.05.57-.05.86m5 2.25a1.25 1.25 0 1 0 0-2.5a1.25 1.25 0 0 0 0 2.5"/></svg>
+                    หญิง
+                  </button>
                 </div>
               </div>
 
@@ -295,17 +299,22 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
                   รูปแบบการสนับสนุน <span className="smReq">*</span>
                 </label>
                 <div className="smSupportGroup">
-                  {[
-                    { v: "one_time", l: "รับครั้งเดียว", icon: "mdi:gift-outline" },
-                    { v: "recurring", l: "รับต่อเนื่อง", icon: "mdi:calendar-sync" },
-                  ].map(({ v, l, icon }) => (
-                    <button key={v} type="button"
-                      className={`smSupportChip ${support_mode === v ? "smSupportChipActive" : ""}`}
-                      onClick={() => setSupportMode(v)}>
-                      <Icon icon={icon} width="15" />
-                      {l}
-                    </button>
-                  ))}
+                  <div className="smSupportChipRow">
+                    {[
+                      { v: "one_time",  l: "รับครั้งเดียว", icon: "mdi:gift-outline",   activeBg: "#FFF8E7", activeBorder: "#F5A623", activeColor: "#92400E" },
+                      { v: "recurring", l: "รับต่อเนื่อง",  icon: "mdi:calendar-sync",  activeBg: "#EEF2FD", activeBorder: "#5285E8", activeColor: "#2d5cbf" },
+                    ].map(({ v, l, icon, activeBg, activeBorder, activeColor }) => (
+                      <button key={v} type="button"
+                        className="smSupportChip"
+                        style={support_mode === v
+                          ? { background: activeBg, borderColor: activeBorder, color: activeColor, fontWeight: 600 }
+                          : {}}
+                        onClick={() => setSupportMode(v)}>
+                        <Icon icon={icon} width="15" />
+                        {l}
+                      </button>
+                    ))}
+                  </div>
                   {support_mode === "recurring" && (
                     <div className="smYearsRow">
                       <Icon icon="mdi:calendar-range-outline" width="15" style={{ color: "var(--um-text-sub)" }} />

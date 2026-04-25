@@ -27,6 +27,7 @@ export async function getProjectByIdPublic(req, res, next) {
          dr.request_image_url,
          dr.status,
          dr.created_at,
+         dr.start_date,
          dr.end_date,
          dr.duration_months,
          s.school_name,
@@ -754,17 +755,22 @@ export async function createProject(req, res, next) {
       request_description,
       request_image_url,
       request_image_public_id,
-      duration_months,
+      start_date,
+      end_date,
     } = req.body;
 
     if (!request_title?.trim()) {
       return res.status(400).json({ message: "กรุณากรอกชื่อโครงการ" });
     }
-
-    const allowedDurations = [3, 6, 12];
-    const duration = allowedDurations.includes(Number(duration_months))
-      ? Number(duration_months)
-      : 3;
+    if (!start_date || isNaN(Date.parse(start_date))) {
+      return res.status(400).json({ message: "กรุณาเลือกวันเริ่มต้นโครงการ" });
+    }
+    if (!end_date || isNaN(Date.parse(end_date))) {
+      return res.status(400).json({ message: "กรุณาเลือกวันสิ้นสุดโครงการ" });
+    }
+    if (new Date(end_date) <= new Date(start_date)) {
+      return res.status(400).json({ message: "วันสิ้นสุดต้องอยู่หลังวันเริ่มต้น" });
+    }
 
     // เช็คว่ามีโครงการที่ยัง open หรือ closed อยู่มั้ย
     const [existing] = await db.query(
@@ -781,18 +787,23 @@ export async function createProject(req, res, next) {
       });
     }
 
+    // คำนวณ duration_months จาก start → end (round เป็นเดือน)
+    const diffMs = new Date(end_date) - new Date(start_date);
+    const durationMonths = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24 * 30)));
+
     const [result] = await db.query(
       `INSERT INTO donation_request
-        (school_id, request_title, request_description, request_image_url, request_image_public_id, status, duration_months, end_date, created_at)
-       VALUES (?, ?, ?, ?, ?, 'open', ?, DATE_ADD(NOW(), INTERVAL ? MONTH), NOW())`,
+        (school_id, request_title, request_description, request_image_url, request_image_public_id, status, duration_months, start_date, end_date, created_at)
+       VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?, NOW())`,
       [
         school_id,
         request_title.trim(),
         request_description || null,
         request_image_url || null,
         request_image_public_id || null,
-        duration,
-        duration,
+        durationMonths,
+        start_date,
+        end_date,
       ]
     );
 
@@ -807,7 +818,7 @@ export async function listSchoolProjects(req, res, next) {
     const school_id = req.user.school_id;
  
     const [rows] = await db.query(
-      `SELECT request_id, request_title, request_image_url, status, created_at, duration_months, end_date
+      `SELECT request_id, request_title, request_image_url, status, created_at, start_date, duration_months, end_date
        FROM donation_request
        WHERE school_id = ?
        ORDER BY created_at DESC`,
@@ -825,7 +836,7 @@ export async function getLatestProject(req, res, next) {
     const school_id = req.user.school_id;
  
     const [rows] = await db.query(
-      `SELECT request_id, request_title, request_description, request_image_url, request_image_public_id, status, created_at, duration_months, end_date
+      `SELECT request_id, request_title, request_description, request_image_url, request_image_public_id, status, created_at, start_date, duration_months, end_date
        FROM donation_request
        WHERE school_id = ?
        ORDER BY request_id DESC
@@ -852,6 +863,7 @@ export async function getProjectById(req, res, next) {
               dr.request_image_public_id,
               dr.status,
               dr.created_at,
+              dr.start_date,
               dr.duration_months,
               dr.end_date,
               s.school_name,
@@ -1511,20 +1523,14 @@ export async function getSchoolDashboard(req, res, next) {
     // ── 2. Stats ──────────────────────────────────────────────────────────────
     const [[stats]] = await db.query(
       `SELECT
-         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
-         SUM(CASE WHEN status = 'approved' AND condition_status = 'usable'
-                       AND (SELECT COALESCE(SUM(sn.quantity_received), 0)
-                            FROM fulfillment f
-                            JOIN student_need sn ON sn.student_need_id = f.request_item_id
-                            WHERE f.donation_id = donation_record.donation_id) = 0
-             THEN 1 ELSE 0 END) AS ready_to_distribute,
+         SUM(CASE WHEN status = 'pending' AND delivery_method != 'dropoff' THEN 1 ELSE 0 END) AS pending_postal,
+         SUM(CASE WHEN status = 'pending' AND delivery_method = 'dropoff'  THEN 1 ELSE 0 END) AS pending_dropoff,
          SUM(CASE WHEN status = 'approved' AND condition_status = 'usable'
                        AND (SELECT COALESCE(SUM(sn.quantity_received), 0)
                             FROM fulfillment f
                             JOIN student_need sn ON sn.student_need_id = f.request_item_id
                             WHERE f.donation_id = donation_record.donation_id) > 0
              THEN 1 ELSE 0 END) AS approved,
-         SUM(CASE WHEN delivery_method = 'dropoff' AND DATE(donation_date) = CURDATE() THEN 1 ELSE 0 END) AS dropoff_today,
          COUNT(*) AS total
        FROM donation_record WHERE request_id = ?`,
       [rid]
@@ -1575,30 +1581,21 @@ export async function getSchoolDashboard(req, res, next) {
     chart_by_status.dropoff = Number(dropoffPending[0]?.cnt || 0);
 
     // ── 5. Action items ───────────────────────────────────────────────────────
-    const [pendingDonations] = await db.query(
+    const [pendingPostalList] = await db.query(
       `SELECT donation_id, donor_name, quantity, created_at, delivery_method
        FROM donation_record
        WHERE request_id = ? AND status = 'pending' AND delivery_method != 'dropoff'
-       ORDER BY created_at ASC LIMIT 5`,
+       ORDER BY created_at ASC LIMIT 8`,
       [rid]
     );
 
-    const [overdueDropoffs] = await db.query(
-      `SELECT donation_id, donor_name, donation_date, donor_phone
+    const [pendingDropoffList] = await db.query(
+      `SELECT donation_id, donor_name, quantity, donation_date, donation_time, donor_phone,
+              (DATE(donation_date) = CURDATE()) AS is_today,
+              (donation_date IS NOT NULL AND TIMESTAMPDIFF(DAY, donation_date, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 3) AS is_overdue
        FROM donation_record
        WHERE request_id = ? AND delivery_method = 'dropoff' AND status = 'pending'
-         AND donation_date IS NOT NULL
-         AND TIMESTAMPDIFF(DAY, donation_date, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 3
-       ORDER BY donation_date ASC LIMIT 5`,
-      [rid]
-    );
-
-    const [todayAppointments] = await db.query(
-      `SELECT donation_id, donor_name, donation_time, donor_phone
-       FROM donation_record
-       WHERE request_id = ? AND delivery_method = 'dropoff'
-         AND DATE(donation_date) = CURDATE()
-       ORDER BY donation_time ASC LIMIT 5`,
+       ORDER BY donation_date IS NULL ASC, donation_date ASC LIMIT 8`,
       [rid]
     );
 
@@ -1619,18 +1616,16 @@ export async function getSchoolDashboard(req, res, next) {
     res.json({
       project: { ...project, total_needed: Number(project.total_needed), total_fulfilled: Number(project.total_fulfilled) },
       stats: {
-        pending: Number(stats.pending || 0),
-        ready_to_distribute: Number(stats.ready_to_distribute || 0),
-        approved: Number(stats.approved || 0),
-        dropoff_today: Number(stats.dropoff_today || 0),
+        pending_postal:  Number(stats.pending_postal  || 0),
+        pending_dropoff: Number(stats.pending_dropoff || 0),
+        approved:        Number(stats.approved        || 0),
         students_waiting: Number(project.student_count || 0),
       },
       chart_by_level,
       chart_by_status,
       action_items: {
-        pending_donations: pendingDonations,
-        overdue_dropoffs: overdueDropoffs,
-        today_appointments: todayAppointments,
+        pending_postal_list:  pendingPostalList,
+        pending_dropoff_list: pendingDropoffList,
       },
       testimonials,
     });

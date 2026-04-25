@@ -37,8 +37,9 @@ function StatusBadge({ status }) {
 
 export default function SchoolDashboardPage() {
   const navigate = useNavigate();
-  const [data, setData]     = useState(null);
+  const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
+  const [actionTab, setActionTab] = useState("postal");
 
   useEffect(() => {
     getJson("/school/dashboard", true)
@@ -58,9 +59,8 @@ export default function SchoolDashboardPage() {
   const donutTotal = donutData.reduce((s, d) => s + d.value, 0);
 
   const totalActions =
-    (action_items.pending_donations?.length || 0) +
-    (action_items.overdue_dropoffs?.length || 0) +
-    (action_items.today_appointments?.length || 0);
+    (action_items.pending_postal_list?.length || 0) +
+    (action_items.pending_dropoff_list?.length || 0);
 
   return (
     <div className="dbPage">
@@ -114,13 +114,13 @@ export default function SchoolDashboardPage() {
       {/* ── Section 2: Stat cards ── */}
       <div className="dbStatGrid">
         {[
-          { label: "รอส่งมอบ",        value: stats.ready_to_distribute, accent: "red",
-            svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0-18 0"/><path d="M12 7v5l3 3"/></g></svg> },
-          { label: "ส่งมอบสำเร็จ",    value: stats.approved,         accent: "green",
+          { label: "รอรับพัสดุ",        value: stats.pending_postal,    accent: "sky",
+            svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><path d="M3 10h18M3 10v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9M3 10l2.5-6h13L21 10"/><path d="M12 10v11M8 10v3m8-3v3"/></g></svg> },
+          { label: "นัด Drop-off",      value: stats.pending_dropoff,   accent: "violet",
+            svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><path d="M12 21s-7-5.75-7-11a7 7 0 0 1 14 0c0 5.25-7 11-7 11"/><circle cx="12" cy="10" r="2.5"/></g></svg> },
+          { label: "ส่งมอบสำเร็จ",     value: stats.approved,          accent: "green",
             svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M20 7h-1.21c.13-.41.21-.9.21-1.5C19 3.57 17.43 2 15.5 2c-1.62 0-2.7 1.48-3.4 3.09C11.41 3.58 10.27 2 8.5 2C6.57 2 5 3.57 5 5.5c0 .6.08 1.09.21 1.5H4c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2v7c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2m-4.5-3c.83 0 1.5.67 1.5 1.5C17 7 16.37 7 16 7h-2.48c.51-1.58 1.25-3 1.98-3M7 5.5C7 4.67 7.67 4 8.5 4c.89 0 1.71 1.53 2.2 3H8c-.37 0-1 0-1-1.5M4 9h7v2H4zm2 11v-7h5v7zm12 0h-5v-7h5zm-5-9V9.08s.01-.06.02-.08H20v2z"/></svg> },
-          { label: "นัดหมายวันนี้",   value: stats.dropoff_today,    accent: "orange",
-            svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><path d="M8 2v3m8-3v3M3.5 9.09h17M21 8.5V17c0 3-1.5 5-5 5H8c-3.5 0-5-2-5-5V8.5c0-3 1.5-5 5-5h8c3.5 0 5 2 5 5"/><path d="M15.695 13.4h.009m-.009 3h.009M11.995 13.4h.01m-.01 3h.01M8.294 13.4h.01m-.01 3h.01"/></g></svg> },
-          { label: "นักเรียนทั้งหมด", value: stats.students_waiting,  accent: "blue",
+          { label: "นักเรียนทั้งหมด",  value: stats.students_waiting,  accent: "blue",
             svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><path d="M2.5 6L8 4l5.5 2L11 7.5V9s-.667-.5-3-.5S5 9 5 9V7.5zm0 0v4"/><path d="M11 8.5v.889c0 1.718-1.343 3.111-3 3.111s-3-1.393-3-3.111V8.5m10.318 2.53s.485-.353 2.182-.353s2.182.352 2.182.352m-4.364 0V10L13.5 9l4-1.5l4 1.5l-1.818 1v1.03m-4.364 0v.288a2.182 2.182 0 1 0 4.364 0v-.289M4.385 15.926c-.943.527-3.416 1.602-1.91 2.947C3.211 19.53 4.03 20 5.061 20h5.878c1.03 0 1.85-.47 2.586-1.127c1.506-1.345-.967-2.42-1.91-2.947c-2.212-1.235-5.018-1.235-7.23 0M16 20h3.705c.773 0 1.387-.376 1.939-.902c1.13-1.076-.725-1.936-1.432-2.357A5.34 5.34 0 0 0 16 16.214"/></g></svg> },
         ].map(s => (
           <div key={s.label} className={`dbStatCard dbStatCard--${s.accent}`}>
@@ -145,7 +145,7 @@ export default function SchoolDashboardPage() {
               <Tooltip />
               <Legend iconType="circle" iconSize={8} />
               <Bar dataKey="received" name="ได้รับแล้ว" fill="#29B6E8" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="remaining" name="คงเหลือ" fill="#E5E7EB" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="remaining" name="คงเหลือ" fill="#D1D5DB" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -162,15 +162,18 @@ export default function SchoolDashboardPage() {
                   </span>
                 ))}
               </div>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={donutData} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}>
-                    {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(v, n) => [v, n]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="dbDonutCenter">{donutTotal}<br /><span>รายการทั้งหมด</span></div>
+              <div style={{ position: "relative" }}>
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={donutData} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                      {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(v, n) => [v, n]} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="dbDonutCenter">{donutTotal}</div>
+              </div>
+              <div className="dbDonutSub">รายการทั้งหมด</div>
             </>
           ) : (
             <div className="dbChartEmpty">ยังไม่มีข้อมูลการบริจาค</div>
@@ -178,57 +181,94 @@ export default function SchoolDashboardPage() {
         </div>
       </div>
 
-      {/* ── Section 4: Action items ── */}
+      {/* ── Section 4: Action items (tab bar) ── */}
       <div className="dbCard">
         <div className="dbCardHeader">
-          <span className="dbCardTitle">รายการที่ต้องดำเนินการ</span>
-          {totalActions > 0 && <span className="dbBadgeCount">{totalActions}</span>}
+          <span className="dbCardTitle">รายการที่รอดำเนินการ</span>
+          <div className="dbTabBar">
+            <button
+              className={`dbTab ${actionTab === "postal" ? "dbTab--active dbTab--sky" : ""}`}
+              onClick={() => setActionTab("postal")}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10h18M3 10v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9M3 10l2.5-6h13L21 10"/></svg>
+              รอรับพัสดุ
+              {action_items.pending_postal_list?.length > 0 &&
+                <span className="dbTabBadge">{action_items.pending_postal_list.length}</span>}
+            </button>
+            <button
+              className={`dbTab ${actionTab === "dropoff" ? "dbTab--active dbTab--violet" : ""}`}
+              onClick={() => setActionTab("dropoff")}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-5.75-7-11a7 7 0 0 1 14 0c0 5.25-7 11-7 11"/><circle cx="12" cy="10" r="2.5"/></svg>
+              นัด Drop-off
+              {action_items.pending_dropoff_list?.length > 0 &&
+                <span className="dbTabBadge">{action_items.pending_dropoff_list.length}</span>}
+            </button>
+          </div>
         </div>
 
-        {totalActions === 0 ? (
-          <div className="dbActionEmpty">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" style={{ color: "#22C55E" }}><path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/></svg>
-            <span>ไม่มีรายการรอดำเนินการ</span>
-          </div>
-        ) : (
-          <div className="dbActionList">
-            {action_items.pending_donations?.map(d => (
-              <div key={d.donation_id} className="dbActionItem">
-                <div className="dbActionIcon" style={{ background: "#FEF3C7" }}>⏳</div>
-                <div className="dbActionBody">
-                  <div className="dbActionTitle">มีคำขอบริจาครอการยืนยัน จาก {d.donor_name}</div>
-                  <div className="dbActionSub">จำนวน {d.quantity} ชุด · {d.delivery_method === "shipping" ? "ส่งพัสดุ" : "drop-off"}</div>
-                </div>
-                <button className="dbActionBtn" onClick={() => navigate("/school/donations")}>ยืนยัน</button>
-              </div>
-            ))}
-            {action_items.overdue_dropoffs?.map(d => (
-              <div key={d.donation_id} className="dbActionItem">
-                <div className="dbActionIcon" style={{ background: "#FEE2E2" }}>📦</div>
-                <div className="dbActionBody">
-                  <div className="dbActionTitle">นัดหมาย drop-off เกินกำหนด — {d.donor_name}</div>
-                  <div className="dbActionSub">
-                    กำหนด {d.donation_date ? new Date(d.donation_date).toLocaleDateString("th-TH") : "—"}
-                    {d.donor_phone ? ` · ${d.donor_phone}` : ""}
+        {actionTab === "postal" && (
+          action_items.pending_postal_list?.length === 0 ? (
+            <div className="dbColEmpty">ไม่มีพัสดุรอรับ</div>
+          ) : (
+            <div className="dbColList">
+              {action_items.pending_postal_list?.map(d => (
+                <div key={d.donation_id} className="dbColItem">
+                  <div className="dbColItemMain">
+                    <div className="dbColItemName">
+                      {d.donor_name}
+                      {d.delivery_method === "market_purchase"
+                        ? <span className="dbColTag dbColTag--market">ซื้อเพื่อบริจาค</span>
+                        : <span className="dbColTag dbColTag--postal">ไปรษณีย์</span>}
+                    </div>
+                    <div className="dbColItemSub" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>
+                      {d.quantity} ชิ้น
+                      <span style={{ color: "#D1D5DB" }}>·</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      {new Date(d.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}
+                    </div>
                   </div>
+                  <button className="dbActionBtn" onClick={() => navigate("/school/donations")}>ยืนยัน</button>
                 </div>
-                <button className="dbActionBtn" onClick={() => navigate("/school/appointments")}>จัดการ</button>
-              </div>
-            ))}
-            {action_items.today_appointments?.map(d => (
-              <div key={d.donation_id} className="dbActionItem">
-                <div className="dbActionIcon" style={{ background: "#E0F2FE" }}>📅</div>
-                <div className="dbActionBody">
-                  <div className="dbActionTitle">นัดหมายรับชุดวันนี้ · {d.donor_name}</div>
-                  <div className="dbActionSub">
-                    เวลา {d.donation_time ? d.donation_time.slice(0, 5) : "—"} น.
-                    {d.donor_phone ? ` · ${d.donor_phone}` : ""}
+              ))}
+            </div>
+          )
+        )}
+
+        {actionTab === "dropoff" && (
+          action_items.pending_dropoff_list?.length === 0 ? (
+            <div className="dbColEmpty">ไม่มีนัด Drop-off</div>
+          ) : (
+            <div className="dbColList">
+              {action_items.pending_dropoff_list?.map(d => (
+                <div key={d.donation_id} className={`dbColItem ${!!d.is_today ? "dbColItem--today" : ""} ${!!d.is_overdue ? "dbColItem--overdue" : ""}`}>
+                  <div className="dbColItemMain">
+                    <div className="dbColItemName">
+                      {d.donor_name}
+                      {!!d.is_today   && <span className="dbColTag dbColTag--today">วันนี้</span>}
+                      {!!d.is_overdue && <span className="dbColTag dbColTag--overdue">เกินกำหนด</span>}
+                    </div>
+                    <div className="dbColItemSub" style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      {d.donation_date ? new Date(d.donation_date).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "ไม่ระบุวัน"}
+                      {d.donation_time && <>
+                        <span style={{ color: "#D1D5DB" }}>·</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        {d.donation_time.slice(0, 5)} น.
+                      </>}
+                      {d.donor_phone && <>
+                        <span style={{ color: "#D1D5DB" }}>·</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6.1 6.1l1.09-.9a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        {d.donor_phone}
+                      </>}
+                    </div>
                   </div>
+                  <button className="dbActionBtn" onClick={() => navigate("/school/appointments")}>ดู</button>
                 </div>
-                <button className="dbActionBtn" onClick={() => navigate("/school/appointments")}>ดูรายละเอียด</button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         )}
       </div>
 

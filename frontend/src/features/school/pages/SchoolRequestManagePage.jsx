@@ -228,8 +228,8 @@ export default function SchoolRequestManagePage() {
     }
   };
 
-  const formattedDate = project?.created_at
-    ? new Date(project.created_at).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
+  const formattedDate = (project?.start_date || project?.created_at)
+    ? new Date(project.start_date || project.created_at).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
     : "—";
 
   return (
@@ -250,7 +250,7 @@ export default function SchoolRequestManagePage() {
                 <span className="pm-status-dot" /> {meta.label}
               </span>
               <span className="pm-meta-sep">·</span>
-              <span className="pm-meta-date">สร้างเมื่อ {formattedDate}</span>
+              <span className="pm-meta-date">เริ่มต้น {formattedDate}</span>
               {project?.end_date && (
                 <>
                   <span className="pm-meta-sep">·</span>
