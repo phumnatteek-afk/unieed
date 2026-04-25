@@ -1516,6 +1516,12 @@ export async function getSchoolDashboard(req, res, next) {
                        AND (SELECT COALESCE(SUM(sn.quantity_received), 0)
                             FROM fulfillment f
                             JOIN student_need sn ON sn.student_need_id = f.request_item_id
+                            WHERE f.donation_id = donation_record.donation_id) = 0
+             THEN 1 ELSE 0 END) AS ready_to_distribute,
+         SUM(CASE WHEN status = 'approved' AND condition_status = 'usable'
+                       AND (SELECT COALESCE(SUM(sn.quantity_received), 0)
+                            FROM fulfillment f
+                            JOIN student_need sn ON sn.student_need_id = f.request_item_id
                             WHERE f.donation_id = donation_record.donation_id) > 0
              THEN 1 ELSE 0 END) AS approved,
          SUM(CASE WHEN delivery_method = 'dropoff' AND DATE(donation_date) = CURDATE() THEN 1 ELSE 0 END) AS dropoff_today,
@@ -1614,6 +1620,7 @@ export async function getSchoolDashboard(req, res, next) {
       project: { ...project, total_needed: Number(project.total_needed), total_fulfilled: Number(project.total_fulfilled) },
       stats: {
         pending: Number(stats.pending || 0),
+        ready_to_distribute: Number(stats.ready_to_distribute || 0),
         approved: Number(stats.approved || 0),
         dropoff_today: Number(stats.dropoff_today || 0),
         students_waiting: Number(project.student_count || 0),
