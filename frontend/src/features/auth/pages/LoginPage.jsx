@@ -38,7 +38,7 @@ export default function LoginPage() {
       });
       return;
     }
-    login({ token: res.token, role: res.role, user_name: res.user_name });
+    login({ token: res.token, role: res.role, user_name: res.user_name, user_email: res.user_email });
     if (res.role === "admin") nav("/admin/schools");
     else if (res.role === "school_admin") nav("/school/welcome");
     else nav("/");

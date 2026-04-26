@@ -1,0 +1,53 @@
+.dhTabBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #E5E7EB;
+  background-color: #fff;
+  color: #6B7280;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  font-family: inherit;
+  transition: none;
+}
+
+.dhTabBtn.dhTabActive {
+  border-color: #5285E8 !important;
+  background-color: #5285E8 !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.dhTabBtn:focus,
+.dhTabBtn:focus-visible,
+.dhTabBtn:active {
+  outline: none;
+  background-color: #fff;
+}
+
+.dhTabBtn.dhTabActive:focus,
+.dhTabBtn.dhTabActive:focus-visible,
+.dhTabBtn.dhTabActive:active {
+  outline: none;
+  background-color: #5285E8 !important;
+}
+
+.dhTabBadge {
+  background-color: #E5E7EB;
+  color: #6B7280;
+  border-radius: 20px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dhTabBtn.dhTabActive .dhTabBadge {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}

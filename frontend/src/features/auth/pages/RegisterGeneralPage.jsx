@@ -30,7 +30,9 @@ export default function RegisterGeneralPage() {
     const cleanEmail = user_email.trim().toLowerCase();
     const cleanPass = password;
 
-    if (!cleanName) return setErr("กรุณากรอกชื่อผู้ใช้");
+    if (!cleanName) return setErr("กรุณากรอกชื่อ - นามสกุล");
+    if (!cleanName.includes(" ")) return setErr("กรุณากรอกทั้งชื่อและนามสกุล");
+    if (!/^[ก-๙a-zA-Z\s.]+$/.test(cleanName)) return setErr("ชื่อ-นามสกุลต้องเป็นตัวอักษรเท่านั้น ไม่มีตัวเลขหรืออักขระพิเศษ");
     if (!cleanEmail) return setErr("กรุณากรอกอีเมล");
     if (!isValidEmail(cleanEmail)) return setErr("รูปแบบอีเมลไม่ถูกต้อง");
     if (!cleanPass || cleanPass.length < 6)
@@ -58,7 +60,7 @@ export default function RegisterGeneralPage() {
     try {
       const res = await svc.googleLogin({ idToken: credentialResponse.credential });
       // Google login สำเร็จ → verified อัตโนมัติ → ไป home ได้เลย
-      login({ token: res.token, role: res.role, user_name: res.user_name });
+      login({ token: res.token, role: res.role, user_name: res.user_name, user_email: res.user_email });
       navigate("/");
     } catch (e2) {
       if (e2?.data?.code === "EMAIL_EXISTS") {
@@ -129,7 +131,7 @@ return (
 
         <form className="lgForm" onSubmit={submit}>
           <div className="lgField">
-  <label className="lgLabel">ชื่อผู้ใช้</label>
+  <label className="lgLabel">ชื่อ - นามสกุล</label>
   <div className="lgInputWrap">
     <span className="lgInputIcon">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -137,8 +139,9 @@ return (
         <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
       </svg>
     </span>
-    <input className="lgInput" placeholder="ชื่อผู้ใช้" value={user_name} onChange={(e) => setUserName(e.target.value)} />
+    <input className="lgInput" placeholder="ชื่อ - นามสกุล" value={user_name} onChange={(e) => setUserName(e.target.value)} />
   </div>
+  <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 5 }}>* กรุณากรอกชื่อจริงและนามสกุลจริง</div>
 </div>
 
 <div className="lgField">

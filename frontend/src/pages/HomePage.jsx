@@ -31,7 +31,7 @@ function groupItems(items = []) {
         image_url: item.image_url || item.uniform_image_url || null,
       };
     }
-    map[key].total += Number(item.quantity_needed || item.quantity || 0);
+    map[key].total += Number(item.quantity_remaining ?? item.quantity_needed ?? item.quantity ?? 0);
     // ถ้ายังไม่มีรูป ลองอัปเดต
     if (!map[key].image_url) {
       map[key].image_url = item.image_url || item.uniform_image_url || null;
@@ -57,7 +57,7 @@ function ProjCard({ p, navigate, details }) {
   const hasMore  = items.length > 3;
 
   const totalNeeded    = items.length > 0
-    ? items.reduce((sum, item) => sum + Number(item.quantity_needed || item.quantity || 0), 0)
+    ? items.reduce((sum, item) => sum + Number(item.quantity_remaining ?? item.quantity_needed ?? item.quantity ?? 0), 0)
     : Number(p.total_needed || 0);
   const totalFulfilled = Number(p.total_fulfilled || 0);
 
@@ -146,7 +146,7 @@ function ProjCard({ p, navigate, details }) {
             <div className="dpHoverMeta">
               <span className="dpHoverNeed">ต้องการ {totalNeeded}</span>
               <span className="dpHoverSep">|</span>
-              <span className="dpHoverGot">ได้ {totalFulfilled} ชุด</span>
+              <span className="dpHoverGot">ได้ {totalFulfilled} ชิ้น</span>
             </div>
           </div>
           <div className="dpHoverLine" />
@@ -159,40 +159,16 @@ function ProjCard({ p, navigate, details }) {
                     ? <img src={g.image_url} alt={g.name} />
                     : <div className="dpHoverImgPlaceholder">{g.name?.charAt(0)}</div>}
                 </div>
-                <div className="dpHoverImgQty">{g.total} ชุด</div>
+                <div className="dpHoverImgQty">{g.total} ชิ้น</div>
               </div>
             )) : <div className="dpHoverEmpty">ยังไม่มีข้อมูล</div>}
           </div>
-          {itemRows.length > 0 && (
-            <div className="dpHoverItemList">
-              {itemRows.map((item, i) => {
-                const genderLabel = item.gender === "male" ? "เพศชาย"
-                  : item.gender === "female" ? "เพศหญิง" : "";
-                let sizeStr = "";
-                try {
-                  const s = typeof item.size === "string"
-                    ? JSON.parse(item.size) : item.size;
-                  if (s?.chest) sizeStr = `อก ${s.chest}`;
-                  else if (s?.waist) sizeStr = `เอว ${s.waist}`;
-                } catch {}
-                const qty = Number(item.quantity_needed || item.quantity || 0);
-                return (
-                  <div key={i} className="dpHoverItemRow">
-                    {genderLabel && (
-                      <span className="dpHoverItemBadge dpHoverBadgeGender">{genderLabel}</span>
-                    )}
-                    {item.education_level && (
-                      <span className="dpHoverItemBadge dpHoverBadgeLevel">{item.education_level}</span>
-                    )}
-                    <span className="dpHoverItemName">{item.name}</span>
-                    {sizeStr && <span className="dpHoverItemSize">{sizeStr}</span>}
-                    <span className="dpHoverItemQtyBadge">{qty} ชิ้น</span>
-                  </div>
-                );
-              })}
-              {hasMore && <div className="dpHoverMore">...</div>}
-            </div>
-          )}
+          <button
+            className="dpHoverDetailBtn"
+            onClick={e => { e.stopPropagation(); navigate(`/projects/${p.request_id}#uniform-details`); }}
+          >
+            ดูรายละเอียด →
+          </button>
         </div>,
         document.body
       )}

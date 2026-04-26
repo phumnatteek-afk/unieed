@@ -306,7 +306,7 @@ export async function login({ user_email, password }) {
   }
 
   const token = signJwt({ user_id: u.user_id, role: u.role, school_id: u.school_id });
-  return { token, role: u.role, user_name: u.user_name };
+  return { token, role: u.role, user_name: u.user_name, user_email: u.user_email };
 }
 
 /* ─────────────────────── verify email ─────────────────────── */
@@ -473,7 +473,7 @@ export async function googleLogin({ idToken }) {
       throw Object.assign(new Error("Account banned"), { status: 403 });
     }
     const token = signJwt({ user_id: u.user_id, role: u.role, school_id: u.school_id });
-    return { token, role: u.role, user_name: u.user_name };
+    return { token, role: u.role, user_name: u.user_name, user_email: email };
   }
 
   const [byEmail] = await db.query(
@@ -495,7 +495,7 @@ export async function googleLogin({ idToken }) {
   );
 
   const token = signJwt({ user_id: result.insertId, role: "user", school_id: null });
-  return { token, role: "user", user_name: name };
+  return { token, role: "user", user_name: name, user_email: cleanEmail(email) };
 }
 
 /* ─────────────────────── update profile ─────────────────────── */

@@ -9,6 +9,7 @@ import CartIcon from "../../market/components/CartIcon.jsx";
 import { QRLabelPage } from "../../project/pages/Donatepage.jsx";
 import "../../../pages/styles/Homepage.css";
 import "../../project/styles/Donatepage.css";
+import "../styles/DonationHistoryPage.css";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
@@ -206,27 +207,12 @@ export default function DonationHistoryPage() {
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "7px 14px", borderRadius: 20,
-                    border: `1.5px solid ${isActive ? "#5285E8" : "#E5E7EB"}`,
-                    background: isActive ? "#EEF2FF" : "#fff",
-                    color: isActive ? "#5285E8" : "#6B7280",
-                    fontSize: 13, fontWeight: isActive ? 600 : 500,
-                    cursor: "pointer",
-                  }}
+                  className={`dhTabBtn${isActive ? " dhTabActive" : ""}`}
+                  onClick={e => { e.currentTarget.blur(); setActiveTab(tab.key); }}
                 >
                   <Icon icon={tab.icon} width="14" />
                   {tab.label}
-                  <span style={{
-                    background: isActive ? "#5285E8" : "#E5E7EB",
-                    color: isActive ? "#fff" : "#6B7280",
-                    borderRadius: 20, padding: "1px 7px",
-                    fontSize: 11, fontWeight: 700,
-                  }}>
-                    {count}
-                  </span>
+                  <span className="dhTabBadge">{count}</span>
                 </button>
               );
             })}

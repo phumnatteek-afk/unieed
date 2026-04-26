@@ -1206,5 +1206,4 @@ button.pdLevelTab:hover,
 button.pdTypeTab:hover,
 button.pdQtyBtn:hover {
   transform: none !important;
-  background: revert;
 }

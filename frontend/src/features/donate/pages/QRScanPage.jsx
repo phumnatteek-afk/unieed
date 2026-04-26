@@ -52,7 +52,7 @@ function QRLoginPanel({ onLoginSuccess }) {
       setErr("บัญชีนี้ไม่ใช่บัญชีโรงเรียน กรุณาใช้บัญชีโรงเรียน");
       return;
     }
-    login({ token: res.token, role: res.role, user_name: res.user_name });
+    login({ token: res.token, role: res.role, user_name: res.user_name, user_email: res.user_email });
     onLoginSuccess(res.token);
   };
 

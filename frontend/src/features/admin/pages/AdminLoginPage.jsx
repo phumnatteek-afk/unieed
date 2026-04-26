@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
       }
 
       // ✅ ส่งให้ตรงกับ AuthContext: login({token, role, user_name})
-      login({ token: data.token, role: data.role, user_name: data.user_name });
+      login({ token: data.token, role: data.role, user_name: data.user_name, user_email: data.user_email });
 
       navigate("/admin/backoffice", { replace: true });
     } catch (e) {

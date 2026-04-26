@@ -159,6 +159,10 @@ function getUserId(token) {
   try { return JSON.parse(atob(token.split(".")[1])).user_id; }
   catch { return null; }
 }
+function getUserEmail(token) {
+  try { const p = JSON.parse(atob(token.split(".")[1])); return p.email || p.user_email || ""; }
+  catch { return ""; }
+}
 function getDefaultAvatarIndex(userId) {
   const num = parseInt(String(userId).replace(/\D/g, ""), 10) || 0;
   return num % AVATARS.length;
@@ -189,30 +193,15 @@ function AvatarCircle({ index, size = 40, border }) {
 }
 
 // ── Edit Profile Modal ────────────────────────────────────────
-function EditProfileModal({ onClose, userId }) {
-  const { userName, updateUserName } = useAuth();
-  const [name, setName] = useState(userName || "");
+function EditProfileModal({ onClose, userId, email }) {
   const [selectedAvatar, setSelectedAvatar] = useState(() => getAvatarIndex(userId));
-  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
-  const [err, setErr] = useState("");
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setErr(""); setSuccess("");
-    if (!name.trim()) return setErr("กรุณากรอกชื่อ");
-    try {
-      setLoading(true);
-      const res = await request("/auth/profile", {
-        method: "PATCH", body: { user_name: name.trim() }, auth: true,
-      });
-      updateUserName(res.user_name);
-      if (userId) localStorage.setItem(`avatar_${userId}`, selectedAvatar);
-      setSuccess("บันทึกสำเร็จ!");
-      setTimeout(onClose, 1000);
-    } catch (e) {
-      setErr(e?.message || "เกิดข้อผิดพลาด");
-    } finally { setLoading(false); }
+    if (userId) localStorage.setItem(`avatar_${userId}`, selectedAvatar);
+    setSuccess("บันทึกสำเร็จ!");
+    setTimeout(onClose, 1000);
   };
 
   return (
@@ -284,36 +273,27 @@ function EditProfileModal({ onClose, userId }) {
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>ชื่อผู้ใช้</label>
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="ชื่อ-นามสกุล"
-                style={{ width: "100%", padding: "11px 14px", border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 14, color: "#1a1a2e", outline: "none", boxSizing: "border-box", background: "#F9FAFB" }}
-                onFocus={e => e.target.style.borderColor = "#87c7eb"}
-                onBlur={e => e.target.style.borderColor = "#E5E7EB"}
-              />
-            </div>
-            <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
                 อีเมล <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400, marginLeft: 6 }}>(ไม่สามารถเปลี่ยนได้)</span>
               </label>
-              <div style={{ padding: "11px 14px", border: "1.5px solid #F3F4F6", borderRadius: 10, fontSize: 14, color: "#9ca3af", background: "#F3F4F6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>—</span>
+              <div style={{ padding: "11px 14px", border: "1.5px solid #F3F4F6", borderRadius: 10, fontSize: 14, color: "#6b7280", background: "#F3F4F6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>{email || "—"}</span>
                 <Icon icon="mdi:lock-outline" width="16" color="#9ca3af"/>
               </div>
             </div>
-            {err && <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#dc2626", display: "flex", alignItems: "center", gap: 8 }}><Icon icon="mdi:alert-circle" width="16"/>{err}</div>}
             {success && <div style={{ background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#16a34a", display: "flex", alignItems: "center", gap: 8 }}><Icon icon="mdi:check-circle" width="16"/>{success}</div>}
             <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
               <button type="button" onClick={onClose} className="pd-btn-static"
-              onMouseEnter={e => e.currentTarget.style.background = "#E5E7EB"}
-              onMouseLeave={e => e.currentTarget.style.background = "#F3F4F6"}
-              style={{ flex: 1, padding: "12px", background: "#F3F4F6", color: "#1a1a2e", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-              ยกเลิก
-            </button>
-              <button type="submit" disabled={loading} className="pd-btn-static"
-                onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "#3a6fd8"; }}
-                onMouseLeave={e => { if (!loading) e.currentTarget.style.background = "#5285e8"; }}
-                style={{ flex: 2, padding: "12px", background: "#5285e8", color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
-                {loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
+                onMouseEnter={e => e.currentTarget.style.background = "#E5E7EB"}
+                onMouseLeave={e => e.currentTarget.style.background = "#F3F4F6"}
+                style={{ flex: 1, padding: "12px", background: "#F3F4F6", color: "#1a1a2e", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                ยกเลิก
+              </button>
+              <button type="submit" className="pd-btn-static"
+                onMouseEnter={e => e.currentTarget.style.background = "#3a6fd8"}
+                onMouseLeave={e => e.currentTarget.style.background = "#5285e8"}
+                style={{ flex: 2, padding: "12px", background: "#5285e8", color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                บันทึก
               </button>
             </div>
           </form>
@@ -582,7 +562,7 @@ const handleAdd = async (e) => {
 
 // ── Main Dropdown ─────────────────────────────────────────────
 export default function ProfileDropdown() {
-  const { userName, role, logout, token } = useAuth();
+  const { userName, userEmail, role, logout, token } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
@@ -608,7 +588,7 @@ export default function ProfileDropdown() {
 
   return (
     <>
-      {showEditModal && <EditProfileModal onClose={handleModalClose} userId={userId}/>}
+      {showEditModal && <EditProfileModal onClose={handleModalClose} userId={userId} email={userEmail}/>}
       {showAdminModal && <ManageAdminsModal onClose={() => setShowAdminModal(false)} currentUserId={userId}/>}
 
       <div className="pd-outer" ref={ref}>

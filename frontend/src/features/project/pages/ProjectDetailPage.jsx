@@ -55,6 +55,11 @@ export default function ProjectDetailPage() {
     if (!project?.uniform_items?.length) return;
     const levels = [...new Set(project.uniform_items.map(i => i.education_level).filter(Boolean))];
     if (levels.length > 0) setActiveLevel(levels[0]);
+    if (location.hash === "#uniform-details") {
+      setTimeout(() => {
+        document.getElementById("uniform-details")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   }, [project]);
 
   useEffect(() => {
@@ -218,7 +223,7 @@ export default function ProjectDetailPage() {
     const thumbItems = [...thumbMap.values()];
 
     return (
-      <div className="pdUniformBox">
+      <div className="pdUniformBox" id="uniform-details">
         <div className="pdUniformTitle">รายละเอียดชุดที่ต้องการ</div>
 
         {/* ── Tab เพศ ── */}
