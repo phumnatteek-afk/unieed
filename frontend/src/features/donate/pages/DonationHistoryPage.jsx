@@ -28,6 +28,47 @@ function parseItems(snapshot) {
   catch { return []; }
 }
 
+const CARRIERS = [
+  { name: "ไปรษณีย์ไทย", logo: "/src/unieed_pic/ship1.png" },
+  { name: "Flash Express", logo: "/src/unieed_pic/ship2.png" },
+  { name: "J&T Express",  logo: "/src/unieed_pic/ship3.png" },
+  { name: "Kerry Express", logo: "/src/unieed_pic/ship4.png" },
+];
+
+function CarrierSelect({ value, onChange }) {
+  const selected = CARRIERS.find(c => c.name === value);
+  return (
+    <div style={{ position: "relative", marginBottom: 8 }}>
+      {selected && (
+        <img
+          src={selected.logo}
+          alt={selected.name}
+          style={{
+            position: "absolute", left: 10, top: "50%",
+            transform: "translateY(-50%)",
+            height: 20, width: 48, objectFit: "contain",
+            pointerEvents: "none", zIndex: 1,
+          }}
+        />
+      )}
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          width: "100%", padding: "8px 12px",
+          textIndent: selected ? "52px" : "0px",
+          borderRadius: 8, border: "1px solid #D1D5DB",
+          fontSize: 13, background: "#fff",
+          outline: "none", cursor: "pointer",
+        }}
+      >
+        <option value="">— เลือกบริษัทขนส่ง —</option>
+        {CARRIERS.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+      </select>
+    </div>
+  );
+}
+
 const STATUS_CONFIG = {
   pending:   { label: "รอยืนยัน",   bg: "#FEF3C7", color: "#D97706", icon: "mdi:clock-outline" },
   approved:  { label: "ยืนยันแล้ว", bg: "#D1FAE5", color: "#16a34a", icon: "mdi:check-circle-outline" },
@@ -43,6 +84,7 @@ export default function DonationHistoryPage() {
   const [err, setErr] = useState("");
   const [expanded, setExpanded] = useState(null);
   const [trackingInputs, setTrackingInputs] = useState({});
+  const [courierInputs, setCourierInputs] = useState({});
   const [trackingSaving, setTrackingSaving] = useState({});
   const [trackingMsg, setTrackingMsg] = useState({});
   const [trackingEditing, setTrackingEditing] = useState({});
@@ -52,6 +94,8 @@ export default function DonationHistoryPage() {
   const [cancelErr, setCancelErr] = useState("");
   const [previewImg, setPreviewImg] = useState(null); // { url, donationId, status }
   const [uploadingPic, setUploadingPic] = useState(false);
+  const [proofFiles, setProofFiles] = useState({});
+  const [proofPreviews, setProofPreviews] = useState({});
   const [activeTab, setActiveTab] = useState("all");
 
   const handlePicChange = async (donationId, file) => {
@@ -73,7 +117,7 @@ export default function DonationHistoryPage() {
       setDonations(prev => prev.map(d =>
         d.donation_id === donationId ? { ...d, donation_pic: data.donation_pic } : d
       ));
-      setPreviewImg(p => ({ ...p, url: data.donation_pic }));
+      setPreviewImg(p => p ? { ...p, url: data.donation_pic } : null);
     } catch (e) {
       alert(e.message);
     } finally {
@@ -81,8 +125,9 @@ export default function DonationHistoryPage() {
     }
   };
 
-  const saveTracking = async (donationId, carrier) => {
+  const saveTracking = async (donationId) => {
     const val = (trackingInputs[donationId] || "").trim();
+    const carrier = (courierInputs[donationId] || "").trim() || null;
     if (!val) return;
     setTrackingSaving(p => ({ ...p, [donationId]: true }));
     try {
@@ -92,12 +137,17 @@ export default function DonationHistoryPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ shipping_carrier: carrier || null, tracking_number: val }),
+        body: JSON.stringify({ shipping_carrier: carrier, tracking_number: val }),
       });
       if (!res.ok) throw new Error("บันทึกไม่สำเร็จ");
       setDonations(prev => prev.map(d =>
-        d.donation_id === donationId ? { ...d, tracking_number: val } : d
+        d.donation_id === donationId ? { ...d, tracking_number: val, shipping_carrier: carrier } : d
       ));
+      if (proofFiles[donationId]) {
+        await handlePicChange(donationId, proofFiles[donationId]);
+        setProofFiles(p => { const n = { ...p }; delete n[donationId]; return n; });
+        setProofPreviews(p => { const n = { ...p }; delete n[donationId]; return n; });
+      }
       setTrackingMsg(p => ({ ...p, [donationId]: "บันทึกแล้ว ✓" }));
       setTrackingEditing(p => ({ ...p, [donationId]: false }));
     } catch (e) {
@@ -478,35 +528,21 @@ export default function DonationHistoryPage() {
                     }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "#92400e", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
                         <Icon icon="mdi:truck-outline" width="14" />
-                        {trackingEditing[d.donation_id] ? "แก้ไขเลขพัสดุ" : "ยังไม่ได้กรอกเลขพัสดุ"}
+                        {trackingEditing[d.donation_id] ? "แก้ไขข้อมูลการจัดส่ง" : "ยังไม่ได้กรอกข้อมูลการจัดส่ง"}
                       </div>
 
-                      {/* แสดงโลโก้ + ชื่อขนส่ง */}
-                      {d.shipping_carrier && (() => {
-                        const logos = {
-                          "ไปรษณีย์ไทย": "/src/unieed_pic/ship1.png",
-                          "Flash Express": "/src/unieed_pic/ship2.png",
-                          "J&T": "/src/unieed_pic/ship3.png",
-                          "Kerry": "/src/unieed_pic/ship4.png",
-                        };
-                        const logo = logos[d.shipping_carrier];
-                        return (
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, background: "#fff", borderRadius: 8, padding: "6px 10px", border: "1px solid #FDE68A" }}>
-                            {logo
-                              ? <img src={logo} alt={d.shipping_carrier} style={{ height: 18, width: "auto", objectFit: "contain" }} />
-                              : <Icon icon="mdi:truck-outline" width="16" color="#92400e" />}
-                            <span style={{ fontSize: 12, fontWeight: 600, color: "#1a1a2e" }}>{d.shipping_carrier}</span>
-                            <span style={{ fontSize: 11, color: "#6b7280" }}>— กรอกเลขพัสดุของ {d.shipping_carrier}</span>
-                          </div>
-                        );
-                      })()}
+                      {/* เลือกบริษัทขนส่ง */}
+                      <CarrierSelect
+                        value={courierInputs[d.donation_id] ?? d.shipping_carrier ?? ""}
+                        onChange={val => setCourierInputs(p => ({ ...p, [d.donation_id]: val }))}
+                      />
 
                       <div style={{ display: "flex", gap: 8 }}>
                         <input
                           className="dhTrackInput"
                           value={trackingInputs[d.donation_id] || ""}
-                          onChange={e => setTrackingInputs(p => ({ ...p, [d.donation_id]: e.target.value.replace(/[\u0E00-\u0E7F]/g, "") }))}
-                          placeholder={`เลขพัสดุ ${d.shipping_carrier || ""}`}
+                          onChange={e => setTrackingInputs(p => ({ ...p, [d.donation_id]: e.target.value }))}
+                          placeholder="เช่น TH123456789"
                           style={{
                             flex: 1, padding: "8px 12px", borderRadius: 8,
                             border: "1px solid #D1D5DB", fontSize: 13,
@@ -526,7 +562,7 @@ export default function DonationHistoryPage() {
                           </button>
                         )}
                         <button
-                          onClick={() => saveTracking(d.donation_id, d.shipping_carrier)}
+                          onClick={() => saveTracking(d.donation_id)}
                           disabled={trackingSaving[d.donation_id] || !trackingInputs[d.donation_id]?.trim()}
                           className="dnCloseBtn"
                           style={{
@@ -538,6 +574,46 @@ export default function DonationHistoryPage() {
                         >
                           {trackingSaving[d.donation_id] ? "..." : "บันทึก"}
                         </button>
+                      </div>
+
+                      {/* อัปโหลดหลักฐาน (ใน form เดียวกัน) */}
+                      <div style={{ marginTop: 10, borderTop: "1px dashed #FCD34D", paddingTop: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#92400e", marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
+                          <Icon icon="mdi:camera-outline" width="13" />
+                          แนบรูปหลักฐานการส่ง <span style={{ fontWeight: 400 }}>(ไม่บังคับ)</span>
+                        </div>
+                        {!proofFiles[d.donation_id] && <label style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "7px 14px", borderRadius: 8,
+                          background: "#fff", border: "1px solid #FCD34D",
+                          color: "#92400e", fontSize: 12, fontWeight: 600,
+                          cursor: "pointer",
+                        }}>
+                          <Icon icon="mdi:upload-outline" width="14" />
+                          เลือกรูป
+                          <input type="file" accept="image/*" style={{ display: "none" }}
+                            onChange={e => {
+                              const file = e.target.files[0];
+                              if (!file) return;
+                              setProofFiles(p => ({ ...p, [d.donation_id]: file }));
+                              setProofPreviews(p => ({ ...p, [d.donation_id]: URL.createObjectURL(file) }));
+                            }} />
+                        </label>}
+                        {proofPreviews[d.donation_id] && (
+                          <div
+                            style={{ position: "relative", cursor: "pointer", marginTop: 8 }}
+                            onClick={() => setPreviewImg({ url: proofPreviews[d.donation_id], donationId: d.donation_id, status: "local" })}
+                          >
+                            <img src={proofPreviews[d.donation_id]} alt="preview"
+                              style={{ width: "100%", maxHeight: 180, objectFit: "cover", borderRadius: 8, display: "block" }} />
+                            <div style={{ position: "absolute", inset: 0, borderRadius: 8, background: "rgba(0,0,0,0.18)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s" }}
+                              onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                              onMouseLeave={e => e.currentTarget.style.opacity = 0}
+                            >
+                              <Icon icon="mdi:magnify-plus-outline" width="32" color="#fff" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                       {trackingMsg[d.donation_id] && (
                         <div style={{ fontSize: 12, marginTop: 6, color: trackingMsg[d.donation_id].includes("✓") ? "#16a34a" : "#DC2626" }}>
@@ -675,7 +751,7 @@ export default function DonationHistoryPage() {
               <Icon icon="mdi:close" width="20" /> ปิด
             </button>
             <img src={previewImg.url} alt="หลักฐาน" style={{ width: "100%", borderRadius: 12, display: "block", maxHeight: "70vh", objectFit: "contain" }} />
-            {previewImg.status === "pending" && (
+            {(previewImg.status === "pending" || previewImg.status === "local") && (
               <label style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 marginTop: 12, padding: "11px", borderRadius: 10,
@@ -685,7 +761,18 @@ export default function DonationHistoryPage() {
                 <Icon icon="mdi:image-edit-outline" width="18" />
                 {uploadingPic ? "กำลังอัปโหลด..." : "เปลี่ยนรูปหลักฐาน"}
                 <input type="file" accept="image/*" style={{ display: "none" }} disabled={uploadingPic}
-                  onChange={e => handlePicChange(previewImg.donationId, e.target.files[0])} />
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (previewImg.status === "local") {
+                      setProofFiles(p => ({ ...p, [previewImg.donationId]: file }));
+                      const url = URL.createObjectURL(file);
+                      setProofPreviews(p => ({ ...p, [previewImg.donationId]: url }));
+                      setPreviewImg(p => ({ ...p, url }));
+                    } else {
+                      handlePicChange(previewImg.donationId, file);
+                    }
+                  }} />
               </label>
             )}
           </div>

@@ -192,6 +192,8 @@ function DonationDetailPanel({ donationId, token }) {
   const [condition, setCondition] = useState("");
   const [thankMsg, setThankMsg]   = useState("");
   const [err, setErr]             = useState("");
+  const [checkedMap, setCheckedMap] = useState({});
+  const [reasonMap, setReasonMap]   = useState({});
   const navigate = useNavigate();
 
   const headers = {
@@ -217,6 +219,10 @@ function DonationDetailPanel({ donationId, token }) {
           `การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`
         );
         if (data.status === "approved") setConfirmed(true);
+        const parsedItems = parseItems(data.items_snapshot);
+        const init = {};
+        parsedItems.forEach((item, i) => { init[item.uniform_type_id ?? i] = true; });
+        setCheckedMap(init);
       } catch (e) {
         setErr(e.message);
       } finally {
@@ -226,15 +232,37 @@ function DonationDetailPanel({ donationId, token }) {
   }, [donationId, token]);
 
   const handleConfirm = async () => {
-    if (!condition) return setErr("กรุณาเลือกสภาพชุดก่อนยืนยัน");
+    const items = parseItems(donation?.items_snapshot);
+    const noneChecked = items.length > 0 && items.every((it, i) => checkedMap[it.uniform_type_id ?? i] === false);
+    const hasDamaged    = Object.values(reasonMap).some(r => r === "ชำรุด");
+    const hasIncomplete = Object.values(reasonMap).some(r => r === "ไม่ครบ");
+    const finalCondition = noneChecked
+      ? (hasDamaged ? "damaged" : hasIncomplete ? "incomplete" : "wrong_item")
+      : condition;
+    if (!noneChecked && !condition) return setErr("กรุณาเลือกสภาพชุดก่อนยืนยัน");
+    const uncheckedWithoutReason = items.some((item, i) => {
+      const key = item.uniform_type_id ?? i;
+      return checkedMap[key] === false && !reasonMap[key];
+    });
+    if (uncheckedWithoutReason) return setErr("กรุณาระบุสาเหตุสำหรับรายการที่ไม่ได้รับ");
+    const items_received = items
+      .filter(item => item.uniform_type_id != null)
+      .map((item, i) => {
+        const key = item.uniform_type_id ?? i;
+        const isChecked = checkedMap[key] !== false;
+        return {
+          uniform_type_id: item.uniform_type_id,
+          qty_received: isChecked ? Number(item.quantity) : 0,
+          ...(isChecked ? {} : { reason: reasonMap[key] || null }),
+        };
+      });
     setErr("");
     setConfirming(true);
     try {
-      // PATCH verify (เหมือนกับที่ SchoolDonationPage ทำ)
       const res = await fetch(`${BASE}/donations/${donation.donation_id}/verify`, {
         method: "PATCH",
         headers,
-        body: JSON.stringify({ condition_status: condition, thank_message: thankMsg }),
+        body: JSON.stringify({ condition_status: finalCondition, thank_message: thankMsg, items_received }),
       });
       if (!res.ok) throw new Error("ยืนยันไม่สำเร็จ");
       setConfirmed(true);
@@ -244,6 +272,31 @@ function DonationDetailPanel({ donationId, token }) {
       setConfirming(false);
     }
   };
+
+  // reset condition ถ้า uncheck ทั้งหมดแล้ว condition เป็น "usable"
+  useEffect(() => {
+    if (!donation) return;
+    const parsed = parseItems(donation.items_snapshot);
+    const noneChecked = parsed.length > 0 && parsed.every((it, i) => checkedMap[it.uniform_type_id ?? i] === false);
+    if (noneChecked && condition === "usable") setCondition("");
+  }, [checkedMap]); // eslint-disable-line
+
+  // auto-fill thankMsg จาก item reasons เมื่อ allUnchecked
+  useEffect(() => {
+    if (!donation) return;
+    const parsed = parseItems(donation.items_snapshot);
+    const noneChecked = parsed.length > 0 && parsed.every((it, i) => checkedMap[it.uniform_type_id ?? i] === false);
+    if (!noneChecked || Object.keys(reasonMap).length === 0) return;
+    const name       = donation.donor_name || "ผู้บริจาค";
+    const hasDmg     = Object.values(reasonMap).some(r => r === "ชำรุด");
+    const hasInc     = Object.values(reasonMap).some(r => r === "ไม่ครบ");
+    setThankMsg(hasDmg
+      ? `ขอบคุณคุณ ${name} ที่บริจาคชุดนักเรียน ทางโรงเรียนขอแจ้งให้ทราบว่าชุดที่ได้รับมีสภาพเสียหาย ทางโรงเรียนซาบซึ้งในน้ำใจของท่านและขอขอบพระคุณอย่างสูง`
+      : hasInc
+      ? `ขอบคุณคุณ ${name} ที่บริจาคชุดนักเรียน ทางโรงเรียนขอแจ้งให้ทราบว่าได้รับของบริจาคไม่ครบจำนวน ทางโรงเรียนซาบซึ้งในน้ำใจของท่านและขอขอบพระคุณอย่างสูง`
+      : `ขอบคุณคุณ ${name} ที่มีน้ำใจบริจาค ขออภัยที่รายการบริจาคไม่ตรงกับความต้องการของโรงเรียนในขณะนี้`
+    );
+  }, [reasonMap, checkedMap]); // eslint-disable-line
 
   if (loading) return (
     <div style={S.centerWrap}>
@@ -262,18 +315,32 @@ function DonationDetailPanel({ donationId, token }) {
 
   const items = parseItems(donation?.items_snapshot);
   const isDropoff = donation?.delivery_method === "dropoff";
+  const allUnchecked = items.length > 0 && items.every((item, i) => checkedMap[item.uniform_type_id ?? i] === false);
+  const _hasDmg = Object.values(reasonMap).some(r => r === "ชำรุด");
+  const _hasInc = Object.values(reasonMap).some(r => r === "ไม่ครบ");
+  const derivedCondition = allUnchecked
+    ? (_hasDmg ? "damaged"
+      : _hasInc ? "incomplete"
+      : Object.keys(reasonMap).length > 0 ? "wrong_item" : null)
+    : null;
+  const activeCondition = allUnchecked ? derivedCondition : condition;
+
+  const conditionOptions = [
+    { value: "usable",  label: "ใช้งานได้", icon: "mdi:check-circle-outline", color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+    { value: "damaged", label: "เสียหาย",    icon: "mdi:alert-outline",         color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
+  ];
 
   return (
     <div style={S.detailWrap}>
       <div style={S.detailCard}>
 
         {/* Header */}
-        <div style={S.detailHeader}>
-          <img src="/src/unieed_pic/logo.png" alt="Unieed" style={{ height: 32 }} />
-          <div style={S.detailHeaderRight}>
-            <div style={{ fontSize: 11, color: "#6b7280" }}>โรงเรียน</div>
-            <div style={S.detailSchool}>{donation?.school_name || "—"}</div>
+        <div style={{ background: "linear-gradient(135deg,#29B6E8,#5285e8)", borderRadius: "14px 14px 0 0", margin: "-24px -24px 20px", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", marginBottom: 2 }}>ยืนยันรับบริจาคชุดนักเรียน</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{donation?.school_name || "—"}</div>
           </div>
+          <img src="/src/unieed_pic/logo.png" alt="Unieed" style={{ height: 30, opacity: 0.9, filter: "brightness(0) invert(1)" }} />
         </div>
 
         {/* ยืนยันแล้ว */}
@@ -299,7 +366,7 @@ function DonationDetailPanel({ donationId, token }) {
           <>
             {/* ข้อมูลการบริจาค */}
             <div style={S.section}>
-              <div style={S.sectionLabel}>ข้อมูลการบริจาค</div>
+              <div style={S.sectionLabel}><Icon icon="mdi:account-box-outline" width="14" /> ข้อมูลผู้บริจาค</div>
               <div style={S.metaGrid}>
                 <MetaRow label="ผู้บริจาค" value={donation?.donor_name} />
                 <MetaRow label="วิธีส่ง" value={isDropoff ? "Drop-off (นำส่งด้วยตนเอง)" : "จัดส่งพัสดุ"} />
@@ -325,54 +392,140 @@ function DonationDetailPanel({ donationId, token }) {
 
             {/* รายการชุด */}
             <div style={S.section}>
-              <div style={S.sectionLabel}>รายการชุดนักเรียน ({donation?.quantity} ชิ้น)</div>
-              <div style={S.itemList}>
-                {items.map((item, i) => (
-                  <div key={i} style={S.itemRow}>
-                    <span style={S.itemName}>{item.name}</span>
-                    <span style={S.itemQty}>{item.quantity} ชิ้น</span>
-                  </div>
-                ))}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, paddingBottom: 8, borderBottom: "2px solid #EFF6FF" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 6 }}>
+                  <Icon icon="mdi:tshirt-crew-outline" width="16" color="#29B6E8" />
+                  รายการชุดนักเรียน
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#29B6E8", background: "#EFF6FF", padding: "1px 8px", borderRadius: 20 }}>{donation?.quantity} ชิ้น</span>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#5285E8", userSelect: "none" }}>
+                  <input
+                    type="checkbox"
+                    checked={items.length > 0 && items.every((item, i) => checkedMap[item.uniform_type_id ?? i] !== false)}
+                    onChange={e => {
+                      const newMap = {};
+                      items.forEach((item, i) => { newMap[item.uniform_type_id ?? i] = e.target.checked; });
+                      setCheckedMap(newMap);
+                      if (e.target.checked) setReasonMap({});
+                    }}
+                    style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#5285e8", outline: "none" }}
+                  />
+                  ติ๊กรับทั้งหมด
+                </label>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {items.map((item, i) => {
+                  const key = item.uniform_type_id ?? i;
+                  const isChecked = checkedMap[key] !== false;
+                  return (
+                    <div key={i} style={{ borderRadius: 12, border: `2px solid ${isChecked ? "#DBEAFE" : "#FECACA"}`, overflow: "hidden", transition: "border-color 0.2s" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: isChecked ? "#F0F7FF" : "#FFF5F5" }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={e => {
+                            setCheckedMap(prev => ({ ...prev, [key]: e.target.checked }));
+                            if (e.target.checked) setReasonMap(prev => { const n = { ...prev }; delete n[key]; return n; });
+                          }}
+                          style={{ width: 18, height: 18, flexShrink: 0, cursor: "pointer", accentColor: "#5285e8", outline: "none" }}
+                        />
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>{item.name}</span>
+                        <span style={{ ...S.itemQty, background: isChecked ? "#DBEAFE" : "#FEE2E2", color: isChecked ? "#1d4ed8" : "#dc2626" }}>{item.quantity} ชิ้น</span>
+                      </div>
+                      {!isChecked && (
+                        <div style={{ padding: "10px 14px", background: "#fff", borderTop: "1px solid #FEE2E2" }}>
+                          <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 600, marginBottom: 8 }}>ระบุสาเหตุที่ไม่รับ *</div>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            {["ผิดไซส์", "ผิดประเภท", "ชำรุด", ...(Number(item.quantity) > 1 ? ["ไม่ครบ"] : [])].map(r => (
+                              <button
+                                key={r} type="button"
+                                onClick={() => setReasonMap(prev => ({ ...prev, [key]: r }))}
+                                style={{
+                                  padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                                  border: `1.5px solid ${reasonMap[key] === r ? "#dc2626" : "#FECACA"}`,
+                                  background: reasonMap[key] === r ? "#FEE2E2" : "#fff",
+                                  color: reasonMap[key] === r ? "#dc2626" : "#9ca3af",
+                                  cursor: "pointer", transition: "all 0.15s",
+                                }}
+                              >{r}</button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* ข้อความขอบคุณ */}
+            {/* ประเมินสภาพ */}
             <div style={S.section}>
-              <div style={S.sectionLabel}>ข้อความขอบคุณ (ส่งให้ผู้บริจาคพร้อมใบประกาศ)</div>
+              <div style={S.sectionLabel}><Icon icon="mdi:clipboard-check-outline" width="14" /> ประเมินสภาพชุดที่ได้รับ {!allUnchecked && <span style={{ color: "#ef4444" }}>*</span>}</div>
+              {allUnchecked ? (
+                <div style={{
+                  padding: "12px 14px", borderRadius: 10, fontSize: 13, display: "flex", alignItems: "center", gap: 8,
+                  ...(derivedCondition === "damaged"     ? { background: "#fee2e2", border: "1px solid #fca5a5",  color: "#dc2626" }
+                    : derivedCondition === "incomplete"  ? { background: "#eff6ff", border: "1px solid #93c5fd",  color: "#1d4ed8" }
+                    : derivedCondition === "wrong_item"  ? { background: "#fef3c7", border: "1px solid #fcd34d",  color: "#d97706" }
+                    :                                      { background: "#f3f4f6", border: "1px solid #e5e7eb",  color: "#6b7280" }),
+                }}>
+                  <Icon icon={
+                    derivedCondition === "damaged"    ? "mdi:alert-outline" :
+                    derivedCondition === "incomplete" ? "mdi:package-variant" :
+                    derivedCondition === "wrong_item" ? "mdi:swap-horizontal" : "mdi:dots-horizontal"
+                  } width="16" />
+                  {derivedCondition === "damaged"    ? "ผลอัตโนมัติ: เสียหาย — ผู้บริจาคจะได้รับใบเกียรติบัตร"
+                  : derivedCondition === "incomplete" ? "ผลอัตโนมัติ: ได้รับไม่ครบ — ผู้บริจาคจะได้รับใบเกียรติบัตร"
+                  : derivedCondition === "wrong_item" ? "ผลอัตโนมัติ: รายการไม่ตรง — ไม่ออกใบเกียรติบัตร"
+                  : "กรุณาระบุสาเหตุในแต่ละรายการก่อน"}
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10, lineHeight: 1.5 }}>
+                    ประเมินสภาพของที่ได้รับ · "เสียหาย" ผู้บริจาคยังได้รับใบเกียรติบัตร
+                  </div>
+                  <div style={S.conditionRow}>
+                    {conditionOptions.map(opt => {
+                      const name = donation?.donor_name || "ผู้บริจาค";
+                      const msgMap = {
+                        usable:  `ขอบคุณคุณ ${name} มากๆ ที่ได้บริจาคชุดนักเรียน การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`,
+                        damaged: `ขอบคุณคุณ ${name} ที่บริจาคชุดนักเรียน ทางโรงเรียนขอแจ้งให้ทราบว่าชุดที่ได้รับมีสภาพเสียหาย ทางโรงเรียนซาบซึ้งในน้ำใจของท่านและขอขอบพระคุณอย่างสูง`,
+                      };
+                      return (
+                        <button
+                          key={opt.value}
+                          style={{
+                            ...S.conditionBtn,
+                            ...(condition === opt.value ? { background: opt.bg, borderColor: opt.border, color: opt.color } : {}),
+                          }}
+                          onClick={() => { setCondition(opt.value); setThankMsg(msgMap[opt.value]); }}
+                          type="button"
+                        >
+                          <Icon icon={opt.icon} width="18" />
+                          {opt.label}
+                          <span style={{ fontSize: 10, fontWeight: 600, color: "#16a34a", background: "#dcfce7", padding: "1px 7px", borderRadius: 20, marginTop: 2 }}>✓ ออกใบเซอร์</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* ข้อความขอบคุณ / แจ้งผู้บริจาค */}
+            <div style={S.section}>
+              <div style={S.sectionLabel}>
+                <Icon icon="mdi:message-text-outline" width="14" />
+                {activeCondition === "wrong_item"
+                  ? "ข้อความแจ้งผู้บริจาค"
+                  : "ข้อความขอบคุณ (ส่งให้ผู้บริจาคพร้อมใบประกาศ)"}
+              </div>
               <textarea
                 style={S.textarea}
                 rows={3}
                 value={thankMsg}
                 onChange={e => setThankMsg(e.target.value)}
               />
-            </div>
-
-            {/* ประเมินสภาพ */}
-            <div style={S.section}>
-              <div style={S.sectionLabel}>
-                ประเมินสภาพชุดที่ได้รับ <span style={{ color: "#ef4444" }}>*</span>
-              </div>
-              <div style={S.conditionRow}>
-                {[
-                  { value: "usable",     label: "ใช้งานได้",     color: "#16a34a", bg: "#dcfce7" },
-                  { value: "wrong_item", label: "รายการไม่ตรง",  color: "#d97706", bg: "#fef3c7" },
-                  { value: "damaged",    label: "เสียหาย",        color: "#dc2626", bg: "#fee2e2" },
-                ].map(opt => (
-                  <button
-                    key={opt.value}
-                    style={{
-                      ...S.conditionBtn,
-                      ...(condition === opt.value
-                        ? { background: opt.bg, borderColor: opt.color, color: opt.color }
-                        : {}),
-                    }}
-                    onClick={() => setCondition(opt.value)}
-                    type="button"
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Note */}
@@ -398,7 +551,7 @@ function DonationDetailPanel({ donationId, token }) {
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
                     <path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/>
                   </svg>
-                  ยืนยันรับของแล้ว
+                  ยืนยันรับของ
                 </>
               )}
             </button>
@@ -478,9 +631,9 @@ const S = {
   // sections
   section: { marginBottom: 20 },
   sectionLabel: {
-    fontSize: 11, fontWeight: 600, color: "#6b7280",
-    textTransform: "uppercase", letterSpacing: 0.5,
-    marginBottom: 10, paddingBottom: 6, borderBottom: "1px solid #E5E7EB",
+    fontSize: 12, fontWeight: 700, color: "#374151",
+    marginBottom: 10, paddingBottom: 8, borderBottom: "1px solid #E5E7EB",
+    display: "flex", alignItems: "center", gap: 6,
   },
 
   metaGrid: { display: "flex", flexDirection: "column", gap: 0 },
@@ -510,9 +663,10 @@ const S = {
 
   conditionRow: { display: "flex", gap: 8, flexWrap: "wrap" },
   conditionBtn: {
-    flex: 1, padding: "10px 8px", border: "1.5px solid #E5E7EB",
-    borderRadius: 10, fontSize: 13, fontWeight: 600, color: "#6b7280",
+    flex: 1, padding: "12px 8px", border: "2px solid #E5E7EB",
+    borderRadius: 12, fontSize: 13, fontWeight: 600, color: "#6b7280",
     background: "#F9FAFB", cursor: "pointer",
+    display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
   },
 
   noteBox: {
@@ -538,7 +692,7 @@ const S = {
     border: "none", cursor: "pointer", padding: 0, display: "flex",
   },
   btnPrimary: {
-    width: "100%", padding: "13px", background: "#29B6E8", color: "#fff",
+    width: "100%", padding: "13px", background: "#5285e8", color: "#fff",
     border: "none", borderRadius: 12, fontSize: 15, fontWeight: 700,
     cursor: "pointer", display: "flex", alignItems: "center",
     justifyContent: "center", gap: 8,

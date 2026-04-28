@@ -18,10 +18,6 @@ const TRACKING_URLS = {
   "Flash Express": (no) => `https://www.flashexpress.co.th/tracking/?se=${no}`,
   "J&T Express":  (no) => `https://www.jtexpress.co.th/service/track?waybillNo=${no}`,
   "Kerry Express":(no) => `https://th.kex-express.com/th/track/?track=${no}`,
-  "Lazada Logistics": () => `https://www.lazada.co.th/helpcenter/`,
-  "SCG Express":  (no) => `https://www.scgexpress.co.th/tracking/?barcode=${no}`,
-  "Best Express": (no) => `https://www.best-inc.co.th/track?numbers=${no}`,
-  "Ninja Van":    (no) => `https://www.ninjavan.co/th-th/tracking?id=${no}`,
 };
  
 const getTrackingUrl = (carrier, trackingNo) => {
@@ -44,9 +40,10 @@ const STATUS_META = {
 };
  
 const CONDITION_META = {
-  usable:     { label: "ใช้งานได้",   color: "#16a34a", bg: "#dcfce7" },
+  usable:     { label: "ใช้งานได้",    color: "#16a34a", bg: "#dcfce7" },
   wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" },
-  damaged:    { label: "เสียหาย",      color: "#dc2626", bg: "#fee2e2" },
+  damaged:    { label: "เสียหาย",       color: "#dc2626", bg: "#fee2e2" },
+  incomplete: { label: "ได้รับไม่ครบ", color: "#1d4ed8", bg: "#eff6ff" },
 };
  
 const TH_MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
@@ -492,8 +489,11 @@ export default function SchoolDonationPage() {
             ) : paginated.map(d => {
               const isExpanded    = expandedRow === d.donation_id;
               const items         = parseItems(d.items_snapshot);
-              const statusMeta    = STATUS_META[d.status] || STATUS_META.pending;
-              const conditionMeta = d.condition_status ? CONDITION_META[d.condition_status] : null;
+              const statusMeta = (d.status === "approved" && d.condition_status === "wrong_item")
+                ? { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" }
+                : STATUS_META[d.status] || STATUS_META.pending;
+              const conditionMeta = (d.condition_status && !["wrong_item"].includes(d.condition_status))
+                ? CONDITION_META[d.condition_status] : null;
               const overdue = isOverdue(d.created_at) && (
                 d.status === "pending" ||
                 (d.status === "approved" && Number(d.auto_approved) === 1) ||

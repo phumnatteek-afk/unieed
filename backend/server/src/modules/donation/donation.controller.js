@@ -27,11 +27,7 @@ export async function createDonation(req, res, next) {
       return res.status(400).json({ message: "กรุณาระบุวันที่บริจาค" });
     if (!["parcel", "dropoff"].includes(delivery_method))
       return res.status(400).json({ message: "delivery_method ไม่ถูกต้อง" });
-    if (delivery_method === "parcel") {
-      if (!shipping_carrier?.trim())
-        return res.status(400).json({ message: "กรุณาเลือกบริการขนส่ง" });
-      // tracking_number ไม่บังคับ — กรอกภายหลังได้
-    }
+    // shipping_carrier และ tracking_number กรอกภายหลังได้
 
     let items = [];
     try {

@@ -380,9 +380,7 @@ export default function DonatePage() {
   // validate แล้วไปหน้า confirm (ยังไม่ call API)
   const handleSubmit = () => {
     setErr("");
-    if (donateMethod === "parcel") {
-      if (!courier) return setErr("กรุณาเลือกบริการขนส่ง");
-    } else {
+    if (donateMethod === "dropoff") {
       if (!appointDate) return setErr("กรุณาเลือกวันนัดหมาย");
       if (!appointTime) return setErr("กรุณาเลือกเวลานัดหมาย");
       if (!donorPhone.trim()) return setErr("กรุณากรอกเบอร์ติดต่อ");
@@ -411,15 +409,7 @@ export default function DonatePage() {
       fd.append("items", JSON.stringify(selectedItems));
 
       if (donateMethod === "parcel") {
-        fd.append("shipping_carrier", courier);
-        if (trackingNo.trim()) fd.append("tracking_number", trackingNo.trim());
-        if (proofImage) {
-          const smallImg = await compressImage(proofImage); // บีบอัดก่อน append
-          fd.append("image", smallImg);
-        }
-        // fd.append("shipping_carrier", courier);
-        // fd.append("tracking_number",  trackingNo.trim());
-        // if (proofImage) fd.append("image", proofImage);
+        if (donorPhone.trim()) fd.append("donor_phone", donorPhone.trim());
       } else {
         fd.append("donor_phone", donorPhone.trim());
         fd.append("appoint_time", appointTime || "00:00");
@@ -594,14 +584,23 @@ export default function DonatePage() {
                 selectedItems={selectedItems.map(it => ({ name: it.name, qty: it.quantity }))}
                 totalQty={totalQty}
                 baseUrl={window.location.origin}
-                onUpdateTracking={async (newTracking) => {
+                onUpdateTracking={async (newTracking, newCarrier) => {
                   await fetch(`${BASE}/donations/${realDonationId}/tracking`, {
                     method: "PATCH",
                     headers: {
                       "Content-Type": "application/json",
                       ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     },
-                    body: JSON.stringify({ tracking_number: newTracking }),
+                    body: JSON.stringify({ tracking_number: newTracking, shipping_carrier: newCarrier || null }),
+                  });
+                }}
+                onUploadProof={async (file) => {
+                  const fd = new FormData();
+                  fd.append("image", file);
+                  await fetch(`${BASE}/donations/${realDonationId}/pic`, {
+                    method: "PATCH",
+                    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                    body: fd,
                   });
                 }}
                 onViewProject={null}
@@ -676,9 +675,9 @@ export default function DonatePage() {
             }}>
               {[
                 { num: "①", label: "แพ็คชุดนักเรียน", icon: "mdi:package-variant-closed" },
-                { num: "②", label: "กรอกข้อมูลจัดส่ง", icon: "mdi:file-edit-outline" },
+                { num: "②", label: "พิมพ์ใบสรุป+QR", icon: "mdi:qrcode" },
                 { num: "③", label: "นำส่งที่ไปรษณีย์", icon: "mdi:truck-outline" },
-                { num: "④", label: "กรอกเลขพัสดุ", icon: "mdi:barcode" },
+                { num: "④", label: "กรอกเลขพัสดุทีหลัง", icon: "mdi:barcode" },
               ].map((s, i, arr) => (
                 <div key={i} style={{
                   flex: 1, display: "flex", flexDirection: "column",
@@ -771,26 +770,25 @@ export default function DonatePage() {
                 </button>
               </div>
               <div className="dnFormGroup">
-                <label className="dnLabel">เลือกบริการขนส่งที่จัดส่ง</label>
-                <select className="dnSelect" value={courier} onChange={e => setCourier(e.target.value)}>
-                  <option value="">เลือกขนส่ง</option>
-                  {COURIERS.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="dnFormGroup">
-                <label className="dnLabel">อัปโหลดหลักฐานการจัดส่งพัสดุ</label>
-                <label className="dnUploadBox">
-                  {proofPreview
-                    ? <img src={proofPreview} alt="proof" className="dnProofImg" />
-                    : <><Icon icon="fluent:image-add-20-filled" width="36" color="#aaa" /><span>เพิ่มรูปภาพ</span></>}
-                  <input type="file" accept="image/*" onChange={handleProofChange} style={{ display: "none" }} />
-                </label>
-              </div>
-              <div className="dnFormGroup">
                 <label className="dnLabel">ชื่อ - นามสกุลผู้บริจาค</label>
                 <input className="dnInput" value={donorName} readOnly
                   style={{ background: "#F3F4F6", color: "#6B7280", cursor: "not-allowed", outline: "none", borderColor: "#E2E8F0" }}
                   onFocus={e => e.target.blur()} />
+              </div>
+              <div className="dnFormGroup">
+                <label className="dnLabel">เบอร์โทรติดต่อ <span style={{ color: "#9ca3af", fontWeight: 400 }}>(ไม่บังคับ)</span></label>
+                <input
+                  className="dnInput"
+                  type="tel"
+                  placeholder="เช่น 09XXXXXXXX"
+                  value={donorPhone}
+                  inputMode="numeric"
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    const max = val.startsWith("02") ? 9 : 10;
+                    if (val.length <= max) setDonorPhone(val);
+                  }}
+                />
               </div>
               {err && <div className="dnErr">{err}</div>}
               <button className="dnDraftBtn" onClick={handleSaveDraft} style={{ marginTop: "20px" }}>
@@ -937,7 +935,7 @@ export default function DonatePage() {
 
               {/* ── ข้อมูลผู้บริจาค ── */}
               <div className="dnFormGroup">
-                <label className="dnLabel">ข้อมูลติดต่อผู้บริจาค</label>
+                <label className="dnLabel">เบอร์โทรติดต่อ</label>
                 <input
                   className="dnInput"
                   value={donorPhone}
@@ -946,7 +944,7 @@ export default function DonatePage() {
                     const max = val.startsWith("02") ? 9 : 10;
                     if (val.length <= max) setDonorPhone(val);
                   }}
-                  placeholder="เช่น 09X-XXX-XXXX"
+                  placeholder="เช่น 09XXXXXXXX"
                   inputMode="numeric"
                 />
               </div>
@@ -1099,17 +1097,6 @@ export function ConfirmationSummaryPage({
           display: "flex", flexDirection: "column", gap: 10,
         }}>
 
-          {/* รูปหลักฐาน */}
-          {proofPreview && (
-            <div style={{ width: "100%", borderRadius: 10, overflow: "hidden" }}>
-              <img src={proofPreview} alt="หลักฐานการจัดส่ง"
-                style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
-              <div style={{ fontSize: 11, color: "#6b7280", textAlign: "center", marginTop: 3 }}>
-                หลักฐานการจัดส่ง
-              </div>
-            </div>
-          )}
-
           <div style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5 }}>
             รายการชุดนักเรียน
           </div>
@@ -1165,7 +1152,6 @@ export function ConfirmationSummaryPage({
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {donateMethod === "parcel" ? (
                 <>
-                  <DetailRow label="ขนส่ง" value={courier} />
                   <DetailRow label="วันที่ส่ง" value={formatThaiDate(new Date())} />
                 </>
               ) : (
@@ -1189,21 +1175,34 @@ export function ConfirmationSummaryPage({
         display: "flex", flexDirection: "column", gap: 8,
         background: "#fff", borderRadius: "0 0 20px 20px",
       }}>
-        {/* Notice */}
-        <div style={{
-          display: "flex", alignItems: "flex-start", gap: 8,
-          background: "#FFFBEB", border: "1.5px solid #FFBE1B",
-          borderRadius: 10, padding: "10px 12px",
-          fontSize: 12, color: "#92400e", lineHeight: 1.5,
-        }}>
-          <Icon icon="fluent:info-20-filled" width="14" style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>
-            {donateMethod === "parcel"
-              ? "หลังยืนยันแล้ว ระบบจะสร้าง QR Label สำหรับปริ้นแปะหน้ากล่องพัสดุ"
-              : "กรุณานำชุดนักเรียนไปส่งตามวันและเวลาที่นัดหมายไว้"
-            }
-          </span>
-        </div>
+        {/* Next steps / Notice */}
+        {donateMethod === "parcel" ? (
+          <div style={{ background: "#EFF6FF", borderRadius: 10, padding: "10px 12px" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#1e40af", marginBottom: 6 }}>หลังยืนยันแล้วต้องทำอะไรต่อ</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {[
+                "บันทึก PNG หรือปริ้นท์ใบนำส่งแนบกับพัสดุ",
+                "นำส่งพัสดุที่ไปรษณีย์หรือบริษัทขนส่ง",
+                'กลับมากรอกเลขพัสดุและอัปโหลดรูปหลักฐานที่เมนู "ประวัติการบริจาค"',
+              ].map((text, i) => (
+                <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#1e40af", flexShrink: 0 }}>{"①②③"[i]}</span>
+                  <span style={{ fontSize: 11, color: "#1e40af", lineHeight: 1.5 }}>{text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            display: "flex", alignItems: "flex-start", gap: 8,
+            background: "#FFFBEB", border: "1.5px solid #FFBE1B",
+            borderRadius: 10, padding: "10px 12px",
+            fontSize: 12, color: "#92400e", lineHeight: 1.5,
+          }}>
+            <Icon icon="fluent:info-20-filled" width="14" style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>กรุณานำชุดนักเรียนไปส่งตามวันและเวลาที่นัดหมายไว้</span>
+          </div>
+        )}
 
         {/* Buttons */}
         <div style={{ display: "flex", gap: 10 }}>
@@ -1225,7 +1224,7 @@ export function ConfirmationSummaryPage({
             }}
             onClick={handleConfirm} disabled={confirming} type="button"
           >
-            {confirming ? <><Spinner /> กำลังยืนยัน...</> : "ยืนยันการส่งต่อ →"}
+            {confirming ? <><Spinner /> กำลังยืนยัน...</> : donateMethod === "parcel" ? "ยืนยันและดูใบนำส่ง →" : "ยืนยันการส่งต่อ →"}
           </button>
         </div>
       </div>
@@ -1265,6 +1264,7 @@ export function QRLabelPage({
   baseUrl = "http://localhost:5173",
   donationStatus = "",
   onUpdateTracking = async () => {},
+  onUploadProof = async () => {},
   onViewProject = null,
   onClose,
   onTrackingSaved,
@@ -1274,11 +1274,14 @@ export function QRLabelPage({
   const qrUrl = `${baseUrl}/confirm/${id}`;
   const isDropoff = donateMethod === "dropoff";
 
+  const [courierInput, setCourierInput] = useState(courier || "");
   const [trackingInput, setTrackingInput] = useState(initialTrackingNo);
   const [savingTracking, setSavingTracking] = useState(false);
   const [trackingSaved, setTrackingSaved] = useState(false);
   const [trackingConfirmed, setTrackingConfirmed] = useState(!!initialTrackingNo);
   const [downloading, setDownloading] = useState("");
+  const [proofFile, setProofFile] = useState(null);
+  const [proofPreview, setProofPreview] = useState(null);
 
   const qrRef = useQRCanvas(qrUrl, 110);
 
@@ -1286,7 +1289,8 @@ export function QRLabelPage({
     if (!trackingInput.trim()) return;
     setSavingTracking(true);
     try {
-      await onUpdateTracking(trackingInput.trim());
+      await onUpdateTracking(trackingInput.trim(), courierInput.trim() || null);
+      if (proofFile) await onUploadProof(proofFile);
       setTrackingSaved(true);
       setTrackingConfirmed(true);
       setTimeout(() => {
@@ -1404,8 +1408,8 @@ export function QRLabelPage({
 
         {/* kids illustration */}
         <img src={kidsImg} alt="" aria-hidden style={{
-          position: "absolute", top: 0, right: 0,
-          height: "38%", objectFit: "contain",
+          position: "absolute", top: 16, right: 0,
+          height: "34%", objectFit: "contain",
           pointerEvents: "none", userSelect: "none",
         }} />
 
@@ -1427,33 +1431,36 @@ export function QRLabelPage({
             <div style={{ fontSize: 11, color: C.text }}>ผู้บริจาค : <strong>{donorName}</strong></div>
           </div>
 
-          <div style={{ borderTop: `1px dashed ${C.border}` }} />
-
-          {/* ข้อมูลการส่ง */}
-          <div>
-            <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 4 }}>ข้อมูลการส่ง</div>
-            {isDropoff ? (
-              <>
-                <div style={{ fontSize: 11, color: C.text }}>📅 {formatThaiDate(appointDate)}{appointTime ? ` เวลา ${appointTime} น.` : ""}</div>
-                <div style={{ fontSize: 11, color: C.text }}>📞 {donorPhone}</div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 11, color: C.text, display: "flex", alignItems: "center", gap: 5 }}>
-                  {carrierLogo
-                    ? <img src={carrierLogo} alt={courier} style={{ height: 16, width: "auto", objectFit: "contain", flexShrink: 0 }} />
-                    : "🚚"}
-                  {courier}
-                </div>
-                {trackingInput && (
-                  <div style={{ marginTop: 4 }}>
-                    <div style={{ fontSize: 9, color: C.sub }}>เลขพัสดุ (Tracking Number) :</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: C.blue, fontFamily: "monospace", letterSpacing: 1 }}>{trackingInput}</div>
-                  </div>
+          {/* ข้อมูลการส่ง — ซ่อนถ้าเป็น parcel และยังไม่มีข้อมูล */}
+          {(isDropoff || courier || trackingInput) && (
+            <>
+              <div style={{ borderTop: `1px dashed ${C.border}` }} />
+              <div>
+                <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 4 }}>ข้อมูลการส่ง</div>
+                {isDropoff ? (
+                  <>
+                    <div style={{ fontSize: 11, color: C.text }}>📅 {formatThaiDate(appointDate)}{appointTime ? ` เวลา ${appointTime} น.` : ""}</div>
+                    <div style={{ fontSize: 11, color: C.text }}>📞 {donorPhone}</div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 11, color: C.text, display: "flex", alignItems: "center", gap: 5 }}>
+                      {carrierLogo
+                        ? <img src={carrierLogo} alt={courier} style={{ height: 16, width: "auto", objectFit: "contain", flexShrink: 0 }} />
+                        : "🚚"}
+                      {courier}
+                    </div>
+                    {trackingInput && (
+                      <div style={{ marginTop: 4 }}>
+                        <div style={{ fontSize: 9, color: C.sub }}>เลขพัสดุ (Tracking Number) :</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: C.blue, fontFamily: "monospace", letterSpacing: 1 }}>{trackingInput}</div>
+                      </div>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
 
           <div style={{ borderTop: `1px dashed ${C.border}` }} />
 
@@ -1487,39 +1494,15 @@ export function QRLabelPage({
         </div>
       </div>
 
-      {/* ── Approved banner / Tracking input ── */}
-      {donationStatus === "approved" ? (
+      {/* ── Approved banner ── */}
+      {donationStatus === "approved" && (
         <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8, background: "#f0fdf4" }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0, color: "#16a34a" }}>
             <path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/>
           </svg>
           <span style={{ fontSize: 12, fontWeight: 600, color: "#16a34a" }}>โรงเรียนยืนยันรับของเรียบร้อยแล้ว</span>
         </div>
-      ) : !isDropoff && (
-        <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, alignItems: "center", background: "#FAFAFA" }}>
-          <div style={{ fontSize: 11, color: C.sub, flexShrink: 0 }}>กรอกเลขพัสดุ :</div>
-          <input
-            value={trackingInput}
-            onChange={e => setTrackingInput(e.target.value.replace(/[\u0E00-\u0E7F]/g, ""))}
-            placeholder="ยังไม่ได้กรอก"
-            style={{ flex: 1, fontSize: 12, padding: "6px 10px", borderRadius: 8, border: `1px solid ${C.border}`, outline: "none", boxShadow: "none", fontFamily: "monospace", boxSizing: "border-box" }}
-          />
-          <button
-            onClick={handleSaveTracking}
-            disabled={savingTracking || !trackingInput.trim()}
-            className="dnCloseBtn"
-            style={{ padding: "6px 12px", background: trackingSaved ? C.green : C.navy, color: "#fff", border: "none", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer", flexShrink: 0, opacity: !trackingInput.trim() ? 0.5 : 1 }}
-          >
-            {trackingSaved ? "✓" : savingTracking ? "..." : "บันทึก"}
-          </button>
-        </div>
       )}
-      <div style={{ padding: "4px 18px 8px", fontSize: 9, color: "#bbb", textAlign: "center" }}>
-        {isDropoff
-          ? "*กรุณาปริ้นท์ใบนี้แนบไปพร้อมกับชุดนักเรียน หรือแสดง QR Code นี้ให้โรงเรียนสแกนเมื่อนำส่ง"
-          : "*กรอกเลขพัสดุได้ภายหลังที่เมนู ประวัติการบริจาค หลังจากนำส่งพัสดุแล้ว โรงเรียนจะเห็นเลขพัสดุเมื่อสแกน QR โปรดปริ้นท์ใบสรุปรายการนี้และนำส่งพร้อมกับพัสดุ"
-        }
-      </div>
 
       </div>{/* ── end scrollable middle ── */}
 

@@ -138,10 +138,10 @@ function ProjectCard({ p, navigate, details }) {
   const items    = details || [];
   const grouped  = useMemo(() => groupItems(items).slice(0, 3), [items]);
 
+  const totalFulfilled = Number(p.total_fulfilled || 0);
   const totalNeeded    = items.length > 0
     ? items.reduce((sum, item) => sum + Number(item.quantity_remaining ?? item.quantity_needed ?? item.quantity ?? 0), 0)
-    : Number(p.total_needed || 0);
-  const totalFulfilled = Number(p.total_fulfilled || 0);
+    : Math.max(Number(p.total_needed || 0) - totalFulfilled, 0);
 
   const handleMouseEnter = () => {
     if (cardRef.current) {
@@ -240,6 +240,7 @@ function ProjectCard({ p, navigate, details }) {
                     ? <img src={g.image_url} alt={g.name} />
                     : <div className="dpHoverImgPlaceholder">{g.name?.charAt(0)}</div>}
                 </div>
+                <div className="dpHoverImgName">{g.name}</div>
                 <div className="dpHoverImgQty">{g.total} ชิ้น</div>
               </div>
             )) : <div className="dpHoverEmpty">ยังไม่มีข้อมูล</div>}
