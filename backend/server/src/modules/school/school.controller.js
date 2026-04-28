@@ -55,7 +55,8 @@ export async function getProjectByIdPublic(req, res, next) {
          (SELECT COALESCE(SUM(don.quantity), 0)
           FROM donation_record don
           WHERE don.request_id = dr.request_id
-            AND don.status = 'approved') AS total_received,
+            AND don.status = 'approved'
+            AND (don.condition_status NOT IN ('wrong_item', 'not_sent') OR don.condition_status IS NULL)) AS total_received,
          (SELECT COALESCE(SUM(don.quantity), 0)
           FROM donation_record don
           WHERE don.request_id = dr.request_id
@@ -240,6 +241,7 @@ export async function getProjectByIdPublic(req, res, next) {
        ) AS jt
        WHERE dr.request_id = ?
          AND dr.status = 'approved'
+         AND (dr.condition_status NOT IN ('wrong_item', 'not_sent') OR dr.condition_status IS NULL)
        GROUP BY jt.type_id, jt.chest, jt.waist`,
       [request_id]
     );
@@ -1509,6 +1511,9 @@ export async function getSchoolDashboard(req, res, next) {
                    WHERE st.request_id = dr.request_id), 0) AS total_needed,
          COALESCE((SELECT SUM(f.quantity_fulfilled)
                    FROM fulfillment f WHERE f.request_id = dr.request_id), 0) AS total_fulfilled,
+         COALESCE((SELECT SUM(don.quantity) FROM donation_record don
+                   WHERE don.request_id = dr.request_id AND don.status = 'approved'
+                   AND (don.condition_status NOT IN ('wrong_item', 'not_sent') OR don.condition_status IS NULL)), 0) AS total_received,
          COALESCE((SELECT COUNT(*) FROM students st WHERE st.request_id = dr.request_id), 0) AS student_count
        FROM donation_request dr
        WHERE dr.school_id = ?
@@ -1565,14 +1570,18 @@ export async function getSchoolDashboard(req, res, next) {
 
     // ── 4. Chart by status ────────────────────────────────────────────────────
     const [statusRows] = await db.query(
-      `SELECT status, COUNT(*) AS cnt FROM donation_record WHERE request_id = ? GROUP BY status`,
+      `SELECT status, condition_status, COUNT(*) AS cnt FROM donation_record WHERE request_id = ? GROUP BY status, condition_status`,
       [rid]
     );
-    const chart_by_status = { pending: 0, approved: 0, dropoff: 0, rejected: 0 };
+    const chart_by_status = { pending: 0, approved: 0, wrong_item: 0, not_sent: 0, dropoff: 0, rejected: 0 };
     for (const r of statusRows) {
-      if (r.status === 'pending') chart_by_status.pending = Number(r.cnt);
-      else if (r.status === 'approved') chart_by_status.approved = Number(r.cnt);
-      else if (r.status === 'rejected') chart_by_status.rejected = Number(r.cnt);
+      if (r.status === 'pending') chart_by_status.pending += Number(r.cnt);
+      else if (r.status === 'rejected') chart_by_status.rejected += Number(r.cnt);
+      else if (r.status === 'approved') {
+        if (r.condition_status === 'wrong_item') chart_by_status.wrong_item += Number(r.cnt);
+        else if (r.condition_status === 'not_sent') chart_by_status.not_sent += Number(r.cnt);
+        else chart_by_status.approved += Number(r.cnt);
+      }
     }
     const [dropoffPending] = await db.query(
       `SELECT COUNT(*) AS cnt FROM donation_record WHERE request_id = ? AND delivery_method = 'dropoff' AND status = 'pending'`,

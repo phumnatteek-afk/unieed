@@ -1193,14 +1193,20 @@ export function ConfirmationSummaryPage({
             </div>
           </div>
         ) : (
-          <div style={{
-            display: "flex", alignItems: "flex-start", gap: 8,
-            background: "#FFFBEB", border: "1.5px solid #FFBE1B",
-            borderRadius: 10, padding: "10px 12px",
-            fontSize: 12, color: "#92400e", lineHeight: 1.5,
-          }}>
-            <Icon icon="fluent:info-20-filled" width="14" style={{ flexShrink: 0, marginTop: 1 }} />
-            <span>กรุณานำชุดนักเรียนไปส่งตามวันและเวลาที่นัดหมายไว้</span>
+          <div style={{ background: "#FFFBEB", border: "1.5px solid #FFBE1B", borderRadius: 10, padding: "10px 12px" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#92400e", marginBottom: 6 }}>หลังยืนยันแล้วต้องทำอะไรต่อ</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {[
+                "บันทึก QR หรือ screenshot ใบสรุปนี้ไว้ใช้แสดงตอน drop-off",
+                `นำชุดนักเรียนไปส่งที่โรงเรียนตามวันและเวลาที่นัดหมายไว้`,
+                "โรงเรียนจะสแกน QR เพื่อยืนยันรับของ คุณจะได้รับแจ้งเตือนทันที",
+              ].map((text, i) => (
+                <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#92400e", flexShrink: 0 }}>{"①②③"[i]}</span>
+                  <span style={{ fontSize: 11, color: "#92400e", lineHeight: 1.5 }}>{text}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1263,6 +1269,7 @@ export function QRLabelPage({
   totalQty = 0,
   baseUrl = "http://localhost:5173",
   donationStatus = "",
+  conditionStatus = "",
   onUpdateTracking = async () => {},
   onUploadProof = async () => {},
   onViewProject = null,
@@ -1436,7 +1443,7 @@ export function QRLabelPage({
             <>
               <div style={{ borderTop: `1px dashed ${C.border}` }} />
               <div>
-                <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 4 }}>ข้อมูลการส่ง</div>
+                <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 4 }}>{isDropoff ? "ข้อมูลการนัดหมาย" : "ข้อมูลการส่ง"}</div>
                 {isDropoff ? (
                   <>
                     <div style={{ fontSize: 11, color: C.text }}>📅 {formatThaiDate(appointDate)}{appointTime ? ` เวลา ${appointTime} น.` : ""}</div>
@@ -1495,14 +1502,29 @@ export function QRLabelPage({
       </div>
 
       {/* ── Approved banner ── */}
-      {donationStatus === "approved" && (
-        <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8, background: "#f0fdf4" }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0, color: "#16a34a" }}>
-            <path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/>
-          </svg>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#16a34a" }}>โรงเรียนยืนยันรับของเรียบร้อยแล้ว</span>
-        </div>
-      )}
+      {donationStatus === "approved" && (() => {
+        const banners = {
+          wrong_item: { bg: "#fffbeb", color: "#d97706", icon: "⚠️", text: "โรงเรียนแจ้งว่ารายการไม่ตรง" },
+          not_sent:   { bg: "#f5f3ff", color: "#7c3aed", icon: "📦", text: "โรงเรียนแจ้งว่ายังไม่ได้รับพัสดุ" },
+          damaged:    { bg: "#fff1f2", color: "#dc2626", icon: "⚠️", text: "โรงเรียนยืนยันรับของแล้ว (ชำรุด)" },
+          incomplete: { bg: "#eff6ff", color: "#1d4ed8", icon: "📋", text: "โรงเรียนยืนยันรับของแล้ว (ไม่ครบ)" },
+        };
+        const b = banners[conditionStatus];
+        if (b) return (
+          <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8, background: b.bg }}>
+            <span>{b.icon}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: b.color }}>{b.text}</span>
+          </div>
+        );
+        return (
+          <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8, background: "#f0fdf4" }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0, color: "#16a34a" }}>
+              <path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/>
+            </svg>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#16a34a" }}>โรงเรียนยืนยันรับของเรียบร้อยแล้ว</span>
+          </div>
+        );
+      })()}
 
       </div>{/* ── end scrollable middle ── */}
 

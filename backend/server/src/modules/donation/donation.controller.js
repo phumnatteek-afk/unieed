@@ -369,7 +369,7 @@ export async function getMyDonationHistory(req, res, next) {
   `SELECT
     d.donation_id, d.donor_name, d.donation_date,
     d.delivery_method, d.shipping_carrier, d.tracking_number,
-    d.quantity, d.status, d.items_snapshot,
+    d.quantity, d.status, d.condition_status, d.items_snapshot,
     d.donation_pic, d.created_at,
     d.donation_date, d.donation_time, d.donor_phone,
     s.school_name, s.school_address,

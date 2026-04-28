@@ -79,7 +79,7 @@ export async function getDonationsByProject(request_id) {
    donation_id, donor_id, donor_name, donor_phone,
    donation_date, donation_time, delivery_method,
    shipping_carrier, tracking_number,
-   donation_pic, items_snapshot,
+   donation_pic, items_snapshot, items_condition_snapshot,
    market_order_id,
    quantity, status, condition_status,
    auto_approved, auto_approved_at,

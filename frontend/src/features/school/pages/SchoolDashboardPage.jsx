@@ -8,16 +8,20 @@ import { getJson } from "../../../api/http.js";
 import "./SchoolDashboardPage.css";
 
 const STATUS_COLORS = {
-  approved: "#22C55E",
-  pending:  "#FFBE1B",
-  dropoff:  "#29B6E8",
-  rejected: "#EF4444",
+  approved:   "#22C55E",
+  pending:    "#FFBE1B",
+  dropoff:    "#29B6E8",
+  rejected:   "#EF4444",
+  wrong_item: "#f97316",
+  not_sent:   "#7c3aed",
 };
 const DONUT_LABELS = {
-  approved: "ยืนยันแล้ว",
-  pending:  "รอดำเนินการ",
-  dropoff:  "รอ drop-off",
-  rejected: "ปฏิเสธ",
+  approved:   "ยืนยันแล้ว",
+  pending:    "รอดำเนินการ",
+  dropoff:    "รอ drop-off",
+  rejected:   "ปฏิเสธ",
+  wrong_item: "รายการไม่ตรง",
+  not_sent:   "ไม่ได้รับพัสดุ",
 };
 
 function StatusBadge({ status }) {
@@ -96,6 +100,11 @@ export default function SchoolDashboardPage() {
             <div className="dbProgressPct">
               ความคืบหน้า {project.total_needed > 0 ? Math.round((project.total_fulfilled / project.total_needed) * 100) : 0}%
               <span style={{ float: "right", color: "#6B7280" }}>เป้าหมาย {project.total_needed} ชุด</span>
+            </div>
+            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4, display: "flex", gap: 10 }}>
+              <span>ยืนยันรับแล้ว <strong style={{ color: "#6b7280" }}>{project.total_received || 0}</strong> ชุด</span>
+              <span>·</span>
+              <span>ใช้งานได้ <strong style={{ color: "#16a34a" }}>{project.total_fulfilled}</strong> ชุด</span>
             </div>
           </div>
           <button className="dbManageBtn" onClick={() => navigate(`/school/projects/${project.request_id}`)}>

@@ -168,41 +168,55 @@ export async function verifyAndIssueCertificate(req, res, next) {
             // โรงเรียน approve — set condition_status ด้วย
             await db.query(
                 `UPDATE donation_record
-                SET condition_status = ?, status = 'approved', updated_at = NOW()
+                SET condition_status = ?, status = 'approved', updated_at = NOW(),
+                    items_condition_snapshot = ?
                 WHERE donation_id = ?`,
-                [condition_status, donation_id]
+                [
+                    condition_status,
+                    Array.isArray(items_received) && items_received.length > 0
+                        ? JSON.stringify(items_received)
+                        : null,
+                    donation_id,
+                ]
             );
             }
-        // ✅ INSERT fulfillment เมื่อ condition_status = 'usable' (ใช้ qty จาก items_received ถ้ามี)
-        if (condition_status === "usable") {
+        // ✅ INSERT fulfillment — นับเฉพาะ item ที่ item_condition === "usable"
+        {
             const [[snap]] = await db.query(
                 `SELECT request_id, items_snapshot FROM donation_record WHERE donation_id = ?`,
                 [donation_id]
             );
 
             if (snap) {
-                let items = [];
+                let snapItems = [];
                 try {
-                    items = typeof snap.items_snapshot === "string"
+                    snapItems = typeof snap.items_snapshot === "string"
                         ? JSON.parse(snap.items_snapshot)
                         : (snap.items_snapshot || []);
-                } catch { items = []; }
+                } catch { snapItems = []; }
 
-                // ถ้า items_received ส่งมา → ใช้ qty ที่โรงเรียนติ๊กรับจริง
-                // ถ้าไม่ส่งมา → ใช้ qty จาก snapshot ทั้งหมด (พฤติกรรมเดิม)
                 const receivedMap = {};
+                const conditionMap = {};
                 if (Array.isArray(items_received) && items_received.length > 0) {
                     for (const r of items_received) {
                         receivedMap[r.uniform_type_id] = Number(r.qty_received ?? 0);
+                        conditionMap[r.uniform_type_id] = r.item_condition ?? null;
                     }
                 }
-                const usePartial = Object.keys(receivedMap).length > 0;
+                const usePerItem = Object.keys(receivedMap).length > 0;
 
-                for (const item of items) {
-                    const qty = usePartial
+                for (const item of snapItems) {
+                    // ถ้ามี per-item condition → นับเฉพาะ usable
+                    // ถ้าไม่มี (backward compat) → นับเฉพาะถ้า overall เป็น usable
+                    const itemCond = usePerItem
+                        ? (conditionMap[item.uniform_type_id] ?? null)
+                        : (condition_status === "usable" ? "usable" : null);
+                    if (itemCond !== "usable") continue;
+
+                    const qty = usePerItem
                         ? (receivedMap[item.uniform_type_id] ?? 0)
                         : item.quantity;
-                    if (qty <= 0) continue; // ข้ามรายการที่ไม่รับ
+                    if (qty <= 0) continue;
 
                     const [snRows] = await db.query(
                         `SELECT sn.student_need_id
@@ -243,9 +257,9 @@ export async function verifyAndIssueCertificate(req, res, next) {
         const donation = rows[0];
         console.log("donor_id:", donation.donor_id);
 
-        // 3. ออก certificate เฉพาะ usable และ damaged (ไม่ออกถ้า wrong_item)
+        // 3. ออก certificate เฉพาะ usable, damaged, incomplete (ไม่ออกถ้า wrong_item / not_sent)
         let cert = null;
-        if (condition_status !== "wrong_item") {
+        if (condition_status !== "wrong_item" && condition_status !== "not_sent") {
             cert = await getCertByDonation(donation_id);
             if (!cert) {
                 let items = [];
@@ -318,11 +332,20 @@ export async function verifyAndIssueCertificate(req, res, next) {
 
             let notifType, notifTitle, notifBody;
 
-            if (condition_status === "wrong_item") {
+            if (condition_status === "not_sent") {
+                notifType  = "donation_issue";
+                notifTitle = `${donation.school_name} ยังไม่ได้รับพัสดุของท่าน`;
+                notifBody  = JSON.stringify({
+                    message: thank_message || `โรงเรียน ${donation.school_name} แจ้งว่ายังไม่ได้รับพัสดุจากท่าน กรุณาตรวจสอบสถานะการจัดส่ง`,
+                    condition_status: "not_sent",
+                    project_title: donation.request_title,
+                    school_name: donation.school_name,
+                });
+            } else if (condition_status === "wrong_item") {
                 notifType  = "donation_issue";
                 notifTitle = `${donation.school_name} แจ้งว่ารายการบริจาคไม่ตรง`;
                 notifBody  = JSON.stringify({
-                    message: `โรงเรียน ${donation.school_name} แจ้งว่ารายการที่บริจาคไม่ตรงกับที่ขอ กรุณาตรวจสอบรายละเอียดโครงการและติดต่อโรงเรียนหากต้องการแก้ไข`,
+                    message: thank_message || `โรงเรียน ${donation.school_name} แจ้งว่ารายการที่บริจาคไม่ตรงกับที่ขอ กรุณาตรวจสอบรายละเอียดโครงการและติดต่อโรงเรียนหากต้องการแก้ไข`,
                     condition_status: "wrong_item",
                     project_title: donation.request_title,
                     school_name: donation.school_name,

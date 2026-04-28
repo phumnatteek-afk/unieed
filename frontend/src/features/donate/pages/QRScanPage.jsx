@@ -24,6 +24,32 @@ function parseItems(snapshot) {
   catch { return []; }
 }
 
+function buildThankMsg(condition, name) {
+  const n = name || "ผู้บริจาค";
+  const msgs = {
+    usable:     `ขอบคุณคุณ ${n} มากๆ ที่ได้บริจาคชุดนักเรียน การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`,
+    damaged:    `ขอบคุณคุณ ${n} ที่บริจาคชุดนักเรียน ทางโรงเรียนขอแจ้งให้ทราบว่าชุดที่ได้รับมีสภาพเสียหาย ทางโรงเรียนซาบซึ้งในน้ำใจของท่านและขอขอบพระคุณอย่างสูง`,
+    incomplete: `ขอบคุณคุณ ${n} ที่บริจาคชุดนักเรียน ทางโรงเรียนขอแจ้งให้ทราบว่าได้รับของบริจาคไม่ครบจำนวน ทางโรงเรียนซาบซึ้งในน้ำใจของท่านและขอขอบพระคุณอย่างสูง`,
+    wrong_item: `ขอบคุณคุณ ${n} ที่มีน้ำใจบริจาค ขออภัยที่รายการบริจาคไม่ตรงกับความต้องการของโรงเรียนในขณะนี้`,
+  };
+  return msgs[condition] || msgs.usable;
+}
+
+const ITEM_STATES = [
+  { value: "usable",       label: "ดี",       icon: "mdi:check-circle",  color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+  { value: "damaged",      label: "ชำรุด",    icon: "mdi:alert-circle",  color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
+  { value: "partial",      label: "ไม่ครบ",   icon: "mdi:minus-circle",  color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
+  { value: "not_received", label: "ไม่รับ",    icon: "mdi:close-circle",  color: "#6b7280", bg: "#f3f4f6", border: "#d1d5db" },
+];
+
+const CONDITION_SUMMARY = {
+  usable:     { label: "ใช้งานได้",         icon: "mdi:check-circle-outline",  color: "#16a34a", bg: "#dcfce7", border: "#86efac", cert: true  },
+  damaged:    { label: "เสียหาย",            icon: "mdi:alert-outline",          color: "#dc2626", bg: "#fee2e2", border: "#fca5a5", cert: true  },
+  incomplete: { label: "ได้รับไม่ครบ",       icon: "mdi:package-variant",        color: "#1d4ed8", bg: "#eff6ff", border: "#93c5fd", cert: true  },
+  wrong_item: { label: "รายการไม่ตรง",       icon: "mdi:swap-horizontal",        color: "#d97706", bg: "#fef3c7", border: "#fcd34d", cert: false },
+  not_sent:   { label: "ยังไม่ได้รับพัสดุ",  icon: "mdi:package-variant-remove", color: "#7c3aed", bg: "#f5f3ff", border: "#c4b5fd", cert: false },
+};
+
 // ── หน้า Login ──────────────────────────────────────────────────
 function QRLoginPanel({ onLoginSuccess }) {
   const [email, setEmail]       = useState("");
@@ -185,44 +211,33 @@ function QRLoginPanel({ onLoginSuccess }) {
 
 // ── หน้ารายละเอียดการบริจาค + ยืนยัน ───────────────────────────
 function DonationDetailPanel({ donationId, token }) {
-  const [donation, setDonation]   = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [confirming, setConfirming] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
-  const [condition, setCondition] = useState("");
-  const [thankMsg, setThankMsg]   = useState("");
-  const [err, setErr]             = useState("");
-  const [checkedMap, setCheckedMap] = useState({});
-  const [reasonMap, setReasonMap]   = useState({});
+  const [donation, setDonation]             = useState(null);
+  const [loading, setLoading]               = useState(true);
+  const [confirming, setConfirming]         = useState(false);
+  const [confirmed, setConfirmed]           = useState(false);
+  const [overallCond, setOverallCond]       = useState(""); // ""(ยังไม่เลือก)|usable|damaged|incomplete|issue
+  const [checkedSet, setCheckedSet]         = useState(new Set()); // item keys ที่ได้รับ (ติ๊กแล้ว)
+  const [issueReason, setIssueReason]       = useState(""); // ผิดไซส์|ผิดประเภท|ไม่ส่งมา
+  const [thankMsg, setThankMsg]             = useState("");
+  const [err, setErr]                       = useState("");
   const navigate = useNavigate();
+  const selectAllRef = useRef(null);
 
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  };
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        // ดึงข้อมูล donation จาก donation_id
         const res = await fetch(`${BASE}/donations/detail/${donationId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("ไม่พบรายการบริจาค");
         const data = await res.json();
-        console.log("donation data:", data);        // ← เพิ่ม
-      console.log("school_name:", data.school_name); // ← เพิ่ม
         setDonation(data);
-        setThankMsg(
-          `ขอบคุณคุณ ${data.donor_name} มากๆ ที่ได้บริจาคชุดนักเรียน ` +
-          `การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`
-        );
-        if (data.status === "approved") setConfirmed(true);
         const parsedItems = parseItems(data.items_snapshot);
-        const init = {};
-        parsedItems.forEach((item, i) => { init[item.uniform_type_id ?? i] = true; });
-        setCheckedMap(init);
+        setThankMsg(buildThankMsg("usable", data.donor_name));
+        if (data.status === "approved") setConfirmed(true);
       } catch (e) {
         setErr(e.message);
       } finally {
@@ -231,38 +246,52 @@ function DonationDetailPanel({ donationId, token }) {
     })();
   }, [donationId, token]);
 
+  // Derive items and overall condition (computed every render, before early returns)
+  const items = parseItems(donation?.items_snapshot);
+
+  // derived condition_status จาก overall selection
+  const derivedCondition = (() => {
+    if (overallCond === "issue") return issueReason === "ไม่ส่งมา" ? "not_sent" : "wrong_item";
+    return overallCond; // "" | usable | damaged | incomplete
+  })();
+
+  // auto-fill thank message
+  useEffect(() => {
+    if (!donation) return;
+    const name = donation.donor_name;
+    if (derivedCondition === "not_sent") {
+      setThankMsg(`ขอบคุณคุณ ${name} ที่มีน้ำใจบริจาค ทางโรงเรียนยังไม่ได้รับพัสดุจากท่าน กรุณาตรวจสอบสถานะการจัดส่ง`);
+    } else {
+      setThankMsg(buildThankMsg(derivedCondition, name));
+    }
+  }, [derivedCondition]); // eslint-disable-line
+
   const handleConfirm = async () => {
-    const items = parseItems(donation?.items_snapshot);
-    const noneChecked = items.length > 0 && items.every((it, i) => checkedMap[it.uniform_type_id ?? i] === false);
-    const hasDamaged    = Object.values(reasonMap).some(r => r === "ชำรุด");
-    const hasIncomplete = Object.values(reasonMap).some(r => r === "ไม่ครบ");
-    const finalCondition = noneChecked
-      ? (hasDamaged ? "damaged" : hasIncomplete ? "incomplete" : "wrong_item")
-      : condition;
-    if (!noneChecked && !condition) return setErr("กรุณาเลือกสภาพชุดก่อนยืนยัน");
-    const uncheckedWithoutReason = items.some((item, i) => {
-      const key = item.uniform_type_id ?? i;
-      return checkedMap[key] === false && !reasonMap[key];
-    });
-    if (uncheckedWithoutReason) return setErr("กรุณาระบุสาเหตุสำหรับรายการที่ไม่ได้รับ");
+    if (overallCond === "issue" && !issueReason) return setErr("กรุณาระบุสาเหตุ");
+
     const items_received = items
       .filter(item => item.uniform_type_id != null)
-      .map((item, i) => {
-        const key = item.uniform_type_id ?? i;
-        const isChecked = checkedMap[key] !== false;
+      .map(item => {
+        const key = item.uniform_type_id;
+        let item_condition = overallCond === "issue" ? "not_received" : overallCond;
+        if (overallCond === "incomplete") {
+          item_condition = checkedSet.has(key) ? "usable" : "not_received";
+        }
         return {
-          uniform_type_id: item.uniform_type_id,
-          qty_received: isChecked ? Number(item.quantity) : 0,
-          ...(isChecked ? {} : { reason: reasonMap[key] || null }),
+          uniform_type_id: key,
+          qty_received: item_condition === "not_received" ? 0 : Number(item.quantity),
+          item_condition,
+          ...(item_condition === "not_received" && issueReason ? { reason: issueReason } : {}),
         };
       });
+
     setErr("");
     setConfirming(true);
     try {
       const res = await fetch(`${BASE}/donations/${donation.donation_id}/verify`, {
         method: "PATCH",
         headers,
-        body: JSON.stringify({ condition_status: finalCondition, thank_message: thankMsg, items_received }),
+        body: JSON.stringify({ condition_status: derivedCondition, thank_message: thankMsg, items_received }),
       });
       if (!res.ok) throw new Error("ยืนยันไม่สำเร็จ");
       setConfirmed(true);
@@ -273,30 +302,10 @@ function DonationDetailPanel({ donationId, token }) {
     }
   };
 
-  // reset condition ถ้า uncheck ทั้งหมดแล้ว condition เป็น "usable"
+  // indeterminate checkbox (ไม่ใช้แล้ว แต่ keep ref ไว้ไม่ให้ hook ผิด)
   useEffect(() => {
-    if (!donation) return;
-    const parsed = parseItems(donation.items_snapshot);
-    const noneChecked = parsed.length > 0 && parsed.every((it, i) => checkedMap[it.uniform_type_id ?? i] === false);
-    if (noneChecked && condition === "usable") setCondition("");
-  }, [checkedMap]); // eslint-disable-line
-
-  // auto-fill thankMsg จาก item reasons เมื่อ allUnchecked
-  useEffect(() => {
-    if (!donation) return;
-    const parsed = parseItems(donation.items_snapshot);
-    const noneChecked = parsed.length > 0 && parsed.every((it, i) => checkedMap[it.uniform_type_id ?? i] === false);
-    if (!noneChecked || Object.keys(reasonMap).length === 0) return;
-    const name       = donation.donor_name || "ผู้บริจาค";
-    const hasDmg     = Object.values(reasonMap).some(r => r === "ชำรุด");
-    const hasInc     = Object.values(reasonMap).some(r => r === "ไม่ครบ");
-    setThankMsg(hasDmg
-      ? `ขอบคุณคุณ ${name} ที่บริจาคชุดนักเรียน ทางโรงเรียนขอแจ้งให้ทราบว่าชุดที่ได้รับมีสภาพเสียหาย ทางโรงเรียนซาบซึ้งในน้ำใจของท่านและขอขอบพระคุณอย่างสูง`
-      : hasInc
-      ? `ขอบคุณคุณ ${name} ที่บริจาคชุดนักเรียน ทางโรงเรียนขอแจ้งให้ทราบว่าได้รับของบริจาคไม่ครบจำนวน ทางโรงเรียนซาบซึ้งในน้ำใจของท่านและขอขอบพระคุณอย่างสูง`
-      : `ขอบคุณคุณ ${name} ที่มีน้ำใจบริจาค ขออภัยที่รายการบริจาคไม่ตรงกับความต้องการของโรงเรียนในขณะนี้`
-    );
-  }, [reasonMap, checkedMap]); // eslint-disable-line
+    if (selectAllRef.current) selectAllRef.current.indeterminate = false;
+  });
 
   if (loading) return (
     <div style={S.centerWrap}>
@@ -313,22 +322,8 @@ function DonationDetailPanel({ donationId, token }) {
     </div>
   );
 
-  const items = parseItems(donation?.items_snapshot);
   const isDropoff = donation?.delivery_method === "dropoff";
-  const allUnchecked = items.length > 0 && items.every((item, i) => checkedMap[item.uniform_type_id ?? i] === false);
-  const _hasDmg = Object.values(reasonMap).some(r => r === "ชำรุด");
-  const _hasInc = Object.values(reasonMap).some(r => r === "ไม่ครบ");
-  const derivedCondition = allUnchecked
-    ? (_hasDmg ? "damaged"
-      : _hasInc ? "incomplete"
-      : Object.keys(reasonMap).length > 0 ? "wrong_item" : null)
-    : null;
-  const activeCondition = allUnchecked ? derivedCondition : condition;
-
-  const conditionOptions = [
-    { value: "usable",  label: "ใช้งานได้", icon: "mdi:check-circle-outline", color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-    { value: "damaged", label: "เสียหาย",    icon: "mdi:alert-outline",         color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
-  ];
+  const condMeta = CONDITION_SUMMARY[derivedCondition] || CONDITION_SUMMARY.usable;
 
   return (
     <div style={S.detailWrap}>
@@ -355,10 +350,7 @@ function DonationDetailPanel({ donationId, token }) {
             <div style={S.successSub}>
               ผู้บริจาค <strong>{donation?.donor_name}</strong> จะได้รับแจ้งเตือนและใบเกียรติบัตรโดยอัตโนมัติ
             </div>
-            <button
-              style={{ ...S.btnPrimary, marginTop: 20 }}
-              onClick={() => navigate("/school/donations")}
-            >
+            <button style={{ ...S.btnPrimary, marginTop: 20 }} onClick={() => navigate("/school/donations")}>
               ไปที่หน้าติดตามการบริจาค →
             </button>
           </div>
@@ -390,133 +382,163 @@ function DonationDetailPanel({ donationId, token }) {
               </div>
             </div>
 
-            {/* รายการชุด */}
+            {/* รายการชุดนักเรียน */}
             <div style={S.section}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, paddingBottom: 8, borderBottom: "2px solid #EFF6FF" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 6 }}>
-                  <Icon icon="mdi:tshirt-crew-outline" width="16" color="#29B6E8" />
-                  รายการชุดนักเรียน
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#29B6E8", background: "#EFF6FF", padding: "1px 8px", borderRadius: 20 }}>{donation?.quantity} ชิ้น</span>
-                </div>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#5285E8", userSelect: "none" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 6, marginBottom: 10, paddingBottom: 8, borderBottom: "2px solid #EFF6FF" }}>
+                <Icon icon="mdi:tshirt-crew-outline" width="16" color="#29B6E8" />
+                รายการชุดนักเรียน
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#29B6E8", background: "#EFF6FF", padding: "1px 8px", borderRadius: 20 }}>{donation?.quantity} ชิ้น</span>
+                <label style={{
+                  marginLeft: "auto", display: "flex", alignItems: "center", gap: 6,
+                  cursor: "pointer", userSelect: "none",
+                  padding: "3px 10px", borderRadius: 20,
+                  background: overallCond === "usable" ? "#dcfce7" : "#f3f4f6",
+                  border: `1.5px solid ${overallCond === "usable" ? "#86efac" : "#D1D5DB"}`,
+                  transition: "all 0.15s",
+                }}>
                   <input
+                    ref={selectAllRef}
                     type="checkbox"
-                    checked={items.length > 0 && items.every((item, i) => checkedMap[item.uniform_type_id ?? i] !== false)}
-                    onChange={e => {
-                      const newMap = {};
-                      items.forEach((item, i) => { newMap[item.uniform_type_id ?? i] = e.target.checked; });
-                      setCheckedMap(newMap);
-                      if (e.target.checked) setReasonMap({});
+                    checked={items.length > 0 && items.every((it, i) => checkedSet.has(it.uniform_type_id ?? i))}
+                    onChange={() => {
+                      const allKeys = items.map((it, i) => it.uniform_type_id ?? i);
+                      const allChecked = allKeys.every(k => checkedSet.has(k));
+                      if (allChecked) { setCheckedSet(new Set()); setOverallCond(""); }
+                      else { setCheckedSet(new Set(allKeys)); setOverallCond("usable"); setIssueReason(""); }
                     }}
-                    style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#5285e8", outline: "none" }}
+                    style={{ width: 14, height: 14, accentColor: "#16a34a", cursor: "pointer" }}
                   />
-                  ติ๊กรับทั้งหมด
+                  <span style={{ fontSize: 11, fontWeight: 600, color: overallCond === "usable" ? "#16a34a" : "#6b7280", whiteSpace: "nowrap" }}>
+                    รับครบทุกรายการ
+                  </span>
                 </label>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {items.map((item, i) => {
-                  const key = item.uniform_type_id ?? i;
-                  const isChecked = checkedMap[key] !== false;
+                  const itemKey = item.uniform_type_id ?? i;
+                  const isChecked = checkedSet.has(itemKey);
+                  const toggleItem = () => {
+                    setCheckedSet(prev => {
+                      const next = new Set(prev);
+                      if (next.has(itemKey)) next.delete(itemKey); else next.add(itemKey);
+                      const allKeys = items.map((it, idx) => it.uniform_type_id ?? idx);
+                      const allChecked = allKeys.every(k => next.has(k));
+                      const noneChecked = next.size === 0;
+                      if (allChecked) { setOverallCond("usable"); setIssueReason(""); }
+                      else if (noneChecked) setOverallCond("");
+                      else { setOverallCond("incomplete"); setIssueReason(""); }
+                      return next;
+                    });
+                  };
                   return (
-                    <div key={i} style={{ borderRadius: 12, border: `2px solid ${isChecked ? "#DBEAFE" : "#FECACA"}`, overflow: "hidden", transition: "border-color 0.2s" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: isChecked ? "#F0F7FF" : "#FFF5F5" }}>
+                    <label key={i} style={{
+                      display: "flex", justifyContent: "space-between", alignItems: "center",
+                      background: isChecked ? "#f0fdf4" : "#F0F7FF",
+                      borderRadius: 10, padding: "8px 12px",
+                      border: `1.5px solid ${isChecked ? "#86efac" : "#DBEAFE"}`,
+                      transition: "all 0.15s", cursor: "pointer",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={e => {
-                            setCheckedMap(prev => ({ ...prev, [key]: e.target.checked }));
-                            if (e.target.checked) setReasonMap(prev => { const n = { ...prev }; delete n[key]; return n; });
-                          }}
-                          style={{ width: 18, height: 18, flexShrink: 0, cursor: "pointer", accentColor: "#5285e8", outline: "none" }}
+                          onChange={toggleItem}
+                          style={{ width: 15, height: 15, accentColor: "#16a34a", cursor: "pointer", flexShrink: 0 }}
                         />
-                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>{item.name}</span>
-                        <span style={{ ...S.itemQty, background: isChecked ? "#DBEAFE" : "#FEE2E2", color: isChecked ? "#1d4ed8" : "#dc2626" }}>{item.quantity} ชิ้น</span>
+                        <span style={{ fontSize: 13, color: "#1a1a2e" }}>{item.name}</span>
                       </div>
-                      {!isChecked && (
-                        <div style={{ padding: "10px 14px", background: "#fff", borderTop: "1px solid #FEE2E2" }}>
-                          <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 600, marginBottom: 8 }}>ระบุสาเหตุที่ไม่รับ *</div>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            {["ผิดไซส์", "ผิดประเภท", "ชำรุด", ...(Number(item.quantity) > 1 ? ["ไม่ครบ"] : [])].map(r => (
-                              <button
-                                key={r} type="button"
-                                onClick={() => setReasonMap(prev => ({ ...prev, [key]: r }))}
-                                style={{
-                                  padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-                                  border: `1.5px solid ${reasonMap[key] === r ? "#dc2626" : "#FECACA"}`,
-                                  background: reasonMap[key] === r ? "#FEE2E2" : "#fff",
-                                  color: reasonMap[key] === r ? "#dc2626" : "#9ca3af",
-                                  cursor: "pointer", transition: "all 0.15s",
-                                }}
-                              >{r}</button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "#1d4ed8", background: "#DBEAFE", padding: "2px 8px", borderRadius: 20 }}>{item.quantity} ชิ้น</span>
+                    </label>
                   );
                 })}
               </div>
             </div>
 
-            {/* ประเมินสภาพ */}
+            {/* ประเมินสภาพชุด */}
             <div style={S.section}>
-              <div style={S.sectionLabel}><Icon icon="mdi:clipboard-check-outline" width="14" /> ประเมินสภาพชุดที่ได้รับ {!allUnchecked && <span style={{ color: "#ef4444" }}>*</span>}</div>
-              {allUnchecked ? (
-                <div style={{
-                  padding: "12px 14px", borderRadius: 10, fontSize: 13, display: "flex", alignItems: "center", gap: 8,
-                  ...(derivedCondition === "damaged"     ? { background: "#fee2e2", border: "1px solid #fca5a5",  color: "#dc2626" }
-                    : derivedCondition === "incomplete"  ? { background: "#eff6ff", border: "1px solid #93c5fd",  color: "#1d4ed8" }
-                    : derivedCondition === "wrong_item"  ? { background: "#fef3c7", border: "1px solid #fcd34d",  color: "#d97706" }
-                    :                                      { background: "#f3f4f6", border: "1px solid #e5e7eb",  color: "#6b7280" }),
-                }}>
-                  <Icon icon={
-                    derivedCondition === "damaged"    ? "mdi:alert-outline" :
-                    derivedCondition === "incomplete" ? "mdi:package-variant" :
-                    derivedCondition === "wrong_item" ? "mdi:swap-horizontal" : "mdi:dots-horizontal"
-                  } width="16" />
-                  {derivedCondition === "damaged"    ? "ผลอัตโนมัติ: เสียหาย — ผู้บริจาคจะได้รับใบเกียรติบัตร"
-                  : derivedCondition === "incomplete" ? "ผลอัตโนมัติ: ได้รับไม่ครบ — ผู้บริจาคจะได้รับใบเกียรติบัตร"
-                  : derivedCondition === "wrong_item" ? "ผลอัตโนมัติ: รายการไม่ตรง — ไม่ออกใบเกียรติบัตร"
-                  : "กรุณาระบุสาเหตุในแต่ละรายการก่อน"}
+              <div style={S.sectionLabel}><Icon icon="mdi:clipboard-check-outline" width="14" /> ประเมินสภาพชุดที่ได้รับ <span style={{ color: "#dc2626" }}>*</span></div>
+
+              {/* 4 ปุ่ม grid (ซ่อน ได้รับไม่ครบ เมื่อมีรายการเดียว) */}
+              {(() => {
+                const opts = [
+                  { value: "usable",     label: "ใช้งานได้",    icon: "mdi:check-circle",    color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+                  { value: "damaged",    label: "เสียหาย",      icon: "mdi:alert-circle",    color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
+                  ...(items.length > 1 || Number(items[0]?.quantity) > 1 ? [{ value: "incomplete", label: "ได้รับไม่ครบ", icon: "mdi:package-variant", color: "#1d4ed8", bg: "#eff6ff", border: "#93c5fd" }] : []),
+                  { value: "issue",      label: "มีปัญหา",      icon: "mdi:swap-horizontal",  color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
+                ];
+                return (
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${opts.length}, 1fr)`, gap: 6, marginBottom: 8 }}>
+                {opts.map(opt => {
+                  const isActive = overallCond === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        if (opt.value === "usable") {
+                          setCheckedSet(new Set(items.map((it, idx) => it.uniform_type_id ?? idx)));
+                        }
+                        setOverallCond(opt.value); setIssueReason("");
+                      }}
+                      style={{
+                        padding: "8px 6px", borderRadius: 10, textAlign: "center",
+                        border: `1.5px solid ${isActive ? opt.border : "#E5E7EB"}`,
+                        background: isActive ? opt.bg : "#fff",
+                        color: isActive ? opt.color : "#6b7280",
+                        cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                        fontSize: 11, fontWeight: isActive ? 700 : 500, transition: "all 0.15s",
+                      }}
+                    >
+                      <Icon icon={opt.icon} width="18" />
+                      {opt.label}
+                    </button>
+                  );
+                })}
                 </div>
-              ) : (
-                <>
-                  <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10, lineHeight: 1.5 }}>
-                    ประเมินสภาพของที่ได้รับ · "เสียหาย" ผู้บริจาคยังได้รับใบเกียรติบัตร
+                );
+              })()}
+
+              {/* มีปัญหา → เลือกสาเหตุ */}
+              {overallCond === "issue" && (
+                <div style={{ padding: "10px 14px", background: "#fffbeb", border: "1px dashed #fcd34d", borderRadius: 10 }}>
+                  <div style={{ fontSize: 11, color: "#92400e", fontWeight: 600, marginBottom: 8 }}>สาเหตุ <span style={{ color: "#dc2626" }}>*</span></div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {["ผิดไซส์", "ผิดประเภท", "ไม่ส่งมา"].map(r => (
+                      <button key={r} type="button" onClick={() => setIssueReason(r)}
+                        style={{
+                          padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                          border: `1.5px solid ${issueReason === r ? "#d97706" : "#E5E7EB"}`,
+                          background: issueReason === r ? "#fef3c7" : "#fff",
+                          color: issueReason === r ? "#92400e" : "#9ca3af",
+                          cursor: "pointer", transition: "all 0.15s",
+                        }}
+                      >{r}</button>
+                    ))}
                   </div>
-                  <div style={S.conditionRow}>
-                    {conditionOptions.map(opt => {
-                      const name = donation?.donor_name || "ผู้บริจาค";
-                      const msgMap = {
-                        usable:  `ขอบคุณคุณ ${name} มากๆ ที่ได้บริจาคชุดนักเรียน การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`,
-                        damaged: `ขอบคุณคุณ ${name} ที่บริจาคชุดนักเรียน ทางโรงเรียนขอแจ้งให้ทราบว่าชุดที่ได้รับมีสภาพเสียหาย ทางโรงเรียนซาบซึ้งในน้ำใจของท่านและขอขอบพระคุณอย่างสูง`,
-                      };
-                      return (
-                        <button
-                          key={opt.value}
-                          style={{
-                            ...S.conditionBtn,
-                            ...(condition === opt.value ? { background: opt.bg, borderColor: opt.border, color: opt.color } : {}),
-                          }}
-                          onClick={() => { setCondition(opt.value); setThankMsg(msgMap[opt.value]); }}
-                          type="button"
-                        >
-                          <Icon icon={opt.icon} width="18" />
-                          {opt.label}
-                          <span style={{ fontSize: 10, fontWeight: 600, color: "#16a34a", background: "#dcfce7", padding: "1px 7px", borderRadius: 20, marginTop: 2 }}>✓ ออกใบเซอร์</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
+                </div>
               )}
             </div>
+
+            {/* ผลการประเมิน (auto-derived) */}
+            {derivedCondition && <div style={S.section}>
+              <div style={S.sectionLabel}><Icon icon="mdi:clipboard-check-outline" width="14" /> ผลการประเมิน</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, background: condMeta.bg, border: `1px solid ${condMeta.border}` }}>
+                <Icon icon={condMeta.icon} width="20" color={condMeta.color} style={{ flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: condMeta.color }}>{condMeta.label}</div>
+                  <div style={{ fontSize: 11, color: condMeta.color, opacity: 0.8, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                    <Icon icon={condMeta.cert ? "mdi:certificate-outline" : "mdi:close-circle-outline"} width="13" />
+                    {condMeta.cert ? "ผู้บริจาคจะได้รับใบเกียรติบัตร" : "ไม่ออกใบเกียรติบัตร"}
+                  </div>
+                </div>
+              </div>
+            </div>}
 
             {/* ข้อความขอบคุณ / แจ้งผู้บริจาค */}
             <div style={S.section}>
               <div style={S.sectionLabel}>
                 <Icon icon="mdi:message-text-outline" width="14" />
-                {activeCondition === "wrong_item"
+                {(derivedCondition === "wrong_item" || derivedCondition === "not_sent")
                   ? "ข้อความแจ้งผู้บริจาค"
                   : "ข้อความขอบคุณ (ส่งให้ผู้บริจาคพร้อมใบประกาศ)"}
               </div>
@@ -530,20 +552,16 @@ function DonationDetailPanel({ donationId, token }) {
 
             {/* Note */}
             <div style={S.noteBox}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: 1 }}>
-                <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
-                  <path d="M12 15a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/><path d="M13 17.5V22l2-1.5l2 1.5v-4.5"/><path d="M10 19H5a2 2 0 0 1-2-2V7c0-1.1.9-2 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-1 1.73M6 9h12M6 12h3m-3 3h2"/>
-                </g>
-              </svg>
-              <span>เมื่อยืนยัน ระบบจะออกใบประกาศนียบัตรอัตโนมัติและส่ง notification ให้ผู้บริจาคทันที</span>
+              <Icon icon="mdi:bell-outline" width="16" style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>เมื่อยืนยัน ระบบจะส่ง notification ให้ผู้บริจาคทันที</span>
             </div>
 
             {err && <div style={S.errBox}><Icon icon="mdi:alert-circle" width="16" />{err}</div>}
 
             <button
-              style={{ ...S.btnPrimary, opacity: confirming ? 0.7 : 1 }}
+              style={{ ...S.btnPrimary, opacity: (confirming || !derivedCondition) ? 0.5 : 1 }}
               onClick={handleConfirm}
-              disabled={confirming}
+              disabled={confirming || !derivedCondition}
               type="button"
             >
               {confirming ? "กำลังยืนยัน..." : (
@@ -589,21 +607,6 @@ export default function QRScanPage() {
 
 // ── Styles ───────────────────────────────────────────────────────
 const S = {
-  // login
-  loginWrap: {
-    minHeight: "100vh", background: "#F7F8FA",
-    display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
-  },
-  loginCard: {
-    width: "100%", maxWidth: 420, background: "#fff",
-    borderRadius: 20, boxShadow: "0 4px 32px rgba(0,0,0,.09)", padding: "32px 28px",
-  },
-  loginHeader: { textAlign: "center", marginBottom: 28 },
-  loginLogo:   { height: 48, marginBottom: 14 },
-  loginTitle:  { fontSize: 22, fontWeight: 700, color: "#1a1a2e" },
-  loginSub:    { fontSize: 13, color: "#6b7280", marginTop: 4 },
-
-  // detail
   detailWrap: {
     minHeight: "100vh", background: "#F7F8FA",
     display: "flex", alignItems: "flex-start", justifyContent: "center",
@@ -613,22 +616,12 @@ const S = {
     width: "100%", maxWidth: 480, background: "#fff",
     borderRadius: 20, boxShadow: "0 4px 32px rgba(0,0,0,.08)", padding: "24px",
   },
-  detailHeader: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #E5E7EB",
-  },
-  detailHeaderRight: { textAlign: "right" },
-  detailSchool: { fontSize: 13, fontWeight: 600, color: "#1a1a2e" },
 
-  // success
-  successBox: {
-    textAlign: "center", padding: "32px 16px",
-  },
+  successBox:   { textAlign: "center", padding: "32px 16px" },
   successIcon:  { fontSize: 52, marginBottom: 12 },
   successTitle: { fontSize: 20, fontWeight: 700, color: "#16a34a", marginBottom: 8 },
   successSub:   { fontSize: 14, color: "#6b7280", lineHeight: 1.6 },
 
-  // sections
   section: { marginBottom: 20 },
   sectionLabel: {
     fontSize: 12, fontWeight: 700, color: "#374151",
@@ -644,12 +637,6 @@ const S = {
   metaLabel: { fontSize: 13, color: "#6b7280" },
   metaVal:   { fontSize: 13, color: "#1a1a2e", textAlign: "right" },
 
-  itemList: { display: "flex", flexDirection: "column", gap: 6 },
-  itemRow: {
-    display: "flex", justifyContent: "space-between", alignItems: "center",
-    background: "#F7F8FA", borderRadius: 8, padding: "8px 12px",
-  },
-  itemName: { fontSize: 13, color: "#1a1a2e" },
   itemQty: {
     fontSize: 13, fontWeight: 600, color: "#378ADD", background: "#EFF6FF",
     padding: "2px 10px", borderRadius: 20,
@@ -661,14 +648,6 @@ const S = {
     resize: "vertical", outline: "none", fontFamily: "inherit", boxSizing: "border-box",
   },
 
-  conditionRow: { display: "flex", gap: 8, flexWrap: "wrap" },
-  conditionBtn: {
-    flex: 1, padding: "12px 8px", border: "2px solid #E5E7EB",
-    borderRadius: 12, fontSize: 13, fontWeight: 600, color: "#6b7280",
-    background: "#F9FAFB", cursor: "pointer",
-    display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-  },
-
   noteBox: {
     display: "flex", alignItems: "flex-start", gap: 10,
     background: "#EFF6FF", border: "1px solid #BFDBFE",
@@ -676,21 +655,6 @@ const S = {
     fontSize: 12.5, color: "#1e40af", marginBottom: 16, lineHeight: 1.5,
   },
 
-  // shared
-  fieldWrap: { display: "flex", flexDirection: "column", gap: 6 },
-  label:     { fontSize: 13, fontWeight: 600, color: "#374151" },
-  inputWrap: { position: "relative", display: "flex", alignItems: "center" },
-  inputIcon: { position: "absolute", left: 12 },
-  input: {
-    width: "100%", padding: "11px 12px 11px 38px",
-    border: "1.5px solid #E5E7EB", borderRadius: 10,
-    fontSize: 14, color: "#1a1a2e", outline: "none",
-    fontFamily: "inherit", boxSizing: "border-box",
-  },
-  eyeBtn: {
-    position: "absolute", right: 12, background: "none",
-    border: "none", cursor: "pointer", padding: 0, display: "flex",
-  },
   btnPrimary: {
     width: "100%", padding: "13px", background: "#5285e8", color: "#fff",
     border: "none", borderRadius: 12, fontSize: 15, fontWeight: 700,
@@ -701,7 +665,7 @@ const S = {
     display: "flex", alignItems: "center", gap: 8,
     background: "#FEF2F2", border: "1px solid #FECACA",
     borderRadius: 10, padding: "10px 14px",
-    fontSize: 13, color: "#dc2626", marginBottom: 4,
+    fontSize: 13, color: "#dc2626", marginBottom: 12,
   },
   centerWrap: {
     minHeight: "100vh", display: "flex", flexDirection: "column",

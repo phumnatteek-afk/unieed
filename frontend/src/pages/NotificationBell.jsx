@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import "./styles/NotificationBell.css";
@@ -27,6 +28,75 @@ function ConfettiEffect() {
         />
       ))}
       <style>{`@keyframes confettiFall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }`}</style>
+    </div>
+  );
+}
+
+// ── Donation Issue Popup ───────────────────────────────────────────
+function DonationIssuePopup({ notif, onClose, onNavigate }) {
+  let body = {};
+  try { body = JSON.parse(notif.body); } catch { /* noop */ }
+
+  const isNotSent   = body.condition_status === "not_sent";
+  const isWrongItem = body.condition_status === "wrong_item";
+
+  return (
+    <div className="nb-cert-overlay" onClick={onClose}>
+      <div className="nb-cert-modal" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="nb-cert-modal-top" style={{ background: isNotSent ? "#7c3aed" : "#f97316" }}>
+          <div className="nb-cert-modal-emoji">{isNotSent ? "📦" : "⚠️"}</div>
+          <div className="nb-cert-modal-title">
+            {isNotSent ? "ยังไม่ได้รับพัสดุ" : "รายการไม่ตรง"}
+          </div>
+          <div className="nb-cert-modal-sub">
+            {body.school_name || "โรงเรียน"} แจ้งปัญหาเกี่ยวกับรายการบริจาคของคุณ
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="nb-cert-modal-body">
+
+          {/* ประเภทปัญหา */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            background: isNotSent ? "#f5f3ff" : "#fff7ed",
+            border: `1px solid ${isNotSent ? "#ddd6fe" : "#fed7aa"}`,
+            borderRadius: 10, padding: "10px 14px", marginBottom: 12,
+            fontSize: 13, color: isNotSent ? "#7c3aed" : "#c2410c", fontWeight: 600,
+          }}>
+            <Icon icon={isNotSent ? "mdi:package-variant-closed-remove" : "mdi:swap-horizontal"} width="16" />
+            {isNotSent ? "พัสดุยังไม่ถึงโรงเรียน" : "ชุดนักเรียนไม่ตรงตามที่ระบุ"}
+          </div>
+
+          {/* ข้อความจากโรงเรียน */}
+          {body.message && (
+            <div className="nb-cert-thank">
+              <div className="nb-cert-thank-label">
+                <Icon icon="mdi:message-text" width="13" />
+                ข้อความจาก {body.school_name || "โรงเรียน"}
+              </div>
+              <div className="nb-cert-thank-text">{body.message}</div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="nb-cert-actions">
+            <button
+              className="nb-cert-btn"
+              style={{ background: isNotSent ? "#7c3aed" : "#f97316", color: "#fff", border: "none" }}
+              onClick={onNavigate}
+            >
+              ดูประวัติการบริจาค →
+            </button>
+            <button className="nb-cert-btn nb-cert-btn--close" onClick={onClose}>
+              รับทราบ
+            </button>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }
@@ -125,9 +195,11 @@ function CertificatePopup({ notif, onClose }) {
 // ── NotificationBell ───────────────────────────────────────────────
 export default function NotificationBell() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [notifs,    setNotifs]    = useState([]);
   const [open,      setOpen]      = useState(false);
-  const [certPopup, setCertPopup] = useState(null);
+  const [certPopup,  setCertPopup]  = useState(null);
+  const [issuePopup, setIssuePopup] = useState(null);
   const [loading,   setLoading]   = useState(false);
   const dropRef = useRef(null);
 
@@ -183,6 +255,9 @@ export default function NotificationBell() {
     if (notif.type === "certificate") {
       setOpen(false);
       setCertPopup(notif);
+    } else if (notif.type === "donation_issue") {
+      setOpen(false);
+      setIssuePopup(notif);
     }
   };
 
@@ -299,6 +374,15 @@ export default function NotificationBell() {
         <CertificatePopup
           notif={certPopup}
           onClose={() => setCertPopup(null)}
+        />
+      )}
+
+      {/* Donation Issue Popup */}
+      {issuePopup && (
+        <DonationIssuePopup
+          notif={issuePopup}
+          onClose={() => setIssuePopup(null)}
+          onNavigate={() => { setIssuePopup(null); navigate("/donations/history"); }}
         />
       )}
     </>

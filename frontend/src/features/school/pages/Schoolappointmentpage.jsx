@@ -1,5 +1,6 @@
 // SchoolAppointmentPage.jsx
 import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import "../styles/SchoolAppointmentPage.css";
@@ -239,6 +240,7 @@ function ScheduleBanner({ schedule, onEdit }) {
 // ── Main component ────────────────────────────────────────────────
 export default function SchoolAppointmentPage() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [dropoffs,     setDropoffs]     = useState([]);
   const [schedule,     setSchedule]     = useState(null);
   const [loading,      setLoading]      = useState(true);
@@ -246,6 +248,7 @@ export default function SchoolAppointmentPage() {
   const [calMonth,     setCalMonth]     = useState(new Date().getMonth());
   const [selectedDay,  setSelectedDay]  = useState(null);
   const [detailPopup,  setDetailPopup]  = useState(null);
+  const [checkedItems, setCheckedItems] = useState({});
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -419,7 +422,7 @@ export default function SchoolAppointmentPage() {
                 {selectedItems.length === 0 ? (
                   <div className="sapEmpty">ไม่มีนัดหมายวันนี้</div>
                 ) : selectedItems.map(d => (
-                  <AppointCard key={d.donation_id} d={d} onClick={() => setDetailPopup(d)} />
+                  <AppointCard key={d.donation_id} d={d} onClick={() => { setDetailPopup(d); setCheckedItems({}); }} />
                 ))}
               </div>
             )}
@@ -432,7 +435,7 @@ export default function SchoolAppointmentPage() {
               {upcoming.length === 0 ? (
                 <div className="sapEmpty">ยังไม่มีนัดหมาย</div>
               ) : upcoming.map(d => (
-                <AppointCard key={d.donation_id} d={d} onClick={() => setDetailPopup(d)} />
+                <AppointCard key={d.donation_id} d={d} onClick={() => { setDetailPopup(d); setCheckedItems({}); }} />
               ))}
             </div>
           </div>
@@ -494,8 +497,71 @@ export default function SchoolAppointmentPage() {
             </div>
 
             <div className="sapPopupItems">
-              <div className="sapPopupItemsTitle">รายการชุดที่จะนำมาส่ง</div>
-              {parseItems(detailPopup.items_snapshot).map((item, i) => (
+              <div className="sapPopupItemsTitle">
+                {detailPopup.status === "pending"
+                  ? "ตรวจสอบรายการที่ได้รับ"
+                  : "รายการชุดที่นำมาส่ง"}
+              </div>
+
+              {detailPopup.status === "pending" ? (() => {
+                const items = parseItems(detailPopup.items_snapshot);
+                const allChecked = items.length > 0 && items.every((_, i) => checkedItems[i]);
+                return (
+                  <>
+                    <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
+                      ติ๊กถูกทุกรายการที่ได้รับครบแล้ว
+                    </div>
+                    {items.map((item, i) => (
+                      <label
+                        key={i}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          background: checkedItems[i] ? "#f0fdf4" : "#f9fafb",
+                          border: `1.5px solid ${checkedItems[i] ? "#86efac" : "#e5e7eb"}`,
+                          borderRadius: 10, padding: "10px 14px",
+                          marginBottom: 8, cursor: "pointer",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!checkedItems[i]}
+                          onChange={e => setCheckedItems(prev => ({ ...prev, [i]: e.target.checked }))}
+                          style={{ width: 18, height: 18, accentColor: "#16a34a", cursor: "pointer" }}
+                        />
+                        <span style={{ flex: 1, fontSize: 14, color: "#1a1a2e" }}>{item.name}</span>
+                        <span style={{
+                          fontSize: 12, fontWeight: 600,
+                          color: checkedItems[i] ? "#16a34a" : "#378ADD",
+                          background: checkedItems[i] ? "#dcfce7" : "#eff6ff",
+                          padding: "2px 10px", borderRadius: 20,
+                        }}>
+                          {item.quantity} ชิ้น
+                        </span>
+                      </label>
+                    ))}
+
+                    {!allChecked && items.length > 0 && (
+                      <div style={{
+                        fontSize: 12, color: "#d97706",
+                        display: "flex", alignItems: "center", gap: 6, marginTop: 4,
+                      }}>
+                        <Icon icon="mdi:information-outline" width="14" />
+                        ติ๊กครบทุกรายการก่อนกดยืนยัน
+                      </div>
+                    )}
+                    {allChecked && (
+                      <div style={{
+                        fontSize: 12, color: "#16a34a",
+                        display: "flex", alignItems: "center", gap: 6, marginTop: 4,
+                      }}>
+                        <Icon icon="mdi:check-circle-outline" width="14" />
+                        ตรวจสอบครบแล้ว พร้อมยืนยัน
+                      </div>
+                    )}
+                  </>
+                );
+              })() : parseItems(detailPopup.items_snapshot).map((item, i) => (
                 <div key={i} className="sapPopupItem">
                   <span className="sapPopupItemDot" />
                   <span>{item.name}</span>
@@ -506,6 +572,21 @@ export default function SchoolAppointmentPage() {
 
             <div className="sapPopupActions">
               <button className="sapPopupBtnGhost" onClick={() => setDetailPopup(null)}>ปิด</button>
+              {detailPopup.status === "pending" && (() => {
+                const items = parseItems(detailPopup.items_snapshot);
+                const allChecked = items.length > 0 && items.every((_, i) => checkedItems[i]);
+                return (
+                  <button
+                    className="sapPopupBtnPrimary"
+                    disabled={!allChecked}
+                    style={{ opacity: allChecked ? 1 : 0.45, cursor: allChecked ? "pointer" : "not-allowed" }}
+                    onClick={() => navigate(`/confirm/${detailPopup.donation_id}`)}
+                  >
+                    <Icon icon="mdi:check-circle-outline" width="16" />
+                    ยืนยันรับของ
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>

@@ -40,10 +40,11 @@ const STATUS_META = {
 };
  
 const CONDITION_META = {
-  usable:     { label: "ใช้งานได้",    color: "#16a34a", bg: "#dcfce7" },
-  wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" },
-  damaged:    { label: "เสียหาย",       color: "#dc2626", bg: "#fee2e2" },
-  incomplete: { label: "ได้รับไม่ครบ", color: "#1d4ed8", bg: "#eff6ff" },
+  usable:     { label: "ใช้งานได้",         color: "#16a34a", bg: "#dcfce7" },
+  wrong_item: { label: "รายการไม่ตรง",      color: "#d97706", bg: "#fef3c7" },
+  damaged:    { label: "เสียหาย",            color: "#dc2626", bg: "#fee2e2" },
+  incomplete: { label: "ได้รับไม่ครบ",      color: "#1d4ed8", bg: "#eff6ff" },
+  not_sent:   { label: "ยังไม่ได้รับพัสดุ", color: "#7c3aed", bg: "#f5f3ff" },
 };
  
 const TH_MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
@@ -277,7 +278,9 @@ export default function SchoolDonationPage() {
   const summary = useMemo(() => ({
     usable:     donations.filter(d => d.condition_status === "usable").length,
     wrong_item: donations.filter(d => d.condition_status === "wrong_item").length,
+    not_sent:   donations.filter(d => d.condition_status === "not_sent").length,
     damaged:    donations.filter(d => d.condition_status === "damaged").length,
+    incomplete: donations.filter(d => d.condition_status === "incomplete").length,
     approved:   donations.filter(d => d.status === "approved").length,
     pending:    donations.filter(d => d.status === "pending").length,
     market:     donations.filter(d => d.delivery_method === "market_purchase").length,
@@ -386,6 +389,17 @@ export default function SchoolDonationPage() {
           <span className="sdSummaryLabel">รายการไม่ตรง</span>
           <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.wrong_item}</span>
         </div>
+        {summary.not_sent > 0 && (
+          <div className="sdSummaryCard" style={{ color:"#7c3aed" }}>
+            <div className="sdSummaryTop">
+              <div className="sdSummaryIcon" style={{ background:"#f5f3ff" }}>
+                <Icon icon="mdi:package-variant-remove" color="#7c3aed" />
+              </div>
+            </div>
+            <span className="sdSummaryLabel">ยังไม่ได้รับพัสดุ</span>
+            <span className="sdSummaryVal" style={{ color:"#7c3aed" }}>{summary.not_sent}</span>
+          </div>
+        )}
         <div className="sdSummaryCard" style={{ color:"#dc2626" }}>
           <div className="sdSummaryTop">
             <div className="sdSummaryIcon" style={{ background:"#fee2e2" }}>
@@ -394,6 +408,15 @@ export default function SchoolDonationPage() {
           </div>
           <span className="sdSummaryLabel">เสียหาย</span>
           <span className="sdSummaryVal" style={{ color:"#dc2626" }}>{summary.damaged}</span>
+        </div>
+        <div className="sdSummaryCard" style={{ color:"#1d4ed8" }}>
+          <div className="sdSummaryTop">
+            <div className="sdSummaryIcon" style={{ background:"#eff6ff" }}>
+              <Icon icon="mdi:package-variant" color="#1d4ed8" />
+            </div>
+          </div>
+          <span className="sdSummaryLabel">ได้รับไม่ครบ</span>
+          <span className="sdSummaryVal" style={{ color:"#1d4ed8" }}>{summary.incomplete}</span>
         </div>
         <div className="sdSummaryCard" style={{ color:"#16a34a" }}>
           <div className="sdSummaryTop">
@@ -489,10 +512,10 @@ export default function SchoolDonationPage() {
             ) : paginated.map(d => {
               const isExpanded    = expandedRow === d.donation_id;
               const items         = parseItems(d.items_snapshot);
-              const statusMeta = (d.status === "approved" && d.condition_status === "wrong_item")
-                ? { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" }
+              const statusMeta = (d.status === "approved" && (d.condition_status === "wrong_item" || d.condition_status === "not_sent"))
+                ? CONDITION_META[d.condition_status]
                 : STATUS_META[d.status] || STATUS_META.pending;
-              const conditionMeta = (d.condition_status && !["wrong_item"].includes(d.condition_status))
+              const conditionMeta = (d.condition_status && !["wrong_item", "not_sent"].includes(d.condition_status))
                 ? CONDITION_META[d.condition_status] : null;
               const overdue = isOverdue(d.created_at) && (
                 d.status === "pending" ||
@@ -647,16 +670,46 @@ export default function SchoolDonationPage() {
                               คำสั่งซื้อ #{d.market_order_id}
                             </div>
                           )}
-                          {items.length === 0 ? (
-                            <span style={{ color:"#94a3b8", fontSize:13 }}>ไม่มีข้อมูลรายการ</span>
-                          ) : items.map((item, i) => (
-                            <div key={i} className="sdExpandItem">
-                              <span className="sdExpandDot" />
-                              <span className="sdExpandName">{item.name}</span>
-                              {item.education_level && <span className="sdExpandLevel">{item.education_level}</span>}
-                              <span className="sdExpandQty">{item.quantity} ชิ้น</span>
-                            </div>
-                          ))}
+                          {(() => {
+                            const condSnap = (() => {
+                              if (!d.items_condition_snapshot) return null;
+                              try { return typeof d.items_condition_snapshot === "string" ? JSON.parse(d.items_condition_snapshot) : d.items_condition_snapshot; }
+                              catch { return null; }
+                            })();
+                            const condMap = condSnap
+                              ? Object.fromEntries(condSnap.map(r => [r.uniform_type_id, r]))
+                              : null;
+                            const ITEM_COND = {
+                              usable:       { label: "ใช้งานได้",  color: "#16a34a", icon: "mdi:check-circle-outline" },
+                              damaged:      { label: "เสียหาย",    color: "#dc2626", icon: "mdi:close-circle-outline" },
+                              partial:      { label: "ได้รับบางส่วน", color: "#d97706", icon: "mdi:alert-circle-outline" },
+                              not_received: { label: "ไม่รับ",    color: "#7c3aed", icon: "mdi:minus-circle-outline" },
+                            };
+                            return items.length === 0
+                              ? <span style={{ color:"#94a3b8", fontSize:13 }}>ไม่มีข้อมูลรายการ</span>
+                              : items.map((item, i) => {
+                                const cond = condMap?.[item.uniform_type_id];
+                                const meta = cond ? ITEM_COND[cond.item_condition] : null;
+                                return (
+                                  <div key={i} className="sdExpandItem" style={{ alignItems: "center" }}>
+                                    <span className="sdExpandDot" />
+                                    <span className="sdExpandName">{item.name}</span>
+                                    {item.education_level && <span className="sdExpandLevel">{item.education_level}</span>}
+                                    <span className="sdExpandQty">{item.quantity} ชิ้น</span>
+                                    {meta && (
+                                      <span style={{
+                                        display: "inline-flex", alignItems: "center", gap: 4,
+                                        fontSize: 11, fontWeight: 600, color: meta.color,
+                                        marginLeft: 8,
+                                      }}>
+                                        <Icon icon={meta.icon} width={13} />
+                                        {meta.label}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              });
+                          })()}
                         </div>
                       </td>
                     </tr>
