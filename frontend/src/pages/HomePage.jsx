@@ -93,6 +93,18 @@ function ProjCard({ p, navigate, details }) {
             ได้รับครบแล้ว
           </div>
         )}
+        {p.end_date && (() => {
+          const d = Math.ceil((new Date(p.end_date) - new Date()) / 86400000);
+          if (d < 0) return null;
+          const bg = d <= 3 ? "#ef4444" : d <= 7 ? "#FC8D1F" : "#34d399";
+          const label = d === 0 ? "วันสุดท้าย!" : `เหลือ ${d} วัน`;
+          return (
+            <div style={{ position: "absolute", top: 10, left: 10, background: bg, color: "#fff", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {label}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="projBody">
@@ -424,7 +436,7 @@ export default function HomePage() {
           </svg>
         </>
       ),
-      title: "Prepare school uniform / Choose to buy school uniform to donate",
+      title: "เตรียมชุดนักเรียน / เลือกซื้อชุดนักเรียนเพื่อบริจาค",
     },
     {
       no: 2,

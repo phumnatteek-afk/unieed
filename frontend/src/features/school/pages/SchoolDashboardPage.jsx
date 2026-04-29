@@ -88,23 +88,23 @@ export default function SchoolDashboardPage() {
             <div className="dbProgressLabel">
               <span>ชุดที่ได้รับ</span>
               <span className="dbProgressCount">
-                {project.total_fulfilled} / {project.total_needed} ชุด
+                {project.total_received || 0} / {project.total_needed} ชุด
               </span>
             </div>
             <div className="dbProgressBar">
               <div
                 className="dbProgressFill"
-                style={{ width: project.total_needed > 0 ? `${Math.min((project.total_fulfilled / project.total_needed) * 100, 100)}%` : "0%" }}
+                style={{ width: project.total_needed > 0 ? `${Math.min(((project.total_received || 0) / project.total_needed) * 100, 100)}%` : "0%" }}
               />
             </div>
             <div className="dbProgressPct">
-              ความคืบหน้า {project.total_needed > 0 ? Math.round((project.total_fulfilled / project.total_needed) * 100) : 0}%
+              ความคืบหน้า {project.total_needed > 0 ? Math.round(((project.total_received || 0) / project.total_needed) * 100) : 0}%
               <span style={{ float: "right", color: "#6B7280" }}>เป้าหมาย {project.total_needed} ชุด</span>
             </div>
             <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4, display: "flex", gap: 10 }}>
               <span>ยืนยันรับแล้ว <strong style={{ color: "#6b7280" }}>{project.total_received || 0}</strong> ชุด</span>
               <span>·</span>
-              <span>ใช้งานได้ <strong style={{ color: "#16a34a" }}>{project.total_fulfilled}</strong> ชุด</span>
+              <span>ใช้งานได้ <strong style={{ color: "#16a34a" }}>{project.total_received || 0}</strong> ชุด</span>
             </div>
           </div>
           <button className="dbManageBtn" onClick={() => navigate(`/school/projects/${project.request_id}`)}>

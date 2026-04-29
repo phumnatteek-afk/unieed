@@ -18,9 +18,6 @@ export default function ProjectDetailPage() {
 
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(
-    location.state?.tab === "review" ? "review" : "detail"
-  );
   const [selectedMethod, setSelectedMethod] = useState("parcel");
   const [activeLevel, setActiveLevel] = useState(null);
   const [lightboxImg, setLightboxImg] = useState(null);
@@ -37,19 +34,18 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     if (location.state?.tab === "review") {
-      setActiveTab("review");
       shouldScrollRef.current = true;
     }
   }, [location.state]);
 
   useEffect(() => {
-    if (shouldScrollRef.current && project && activeTab === "review") {
+    if (shouldScrollRef.current && project) {
       shouldScrollRef.current = false;
       setTimeout(() => {
         reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 200);
     }
-  }, [project, activeTab]);
+  }, [project]);
 
   useEffect(() => {
     if (!project?.uniform_items?.length) return;
@@ -139,22 +135,17 @@ export default function ProjectDetailPage() {
   };
 
   const needed    = project?.total_needed    || 0;
-  const fulfilled = project?.total_fulfilled || 0;  // 🟢 ถึงมือเด็กแล้ว
-  const received  = project?.total_received  || 0;  // 🟠 โรงเรียนรับแล้ว (approved ทั้งหมด)
+  const fulfilled = project?.total_fulfilled || 0;  // ชุดที่ใช้งานได้ (primary metric)
   const pending   = project?.total_pending   || 0;  // 🔵 กำลังดำเนินการ
-  const orange    = Math.max(received - fulfilled, 0);
-  const remaining = Math.max(needed - received, 0);
+  const remaining = Math.max(needed - fulfilled, 0);
   const pct       = needed > 0 ? Math.min(Math.round((fulfilled / needed) * 100), 100) : 0;
 
-  const isFulfilled = needed > 0 && received >= needed;
+  const isFulfilled = needed > 0 && fulfilled >= needed;
 
   // progress bar widths
-  // เมื่อ received >= needed ให้ scale ตาม (received + pending) จริง ไม่ใช่ needed
-  // เพื่อให้ทั้ง 3 สีแสดงสัดส่วนที่ถูกต้อง
-  const barTotal  = isFulfilled ? Math.max(received + pending, 1) : Math.max(needed, 1);
+  const barTotal  = isFulfilled ? Math.max(fulfilled + pending, 1) : Math.max(needed, 1);
   const pctGreen  = Math.min((fulfilled / barTotal) * 100, 100);
-  const pctOrange = Math.min((orange    / barTotal) * 100, 100 - pctGreen);
-  const pctBlue   = Math.min((pending   / barTotal) * 100, 100 - pctGreen - pctOrange);
+  const pctBlue   = Math.min((pending   / barTotal) * 100, 100 - pctGreen);
 
   // ── UniformBlock ──
   const UniformBlock = () => {
@@ -423,16 +414,15 @@ export default function ProjectDetailPage() {
                 <div className="pdProgressBlock">
                   <div className="pdProgressTopRow">
                     <span className="pdProgressCount">
-                      ยอดที่โรงเรียนยืนยันรับแล้ว: <strong>{received}</strong> / {needed} ชุด
+                      ยอดที่โรงเรียนยืนยันรับแล้ว: <strong>{fulfilled}</strong> / {needed} ชุด
                     </span>
                     <span className="pdProgressPct">{pct}%</span>
                   </div>
 
                   {/* ── 3-segment bar ── */}
                   <div className="pdProgressTrack" style={{ display: "flex", overflow: "hidden" }}>
-                    {pctGreen  > 0 && <div style={{ width: `${pctGreen}%`,  background: "#34d399", height: "100%", transition: "width .5s" }} />}
-                    {pctOrange > 0 && <div style={{ width: `${pctOrange}%`, background: "#ffab7a", height: "100%", transition: "width .5s" }} />}
-                    {pctBlue   > 0 && <div style={{ width: `${pctBlue}%`,   background: "#818cf8", height: "100%", transition: "width .5s" }} />}
+                    {pctGreen > 0 && <div style={{ width: `${pctGreen}%`, background: "#34d399", height: "100%", transition: "width .5s" }} />}
+                    {pctBlue  > 0 && <div style={{ width: `${pctBlue}%`,  background: "#818cf8", height: "100%", transition: "width .5s" }} />}
                   </div>
 
                   {/* ── Legend ── */}
@@ -443,12 +433,7 @@ export default function ProjectDetailPage() {
                         ถึงมือเด็กแล้ว <strong style={{ marginLeft: 2 }}>{fulfilled}</strong>
                       </span>
                     )}
-                    {orange > 0 && (
-                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ffab7a", flexShrink: 0 }} />
-                        โรงเรียนรับแล้ว รอแจกจ่าย <strong style={{ marginLeft: 2 }}>{orange}</strong>
-                      </span>
-                    )}
+
                     {pending > 0 && (
                       <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#818cf8", flexShrink: 0 }} />
@@ -519,7 +504,7 @@ export default function ProjectDetailPage() {
                   <span>{project.school_address || "-"}</span>
                 </div>
 
-                <div className="pdDateRow">
+                <div className="pdDateRow" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                   <span className="pdDateLabel">ระยะเวลาโครงการ :</span>
                   <span>
                     {(project.start_date || project.created_at)
@@ -529,6 +514,20 @@ export default function ProjectDetailPage() {
                       ? ` – ${new Date(project.end_date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}`
                       : " – ไม่มีกำหนดสิ้นสุด"}
                   </span>
+                  {project.end_date && project.status === "open" && (() => {
+                    const d = Math.ceil((new Date(project.end_date) - new Date()) / 86400000);
+                    if (d < 0) return null;
+                    const bg = d <= 3 ? "#fef2f2" : d <= 7 ? "#fff7ed" : "#f0fdf4";
+                    const color = d <= 3 ? "#ef4444" : d <= 7 ? "#FC8D1F" : "#34d399";
+                    const border = d <= 3 ? "#fca5a5" : d <= 7 ? "#FC8D1F" : "#34d399";
+                    const label = d === 0 ? "วันสุดท้าย!" : `เหลือ ${d} วัน`;
+                    return (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, color, border: `1.5px solid ${border}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        {label}
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 {["closed", "archived"].includes(project.status) ? (
@@ -576,14 +575,12 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* Tabs */}
-            <div className="pdTabs" ref={reviewRef}>
-              <button className={`pdTab ${activeTab === "detail" ? "pdTabActive" : ""}`} onClick={() => setActiveTab("detail")}>รายละเอียด</button>
-              <button className={`pdTab ${activeTab === "review" ? "pdTabActive" : ""}`} onClick={() => setActiveTab("review")}>ความคืบหน้า</button>
+            <div className="pdTabs">
+              <button className="pdTab pdTabActive">รายละเอียด & ความคืบหน้า</button>
             </div>
             <div className="pdTabLine" />
 
-            {activeTab === "detail" && (
-              <div className="pdDetailGrid">
+            <div className="pdDetailGrid">
                 <div className="pdDetailLeft">
                   <div className="pdDetailSection">
                     <div className="pdDetailSectionTitle">
@@ -600,6 +597,42 @@ export default function ProjectDetailPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* ── Summary Cards ── */}
+                  <div style={{ fontSize: 20, fontWeight: 600, color: "#053f5c", marginTop: 16, marginBottom: 8, display: "flex", alignItems: "center", gap: 13 }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" style={{ color: "#F5A623", flexShrink: 0 }}><path fill="currentColor" d="m16 11.78l4.24-7.33l1.73 1l-5.23 9.05l-6.51-3.75L5.46 19H22v2H2V3h2v14.54L9.5 8z"/></svg>
+                    สรุปรายงานการบริจาค
+                  </div>
+                  {(() => {
+                    const sc = (color, value, unit, label, icon) => (
+                      <div style={{ background: color, borderRadius: 12, padding: "12px 6px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, color: "#fff" }}>
+                        {icon}
+                        <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.1 }}>
+                          {value} <span style={{ fontSize: 14, fontWeight: 600 }}>{unit}</span>
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 300, lineHeight: 1.2 }}>{label}</div>
+                      </div>
+                    );
+                    return (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                          {sc("#87c7eb", needed, "ชุด", "ขอรับทั้งหมด",
+                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24"><g fill="none"><path d="m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z"/><path fill="currentColor" d="M8.024 3.001L15.847 3c.13 0 .258.002.384.029l.124.036a2 2 0 0 1 1.488 2.056l-.016.162l-.158 1.104l1.059.264a3 3 0 0 1 2.267 2.732l.005.179V18a3 3 0 0 1-2.824 2.995L18 21H6a3 3 0 0 1-2.995-2.824L3 18V9.562A3 3 0 0 1 5.1 6.7l.172-.049l1.059-.264l-.158-1.104A2 2 0 0 1 7.497 3.11l.148-.045c.123-.047.25-.06.379-.064m9.36 5.376l-.296 2.078a1.5 1.5 0 0 1-2.156 1.13L13 10.617V19h5a1 1 0 0 0 1-1V9.562a1 1 0 0 0-.758-.97l-.857-.215Zm-10.769 0l-.858.214a1 1 0 0 0-.75.857L5 9.562V18a1 1 0 0 0 .883.993L6 19h5v-8.382l-1.932.966a1.5 1.5 0 0 1-2.132-1l-.024-.13zM17 14a1 1 0 0 1 0 2h-1a1 1 0 1 1 0-2zm-1.29-8.036L13.553 8.66l1.652.826l.503-3.52Zm-7.42 0l.504 3.521l1.652-.826l-2.155-2.695ZM13.92 5h-3.84L12 7.4z"/></g></svg>
+                          )}
+                          {sc("#818cf8", project.donor_count || 0, "คน", "ผู้บริจาค",
+                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 256 256"><path fill="currentColor" d="M230.33 141.06a24.34 24.34 0 0 0-18.61-4.77C230.5 117.33 240 98.48 240 80c0-26.47-21.29-48-47.46-48A47.58 47.58 0 0 0 156 48.75A47.58 47.58 0 0 0 119.46 32C93.29 32 72 53.53 72 80c0 11 3.24 21.69 10.06 33a31.87 31.87 0 0 0-14.75 8.4L44.69 144H16a16 16 0 0 0-16 16v40a16 16 0 0 0 16 16h104a8 8 0 0 0 1.94-.24l64-16a7 7 0 0 0 1.19-.4L226 182.82l.44-.2a24.6 24.6 0 0 0 3.93-41.56ZM119.46 48a31.15 31.15 0 0 1 29.14 19a8 8 0 0 0 14.8 0a31.15 31.15 0 0 1 29.14-19C209.59 48 224 62.65 224 80c0 19.51-15.79 41.58-45.66 63.9l-11.09 2.55A28 28 0 0 0 140 112h-39.32C92.05 100.36 88 90.12 88 80c0-17.35 14.41-32 31.46-32M16 160h24v40H16Zm203.43 8.21l-38 16.18L119 200H56v-44.69l22.63-22.62A15.86 15.86 0 0 1 89.94 128H140a12 12 0 0 1 0 24h-28a8 8 0 0 0 0 16h32a8.3 8.3 0 0 0 1.79-.2l67-15.41l.31-.08a8.6 8.6 0 0 1 6.3 15.9Z"/></svg>
+                          )}
+                          {sc("#34d399", fulfilled, "ชุด", "ใช้งานได้จริง",
+                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24"><g fill="currentColor"><path d="M10.243 16.314L6 12.07l1.414-1.414l2.829 2.828l5.656-5.657l1.415 1.415z"/><path fillRule="evenodd" d="M1 12C1 5.925 5.925 1 12 1s11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12m11 9a9 9 0 1 1 0-18a9 9 0 0 1 0 18" clipRule="evenodd"/></g></svg>
+                          )}
+                          {sc("#FFBE1B", pending, "ชุด", "รอดำเนินการ",
+                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0-18 0"/><path d="M12 7v5l3 3"/></g></svg>
+                          )}
+                          {sc("#ef4444", remaining, "ชุด", "ยังต้องการ",
+                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 14 14"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M2.5.5v13m0-13l9 4.5l-9 4.5" strokeWidth="1"/></svg>
+                          )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="pdDetailRight">
@@ -631,76 +664,67 @@ export default function ProjectDetailPage() {
                   )}
                 </div>
               </div>
-            )}
 
-            {activeTab === "review" && (
-              <div className="pdReviews">
-                {project.status === "archived" && (
-                  <div className="pdSummaryCard">
-                    <div className="pdSummaryTitle">🎉 สรุปผลโครงการ</div>
-                    <div className="pdSummaryStats">
-                      <div className="pdSummaryStat">
-                        <div className="pdSummaryVal">{needed}</div>
-                        <div className="pdSummaryLabel">ชุดที่ขอรับบริจาค</div>
-                      </div>
-                      <div className="pdSummaryStat">
-                        <div className="pdSummaryVal" style={{ color: "#3b82f6" }}>{received}</div>
-                        <div className="pdSummaryLabel">ได้รับแล้ว</div>
-                      </div>
-                      <div className="pdSummaryStat">
-                        <div className="pdSummaryVal" style={{ color: "#16a34a" }}>{fulfilled}</div>
-                        <div className="pdSummaryLabel">ใช้งานได้</div>
-                      </div>
-                      <div className="pdSummaryStat">
-                        <div className="pdSummaryVal" style={{ color: "#2563eb" }}>{pct}%</div>
-                        <div className="pdSummaryLabel">บรรลุเป้าหมาย</div>
-                      </div>
+            <div className="pdReviews" ref={reviewRef} style={{ marginTop: 50 }}>
+              {project.status === "archived" && (
+                <div className="pdSummaryCard">
+                  <div className="pdSummaryTitle">🎉 สรุปผลโครงการ</div>
+                  <div className="pdSummaryStats">
+                    <div className="pdSummaryStat">
+                      <div className="pdSummaryVal">{needed}</div>
+                      <div className="pdSummaryLabel">ชุดที่ขอรับบริจาค</div>
                     </div>
-                    <div className="pdSummaryBar">
-                      <div className="pdSummaryBarFill" style={{ width: `${pct}%` }} />
+                    <div className="pdSummaryStat">
+                      <div className="pdSummaryVal" style={{ color: "#16a34a" }}>{fulfilled}</div>
+                      <div className="pdSummaryLabel">ใช้งานได้</div>
                     </div>
-                    <div className="pdSummaryThanks">ขอบคุณทุกท่านที่มีส่วนร่วมในโครงการนี้</div>
+                    <div className="pdSummaryStat">
+                      <div className="pdSummaryVal" style={{ color: "#2563eb" }}>{pct}%</div>
+                      <div className="pdSummaryLabel">บรรลุเป้าหมาย</div>
+                    </div>
                   </div>
-                )}
-                {project.testimonials?.length ? (
-                  <>
-                    <div className="pdTestimonialsTitle">ความประทับใจจากโรงเรียน</div>
-                    <div className="pdReviewScroll">
-                      {project.testimonials.map((t, i) => (
-                        <div className="pdReviewCard" key={i}>
-                          {t.image_url && (
-                            <div className="pdReviewImgWrap" onClick={() => setLightboxImg(t.image_url)}>
-                              <img src={t.image_url} alt={t.review_title} className="pdReviewImg" />
-                              <div className="pdReviewImgOverlay">
-                                <Icon icon="mdi:magnify-plus-outline" width="36" color="#fff" />
-                              </div>
+                  <div className="pdSummaryBar">
+                    <div className="pdSummaryBarFill" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="pdSummaryThanks">ขอบคุณทุกท่านที่มีส่วนร่วมในโครงการนี้</div>
+                </div>
+              )}
+              {project.testimonials?.length > 0 && (
+                <>
+                  <div className="pdTestimonialsTitle">ความประทับใจจากโรงเรียน</div>
+                  <div className="pdReviewScroll">
+                    {project.testimonials.map((t, i) => (
+                      <div className="pdReviewCard" key={i}>
+                        {t.image_url && (
+                          <div className="pdReviewImgWrap" onClick={() => setLightboxImg(t.image_url)}>
+                            <img src={t.image_url} alt={t.review_title} className="pdReviewImg" />
+                            <div className="pdReviewImgOverlay">
+                              <Icon icon="mdi:magnify-plus-outline" width="36" color="#fff" />
                             </div>
-                          )}
-                          <div className="pdReviewBody">
-                            <div className="pdReviewHeading">{t.review_title}</div>
-                            <p className="pdReviewText">"{t.review_text}"</p>
-                            <div className="pdReviewAuthor">
-                              {project.contact_person && `${project.contact_person} · `}{project.school_name}
-                            </div>
-                            <div className="pdReviewMeta">{t.review_date ? new Date(t.review_date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) : ""}</div>
                           </div>
+                        )}
+                        <div className="pdReviewBody">
+                          <div className="pdReviewHeading">{t.review_title}</div>
+                          <p className="pdReviewText">"{t.review_text}"</p>
+                          <div className="pdReviewAuthor">
+                            {project.contact_person && `${project.contact_person} · `}{project.school_name}
+                          </div>
+                          <div className="pdReviewMeta">{t.review_date ? new Date(t.review_date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) : ""}</div>
                         </div>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="muted" style={{ padding: "40px", textAlign: "center" }}>ยังไม่มีความประทับใจจากโรงเรียนนี้</div>
-                )}
-
-                {/* Lightbox */}
-                {lightboxImg && (
-                  <div className="pdLightbox" onClick={() => setLightboxImg(null)}>
-                    <button className="pdLightboxClose" onClick={() => setLightboxImg(null)}>×</button>
-                    <img src={lightboxImg} alt="ขยาย" className="pdLightboxImg" onClick={e => e.stopPropagation()} />
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            )}
+                </>
+              )}
+
+              {/* Lightbox */}
+              {lightboxImg && (
+                <div className="pdLightbox" onClick={() => setLightboxImg(null)}>
+                  <button className="pdLightboxClose" onClick={() => setLightboxImg(null)}>×</button>
+                  <img src={lightboxImg} alt="ขยาย" className="pdLightboxImg" onClick={e => e.stopPropagation()} />
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>

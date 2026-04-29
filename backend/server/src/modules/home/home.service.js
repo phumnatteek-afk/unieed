@@ -7,7 +7,7 @@ export async function getHomeData() {
     (SELECT COUNT(*) FROM products WHERE status='available') AS products_total,
     (SELECT COUNT(*) FROM schools WHERE verification_status='approved') AS schools_approved,
     (SELECT COUNT(*) FROM students) AS students_total,
-    (SELECT COALESCE(SUM(quantity), 0) FROM donation_record WHERE status = 'approved') AS uniforms_fulfilled,
+    (SELECT COALESCE(SUM(quantity), 0) FROM donation_record WHERE status = 'approved' AND condition_status = 'usable') AS uniforms_fulfilled,
     (SELECT COUNT(*) FROM donation_record WHERE status != 'rejected') AS donations_total
   `);
 
@@ -21,6 +21,7 @@ export async function getHomeData() {
       dr.request_image_url,
       dr.status,
       dr.created_at,
+      dr.end_date,
       s.school_name,
       s.school_address,
 

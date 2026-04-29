@@ -16,7 +16,6 @@ import cartRoutes from "./modules/cart/cart.routes.js";
 import checkoutRoutes from "./modules/checkout/checkout.routes.js";
 
 import autocheckRoutes from "./modules/autocheck/autocheck.routes.js";
-import { initAutoCheckScheduler } from "./modules/autocheck/autocheck.controller.js";
 import { runProjectLifecycleCron } from "./cron/projectLifecycle.js";
 
 const app = express();
@@ -54,8 +53,6 @@ app.use((err, req, res, next) => {
   const status = err.status || err.http_code || 500;
   res.status(status).json({ message: err.message || "Internal Server Error" });
 });
-
-initAutoCheckScheduler();
 
 // รัน cron ทันทีตอน server start แล้วตั้ง interval ทุก 24 ชั่วโมง
 runProjectLifecycleCron();

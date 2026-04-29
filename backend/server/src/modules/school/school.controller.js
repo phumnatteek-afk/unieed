@@ -56,11 +56,16 @@ export async function getProjectByIdPublic(req, res, next) {
           FROM donation_record don
           WHERE don.request_id = dr.request_id
             AND don.status = 'approved'
-            AND (don.condition_status NOT IN ('wrong_item', 'not_sent') OR don.condition_status IS NULL)) AS total_received,
+            AND don.condition_status = 'usable') AS total_received,
          (SELECT COALESCE(SUM(don.quantity), 0)
           FROM donation_record don
           WHERE don.request_id = dr.request_id
-            AND don.status = 'pending') AS total_pending
+            AND don.status = 'pending') AS total_pending,
+         (SELECT COUNT(DISTINCT don.donor_id)
+          FROM donation_record don
+          WHERE don.request_id = dr.request_id
+            AND don.status != 'rejected'
+            AND don.donor_id IS NOT NULL) AS donor_count
        FROM donation_request dr
        JOIN schools s ON s.school_id = dr.school_id
        WHERE dr.request_id = ?
@@ -78,6 +83,7 @@ export async function getProjectByIdPublic(req, res, next) {
       total_received: Number(rows[0].total_received) || 0,
       total_pending: Number(rows[0].total_pending) || 0,
       student_count: Number(rows[0].student_count) || 0,
+      donor_count: Number(rows[0].donor_count) || 0,
       uniform_items: [],   // ✅ default ก่อน กัน undefined
     };
  
@@ -241,7 +247,7 @@ export async function getProjectByIdPublic(req, res, next) {
        ) AS jt
        WHERE dr.request_id = ?
          AND dr.status = 'approved'
-         AND (dr.condition_status NOT IN ('wrong_item', 'not_sent') OR dr.condition_status IS NULL)
+         AND dr.condition_status = 'usable'
        GROUP BY jt.type_id, jt.chest, jt.waist`,
       [request_id]
     );
@@ -1513,7 +1519,7 @@ export async function getSchoolDashboard(req, res, next) {
                    FROM fulfillment f WHERE f.request_id = dr.request_id), 0) AS total_fulfilled,
          COALESCE((SELECT SUM(don.quantity) FROM donation_record don
                    WHERE don.request_id = dr.request_id AND don.status = 'approved'
-                   AND (don.condition_status NOT IN ('wrong_item', 'not_sent') OR don.condition_status IS NULL)), 0) AS total_received,
+                   AND don.condition_status = 'usable'), 0) AS total_received,
          COALESCE((SELECT COUNT(*) FROM students st WHERE st.request_id = dr.request_id), 0) AS student_count
        FROM donation_request dr
        WHERE dr.school_id = ?
