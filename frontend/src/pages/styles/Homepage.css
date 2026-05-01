@@ -282,6 +282,44 @@ body, html {
   color: #FFEDBF;
 }
 
+.heroSearchBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 22px;
+  border-radius: 99px;
+  border: 2px solid #fff;
+  background: #FC8D1F;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: Kanit, sans-serif;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+}
+.heroSearchBtn:hover {
+  background: #e07010;
+  border-color: #e07010;
+  color: #fff;
+}
+.heroSearchArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  color: #FC8D1F;
+  font-size: 18px;
+  line-height: 1;
+  transition: color 0.18s;
+}
+.heroSearchBtn:hover .heroSearchArrow {
+  color: #e07010;
+}
+
 .heroActions {
   /* position: relative; */
   margin-top: 220px;
@@ -487,7 +525,7 @@ width: 100vw;
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
   padding: 30px;
-  margin-top: 30px;
+  margin-top: 100px;
 }
 
 .stepsWrap {
@@ -578,14 +616,95 @@ width: 100vw;
   padding: 20px 0 0;
 }
 
+/* ===== FAQ ===== */
+.faqSection {
+  background: #fff;
+  padding: 52px 24px;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+}
+.faqWrap {
+  width: 100%;
+  max-width: 680px;
+  margin: 32px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.faqTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #5285E8;
+  font-family: Kanit, sans-serif;
+  margin-bottom: 6px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.faqItem {
+  background: #fff;
+  border-radius: 12px;
+  border: 1.5px solid #dbeafe;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.faqItem.faqItemOpen {
+  border-color: #5285E8;
+}
+.faqQ {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: Kanit, sans-serif;
+  color: #111827;
+  text-align: left;
+}
+.faqChevron {
+  flex-shrink: 0;
+  color: #5285E8;
+  transition: transform 0.25s;
+}
+.faqItemOpen .faqChevron {
+  transform: rotate(180deg);
+}
+.faqA {
+  max-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 400;
+  font-family: Kanit, sans-serif;
+  color: #4b5563;
+  line-height: 1.7;
+  padding: 0 20px;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+}
+.faqItemOpen .faqA {
+  max-height: 120px;
+  padding: 0 20px 16px;
+}
+
 /* ===== SECTIONS ===== */
 #projects {
   width: 100%;
-  /* margin-top: 10px; */
+  margin-top: 100px;
 }
 
 .section {
-  padding: 30px
+  padding: 30px;
 }
 
 .sectionBlue {
@@ -693,7 +812,7 @@ width: 100vw;
   display: flex;
   width: 100%;
   will-change: transform;
-  /* transition: transform 420ms cubic-bezier(.22, .61, .36, 1); */
+  transition: transform 420ms cubic-bezier(.22, .61, .36, 1);
 }
 
 .carouselPage {
@@ -855,6 +974,7 @@ gap: 20px;
 /* ===== MARKET ===== */
 #market {
   margin-top: 50px;
+  margin-bottom: 50px;
   padding: 0 50px 40px;
 }
 
@@ -864,7 +984,8 @@ gap: 20px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
+  grid-auto-rows: 1fr;
 }
 
 .productCard {
@@ -1185,6 +1306,88 @@ gap: 20px;
 }
 
 
+/* ===== School CTA ===== */
+.schoolCta {
+  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 60%, #bfdbfe 100%);
+  padding: 0;
+  overflow: hidden;
+  margin-top: 100px;
+  margin-bottom: 100px;
+}
+.schoolCtaInner {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-height: 340px;
+}
+.schoolCtaLeft {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 56px 60px 48px;
+  gap: 16px;
+}
+.schoolCtaTag {
+  display: inline-block;
+  background: #5285E8;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: Kanit, sans-serif;
+  padding: 4px 14px;
+  border-radius: 99px;
+  width: fit-content;
+}
+.schoolCtaTitle {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1e3a8a;
+  font-family: Kanit, sans-serif;
+  line-height: 1.35;
+  margin: 0;
+}
+.schoolCtaSub {
+  font-size: 15px;
+  font-weight: 400;
+  color: #374151;
+  font-family: Kanit, sans-serif;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 420px;
+}
+.schoolCtaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px 28px;
+  border-radius: 99px;
+  background: #5285E8;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: Kanit, sans-serif;
+  text-decoration: none;
+  width: fit-content;
+  transition: background 0.18s;
+}
+.schoolCtaBtn:hover {
+  background: #3b6fd4;
+}
+.schoolCtaRight {
+  flex: 0 0 50%;
+  position: relative;
+  overflow: hidden;
+}
+.schoolCtaImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
 /* ===== FOOTER ===== */
 .footer {
   background: #87C7EB;
@@ -1313,7 +1516,7 @@ gap: 20px;
 }
 
 /* ===== Closed Projects Section ===== */
-.closedSection { background: #FFFBF0; padding: 60px 40px; }
+.closedSection { background: #FFFBF0; padding: 60px 40px; margin-top: 100px; }
 .closedSecHead { display:flex; flex-direction:column; align-items:center; margin-bottom:36px; }
 .closedSecTitle {
   font-size: 28px; font-weight: 800; color: #F59E0B;
@@ -1356,9 +1559,10 @@ gap: 20px;
 }
 .closedBadge {
   position: absolute; top: 10px; left: 10px;
-  background: rgba(255,255,255,0.92); backdrop-filter: blur(6px);
-  border: 1px solid #FCD34D; border-radius: 20px;
-  padding: 4px 10px; font-size: 11px; font-weight: 600; color: #92400E;
+  background: #6b7280;
+  border-radius: 20px;
+  padding: 4px 10px; font-size: 11px; font-weight: 600; color: #fff;
+  display: flex; align-items: center; gap: 4px;
 }
 .closedCardBody { padding: 15px 15px; flex: 1; display: flex; flex-direction: column; }
 .closedCardSchool { font-size: 12px; color: #9CA3AF; margin-bottom: 4px; }

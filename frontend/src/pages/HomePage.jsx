@@ -40,7 +40,14 @@ function groupItems(items = []) {
   return Object.values(map);
 }
 
-function ProjCard({ p, navigate, details }) {
+const COLLECTION_BADGE_CONFIG = {
+  "แนะนำ":           { bg: "#FFBE1B", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2l2.4 7.4H22l-6.2 4.5l2.4 7.4L12 17l-6.2 4.3l2.4-7.4L2 9.4h7.6z"/></svg> },
+  "ใหม่ล่าสุด":      { bg: "#3b82f6", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M9 2h6v7h5l-8 9l-8-9h5zm-1 18h8v2H8z"/></svg> },
+  "ใกล้เวลาปิด":     { bg: "#f97316", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+  "ใกล้ถึงเป้าหมาย": { bg: "#10b981", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8zm0-12a4 4 0 1 0 4 4a4 4 0 0 0-4-4zm0 6a2 2 0 1 1 2-2a2 2 0 0 1-2 2z"/></svg> },
+};
+
+function ProjCard({ p, navigate, details, collectionLabel }) {
   const [hovered, setHovered] = useState(false);
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const cardRef = useRef(null);
@@ -93,13 +100,21 @@ function ProjCard({ p, navigate, details }) {
             ได้รับครบแล้ว
           </div>
         )}
+        {/* top-left: collection badge */}
+        {collectionLabel && COLLECTION_BADGE_CONFIG[collectionLabel] && (
+          <div style={{ position: "absolute", top: 10, left: 10, background: COLLECTION_BADGE_CONFIG[collectionLabel].bg, color: "#fff", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+            {COLLECTION_BADGE_CONFIG[collectionLabel].icon}
+            {collectionLabel}
+          </div>
+        )}
+        {/* top-right: countdown badge */}
         {p.end_date && (() => {
           const d = Math.ceil((new Date(p.end_date) - new Date()) / 86400000);
           if (d < 0 || d > 30) return null;
           const bg = d <= 3 ? "#ef4444" : d <= 7 ? "#FC8D1F" : "#34d399";
           const label = d === 0 ? "วันสุดท้าย!" : `เหลือ ${d} วัน`;
           return (
-            <div style={{ position: "absolute", top: 10, left: 10, background: bg, color: "#fff", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ position: "absolute", top: 10, right: 10, background: bg, color: "#fff", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               {label}
             </div>
@@ -202,6 +217,7 @@ export default function HomePage() {
   const [projects, setProjects] = useState([]);
   const [closedProjects, setClosedProjects] = useState([]);
   const [products, setProducts] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasPendingTracking, setHasPendingTracking] = useState(false);
 
@@ -256,8 +272,8 @@ export default function HomePage() {
         setProjects(list);
         setRandomProjects(shuffleArray(list));
         setClosedProjects(Array.isArray(data.closed_projects) ? data.closed_projects : []);
-
         setProducts(Array.isArray(data.products) ? data.products : []);
+        setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
       } finally {
         setLoading(false);
       }
@@ -336,26 +352,61 @@ export default function HomePage() {
   );
 };
 
-  // ===== projects ที่ใช้ “แสดงผลจริง” (newest / random) (เพิ่ม)
+  const [homeTab, setHomeTab] = useState("แนะนำ");
+  const [navHover, setNavHover] = useState(false);
+  const [faqOpen, setFaqOpen] = useState(null);
+
   const displayProjects = useMemo(() => {
-    if (!projects?.length) return [];
+    if (!projects.length) return [];
+    const today = new Date();
 
-    if (projectMode === "random") return randomProjects;
+    if (homeTab === "แนะนำ") {
+      return [...projects].map(p => {
+        const totalNeeded   = Number(p.total_needed)  || 0;
+        const totalReceived = Number(p.total_received) || 0;
+        const refDate = p.start_date || p.created_at;
+        const daysWaiting = refDate ? Math.ceil((today - new Date(refDate)) / 86400000) : 0;
+        const deficitRatio = totalNeeded > 0 ? Math.max((totalNeeded - totalReceived) / totalNeeded, 0) : 0;
+        const waitScore = Math.min(daysWaiting / 90, 1);
+        let modifier = 0;
+        if (p.last_donation_at) {
+          const daysSince = Math.ceil((today - new Date(p.last_donation_at)) / 86400000);
+          if (daysSince > 7) modifier = 0.1;
+          else if (daysSince <= 3) modifier = -0.1;
+        } else { modifier = 0.1; }
+        return { ...p, _fairScore: (deficitRatio * 0.5) + (waitScore * 0.4) + modifier };
+      }).sort((a, b) => b._fairScore - a._fairScore).slice(0, 6);
+    }
 
-    // newest: ถ้ามี created_at ใช้ created_at, ถ้าไม่มีก็ fallback request_id
-    return [...projects].sort((a, b) => {
-      const da = new Date(a.created_at || a.createdAt || 0).getTime();
-      const db = new Date(b.created_at || b.createdAt || 0).getTime();
-      if (da && db) return db - da;
-      return Number(b.request_id || 0) - Number(a.request_id || 0);
-    });
-  }, [projects, randomProjects, projectMode]);
+    if (homeTab === "ใหม่ล่าสุด") {
+      return projects.filter(p => {
+        const ref = p.start_date || p.created_at;
+        if (!ref) return false;
+        return Math.ceil((today - new Date(ref)) / 86400000) <= 30;
+      }).sort((a, b) => new Date(b.start_date || b.created_at) - new Date(a.start_date || a.created_at));
+    }
 
-  // ถ้าโหมด/จำนวน display เปลี่ยน -> รีเซ็ตหน้า (เพิ่ม)
+    if (homeTab === "ใกล้เวลาปิด") {
+      return projects.filter(p => {
+        if (!p.end_date) return false;
+        const d = Math.ceil((new Date(p.end_date) - today) / 86400000);
+        return d >= 0 && d <= 7;
+      }).sort((a, b) => new Date(a.end_date) - new Date(b.end_date));
+    }
+
+    if (homeTab === "ใกล้ถึงเป้าหมาย") {
+      return [...projects].filter(p => Number(p.total_needed) > 0)
+        .sort((a, b) => (Number(b.total_received) / Number(b.total_needed)) - (Number(a.total_received) / Number(a.total_needed)))
+        .slice(0, 6);
+    }
+
+    return projects;
+  }, [projects, homeTab]);
+
   useEffect(() => {
     setProjPage(0);
     setIsSliding(false);
-  }, [displayProjects.length, projectMode]);
+  }, [displayProjects.length, homeTab]);
 
   // ===== Projects paging logic (ปรับให้ใช้ displayProjects)
   const perPage = 3;
@@ -611,6 +662,14 @@ export default function HomePage() {
               คือ <span>ชุดเก่งตัวใหม่ของน้อง</span>
             </p>
 
+            <button
+              className="heroSearchBtn"
+              onClick={() => navigate("/projects", { state: { focusSearch: true } })}
+            >
+              ค้นหาโครงการ
+              <span className="heroSearchArrow">›</span>
+            </button>
+
             <div className="heroActions">
               <a className="pill pillYellow" href="#projects">
                 {" "}
@@ -822,104 +881,74 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== Projects (Smooth Carousel) ===== */}
+      {/* ===== Projects ===== */}
       <section id="projects" className="section sectionBlue">
-        <div className="sectionHead">
-          <h3>
-            โครงการขอรับบริจาค{" "}
-            <span>
-              <Icon icon="hugeicons:school" width="50" height="50" />
-            </span>
+        {/* Title */}
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <h3 style={{ fontSize: 32, fontWeight: 500, color: "#5285E8", margin: "0 0 18px" }}>
+            โครงการที่กำลังเปิดรับบริจาค
           </h3>
-
-          {/* (optional) ถ้าอยากให้มีปุ่มสลับ newest/random ใส่ได้
-    <button
-      className="btnGhost"
-      type="button"
-      onClick={() => setProjectMode((m) => (m === "newest" ? "random" : "newest"))}
-    >
-      {projectMode === "newest" ? "สุ่มโครงการ" : "เรียงล่าสุด"}
-    </button>
-    */}
-
-          <div>
-  <Link className="btnGhost" to="/projects">
-    ดูทั้งหมด
-  </Link>
-</div>
+          {/* Tab pills */}
+          {(() => {
+            const TAB_COLORS = { "แนะนำ": "#FFBE1B", "ใหม่ล่าสุด": "#3b82f6", "ใกล้เวลาปิด": "#f97316", "ใกล้ถึงเป้าหมาย": "#10b981" };
+            const TAB_LABELS = { "แนะนำ": "โครงการแนะนำ", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย" };
+            return (
+              <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
+                {Object.entries(TAB_LABELS).map(([key, label]) => {
+                  const active = homeTab === key;
+                  return (
+                    <button key={key} onClick={() => setHomeTab(key)} style={{ padding: "8px 20px", borderRadius: 99, border: active ? `1.5px solid ${TAB_COLORS[key]}` : "1.5px solid #d1d5db", background: active ? TAB_COLORS[key] : "#fff", color: active ? "#fff" : "#374151", fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif" }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {loading ? (
           <div className="muted">กำลังโหลด…</div>
         ) : (
-          <div className="carouselRow">
-            <button
-              className="navArrow"
-              onClick={goPrev}
-              disabled={isSliding || projPages <= 1}
-              aria-label="prev"
-            >
-              ‹
-            </button>
-
-            {/* ✅ (1) เพิ่ม pause/resume ตอน hover */}
-            <div
-              className="carouselViewport"
-              onMouseEnter={() => setAutoPlay(false)}
-              onMouseLeave={() => setAutoPlay(true)}
-            >
-              {/* ✅ (2) ใช้ displayProjects แทน projects */}
-              {!displayProjects.length ? (
-                <div className="muted">ยังไม่มีโครงการในระบบ</div>
-              ) : (
-                <div
-                  className="carouselTrack"
-                  style={{ transform: `translateX(-${projPage * 100}%)` }}
-                  onTransitionEnd={() => setIsSliding(false)}
-                >
-                  {Array.from({ length: projPages }).map((_, pageIndex) => {
-                    const start = pageIndex * perPage;
-
-                    {
-                      /* ✅ (3) slice จาก displayProjects */
-                    }
-                    const slice = displayProjects.slice(start, start + perPage);
-
-                    return (
-                      <div className="carouselPage" key={pageIndex}>
-                        {slice.map((p) => (
-                          <ProjCard
-                            key={p.request_id}
-                            p={p}
-                            navigate={navigate}
-                            details={projectDetails[p.request_id]}
-                          />
-                        ))}
-
-                        {slice.length < 2 && (
-                          <div className="projCard projCardGhost" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+          <>
+            <div className="carouselRow">
+              <button className="navArrow" onClick={goPrev} disabled={isSliding || projPages <= 1} aria-label="prev">‹</button>
+              <div className="carouselViewport" onMouseEnter={() => setAutoPlay(false)} onMouseLeave={() => setAutoPlay(true)}>
+                {!displayProjects.length ? (
+                  <div className="muted" style={{ padding: "40px 0" }}>ไม่มีโครงการในหมวดนี้</div>
+                ) : (
+                  <div className="carouselTrack" style={{ transform: `translateX(-${projPage * 100}%)` }} onTransitionEnd={() => setIsSliding(false)}>
+                    {Array.from({ length: projPages }).map((_, pageIndex) => {
+                      const slice = displayProjects.slice(pageIndex * perPage, pageIndex * perPage + perPage);
+                      return (
+                        <div className="carouselPage" key={pageIndex}>
+                          {slice.map(p => <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel={homeTab} />)}
+                          {slice.length < 2 && <div className="projCard projCardGhost" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <button className="navArrow" onClick={goNext} disabled={isSliding || projPages <= 1} aria-label="next">›</button>
             </div>
-
-            <button
-              className="navArrow"
-              onClick={goNext}
-              disabled={isSliding || projPages <= 1}
-              aria-label="next"
-            >
-              ›
-            </button>
-          </div>
+            {/* Navigate link */}
+            {(() => {
+              const TAB_LABELS = { "แนะนำ": "โครงการแนะนำ", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย" };
+              return (
+                <div style={{ textAlign: "center", marginTop: 24 }}>
+                  <Link to="/projects" state={{ collection: homeTab }} onMouseEnter={() => setNavHover(true)} onMouseLeave={() => setNavHover(false)} style={{ color: navHover ? "#5285E8" : "#053f5c", fontWeight: 600, fontSize: 15, textDecoration: "underline", textUnderlineOffset: 3, transition: "color 0.2s" }}>
+                    ดู{TAB_LABELS[homeTab]}ทั้งหมด →
+                  </Link>
+                </div>
+              );
+            })()}
+          </>
         )}
       </section>
 
 
-      {/* ===== Steps ===== */}
+      {/* ===== Steps + FAQ ===== */}
       <section className="steps">
         <div className="stepsWrap">
           <div className="stepsSide">
@@ -927,14 +956,12 @@ export default function HomePage() {
               5 ขั้นตอน !<br />
               บริจาคง่ายๆ
             </div>
-            {/* <div className="stepsHint">กรณีมีชุดอยู่แล้ว</div> */}
           </div>
 
           <div className="stepsCards">
             {steps.map((s) => (
               <div className="stepCard" key={s.no}>
                 <div className="stepPic">{s.icon}</div>
-                {/* <div className="stepNo">{s.no}.</div> */}
                 <div className="stepTitle">
                   {s.no}. {s.title}
                 </div>
@@ -942,6 +969,34 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+        </div>
+
+      </section>
+
+      {/* ===== FAQ ===== */}
+      <section className="faqSection">
+        <div className="faqWrap">
+          <div className="faqTitle">
+            คำถามที่พบบ่อย
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 512 512"><path fill="currentColor" fillRule="evenodd" d="M334.434 206.171c0 13.516-3.435 25.318-10.288 35.397c-5.65 8.47-15.12 17.649-28.436 27.534c-7.664 5.247-12.711 10.184-15.126 14.823c-3.04 5.648-4.54 14.113-4.54 25.409h-42.666c0-17.137 1.824-29.64 5.454-37.504c4.23-9.483 13.407-19.064 27.521-28.743c6.664-5.045 11.503-10.183 14.529-15.425c3.625-5.852 5.449-12.503 5.449-19.966c0-11.899-3.539-20.766-10.594-26.624c-5.636-4.228-12.502-6.345-20.569-6.345c-13.108 0-22.59 4.339-28.436 13.009c-4.236 6.45-6.36 14.719-6.36 24.8v.304h-45.361c0-26.422 8.36-46.382 25.09-59.898c14.12-11.283 31.574-16.94 52.34-16.94c18.16 0 34.092 3.533 47.798 10.588c22.803 11.703 34.195 31.572 34.195 59.581m134.9 49.83c0 117.82-95.513 213.333-213.334 213.333c-117.82 0-213.333-95.513-213.333-213.334S138.18 42.667 256 42.667S469.334 138.179 469.334 256m-42.667 0c0-94.107-76.561-170.667-170.667-170.667S85.334 161.894 85.334 256S161.894 426.667 256 426.667S426.667 350.106 426.667 256m-170.668 69.333c-14.728 0-26.667 11.938-26.667 26.666s11.94 26.667 26.667 26.667s26.667-11.939 26.667-26.667s-11.94-26.666-26.667-26.666"/></svg>
+          </div>
+          {[
+            { q: "ชุดมือสองส่งได้มั้ย หรือต้องเป็นชุดใหม่?", a: "ชุดมือสองได้เลย ขอแค่ซักสะอาดและอยู่ในสภาพที่ใส่ได้ ไม่ต้องเป็นชุดใหม่" },
+            { q: "รู้ได้ยังไงว่าโรงเรียนต้องการขนาดอะไร?", a: "แต่ละโครงการระบุขนาดและประเภทชุดที่ต้องการไว้ชัดเจน เลือกบริจาคได้ตรงเลย" },
+            { q: "ของที่ส่งไปถึงโรงเรียนจริงมั้ย?", a: "เมื่อโรงเรียนยืนยันรับของแล้ว ระบบจะแจ้งเตือนพร้อมส่งใบรับรองการบริจาคให้คุณโดยตรง" },
+            { q: "ถ้าไม่มีชุด แต่อยากช่วย ทำได้มั้ย?", a: "ซื้อชุดมือสองในราคาถูกจากร้านค้าของเราแล้วบริจาคต่อได้เลย ไม่ต้องมีชุดอยู่ก่อน" },
+          ].map((item, i) => (
+            <div key={i} className={`faqItem${faqOpen === i ? " faqItemOpen" : ""}`}>
+              <button className="faqQ" onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
+                <span>{item.q}</span>
+                <svg className="faqChevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div className="faqA">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 15 15" style={{flexShrink:0,color:"#5285E8"}}><path fill="currentColor" d="M8.293 2.293a1 1 0 0 1 1.414 0l4.5 4.5a1 1 0 0 1 0 1.414l-4.5 4.5a1 1 0 0 1-1.414-1.414L11 8.5H1.5a1 1 0 0 1 0-2H11L8.293 3.707a1 1 0 0 1 0-1.414"/></svg>
+                {item.a}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -1099,7 +1154,7 @@ export default function HomePage() {
                     {p.request_image_url
                       ? <img src={p.request_image_url} alt={p.school_name} />
                       : <div className="closedCardImgEmpty">🎒</div>}
-                    <span className="closedBadge"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" style={{display:"inline-block",verticalAlign:"middle",marginRight:"4px",color:"#f97316"}}><path fill="none" stroke="#f97316" strokeLinecap="round" strokeLinejoin="round" d="M2.5.5v13m0-13l9 4.5l-9 4.5" strokeWidth="1"/></svg>รายงานปิดโครงการ</span>
+                    <span className="closedBadge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 14 14"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M2.5.5v13m0-13l9 4.5l-9 4.5" strokeWidth="1"/></svg>ปิดโครงการ</span>
                   </div>
                   <div className="closedCardBody">
                     <div className="closedCardSchool">{p.school_name}</div>
@@ -1115,6 +1170,69 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* ===== Testimonials ===== */}
+      {testimonials.length > 0 && (() => {
+        const display = testimonials.slice(0, 3);
+        const count = display.length;
+        const stageStyle = count === 1
+          ? { gridTemplateColumns: "1fr", maxWidth: 420 }
+          : count === 2
+            ? { gridTemplateColumns: "1fr 1fr" }
+            : {};
+        return (
+          <section className="sectionSoftBlue" style={{ marginTop: 100 }}>
+            <div className="tsHead">
+              <span className="tsQuoteMark">❝</span>
+              <h2 className="tsTitle">เสียงจากโรงเรียนที่ได้รับ</h2>
+            </div>
+            <div className="tsStage" style={stageStyle}>
+              {display.map((t, i) => {
+                const isMain = count < 3 || i === 1;
+                return (
+                  <div key={t.testimonial_id} className={`tsCard${isMain ? " tsCardMain" : " tsCardSide"}`}>
+                    <div className="tsImageWrap">
+                      {t.image_url
+                        ? <img src={t.image_url} alt={t.school_name} />
+                        : <div className="tsImgPlaceholder" />}
+                    </div>
+                    <div className="tsCardInner">
+                      <p className="tsTextQuote">❝ {t.review_text} ❞</p>
+                      {t.review_title && <div className="tsName">{t.review_title}</div>}
+                      <div className="tsName" style={{ fontSize: 15, marginTop: t.review_title ? 4 : 18 }}>{t.school_name}</div>
+                      <div className="tsSub">{t.review_date}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* ===== School CTA ===== */}
+      <section className="schoolCta">
+        <div className="schoolCtaInner">
+          <div className="schoolCtaLeft">
+            <span className="schoolCtaTag">สำหรับโรงเรียน</span>
+            <h2 className="schoolCtaTitle">
+              โรงเรียนของคุณ<br />
+              ต้องการชุดนักเรียนอยู่มั้ย?
+            </h2>
+            <p className="schoolCtaSub">
+              ขอแค่มีความต้องการ ก็สามารถเปิดโครงการขอรับบริจาคชุดนักเรียน
+              ให้กับนักเรียนของคุณได้ทันที ผ่านแพลตฟอร์มออนไลน์ของเรา
+            </p>
+            <Link to="/register/school" className="schoolCtaBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              สมัครรับบริจาค
+            </Link>
+          </div>
+          <div className="schoolCtaRight">
+            <img src="/src/unieed_pic/BannerDonation.png" alt="นักเรียน" className="schoolCtaImg" />
+          </div>
+        </div>
+      </section>
 
       {/* ===== Footer ===== */}
       <footer id="about" className="footer">

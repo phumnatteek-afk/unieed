@@ -239,10 +239,10 @@
 .mkCard {
   background: #fff; border-radius: 16px; overflow: hidden;
   box-shadow: 0 2px 12px rgba(0,0,0,0.07); border: 1px solid #f0f4f8;
-  transition: transform 0.18s, box-shadow 0.18s; cursor: pointer;
-  text-decoration: none; display: block; color: inherit;
+  transition: border-color 0.18s, box-shadow 0.18s; cursor: pointer;
+  text-decoration: none; display: flex; flex-direction: column; color: inherit;
 }
-.mkCard:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(82,133,232,0.13); }
+.mkCard:hover { background: #f9fafb; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
 
 .mkCardThumb { width: 100%; height: 220px; overflow: hidden; background: #f1f5f9; position: relative; }
 
@@ -253,7 +253,7 @@
   width: 100%; height: 100%; object-fit: cover; display: block;
   transition: transform 0.3s;
 }
-.mkCard:hover .mkCarouselImg { transform: scale(1.04); }
+.mkCard:hover .mkCarouselImg { transform: none; }
 
 .mkCarouselDots {
   position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
@@ -304,7 +304,7 @@
 .mkCardThumbPlaceholder { width: 100%; height: 100%; background: linear-gradient(135deg, #e5e7eb, #f3f4f6); }
 
 /* ── Card Body ── */
-.mkCardBody { padding: 16px 18px; }
+.mkCardBody { padding: 16px 18px; flex: 1; display: flex; flex-direction: column; }
 
 .mkCardTitle {
   font-size: 16px; font-weight: 600; color: #111827;
@@ -450,7 +450,7 @@
 .mkMetaSep { color: #bbb; font-size: 11px; margin: 0 2px; }
 .mkBadgeLevel { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #E6F1FB; color: #0C447C; }
 .mkBadgeCond  { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #FAEEDA; color: #633806; }
-.mkCardDivider { height: 0.5px; background: #e5e7eb; margin: 10px 0; }
+.mkCardDivider { height: 0.5px; background: #e5e7eb; margin: 10px 0; margin-top: auto; }
 
 .mkCardImgLink { display: block; text-decoration: none; }
 .mkCardBodyLink { display: block; text-decoration: none; color: inherit; }

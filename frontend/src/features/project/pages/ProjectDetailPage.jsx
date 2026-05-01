@@ -599,7 +599,7 @@ export default function ProjectDetailPage() {
                   </div>
 
                   {/* ── Summary Cards ── */}
-                  <div style={{ fontSize: 20, fontWeight: 600, color: "#053f5c", marginTop: 16, marginBottom: 8, display: "flex", alignItems: "center", gap: 13 }}>
+                  <div ref={reviewRef} style={{ fontSize: 20, fontWeight: 600, color: "#053f5c", marginTop: 16, marginBottom: 8, display: "flex", alignItems: "center", gap: 13 }}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" style={{ color: "#F5A623", flexShrink: 0 }}><path fill="currentColor" d="m16 11.78l4.24-7.33l1.73 1l-5.23 9.05l-6.51-3.75L5.46 19H22v2H2V3h2v14.54L9.5 8z"/></svg>
                     สรุปรายงานการบริจาค
                   </div>
@@ -665,7 +665,7 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
 
-            <div className="pdReviews" ref={reviewRef} style={{ marginTop: 50 }}>
+            <div className="pdReviews" style={{ marginTop: 50 }}>
               {project.status === "archived" && (
                 <div className="pdSummaryCard">
                   <div className="pdSummaryTitle">🎉 สรุปผลโครงการ</div>

@@ -948,7 +948,7 @@ export async function closeProject(req, res, next) {
     if (rows[0].status !== "open") return res.status(400).json({ message: "โครงการนี้ไม่ได้อยู่ในสถานะเปิด" });
 
     await db.query(
-      `UPDATE donation_request SET status='closed', end_date=CURDATE() WHERE request_id=? AND school_id=?`,
+      `UPDATE donation_request SET status='closed', end_date=COALESCE(end_date, CURDATE()) WHERE request_id=? AND school_id=?`,
       [request_id, school_id]
     );
 

@@ -162,6 +162,14 @@
   margin-left: 300px;
 }
 
+.dpFilterSubLabel {
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Mitr';
+  color: #6b7280;
+  margin-left: 300px;
+}
+
 .dpFilterGrid {
   display: flex;
   flex-wrap: wrap;
@@ -179,8 +187,8 @@
 }
 
 .dpFilterGroupLabel {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   margin-left: 300px;
   color: #5285e8;
 }
@@ -398,6 +406,7 @@ display: flex;
   justify-content: center;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
+  scroll-margin-top: 120px;
 }
 
 .dpCard {
