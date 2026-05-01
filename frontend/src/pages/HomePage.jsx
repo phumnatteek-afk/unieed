@@ -95,7 +95,7 @@ function ProjCard({ p, navigate, details }) {
         )}
         {p.end_date && (() => {
           const d = Math.ceil((new Date(p.end_date) - new Date()) / 86400000);
-          if (d < 0) return null;
+          if (d < 0 || d > 30) return null;
           const bg = d <= 3 ? "#ef4444" : d <= 7 ? "#FC8D1F" : "#34d399";
           const label = d === 0 ? "วันสุดท้าย!" : `เหลือ ${d} วัน`;
           return (

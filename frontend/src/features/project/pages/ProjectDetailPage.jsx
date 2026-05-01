@@ -516,7 +516,7 @@ export default function ProjectDetailPage() {
                   </span>
                   {project.end_date && project.status === "open" && (() => {
                     const d = Math.ceil((new Date(project.end_date) - new Date()) / 86400000);
-                    if (d < 0) return null;
+                    if (d < 0 || d > 30) return null;
                     const bg = d <= 3 ? "#fef2f2" : d <= 7 ? "#fff7ed" : "#f0fdf4";
                     const color = d <= 3 ? "#ef4444" : d <= 7 ? "#FC8D1F" : "#34d399";
                     const border = d <= 3 ? "#fca5a5" : d <= 7 ? "#FC8D1F" : "#34d399";

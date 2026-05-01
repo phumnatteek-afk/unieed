@@ -7,9 +7,6 @@
   margin-right: calc(-50vw + 50%);
   height: 450px;
   position: relative;
-  background-image: url("/src/unieed_pic/BannerDonation.png");
-  background-size: cover;
-  background-position: center top;
   overflow: hidden;
 }
 
@@ -27,26 +24,44 @@
   bottom: 40px;
   left: 0;
   right: 0;
-  background: rgba(198, 230, 180, 0.88);
-  border-radius: 12px 0 0 0;
   padding: 18px 28px 18px 60px;
   max-width: 500px;
   margin-right: auto;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 60px) 100%, 0 100%);  /* ← เหลี่ยมคม */
 }
 
 .dpHeroTitle {
   font-size: 26px;
   font-weight: 700;
-  color: #2d5a1b;
+  color: #fff;
   margin: 0 0 6px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
 .dpHeroSub {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 400;
-  color: #3a6b22;
+  color: rgba(255,255,255,0.9);
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dpHeroCTA {
+  margin-top: 14px;
+  background: #fff;
+  color: #053f5c;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.dpHeroCTA:hover {
+  background: #e0f2fe;
 }
 
 /* ===== Search Section ===== */
@@ -133,7 +148,7 @@
 }
 
 .dpFilterPanelOpen {
-  max-height: 400px;
+  max-height: 520px;
   opacity: 1;
   margin-top: 20px;
 }

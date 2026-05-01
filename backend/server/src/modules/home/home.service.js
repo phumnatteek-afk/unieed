@@ -21,6 +21,7 @@ export async function getHomeData() {
       dr.request_image_url,
       dr.status,
       dr.created_at,
+      dr.start_date,
       dr.end_date,
       s.school_name,
       s.school_address,
@@ -70,8 +71,14 @@ export async function getHomeData() {
       -- ✅ เพิ่ม: นับนักเรียนทั้งหมดต่อโครงการ
       (SELECT COUNT(*)
        FROM students st
-       WHERE st.request_id = dr.request_id) AS student_count
-       
+       WHERE st.request_id = dr.request_id) AS student_count,
+
+      -- สำหรับ fairness modifier: วันที่ได้รับบริจาคล่าสุด
+      (SELECT MAX(don.created_at)
+       FROM donation_record don
+       WHERE don.request_id = dr.request_id
+         AND don.status != 'rejected') AS last_donation_at
+
     FROM donation_request dr
     JOIN schools s ON s.school_id = dr.school_id
     WHERE dr.status = 'open'

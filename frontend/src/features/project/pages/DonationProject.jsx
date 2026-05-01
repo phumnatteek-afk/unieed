@@ -124,7 +124,14 @@ function groupItems(items = []) {
   return Object.values(map);
 }
 
-function ProjectCard({ p, navigate, details }) {
+const COLLECTION_BADGE_CONFIG = {
+  "แนะนำ":            { bg: "#FFBE1B", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2l2.4 7.4H22l-6.2 4.5l2.4 7.4L12 17l-6.2 4.3l2.4-7.4L2 9.4h7.6z"/></svg> },
+  "ใหม่ล่าสุด":       { bg: "#3b82f6", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M9 2h6v7h5l-8 9l-8-9h5zm-1 18h8v2H8z"/></svg> },
+  "ใกล้เวลาปิด":      { bg: "#f97316", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+  "ใกล้ถึงเป้าหมาย":  { bg: "#10b981", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8zm0-12a4 4 0 1 0 4 4a4 4 0 0 0-4-4zm0 6a2 2 0 1 1 2-2a2 2 0 0 1-2 2z"/></svg> },
+};
+
+function ProjectCard({ p, navigate, details, style, collectionLabel }) {
   const [hovered, setHovered] = useState(false);
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const cardRef = useRef(null);
@@ -162,7 +169,7 @@ function ProjectCard({ p, navigate, details }) {
       onClick={() => navigate(`/projects/${p.request_id}`)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setHovered(false)}
-      style={{ position: "relative" }}
+      style={{ position: "relative", ...style }}
     >
       <div className="dpCardImg" style={{ position: "relative" }}>
         {p.request_image_url
@@ -174,13 +181,21 @@ function ProjectCard({ p, navigate, details }) {
             ได้รับครบแล้ว
           </div>
         )}
+        {/* top-left: collection badge */}
+        {collectionLabel && COLLECTION_BADGE_CONFIG[collectionLabel] && (
+          <div style={{ position: "absolute", top: 10, left: 10, background: COLLECTION_BADGE_CONFIG[collectionLabel].bg, color: COLLECTION_BADGE_CONFIG[collectionLabel].color, borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+            {COLLECTION_BADGE_CONFIG[collectionLabel].icon}
+            {collectionLabel}
+          </div>
+        )}
+        {/* top-right: countdown badge */}
         {p.end_date && (() => {
           const d = Math.ceil((new Date(p.end_date) - new Date()) / 86400000);
-          if (d < 0) return null;
+          if (d < 0 || d > 30) return null;
           const bg = d <= 3 ? "#ef4444" : d <= 7 ? "#FC8D1F" : "#34d399";
           const label = d === 0 ? "วันสุดท้าย!" : `เหลือ ${d} วัน`;
           return (
-            <div style={{ position: "absolute", top: 10, left: 10, background: bg, color: "#fff", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ position: "absolute", top: 10, right: 10, background: bg, color: "#fff", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               {label}
             </div>
@@ -270,6 +285,47 @@ function ProjectCard({ p, navigate, details }) {
   );
 }
 
+const KEYWORD_DETECTORS = [
+  { patterns: ["เสื้อนักเรียน", "เสื้อนร.", "เสื้อ"],  token: "เสื้อนักเรียน" },
+  { patterns: ["กางเกง"],                                token: "กางเกง" },
+  { patterns: ["กระโปรง"],                               token: "กระโปรง" },
+  { patterns: ["หญิง", "ผู้หญิง"],                       token: "female" },
+  { patterns: ["ชาย", "ผู้ชาย"],                         token: "male" },
+  { patterns: ["ประถม"],                                  token: "ประถมศึกษา" },
+  { patterns: ["มัธยม"],                                  token: "มัธยมศึกษา" },
+  { patterns: ["อนุบาล"],                                 token: "อนุบาล" },
+  { patterns: ["อก", "รอบอก"],                            token: "chest" },
+  { patterns: ["เอว", "รอบเอว"],                          token: "waist" },
+];
+
+function normalizeAndTokenize(query) {
+  const q = query.toLowerCase().trim();
+  const tokens = new Set();
+
+  // ตรวจ keyword ที่รู้จักทั้งแบบติดกันและเว้นวรรค
+  for (const { patterns, token } of KEYWORD_DETECTORS) {
+    if (patterns.some(kw => q.includes(kw))) tokens.add(token);
+  }
+
+  // ดึงตัวเลข (size)
+  const nums = q.match(/\d+/g);
+  if (nums) nums.forEach(n => tokens.add(n));
+
+  // เก็บคำที่เหลือจากการ split ด้วย space (สำหรับค้นชื่อโรงเรียน/ชื่อโครงการ)
+  q.split(/\s+/).filter(w => w.length > 1).forEach(w => tokens.add(w));
+
+  return [...tokens];
+}
+
+function getSizeValues(item) {
+  try {
+    const s = typeof item.size === "string" ? JSON.parse(item.size) : item.size;
+    return Object.values(s || {}).map(String);
+  } catch {
+    return [String(item.size || "")];
+  }
+}
+
 export default function DonationProject() {
   const { token, userName, logout } = useAuth();
   const navigate = useNavigate();
@@ -287,6 +343,10 @@ export default function DonationProject() {
   const [selCond, setSelCond]       = useState("");
   const [searchQ, setSearchQ]       = useState("");
   const [hoveredType, setHoveredType] = useState("");
+  const [selCollections, setSelCollections] = useState([]);
+
+  const toggleCollection = (col) =>
+    setSelCollections(prev => prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]);
 
   // ===== โหลดโครงการ =====
   useEffect(() => {
@@ -364,27 +424,92 @@ useEffect(() => {
 
   const sizeLabel = selType === "เสื้อนักเรียน" ? "รอบอก (นิ้ว)" : selType ? "รอบเอว (นิ้ว)" : "ไซส์";
 
+  // ===== fairness score =====
+  const fairProjects = useMemo(() => {
+    if (!projects.length) return [];
+    return [...projects]
+      .map(p => {
+        const totalNeeded   = Number(p.total_needed)   || 0;
+        const totalReceived = Number(p.total_received)  || 0;
+        const refDate = p.start_date || p.created_at;
+        const daysWaiting = refDate ? Math.ceil((new Date() - new Date(refDate)) / 86400000) : 0;
+        const deficitRatio = totalNeeded > 0 ? Math.max((totalNeeded - totalReceived) / totalNeeded, 0) : 0;
+        const waitScore = Math.min(daysWaiting / 90, 1);
+        let modifier = 0;
+        if (p.last_donation_at) {
+          const daysSince = Math.ceil((new Date() - new Date(p.last_donation_at)) / 86400000);
+          if (daysSince > 7) modifier = 0.1;
+          else if (daysSince <= 3) modifier = -0.1;
+        } else {
+          modifier = 0.1;
+        }
+        const score = (deficitRatio * 0.5) + (waitScore * 0.4) + modifier;
+        return { ...p, _fairScore: score };
+      })
+      .sort((a, b) => b._fairScore - a._fairScore)
+      .slice(0, 6);
+  }, [projects]);
+
+  // ===== collection membership per project (all collections a project belongs to) =====
+  const projectAllCollections = useMemo(() => {
+    const today = new Date();
+    const fairIds = new Set(fairProjects.map(p => p.request_id));
+    const newestIds = new Set(
+      projects.filter(p => {
+        const ref = p.start_date || p.created_at;
+        if (!ref) return false;
+        return Math.ceil((today - new Date(ref)) / 86400000) <= 30;
+      }).map(p => p.request_id)
+    );
+    const closingIds = new Set(
+      projects.filter(p => {
+        if (!p.end_date) return false;
+        const d = Math.ceil((new Date(p.end_date) - today) / 86400000);
+        return d >= 0 && d <= 7;
+      }).map(p => p.request_id)
+    );
+    const nearGoalIds = new Set(
+      [...projects].filter(p => Number(p.total_needed) > 0)
+        .sort((a, b) => (Number(b.total_received) / Number(b.total_needed)) - (Number(a.total_received) / Number(a.total_needed)))
+        .slice(0, 6).map(p => p.request_id)
+    );
+    const map = {};
+    projects.forEach(p => {
+      const id = p.request_id;
+      const cols = [];
+      if (closingIds.has(id))  cols.push("ใกล้เวลาปิด");
+      if (nearGoalIds.has(id)) cols.push("ใกล้ถึงเป้าหมาย");
+      if (newestIds.has(id))   cols.push("ใหม่ล่าสุด");
+      if (fairIds.has(id))     cols.push("แนะนำ");
+      if (cols.length) map[id] = cols;
+    });
+    return map;
+  }, [projects, fairProjects]);
+
   // ===== filter + sort projects =====
   const displayProjects = useMemo(() => {
   let list = [...projects];
 
   // filter ด้วย search/autoQuery
-  const q = (searchQ || autoQuery).toLowerCase().trim();
-  if (q) {
-    const words = q.split(" ").filter(w => w.length > 0);
+  const rawQ = (searchQ || autoQuery).trim();
+  if (rawQ) {
+    const tokens = searchQ
+      ? normalizeAndTokenize(searchQ)
+      : autoQuery.toLowerCase().split(" ").filter(w => w.length > 0);
+
     list = list.filter(p => {
-      const basicMatch = words.some(word =>
-        (p.school_name || "").toLowerCase().includes(word) ||
-        (p.request_title || "").toLowerCase().includes(word) ||
-        (p.school_address || "").toLowerCase().includes(word)
+      const basicMatch = tokens.some(token =>
+        (p.school_name || "").toLowerCase().includes(token) ||
+        (p.request_title || "").toLowerCase().includes(token) ||
+        (p.school_address || "").toLowerCase().includes(token)
       );
       const items = projectDetails[p.request_id] || [];
-      const uniformMatch = words.some(word =>
+      const uniformMatch = tokens.some(token =>
         items.some(item =>
-          (item.name || "").toLowerCase().includes(word) ||
-          (item.education_level || "").toLowerCase().includes(word) ||
-          (item.gender || "").toLowerCase().includes(word) ||
-          (String(item.size || "")).toLowerCase().includes(word)
+          (item.name || "").toLowerCase().includes(token) ||
+          (item.education_level || "").toLowerCase().includes(token) ||
+          (item.gender || "").toLowerCase().includes(token) ||
+          getSizeValues(item).some(v => v.includes(token))
         )
       );
       return basicMatch || uniformMatch;
@@ -424,31 +549,44 @@ useEffect(() => {
     });
   }
 
-  // แบ่งกลุ่ม
-  const urgentGroup = shuffle(
-    list.filter(p => p.very_urgent_count > 0 || p.urgent_count > 0)
-  ).slice(0, 3);
+  // ── collection filter (OR logic) ──
+  if (selCollections.length > 0) {
+    const fairIds = new Set(fairProjects.map(p => p.request_id));
+    const pools = [];
 
-  const urgentIds = new Set(urgentGroup.map(p => p.request_id));
+    if (selCollections.includes("แนะนำ"))
+      pools.push(...list.filter(p => fairIds.has(p.request_id)));
 
-  const mostGroup = shuffle(
-    list
-      .filter(p => !urgentIds.has(p.request_id))
-      .sort((a, b) => Number(b.total_needed) - Number(a.total_needed))
-  ).slice(0, 3);
+    if (selCollections.includes("ใหม่ล่าสุด")) {
+      const now = new Date();
+      pools.push(...list.filter(p => {
+        const ref = p.start_date || p.created_at;
+        if (!ref) return false;
+        return Math.ceil((now - new Date(ref)) / 86400000) <= 30;
+      }));
+    }
 
-  const usedIds = new Set([...urgentGroup, ...mostGroup].map(p => p.request_id));
+    if (selCollections.includes("ใกล้เวลาปิด")) {
+      const now = new Date();
+      pools.push(...list.filter(p => {
+        if (!p.end_date) return false;
+        const d = Math.ceil((new Date(p.end_date) - now) / 86400000);
+        return d >= 0 && d <= 7;
+      }));
+    }
 
-  const restGroup = shuffle(
-    list.filter(p => !usedIds.has(p.request_id))
-  );
+    if (selCollections.includes("ใกล้ถึงเป้าหมาย"))
+      pools.push(...[...list]
+        .filter(p => Number(p.total_needed) > 0)
+        .sort((a, b) => (Number(b.total_received) / Number(b.total_needed)) - (Number(a.total_received) / Number(a.total_needed)))
+        .slice(0, 6));
 
-  return [
-    ...urgentGroup.map(p => ({ ...p, _row: "urgent" })),
-    ...mostGroup.map(p => ({ ...p, _row: "most" })),
-    ...restGroup.map(p => ({ ...p, _row: "rest" })),
-  ];
-}, [projects, projectDetails, searchQ, autoQuery, selType, selLevel, selSize]);
+    const unionIds = new Set(pools.map(p => p.request_id));
+    list = list.filter(p => unionIds.has(p.request_id));
+  }
+
+  return list;
+}, [projects, projectDetails, searchQ, autoQuery, selType, selLevel, selSize, selCollections, fairProjects]);
 
   // ===== reset size เมื่อเปลี่ยนประเภท/ระดับ =====
   useEffect(() => { setSelSize(""); }, [selType, selLevel]);
@@ -471,6 +609,10 @@ const urgentProjects = useMemo(() => {
     })
     .slice(0, 10);
 }, [projects]);
+
+// ── hero slideshow state ──
+const [heroIdx, setHeroIdx] = useState(0);
+const heroTimerRef = useRef(null);
 
 // ── zero projects (ยังไม่ได้รับบริจาคเลย) ──
 // ── zero projects (ยังไม่ได้รับบริจาคเลย) ──
@@ -512,7 +654,7 @@ const slideList = useMemo(() => {
 
 // const sectionTitle = "💙 โรงเรียนที่ต้องการความช่วยเหลือ";
 
-// ── auto slide ──
+// ── auto slide (main) ──
 useEffect(() => {
   if (!slideList.length) return;
   const timer = setInterval(() => {
@@ -520,6 +662,14 @@ useEffect(() => {
   }, 3000);
   return () => clearInterval(timer);
 }, [slideList.length]);
+
+// ── hero auto-slide ──
+useEffect(() => {
+  const total = Math.min(fairProjects.length, 3);
+  if (total <= 1) return;
+  heroTimerRef.current = setInterval(() => setHeroIdx(i => (i + 1) % total), 4000);
+  return () => clearInterval(heroTimerRef.current);
+}, [fairProjects.length]);
 
   const rightAccount = () => {
   if (!token) {
@@ -560,11 +710,41 @@ useEffect(() => {
 
       {/* ===== Hero Banner ===== */}
       <div className="dpHero">
+        {/* Slide backgrounds */}
+        {fairProjects.slice(0, 3).map((p, i) => (
+          <div key={p.request_id} style={{ position: "absolute", inset: 0, backgroundImage: `url(${p.request_image_url || "/src/unieed_pic/BannerDonation.png"})`, backgroundSize: "cover", backgroundPosition: "center", opacity: i === heroIdx ? 1 : 0, transition: "opacity 0.8s ease" }} />
+        ))}
+        {(!fairProjects.length || loading) && (
+          <div style={{ position: "absolute", inset: 0, backgroundImage: "url(/src/unieed_pic/BannerDonation.png)", backgroundSize: "cover", backgroundPosition: "center top" }} />
+        )}
         <div className="dpHeroOverlay" />
-        <div className="dpHeroContent">
-          <h1 className="dpHeroTitle">เริ่มต้นการเปลี่ยนแปลง</h1>
-          <p className="dpHeroSub">สร้างโอกาสทางการศึกษา ผ่านการส่งต่อชุดนักเรียน</p>
-        </div>
+        {/* Content */}
+        {!loading && fairProjects.length > 0 ? (
+          <div className="dpHeroContent">
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#FFBE1B", color: "#fff", borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 600, marginBottom: 10 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2l2.4 7.4H22l-6.2 4.5l2.4 7.4L12 17l-6.2 4.3l2.4-7.4L2 9.4h7.6z"/></svg>
+              โครงการแนะนำ
+            </div>
+            <h1 className="dpHeroTitle">{fairProjects[heroIdx]?.school_name}</h1>
+            <p className="dpHeroSub">{fairProjects[heroIdx]?.request_title}</p>
+            <button onClick={() => navigate(`/projects/${fairProjects[heroIdx]?.request_id}`)} className="dpHeroCTA">
+              ดูโครงการ →
+            </button>
+          </div>
+        ) : (
+          <div className="dpHeroContent">
+            <h1 className="dpHeroTitle">เริ่มต้นการเปลี่ยนแปลง</h1>
+            <p className="dpHeroSub">สร้างโอกาสทางการศึกษา ผ่านการส่งต่อชุดนักเรียน</p>
+          </div>
+        )}
+        {/* Dots */}
+        {!loading && fairProjects.length > 1 && (
+          <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 6, zIndex: 2 }}>
+            {fairProjects.slice(0, 3).map((_, i) => (
+              <button key={i} onClick={() => { clearInterval(heroTimerRef.current); setHeroIdx(i); heroTimerRef.current = setInterval(() => setHeroIdx(j => (j + 1) % Math.min(fairProjects.length, 3)), 4000); }} style={{ width: i === heroIdx ? 20 : 8, height: 8, borderRadius: 99, background: i === heroIdx ? "#fff" : "rgba(255,255,255,0.5)", border: "none", cursor: "pointer", transition: "all 0.3s", padding: 0 }} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ===== Search + Filter ===== */}
@@ -697,11 +877,23 @@ useEffect(() => {
 
           </div>
 
+          {/* ── คอลเลคชัน ── */}
+          <div className="dpFilterLabel" style={{ marginBottom: 10, marginTop: 16 }}>กรองโครงการ</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 300 }}>
+            {["แนะนำ", "ใหม่ล่าสุด", "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย"].map(col => (
+              <label key={col} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: selCollections.includes(col) ? "#053f5c" : "#f3f4f6", color: selCollections.includes(col) ? "#fff" : "#374151", borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 500, userSelect: "none", transition: "all 0.2s" }}>
+                <input type="checkbox" checked={selCollections.includes(col)} onChange={() => toggleCollection(col)} style={{ display: "none" }} />
+                {col}
+              </label>
+            ))}
+          </div>
+
           {/* reset */}
-          {(selType || selGender || selLevel || selSize || selCond) && (
+          {(selType || selGender || selLevel || selSize || selCond || selCollections.length > 0) && (
             <button className="dpResetBtn" onClick={() => {
               setSelType(""); setSelGender(""); setSelLevel("");
               setSelSize(""); setSelCond(""); setSearchQ("");
+              setSelCollections([]);
             }}>
               ล้างตัวกรอง
             </button>
@@ -709,85 +901,7 @@ useEffect(() => {
         </div>
       </div>
 
-          {/* ===== Random Section ===== */}
-{!loading && slideList.length > 0 && (
-  <div className="dpUrgentSection">
-   <h2 className="dpSectionTitle"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><path fill="currentColor" d="M20 17q.86 0 1.45.6t.58 1.4L14 22l-7-2v-9h1.95l7.27 2.69q.78.31.78 1.12q0 .47-.34.82t-.86.37H13l-1.75-.67l-.33.94L13 17zM16 3.23Q17.06 2 18.7 2q1.36 0 2.3 1t1 2.3q0 1.03-1 2.46t-1.97 2.39T16 13q-2.08-1.89-3.06-2.85t-1.97-2.39T10 5.3q0-1.36.97-2.3t2.34-1q1.6 0 2.69 1.23M.984 11H5v11H.984z"/></svg> ร่วมเติมเต็มโอกาส... ให้เด็กๆ ที่รอคอย</h2>
-  <p className="dpSectionSub">ส่งต่อชุดนักเรียนของคุณ เพื่อก้าวต่อไปที่สดใสของน้องๆ</p>
-    <div className="dpSliderWrapper">
-      <div className="dpSlider">
-        <div
-          className="dpSliderTrack"
-          style={{ transform: `translateX(-${slideIndex * 100}%)` }}
-        >
-          {slideList.map(p => (
-            <div
-              key={p.request_id}
-              className="dpSliderCard"
-              onClick={() => navigate(`/projects/${p.request_id}`)}
-            >
-            <div className="dpSliderCardImg" style={{ position: "relative" }}>
-  {p.request_image_url
-    ? <img src={p.request_image_url} alt={p.request_title} />
-    : <div className="dpSliderCardImgPlaceholder" />}
 
-  {p.total_needed > 0 && p.total_received >= p.total_needed && (
-    <div className="dpSliderTag" style={{ background: "#f0fdf4", color: "#4ade80", border: "1.5px solid #86efac", borderRadius: 6, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/></svg>
-      ได้รับครบแล้ว
-    </div>
-  )}
-  {p.end_date && (() => {
-    const d = Math.ceil((new Date(p.end_date) - new Date()) / 86400000);
-    if (d < 0) return null;
-    const bg = d <= 3 ? "#ef4444" : d <= 7 ? "#FC8D1F" : "#34d399";
-    const label = d === 0 ? "วันสุดท้าย!" : `เหลือ ${d} วัน`;
-    return (
-      <div style={{ position: "absolute", top: 10, left: 10, background: bg, color: "#fff", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        {label}
-      </div>
-    );
-  })()}
-</div>
-              <div className="dpSliderCardBody">
-                <div className="dpSliderCardTitle">{p.request_title}</div>
-                <div className="dpSliderCardSchool">{p.school_name}</div>
-                <div className="dpSliderCardAddr">
-                  <Icon icon="fluent:location-20-filled" width="14" />
-                  {p.school_address}
-                </div>
-                {/* {shownSection === "urgent" && (
-                  <div className="dpSliderCardNeed">
-                    ต้องการอีก {Math.max((p.total_needed || 0) - (p.total_fulfilled || 0), 0)} ชิ้น
-                  </div>
-                )} */}
-                
-                <button
-                  className="dpSliderCardBtn"
-                  onClick={e => { e.stopPropagation(); navigate(`/projects/${p.request_id}`); }}
-                >
-                  ส่งต่อเลย
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Dots */}
-      <div className="dpSliderDots">
-        {slideList.map((_, i) => (
-          <button
-            key={i}
-            className={`dpSliderDot ${i === slideIndex ? "dpSliderDotActive" : ""}`}
-            onClick={() => setSlideIndex(i)}
-          />
-        ))}
-      </div>
-    </div>
-  </div>
-)}
       {/* ===== Project List ===== */}
       <div className="dpMain">
         <div className="dpListHeader">
@@ -799,43 +913,18 @@ useEffect(() => {
   ) : !displayProjects.length ? (
     <div className="muted" style={{ textAlign: "center", padding: "60px" }}>ไม่พบโครงการที่ตรงกับเงื่อนไข</div>
   ) : (
-    <>
-      {/* แถว 1: เร่งด่วน */}
-      {displayProjects.some(p => p._row === "urgent") && (
-        <>
-          <h3 className="dpRowLabel">🚨 โครงการเร่งด่วน</h3>
-          <div className="dpGrid">
-            {displayProjects.filter(p => p._row === "urgent").map(p => (
-              <ProjectCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]}/>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* แถว 2: ต้องการเยอะ */}
-      {displayProjects.some(p => p._row === "most") && (
-        <>
-          <h3 className="dpRowLabel">🔥 ต้องการรับบริจาคมากที่สุด</h3>
-          <div className="dpGrid">
-            {displayProjects.filter(p => p._row === "most").map(p => (
-              <ProjectCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} />
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* แถว 3+: ที่เหลือ */}
-      {displayProjects.some(p => p._row === "rest") && (
-        <>
-          <h3 className="dpRowLabel">📋 โครงการทั้งหมด</h3>
-          <div className="dpGrid">
-            {displayProjects.filter(p => p._row === "rest").map(p => (
-              <ProjectCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} />
-            ))}
-          </div>
-        </>
-      )}
-    </>
+    <div className="dpGrid">
+      {displayProjects.map(p => {
+        const cols = projectAllCollections[p.request_id] || [];
+        const PRIORITY = ["ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย", "ใหม่ล่าสุด", "แนะนำ"];
+        const badgeLabel = selCollections.length > 0
+          ? PRIORITY.find(c => selCollections.includes(c) && cols.includes(c)) ?? null
+          : PRIORITY.find(c => cols.includes(c)) ?? null;
+        return (
+          <ProjectCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel={badgeLabel} />
+        );
+      })}
+    </div>
   )}
 
         {/* {displayProjects.length > 0 && (
