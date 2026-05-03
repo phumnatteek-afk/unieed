@@ -143,10 +143,15 @@ export const getOrderDetail = async (orderId, userId) => {
   if (!order) throw { status: 404, message: "ไม่พบคำสั่งซื้อ" };
 
   const [items] = await db.execute(
-    `SELECT oi.*, p.product_title, pi.image_url AS cover_image
+    `SELECT oi.*,
+            p.product_title, p.school_name, p.size, p.category_id,
+            pi.image_url   AS cover_image,
+            u.user_name    AS seller_name,
+            u.user_phone   AS seller_phone
      FROM order_items oi
      JOIN products p ON p.product_id = oi.product_id
      LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_cover = 1
+     LEFT JOIN users u ON u.user_id = p.seller_id
      WHERE oi.order_id = ?`,
     [orderId]
   );

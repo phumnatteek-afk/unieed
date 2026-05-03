@@ -1,5 +1,3 @@
-// src/features/market/pages/MarketPage.jsx
-// ── API endpoint เปลี่ยนจาก /api/products → /api/market
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -12,6 +10,8 @@ import CartIcon from "../components/CartIcon.jsx";
 import "../../../pages/styles/Homepage.css";
 import "../styles/MarketPage.css";
 import { useAddToCart } from "../hooks/useAddToCart.js";
+import marketHeroBgRight from "../../../unieed_pic/Banmarket1.png";
+import marketHeroBgLeft  from "../../../unieed_pic/Banmarket2.png";
 
 
 const UNIFORM_TYPES = [
@@ -489,19 +489,20 @@ const handleMaxPriceChange = (e) => {
       </header>
 
       <section className="mkHero">
-        <img className="mkHeroBg" src="/src/unieed_pic/market-hero.png" alt="" />
+        <img className="mkHeroBgLeft"  src={marketHeroBgLeft}  alt="" />
         <div className="mkHeroContent">
           <h1 className="mkHeroTitle">ตลาดชุดนักเรียนมือสอง</h1>
-          <p  className="mkHeroSub">เลือกซื้อชุดนักเรียนคุณภาพดี ราคาย่อมเยา</p>
+          <p className="mkHeroSub">ซื้อ-ขายราคาประหยัด เข้าถึงชุดนักเรียนได้อย่างเท่าเทียม</p>
           <div className="mkHeroBtns">
-            <Link to="/sell" className="mkHeroBtn mkHeroBtnYellow">
-              <Icon icon="mdi:tag-plus-outline" /> ลงขายสินค้า
-            </Link>
-            <a href="#market-main" className="mkHeroBtn mkHeroBtnOutline">
-              <Icon icon="mdi:magnify" /> ดูสินค้าทั้งหมด
+            <a href="#market-main" className="mkHeroBtn mkHeroBtnYellow">
+              <Icon icon="mdi:cart-outline" /> เลือกซื้อราคาประหยัด
             </a>
+            <Link to="/sell" className="mkHeroBtn mkHeroBtnWhite">
+              <Icon icon="mdi:tag-outline" /> ลงขายสินค้าที่นี่
+            </Link>
           </div>
         </div>
+        <img className="mkHeroBgRight" src={marketHeroBgRight} alt="" />
       </section>
 
       <div className="mkSearchSection">
