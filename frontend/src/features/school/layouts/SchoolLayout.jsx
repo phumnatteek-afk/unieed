@@ -1,5 +1,8 @@
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
+import { useEffect, useState } from "react";
+import { useAuth } from "../../../context/AuthContext.jsx";
+import { getJson } from "../../../api/http.js";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import "../styles/school.css";
 
@@ -7,6 +10,17 @@ export default function SchoolLayout() {
   const nav = useNavigate();
   const { pathname } = useLocation();
   const isProjectsSection = pathname.startsWith("/school/projects");
+  const [schoolName, setSchoolName] = useState("");
+  const [schoolLogo, setSchoolLogo] = useState("");
+
+  useEffect(() => {
+    getJson("/school/me", true)
+      .then(me => {
+        setSchoolName(me?.school_name || "");
+        setSchoolLogo(me?.school_logo_url || "");
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="scShell">
@@ -55,6 +69,22 @@ export default function SchoolLayout() {
       <div className="scContent">
         {/* ── Header ── */}
         <header className="scHeader">
+          {schoolName && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: "auto" }}>
+              {schoolLogo ? (
+                <img
+                  src={schoolLogo}
+                  alt={schoolName}
+                  style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, background: "#fff" }}
+                  onError={e => { e.currentTarget.style.display = "none"; e.currentTarget.nextSibling.style.display = "flex"; }}
+                />
+              ) : null}
+              <span style={{ display: schoolLogo ? "none" : "flex", alignItems: "center" }}>
+                <Icon icon="mdi:school-outline" width="26" style={{ color: "#fff" }} />
+              </span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{schoolName}</span>
+            </div>
+          )}
           <ProfileDropdown />
         </header>
 

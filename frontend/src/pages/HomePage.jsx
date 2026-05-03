@@ -138,7 +138,7 @@ function ProjCard({ p, navigate, details, collectionLabel }) {
               <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            ส่งถึงโรงเรียนแล้ว <strong>{totalFulfilled}</strong> ชุด
+            ส่งถึงโรงเรียนแล้ว <strong>{totalFulfilled}</strong> ตัว
           </div>
           <button
             className="dpCardBtn"
@@ -218,6 +218,8 @@ export default function HomePage() {
   const [closedProjects, setClosedProjects] = useState([]);
   const [products, setProducts] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
+  const [tsIdx, setTsIdx] = useState(0);
+  const [lightboxImg, setLightboxImg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasPendingTracking, setHasPendingTracking] = useState(false);
 
@@ -1172,26 +1174,54 @@ export default function HomePage() {
       )}
 
       {/* ===== Testimonials ===== */}
+      {lightboxImg && createPortal(
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}
+          onClick={() => setLightboxImg(null)}
+        >
+          <img src={lightboxImg} style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: 12, objectFit: "contain", boxShadow: "0 8px 40px rgba(0,0,0,0.4)" }} onClick={e => e.stopPropagation()} alt="ความประทับใจ" />
+        </div>,
+        document.body
+      )}
       {testimonials.length > 0 && (() => {
-        const display = testimonials.slice(0, 3);
-        const count = display.length;
-        const stageStyle = count === 1
+        const total = testimonials.length;
+        const displayCount = Math.min(3, total);
+        const display = Array.from({ length: displayCount }, (_, i) =>
+          testimonials[(tsIdx + i) % total]
+        );
+        const stageStyle = displayCount === 1
           ? { gridTemplateColumns: "1fr", maxWidth: 420 }
-          : count === 2
+          : displayCount === 2
             ? { gridTemplateColumns: "1fr 1fr" }
             : {};
         return (
           <section className="sectionSoftBlue" style={{ marginTop: 100 }}>
             <div className="tsHead">
-              <span className="tsQuoteMark">❝</span>
-              <h2 className="tsTitle">เสียงจากโรงเรียนที่ได้รับ</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <span className="tsQuoteMark">❝</span>
+                <h2 className="tsTitle">ความประทับใจจากโรงเรียน</h2>
+              </div>
+              {total > 1 && (
+                <div className="tsControls">
+                  <button className="tsNav" onClick={() => setTsIdx(i => (i - 1 + total) % total)}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  </button>
+                  <button className="tsNav" onClick={() => setTsIdx(i => (i + 1) % total)}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                </div>
+              )}
             </div>
             <div className="tsStage" style={stageStyle}>
               {display.map((t, i) => {
-                const isMain = count < 3 || i === 1;
+                const isMain = displayCount < 3 || i === 1;
                 return (
-                  <div key={t.testimonial_id} className={`tsCard${isMain ? " tsCardMain" : " tsCardSide"}`}>
-                    <div className="tsImageWrap">
+                  <div key={`${t.testimonial_id}-${i}`} className={`tsCard${isMain ? " tsCardMain" : " tsCardSide"}`}>
+                    <div
+                      className="tsImageWrap"
+                      style={t.image_url ? { cursor: "zoom-in" } : {}}
+                      onClick={() => t.image_url && setLightboxImg(t.image_url)}
+                    >
                       {t.image_url
                         ? <img src={t.image_url} alt={t.school_name} />
                         : <div className="tsImgPlaceholder" />}
@@ -1199,7 +1229,7 @@ export default function HomePage() {
                     <div className="tsCardInner">
                       <p className="tsTextQuote">❝ {t.review_text} ❞</p>
                       {t.review_title && <div className="tsName">{t.review_title}</div>}
-                      <div className="tsName" style={{ fontSize: 15, marginTop: t.review_title ? 4 : 18 }}>{t.school_name}</div>
+                      <div className="tsName" style={{ fontSize: 15, marginTop: t.review_title ? 4 : 14 }}>{t.school_name}</div>
                       <div className="tsSub">{t.review_date}</div>
                     </div>
                   </div>

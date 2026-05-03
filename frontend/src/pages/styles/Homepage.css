@@ -1156,43 +1156,45 @@ gap: 20px;
   padding:0 20px;
   display:flex;
   align-items:center;
-  gap:18px;
+  justify-content:space-between;
 }
 
 .tsQuoteMark{
-  font-size:80px;
+  font-size:64px;
   font-weight:900;
   line-height:1;
   color:#1d4ed8;
-  transform:translateY(-6px);
+  transform:translateY(-4px);
 }
 
 .tsTitle{
-  font-size:38px;
-  font-weight:700;
-  letter-spacing:-0.02em;
+  font-size:32px;
+  font-weight:600;
+  font-family: Kanit, sans-serif;
+  letter-spacing:0;
   margin:0;
-  flex:1;
   color:#1d4ed8;
 }
 
 .tsControls{
   display:flex;
-  gap:16px;
+  gap:12px;
 }
 
 .tsNav{
-  width:50px;
-  height:50px;
+  width:46px;
+  height:46px;
   border-radius:999px;
   background:transparent;
   border:2px solid #5285E8;
   color:#1d4ed8;
-  font-size:26px;
-  display:grid;
-  place-items:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
   cursor:pointer;
   transition:.2s ease;
+  flex-shrink:0;
 }
 
 .tsNav:hover{ transform:scale(1.06); }
@@ -1234,7 +1236,7 @@ gap: 20px;
 /* Image on top (fixed height = same size) */
 .tsImageWrap{
   width:100%;
-  height:220px;           /* ปรับได้ เช่น 200/240 */
+  height:170px;
   overflow:hidden;
   background:#f1f5f9;
 }
@@ -1260,7 +1262,7 @@ gap: 20px;
 
 /* Content */
 .tsCardInner{
-  padding:26px;
+  padding:18px 20px;
   display:flex;
   flex-direction:column;
   text-align:center;
@@ -1268,28 +1270,28 @@ gap: 20px;
 }
 
 .tsTextQuote{
-  font-size:16px;
-  line-height:1.8;
+  font-size:15px;
+  line-height:1.7;
   color:#475569;
   font-style:italic;
-  margin-top:12px;
+  margin-top:8px;
 
   overflow:hidden;
   display:-webkit-box;
-  -webkit-line-clamp:6;
+  -webkit-line-clamp:4;
   -webkit-box-orient:vertical;
 }
 
 .tsName{
-  margin-top:18px;
+  margin-top:12px;
   font-weight:700;
   color:#1d4ed8;
-  font-size:18px;
+  font-size:16px;
 }
 
 .tsSub{
-  margin-top:6px;
-  font-size:14px;
+  margin-top:4px;
+  font-size:13px;
   color:#94a3b8;
 }
 

@@ -1536,12 +1536,15 @@ export async function getSchoolDashboard(req, res, next) {
       `SELECT
          SUM(CASE WHEN status = 'pending' AND delivery_method != 'dropoff' THEN 1 ELSE 0 END) AS pending_postal,
          SUM(CASE WHEN status = 'pending' AND delivery_method = 'dropoff'  THEN 1 ELSE 0 END) AS pending_dropoff,
+         SUM(CASE WHEN status = 'pending' AND delivery_method != 'dropoff' THEN quantity ELSE 0 END) AS pending_postal_qty,
+         SUM(CASE WHEN status = 'pending' AND delivery_method = 'dropoff'  THEN quantity ELSE 0 END) AS pending_dropoff_qty,
          SUM(CASE WHEN status = 'approved' AND condition_status = 'usable'
                        AND (SELECT COALESCE(SUM(sn.quantity_received), 0)
                             FROM fulfillment f
                             JOIN student_need sn ON sn.student_need_id = f.request_item_id
                             WHERE f.donation_id = donation_record.donation_id) > 0
              THEN 1 ELSE 0 END) AS approved,
+         SUM(CASE WHEN status = 'approved' AND condition_status = 'usable' THEN quantity ELSE 0 END) AS approved_qty,
          COUNT(*) AS total
        FROM donation_record WHERE request_id = ?`,
       [rid]
@@ -1594,6 +1597,7 @@ export async function getSchoolDashboard(req, res, next) {
       [rid]
     );
     chart_by_status.dropoff = Number(dropoffPending[0]?.cnt || 0);
+    chart_by_status.pending -= chart_by_status.dropoff;
 
     // ── 5. Action items ───────────────────────────────────────────────────────
     const [pendingPostalList] = await db.query(

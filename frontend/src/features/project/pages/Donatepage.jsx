@@ -531,11 +531,11 @@ export default function DonatePage() {
                       {item.name}
                       {item.size && <span className="dnUniformSize"> {formatSize(item.size)}</span>}
                     </span>
-                    <span className="dnSummaryQty">{d.qty} ชิ้น</span>
+                    <span className="dnSummaryQty">{d.qty} ตัว</span>
                   </div>
                 );
               })}
-              <div className="dnTotal">รวม <strong>{totalQty} ชิ้น</strong></div>
+              <div className="dnTotal">รวม <strong>{totalQty} ตัว</strong></div>
             </div>
           )}
         </div>
@@ -1111,7 +1111,7 @@ export function ConfirmationSummaryPage({
                   fontSize: 13, fontWeight: 600, color: "#5285e8",
                   background: "#EFF6FF", padding: "2px 10px", borderRadius: 20,
                 }}>
-                  {item.qty} ชิ้น
+                  {item.qty} ตัว
                 </span>
               </div>
             ))}
@@ -1122,7 +1122,7 @@ export function ConfirmationSummaryPage({
             fontWeight: 700, fontSize: 14,
           }}>
             <span style={{ color: "#6b7280" }}>รวมทั้งหมด</span>
-            <span style={{ color: "#1a1a2e" }}>{totalQty} ชิ้น</span>
+            <span style={{ color: "#1a1a2e" }}>{totalQty} ตัว</span>
           </div>
         </div>
 
@@ -1480,12 +1480,12 @@ export function QRLabelPage({
               {selectedItems.map((it, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 10px", background: i % 2 === 0 ? "#fff" : "#F7F8FA", borderBottom: `1px solid ${C.border}` }}>
                   <span style={{ fontSize: 10, color: C.text }}>{it.name}</span>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: C.navy }}>{it.qty} ชิ้น</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: C.navy }}>{it.qty} ตัว</span>
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 10px", background: "#EFF6FF" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: C.navy }}>รวมทั้งหมด</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: C.navy }}>{totalQty} ชิ้น</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.navy }}>{totalQty} ตัว</span>
               </div>
             </div>
           </div>
@@ -1653,11 +1653,11 @@ export function SchoolScanPage({
               {selectedItems.map((it, i) => (
                 <div key={i} style={S.scanTableRow}>
                   <span>{it.name}</span>
-                  <span style={{ fontWeight: 600 }}>{it.qty} ชิ้น</span>
+                  <span style={{ fontWeight: 600 }}>{it.qty} ตัว</span>
                 </div>
               ))}
               <div style={S.scanTableTotal}>
-                <span>รวม</span><span style={{ fontWeight: 700 }}>{totalQty} ชิ้น</span>
+                <span>รวม</span><span style={{ fontWeight: 700 }}>{totalQty} ตัว</span>
               </div>
             </div>
 
@@ -1721,7 +1721,7 @@ export function DonationNotificationItem({
           ส่งรายการบริจาคเรียบร้อย!
         </div>
         <div style={S.notifSub}>
-          {schoolName} · {totalQty} ชิ้น · DON-{donationId?.replace("DON-", "")}
+          {schoolName} · {totalQty} ตัว · DON-{donationId?.replace("DON-", "")}
         </div>
         <div style={S.notifTime}>{formatThaiDate(donationDate)}</div>
 

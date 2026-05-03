@@ -73,38 +73,6 @@ const getDaysElapsed = (createdAt) => {
   return Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24));
 };
  
-// ── Auto-check Badge ───────────────────────────────────────────────────────
-function AutoCheckBadge({ donation }) {
-  // market_purchase: ไม่ใช้ auto-check (tracking มาจากร้านค้า)
-  if (donation.delivery_method === "market_purchase") {
-    return <span style={{ color: "#e2e8f0" }}>—</span>;
-  }
-
-  if (!isOverdue(donation.created_at) || donation.status !== "pending")
-    return <span style={{ color:"#e2e8f0" }}>—</span>;
-  
-  if (donation.status === "approved" && !donation.auto_approved) {
-    return (
-      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"#16a34a", background:"#dcfce7", padding:"3px 9px", borderRadius:20 }}>
-        <Icon icon="mdi:check" width={12} /> ยืนยันโดยโรงเรียน
-      </span>
-    );
-  }
-  if (donation.auto_approved) {
-    return (
-      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"#7c3aed", background:"#f3e8ff", padding:"3px 9px", borderRadius:20, whiteSpace:"nowrap"}}>
-        <Icon icon="mdi:robot-outline" width={12} /> ตรวจสอบโดยแอดมิน
-      </span>
-    );
-  }
-  return (
-    <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"#d97706", background:"#fef3c7", padding:"3px 9px", borderRadius:20, whiteSpace:"nowrap" }}>
-      <Icon icon="mdi:clock-alert-outline" width={12} />
-      รอแอดมินตรวจสอบ · {getDaysElapsed(donation.created_at)} วัน
-    </span>
-  );
-}
- 
 // ── Delivery cell — แยกตาม delivery_method ───────────────────────────────
 function DeliveryCell({ d, onOpenTracking, onOpenAppt }) {
   // ── market_purchase ──────────────────────────────────────────────────────
@@ -276,7 +244,7 @@ export default function SchoolDonationPage() {
   useEffect(() => { loadDonations(); }, []);
  
   const summary = useMemo(() => ({
-    usable:     donations.filter(d => d.condition_status === "usable").length,
+    usable_qty: donations.filter(d => d.condition_status === "usable").reduce((s, d) => s + Number(d.quantity || 0), 0),
     wrong_item: donations.filter(d => d.condition_status === "wrong_item").length,
     not_sent:   donations.filter(d => d.condition_status === "not_sent").length,
     damaged:    donations.filter(d => d.condition_status === "damaged").length,
@@ -288,8 +256,10 @@ export default function SchoolDonationPage() {
  
   const overdueCount = useMemo(() =>
     donations.filter(d =>
-      d.status === "pending" &&
-      isOverdue(d.created_at)
+      d.status === "pending" && (
+        (d.delivery_method === "dropoff" && d.is_overdue) ||
+        (d.delivery_method !== "dropoff" && isOverdue(d.created_at))
+      )
     ).length,
   [donations]);
  
@@ -364,7 +334,7 @@ export default function SchoolDonationPage() {
       {overdueCount > 0 && (
         <div className="sdOverdueBanner">
           <Icon icon="mdi:clock-alert-outline" width={20} color="#d97706" style={{ flexShrink:0 }} />
-          <span>มี <strong>{overdueCount} รายการ</strong> ที่ผ่านมาแล้วเกิน 7 วันและยังไม่ได้รับการยืนยัน — แอดมินจะทำการตรวจสอบและดำเนินการให้ภายหลัง</span>
+          <span>มี <strong>{overdueCount} รายการ</strong> ที่เกินระยะเวลาและยังไม่ได้รับการยืนยัน — แอดมินจะทำการตรวจสอบและดำเนินการให้ภายหลัง</span>
           <Icon icon="mdi:robot-outline" width={18} color="#d97706" className="sdOverdueBannerIcon" />
         </div>
       )}
@@ -378,7 +348,10 @@ export default function SchoolDonationPage() {
             </div>
           </div>
           <span className="sdSummaryLabel">ใช้งานได้</span>
-          <span className="sdSummaryVal" style={{ color:"#2563eb" }}>{summary.usable}</span>
+          <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+            <span className="sdSummaryVal" style={{ color:"#2563eb" }}>{summary.usable_qty}</span>
+            <span style={{ fontSize:12, fontWeight:600, color:"#2563eb" }}>ตัว</span>
+          </div>
         </div>
         <div className="sdSummaryCard" style={{ color:"#d97706" }}>
           <div className="sdSummaryTop">
@@ -387,7 +360,10 @@ export default function SchoolDonationPage() {
             </div>
           </div>
           <span className="sdSummaryLabel">รายการไม่ตรง</span>
-          <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.wrong_item}</span>
+          <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+            <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.wrong_item}</span>
+            <span style={{ fontSize:12, fontWeight:600, color:"#d97706" }}>รายการ</span>
+          </div>
         </div>
         {summary.not_sent > 0 && (
           <div className="sdSummaryCard" style={{ color:"#7c3aed" }}>
@@ -397,7 +373,10 @@ export default function SchoolDonationPage() {
               </div>
             </div>
             <span className="sdSummaryLabel">ยังไม่ได้รับพัสดุ</span>
-            <span className="sdSummaryVal" style={{ color:"#7c3aed" }}>{summary.not_sent}</span>
+            <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+              <span className="sdSummaryVal" style={{ color:"#7c3aed" }}>{summary.not_sent}</span>
+              <span style={{ fontSize:12, fontWeight:600, color:"#7c3aed" }}>รายการ</span>
+            </div>
           </div>
         )}
         <div className="sdSummaryCard" style={{ color:"#dc2626" }}>
@@ -407,7 +386,10 @@ export default function SchoolDonationPage() {
             </div>
           </div>
           <span className="sdSummaryLabel">เสียหาย</span>
-          <span className="sdSummaryVal" style={{ color:"#dc2626" }}>{summary.damaged}</span>
+          <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+            <span className="sdSummaryVal" style={{ color:"#dc2626" }}>{summary.damaged}</span>
+            <span style={{ fontSize:12, fontWeight:600, color:"#dc2626" }}>รายการ</span>
+          </div>
         </div>
         <div className="sdSummaryCard" style={{ color:"#1d4ed8" }}>
           <div className="sdSummaryTop">
@@ -416,7 +398,10 @@ export default function SchoolDonationPage() {
             </div>
           </div>
           <span className="sdSummaryLabel">ได้รับไม่ครบ</span>
-          <span className="sdSummaryVal" style={{ color:"#1d4ed8" }}>{summary.incomplete}</span>
+          <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+            <span className="sdSummaryVal" style={{ color:"#1d4ed8" }}>{summary.incomplete}</span>
+            <span style={{ fontSize:12, fontWeight:600, color:"#1d4ed8" }}>รายการ</span>
+          </div>
         </div>
         <div className="sdSummaryCard" style={{ color:"#16a34a" }}>
           <div className="sdSummaryTop">
@@ -425,7 +410,10 @@ export default function SchoolDonationPage() {
             </div>
           </div>
           <span className="sdSummaryLabel">ได้รับแล้ว</span>
-          <span className="sdSummaryVal" style={{ color:"#16a34a" }}>{summary.approved}</span>
+          <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+            <span className="sdSummaryVal" style={{ color:"#16a34a" }}>{summary.approved}</span>
+            <span style={{ fontSize:12, fontWeight:600, color:"#16a34a" }}>รายการ</span>
+          </div>
         </div>
         <div className="sdSummaryCard" style={{ color:"#d97706" }}>
           <div className="sdSummaryTop">
@@ -434,7 +422,10 @@ export default function SchoolDonationPage() {
             </div>
           </div>
           <span className="sdSummaryLabel">รอตรวจสอบ</span>
-          <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.pending}</span>
+          <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+            <span className="sdSummaryVal" style={{ color:"#d97706" }}>{summary.pending}</span>
+            <span style={{ fontSize:12, fontWeight:600, color:"#d97706" }}>รายการ</span>
+          </div>
         </div>
         {summary.market > 0 && (
           <div className="sdSummaryCard" style={{ color:"#5285E8" }}>
@@ -444,7 +435,10 @@ export default function SchoolDonationPage() {
               </div>
             </div>
             <span className="sdSummaryLabel">ซื้อเพื่อบริจาค</span>
-            <span className="sdSummaryVal" style={{ color:"#5285E8" }}>{summary.market}</span>
+            <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+              <span className="sdSummaryVal" style={{ color:"#5285E8" }}>{summary.market}</span>
+              <span style={{ fontSize:12, fontWeight:600, color:"#5285E8" }}>รายการ</span>
+            </div>
           </div>
         )}
         {overdueCount > 0 && (
@@ -455,7 +449,10 @@ export default function SchoolDonationPage() {
               </div>
             </div>
             <span className="sdSummaryLabel">รอแอดมินตรวจสอบ</span>
-            <span className="sdSummaryVal" style={{ color:"#7c3aed" }}>{overdueCount}</span>
+            <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+              <span className="sdSummaryVal" style={{ color:"#7c3aed" }}>{overdueCount}</span>
+              <span style={{ fontSize:12, fontWeight:600, color:"#7c3aed" }}>รายการ</span>
+            </div>
           </div>
         )}
       </div>
@@ -500,7 +497,6 @@ export default function SchoolDonationPage() {
               <th>รายการบริจาค</th>
               <th>สถานะ</th>
               <th>การใช้งาน</th>
-              <th>การตรวจสอบ</th>
               <th>จัดการ</th>
             </tr>
           </thead>
@@ -542,7 +538,7 @@ export default function SchoolDonationPage() {
                     <td style={{ whiteSpace:"nowrap", fontSize:13 }}>
                       {formatDate(d.created_at)}
                       {overdue && (
-                        <div style={{ fontSize:10, color:"#d97706", marginTop:2, fontWeight:600 }}>เกิน 7 วัน</div>
+                        <div style={{ fontSize:10, color:"#d97706", marginTop:2, fontWeight:600 }}>เกิน {d.delivery_method === "dropoff" ? 3 : 7} วัน</div>
                       )}
                       {isMarket && (
                         <div style={{ fontSize:10, color:"#5285E8", marginTop:2, fontWeight:600 }}>ซื้อบริจาค</div>
@@ -570,11 +566,11 @@ export default function SchoolDonationPage() {
                     <td>
                       {items.length > 0 ? (
                         <span className="sdItemCount" style={{ whiteSpace:"nowrap"}}>
-                          {items.length} รายการ · {items.reduce((s, i) => s + (Number(i.quantity) || 0), 0)} ชิ้น
+                          {items.length} รายการ · {items.reduce((s, i) => s + (Number(i.quantity) || 0), 0)} ตัว
                         </span>
                       ) : (
                         <span className="sdItemCount">
-                          {d.quantity ? `${d.quantity} ชิ้น` : '—'}
+                          {d.quantity ? `${d.quantity} ตัว` : '—'}
                         </span>
                       )}
                     </td>
@@ -596,10 +592,7 @@ export default function SchoolDonationPage() {
                       ) : <span style={{ color:"#e2e8f0" }}>—</span>}
                     </td>
  
-                    {/* Auto-check */}
-                    <td onClick={e => e.stopPropagation()}>
-                      <AutoCheckBadge donation={d} />
-                    </td>
+
  
                     
                  {/* จัดการ */}
@@ -695,7 +688,7 @@ export default function SchoolDonationPage() {
                                     <span className="sdExpandDot" />
                                     <span className="sdExpandName">{item.name}</span>
                                     {item.education_level && <span className="sdExpandLevel">{item.education_level}</span>}
-                                    <span className="sdExpandQty">{item.quantity} ชิ้น</span>
+                                    <span className="sdExpandQty">{item.quantity} ตัว</span>
                                     {meta && (
                                       <span style={{
                                         display: "inline-flex", alignItems: "center", gap: 4,
@@ -882,22 +875,29 @@ export default function SchoolDonationPage() {
                   <div className="sdScheduleItems">
                     <div className="sdScheduleItemsTitle">
                       <Icon icon="mdi:package-variant-closed" width="14" />
-                      รายการที่จะนำมาส่ง ({apptPopup.quantity} ชิ้น)
+                      รายการที่จะนำมาส่ง ({apptPopup.quantity} ตัว)
                     </div>
                     {parseItems(apptPopup.items_snapshot).map((item,i) => (
                       <div key={i} className="sdScheduleItem">
                         <span className="sdScheduleItemDot" />
                         <span>{item.name}</span>
-                        <span className="sdScheduleItemQty">{item.quantity} ชิ้น</span>
+                        <span className="sdScheduleItemQty">{item.quantity} ตัว</span>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="sdScheduleStatus">
-                  <span className="sdBadge" style={{ color:STATUS_META[apptPopup.status]?.color, background:STATUS_META[apptPopup.status]?.bg }}>
-                    {apptPopup.status === "approved" && <Icon icon="mdi:check" width="13" />}
-                    {STATUS_META[apptPopup.status]?.label}
-                  </span>
+                  {apptPopup.is_overdue ? (
+                    <span className="sdBadge" style={{ color: "#dc2626", background: "#fee2e2" }}>
+                      <Icon icon="mdi:clock-alert-outline" width="13" />
+                      เกินกำหนดยืนยันรับ
+                    </span>
+                  ) : (
+                    <span className="sdBadge" style={{ color:STATUS_META[apptPopup.status]?.color, background:STATUS_META[apptPopup.status]?.bg }}>
+                      {apptPopup.status === "approved" && <Icon icon="mdi:check" width="13" />}
+                      {STATUS_META[apptPopup.status]?.label}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -905,9 +905,23 @@ export default function SchoolDonationPage() {
             <div className="sdPopupActions">
               <button className="sdPopupBtnGhost" onClick={() => setApptPopup(null)}>ปิด</button>
               {apptPopup.status === "pending" && (
-                <button className="sdPopupBtnPrimary" onClick={() => { setApptPopup(null); openVerifyPopup(apptPopup); }}>
-                  ยืนยันรับ
-                </button>
+                apptPopup.is_overdue ? (
+                  <div style={{
+                    fontSize: 12, color: "#92400e", background: "#fffbeb",
+                    border: "1px solid #fde68a", borderRadius: 8,
+                    padding: "10px 14px", lineHeight: 1.6,
+                  }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:6, fontWeight:600, marginBottom:2 }}>
+                      <Icon icon="mdi:shield-account-outline" width="14" color="#d97706" />
+                      ยังไม่ได้ยืนยันรับของภายใน 3 วันหลังวันนัด
+                    </div>
+                    <div style={{ color:"#78350f" }}>Admin จะเข้ามาดำเนินการตรวจสอบให้</div>
+                  </div>
+                ) : (
+                  <button className="sdPopupBtnPrimary" onClick={() => { setApptPopup(null); openVerifyPopup(apptPopup); }}>
+                    ยืนยันรับ
+                  </button>
+                )
               )}
             </div>
           </div>

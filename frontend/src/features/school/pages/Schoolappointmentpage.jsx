@@ -51,14 +51,18 @@ const formatThaiDate = (raw) => {
 };
 
 // ── ScheduleModal ─────────────────────────────────────────────────
+const LOCATION_PRESETS = ["ป้อมยาม", "ห้องธุรการ", "ห้องประชาสัมพันธ์", "หน้าโรงเรียน"];
+
 function ScheduleModal({ schedule, onClose, onSaved }) {
   const { token } = useAuth();
   const [openDays,   setOpenDays]   = useState(schedule?.open_days  || []);
   const [timeStart,  setTimeStart]  = useState(schedule?.time_start?.slice(0,5) || "08:00");
   const [timeEnd,    setTimeEnd]    = useState(schedule?.time_end?.slice(0,5)   || "15:30");
-  const [note,       setNote]       = useState(schedule?.note || "");
   const [saving,     setSaving]     = useState(false);
   const [err,        setErr]        = useState("");
+
+  const [locationValue, setLocationValue] = useState(schedule?.note || "");
+  const [locationOpen,  setLocationOpen]  = useState(false);
 
   const toggleDay = (key) =>
     setOpenDays(prev =>
@@ -67,8 +71,9 @@ function ScheduleModal({ schedule, onClose, onSaved }) {
 
   const handleSave = async () => {
     setErr("");
-    if (openDays.length === 0) return setErr("กรุณาเลือกวันรับอย่างน้อย 1 วัน");
-    if (timeStart >= timeEnd)  return setErr("เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด");
+    if (openDays.length === 0)    return setErr("กรุณาเลือกวันรับอย่างน้อย 1 วัน");
+    if (timeStart >= timeEnd)     return setErr("เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด");
+    if (!locationValue.trim())    return setErr("กรุณาระบุสถานที่นัดรับ");
 
     try {
       setSaving(true);
@@ -82,7 +87,7 @@ function ScheduleModal({ schedule, onClose, onSaved }) {
           open_days:  openDays,
           time_start: timeStart,
           time_end:   timeEnd,
-          note:       note.trim() || null,
+          note:       locationValue.trim() || null,
         }),
       });
       const data = await res.json();
@@ -160,18 +165,50 @@ function ScheduleModal({ schedule, onClose, onSaved }) {
           </div>
         </div>
 
-        {/* หมายเหตุ */}
-        <div className="sapScheduleSection">
+        {/* สถานที่นัดรับ */}
+        <div className="sapScheduleSection" style={{ position: "relative" }}>
           <div className="sapScheduleLabel">
-            หมายเหตุ <span style={{ fontWeight: 400, color: "#aaa" }}>(ไม่บังคับ)</span>
+            สถานที่นัดรับ
           </div>
-          <textarea
-            className="sapNoteInput"
-            rows={2}
-            value={note}
-            onChange={e => setNote(e.target.value)}
-            placeholder="เช่น กรุณาแจ้งล่วงหน้า 1 วัน ติดต่อครูที่ห้องธุรการ"
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              className="sapTimeInput"
+              style={{ width: "100%", boxSizing: "border-box", paddingRight: 36 }}
+              value={locationValue}
+              onChange={e => setLocationValue(e.target.value)}
+              onFocus={() => setLocationOpen(true)}
+              onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
+              placeholder="เลือกหรือพิมพ์สถานที่นัดรับ..."
+            />
+            <Icon
+              icon={locationOpen ? "mdi:chevron-up" : "mdi:chevron-down"}
+              width="18"
+              style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF", pointerEvents: "none" }}
+            />
+            {locationOpen && (
+              <div style={{
+                position: "absolute", bottom: "calc(100% + 4px)", left: 0, right: 0, zIndex: 10,
+                background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 10,
+                boxShadow: "0 -4px 12px rgba(0,0,0,.1)", overflow: "hidden",
+              }}>
+                {LOCATION_PRESETS.map(p => (
+                  <div
+                    key={p}
+                    onMouseDown={() => { setLocationValue(p); setLocationOpen(false); }}
+                    style={{
+                      padding: "10px 14px", fontSize: 14, cursor: "pointer",
+                      background: locationValue === p ? "#EEF2FF" : "#fff",
+                      color: locationValue === p ? "#5285E8" : "#374151",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#F9FAFB"}
+                    onMouseLeave={e => e.currentTarget.style.background = locationValue === p ? "#EEF2FF" : "#fff"}
+                  >
+                    {p}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {err && <div className="sapErr">{err}</div>}
@@ -226,7 +263,9 @@ function ScheduleBanner({ schedule, onEdit }) {
           {days} · {schedule.time_start?.slice(0,5)}–{schedule.time_end?.slice(0,5)} น.
         </div>
         {schedule.note && (
-          <div className="sapScheduleBannerNote">{schedule.note}</div>
+          <div className="sapScheduleBannerNote">
+            <span style={{ color: "#6B7280" }}>สถานที่นัดรับ : </span>{schedule.note}
+          </div>
         )}
       </div>
       <button className="sapScheduleEditBtn" onClick={onEdit}>
@@ -461,13 +500,20 @@ export default function SchoolAppointmentPage() {
                   )}
                 </div>
               </div>
-              <span className="sdBadge" style={{
-                marginLeft: "auto",
-                color:      STATUS_META[detailPopup.status]?.color,
-                background: STATUS_META[detailPopup.status]?.bg,
-              }}>
-                {STATUS_META[detailPopup.status]?.label}
-              </span>
+              {detailPopup.is_overdue ? (
+                <span className="sdBadge" style={{ marginLeft: "auto", color: "#dc2626", background: "#fee2e2" }}>
+                  <Icon icon="mdi:clock-alert-outline" width="13" style={{ marginRight: 3 }} />
+                  เกินกำหนดยืนยันรับ
+                </span>
+              ) : (
+                <span className="sdBadge" style={{
+                  marginLeft: "auto",
+                  color:      STATUS_META[detailPopup.status]?.color,
+                  background: STATUS_META[detailPopup.status]?.bg,
+                }}>
+                  {STATUS_META[detailPopup.status]?.label}
+                </span>
+              )}
             </div>
 
             <div className="sapPopupInfoRow">
@@ -491,7 +537,7 @@ export default function SchoolAppointmentPage() {
                 <Icon icon="mdi:package-variant" width="16" color="#16a34a" />
                 <div>
                   <div className="sapPopupInfoLabel">จำนวนชุด</div>
-                  <div className="sapPopupInfoVal">{detailPopup.quantity} ชิ้น</div>
+                  <div className="sapPopupInfoVal">{detailPopup.quantity} ตัว</div>
                 </div>
               </div>
             </div>
@@ -506,6 +552,7 @@ export default function SchoolAppointmentPage() {
               {detailPopup.status === "pending" ? (() => {
                 const items = parseItems(detailPopup.items_snapshot);
                 const allChecked = items.length > 0 && items.every((_, i) => checkedItems[i]);
+                const isOverdue = detailPopup.is_overdue;
                 return (
                   <>
                     <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
@@ -516,18 +563,20 @@ export default function SchoolAppointmentPage() {
                         key={i}
                         style={{
                           display: "flex", alignItems: "center", gap: 10,
-                          background: checkedItems[i] ? "#f0fdf4" : "#f9fafb",
-                          border: `1.5px solid ${checkedItems[i] ? "#86efac" : "#e5e7eb"}`,
+                          background: "#f9fafb",
+                          border: "1.5px solid #e5e7eb",
                           borderRadius: 10, padding: "10px 14px",
-                          marginBottom: 8, cursor: "pointer",
+                          marginBottom: 8, cursor: isOverdue ? "not-allowed" : "pointer",
+                          opacity: isOverdue ? 0.5 : 1,
                           transition: "all 0.15s",
                         }}
                       >
                         <input
                           type="checkbox"
-                          checked={!!checkedItems[i]}
-                          onChange={e => setCheckedItems(prev => ({ ...prev, [i]: e.target.checked }))}
-                          style={{ width: 18, height: 18, accentColor: "#16a34a", cursor: "pointer" }}
+                          checked={false}
+                          disabled={isOverdue}
+                          onChange={isOverdue ? undefined : e => setCheckedItems(prev => ({ ...prev, [i]: e.target.checked }))}
+                          style={{ width: 18, height: 18, accentColor: "#16a34a", cursor: isOverdue ? "not-allowed" : "pointer" }}
                         />
                         <span style={{ flex: 1, fontSize: 14, color: "#1a1a2e" }}>{item.name}</span>
                         <span style={{
@@ -536,7 +585,7 @@ export default function SchoolAppointmentPage() {
                           background: checkedItems[i] ? "#dcfce7" : "#eff6ff",
                           padding: "2px 10px", borderRadius: 20,
                         }}>
-                          {item.quantity} ชิ้น
+                          {item.quantity} ตัว
                         </span>
                       </label>
                     ))}
@@ -565,7 +614,7 @@ export default function SchoolAppointmentPage() {
                 <div key={i} className="sapPopupItem">
                   <span className="sapPopupItemDot" />
                   <span>{item.name}</span>
-                  <span className="sapPopupItemQty">{item.quantity} ชิ้น</span>
+                  <span className="sapPopupItemQty">{item.quantity} ตัว</span>
                 </div>
               ))}
             </div>
@@ -573,6 +622,21 @@ export default function SchoolAppointmentPage() {
             <div className="sapPopupActions">
               <button className="sapPopupBtnGhost" onClick={() => setDetailPopup(null)}>ปิด</button>
               {detailPopup.status === "pending" && (() => {
+                if (detailPopup.is_overdue) {
+                  return (
+                    <div style={{
+                      fontSize: 12, color: "#92400e", background: "#fffbeb",
+                      border: "1px solid #fde68a", borderRadius: 8,
+                      padding: "10px 14px", lineHeight: 1.6,
+                    }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:6, fontWeight:600, marginBottom:2 }}>
+                        <Icon icon="mdi:shield-account-outline" width="14" color="#d97706" />
+                        ยังไม่ได้ยืนยันรับของภายใน 3 วันหลังวันนัด
+                      </div>
+                      <div style={{ color:"#78350f" }}>Admin จะเข้ามาดำเนินการตรวจสอบให้</div>
+                    </div>
+                  );
+                }
                 const items = parseItems(detailPopup.items_snapshot);
                 const allChecked = items.length > 0 && items.every((_, i) => checkedItems[i]);
                 return (
@@ -630,13 +694,20 @@ function AppointCard({ d, onClick }) {
           )}
           <span className="sapCardMetaItem">
             <Icon icon="mdi:package-variant-closed" width="13" />
-            {d.quantity} ชิ้น · {items.length} รายการ
+            {d.quantity} ตัว · {items.length} รายการ
           </span>
         </div>
       </div>
-      <span className="sdBadge sapCardBadge" style={{ color: sm.color, background: sm.bg }}>
-        {sm.label}
-      </span>
+      {d.is_overdue ? (
+        <span className="sdBadge sapCardBadge" style={{ color: "#dc2626", background: "#fee2e2" }}>
+          <Icon icon="mdi:clock-alert-outline" width="13" style={{ marginRight: 3 }} />
+          เกินกำหนดยืนยันรับ
+        </span>
+      ) : (
+        <span className="sdBadge sapCardBadge" style={{ color: sm.color, background: sm.bg }}>
+          {sm.label}
+        </span>
+      )}
     </div>
   );
 }

@@ -84,7 +84,11 @@ export async function getDonationsByProject(request_id) {
    quantity, status, condition_status,
    auto_approved, auto_approved_at,
    reject_reason,
-   created_at
+   created_at,
+   (delivery_method = 'dropoff' AND status = 'pending'
+    AND donation_date IS NOT NULL
+    AND TIMESTAMPDIFF(DAY, donation_date, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 3
+   ) AS is_overdue
     FROM donation_record
     WHERE request_id = ?
     ORDER BY created_at DESC`,
