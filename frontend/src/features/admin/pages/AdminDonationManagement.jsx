@@ -464,10 +464,10 @@ export default function AdminDonationManagement() {
   return (
     <div style={{ padding:"28px 32px", maxWidth:1200, margin:"0 auto" }}>
 
-      <div className="boTop" style={{ marginBottom:24 }}>
+      <div className="boTop">
         <div>
           <div className="boTitle">จัดการการบริจาค</div>
-          <p style={{ fontSize:13, color:"#64748b", margin:"4px 0 0" }}>รายการที่เกิน 7 วันและยังรอแอดมินตรวจสอบ</p>
+          <p style={{ fontSize:13, color:"rgba(255,255,255,0.75)", margin:"4px 0 0" }}>รายการที่เกิน 7 วันและยังรอแอดมินตรวจสอบ</p>
         </div>
         <div className="boAdmin">
           <div className="boAdminText"><ProfileDropdown /></div>

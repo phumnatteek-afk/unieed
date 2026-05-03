@@ -546,27 +546,27 @@ height: auto;
 
 /* Page header */
 .boTop {
-  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 24px 18px;
-  
-
-  border-bottom: 2px solid rgba(0,0,0,0.10); 
+  padding: 20px 28px 24px;
+  background: linear-gradient(135deg, #1a4bb5 0%, #5285E8 55%, #7bbcd4 100%);
+  border-radius: 16px;
+  margin-bottom: 24px;
+  border-bottom: none;
 }
 
 .boTitle {
   font-size: 32px;
   font-weight: 600;
-  color: #053F5C;
+  color: #ffffff;
 }
 
 .boAdmin {
   display: flex;
   align-items: center;
   gap: 14px;
-  color: #053F5C;
+  color: #ffffff;
 }
 
 .boAdminRole svg  {
@@ -577,13 +577,13 @@ height: auto;
   margin-right: 12px;
 }
 
-.boAdminText div, 
-.boAdminText span, 
+.boAdminText div,
+.boAdminText span,
 .boAdminText a {
-    color: #053f5c !important;
+    color: #ffffff !important;
 }
 .boAdminText .pd-avatar svg {
-    color: #053F5C !important;
+    color: #ffffff !important;
 }
 .boAdminRole {
   font-weight: 600;
