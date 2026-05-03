@@ -71,11 +71,6 @@ function NeedsExpanded({ needs = [] }) {
               </div>
               <span className="neProgressLabel">{n.quantity_received}/{n.quantity_needed} ตัว</span>
             </div>
-            {/* <div className="neSupport">
-              {n.support_mode === "recurring"
-                ? `🔄 ต่อเนื่อง ${n.support_years || 1} ปี`
-                : "🎁 ครั้งเดียว"}
-            </div> */}
           </div>
         );
       })}
@@ -154,6 +149,7 @@ export default function SchoolRequestManagePage() {
     const qq = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (qq && !String(r.student_name || "").toLowerCase().includes(qq) &&
+                !String(r.student_code || "").toLowerCase().includes(qq) &&
                 !String(r.gender || "").toLowerCase().includes(qq)) return false;
       if (grade     && r.education_level           !== grade)     return false;
       if (status    && r.summary?.fulfillStatus    !== status)    return false;
@@ -238,9 +234,6 @@ export default function SchoolRequestManagePage() {
       {/* ══ TOP BAR ══════════════════════════════════════ */}
       <div className="pm-topbar">
         <div className="pm-topbar-left">
-          {/* <button className="pm-back-btn" onClick={() => navigate("/school/projects")} type="button">
-            <Icon icon="mdi:arrow-left" width="18" />
-          </button> */}
           <div>
             <div className="pm-project-title">
               โครงการ: {project?.request_title || "กำลังโหลด..."}
@@ -321,16 +314,14 @@ export default function SchoolRequestManagePage() {
                style={{ animationDelay: `${i * 60}ms` }}>
             <div className="pm-stat-icon-wrap">
               {s.icon.includes('<svg') ? (
-    /* กรณีเป็น SVG String: ให้ฉีด HTML เข้าไปตรงๆ */
-    <div 
-      className="custom-svg-icon"
-      style={{ width: '30px', height: '30px', display: 'flex' }}
-      dangerouslySetInnerHTML={{ __html: s.icon }} 
-    />
-  ) : (
-    /* กรณีเป็นชื่อไอคอน mdi:... แบบเดิม: ให้ใช้คอมโพเนนต์ Icon */
-    <Icon icon={s.icon} width="20" />
-  )}
+                <div
+                  className="custom-svg-icon"
+                  style={{ width: '30px', height: '30px', display: 'flex' }}
+                  dangerouslySetInnerHTML={{ __html: s.icon }}
+                />
+              ) : (
+                <Icon icon={s.icon} width="20" />
+              )}
             </div>
             <div className="pm-stat-body">
               <div className="pm-stat-value">{s.value}</div>
@@ -346,31 +337,28 @@ export default function SchoolRequestManagePage() {
         {/* ── Toolbar ────────────────────────────────── */}
         <div className="pm-toolbar">
           <div className="pm-toolbar-left">
-  {/* 1. สร้างกลุ่มใหม่ครอบช่องค้นหาและปุ่มล้างตัวกรอง */}
-  <div className="pm-search-group">
-    <div className="pm-search-wrap">
-      <Icon icon="mdi:magnify" className="pm-search-icon" width="18" />
-      <input
-        className="pm-search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="ค้นหาชื่อนักเรียน..."
-      />
-      {q && (
-        <button className="pm-search-clear" onClick={() => setQ("")} type="button">✕</button>
-      )}
-    </div>
-
-    {/* 2. ย้ายปุ่มล้างตัวกรองมาไว้ตรงนี้ (นอก wrap แต่อยู่ใน group) */}
-    {(q || grade || status || urgFilter) && (
-      <button 
-        className="pm-clear-filters"
-        onClick={() => { setQ(""); setGrade(""); setStatus(""); setUrgFilter(""); }}
-        type="button"
-      >
-        ล้างตัวกรอง
-      </button>
-    )}
+            <div className="pm-search-group">
+              <div className="pm-search-wrap">
+                <Icon icon="mdi:magnify" className="pm-search-icon" width="18" />
+                <input
+                  className="pm-search"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="ค้นหาชื่อ / รหัสนักเรียน..."
+                />
+                {q && (
+                  <button className="pm-search-clear" onClick={() => setQ("")} type="button">✕</button>
+                )}
+              </div>
+              {(q || grade || status || urgFilter) && (
+                <button
+                  className="pm-clear-filters"
+                  onClick={() => { setQ(""); setGrade(""); setStatus(""); setUrgFilter(""); }}
+                  type="button"
+                >
+                  ล้างตัวกรอง
+                </button>
+              )}
             </div>
             <select className="pm-filter-sel" value={grade} onChange={(e) => setGrade(e.target.value)}>
               <option value="">ทุกระดับชั้น</option>
@@ -378,22 +366,18 @@ export default function SchoolRequestManagePage() {
               <option value="ประถมศึกษา">ประถมศึกษา</option>
               <option value="มัธยมศึกษา">มัธยมศึกษา</option>
             </select>
-
             <select className="pm-filter-sel" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="">ทุกสถานะ</option>
               <option value="pending">ยังไม่ได้รับ</option>
               <option value="partial">ได้รับบางส่วน</option>
               <option value="fulfilled">ได้รับครบแล้ว</option>
             </select>
-
             <select className="pm-filter-sel" value={urgFilter} onChange={(e) => setUrgFilter(e.target.value)}>
               <option value="">ทุกความเร่งด่วน</option>
               <option value="very_urgent">เร่งด่วนมาก</option>
               <option value="urgent">เร่งด่วน</option>
               <option value="can_wait">รอได้</option>
             </select>
-
-           
           </div>
 
           <div className="pm-toolbar-right">
@@ -443,149 +427,151 @@ export default function SchoolRequestManagePage() {
         ) : (
           <>
             <div className="pm-table-wrap">
-          {/* ── Table ─────────────────────────────────── */}
-<table className="pm-table">
-  <thead>
-    <tr>
-      {/* ลบ <th style={{ width: 36 }} /> ออก */}
-      <th>วันที่เพิ่ม</th>
-      <th>นักเรียน</th>
-      <th>ระดับชั้น</th>
-      <th>ความเร่งด่วน</th>
-      <th>รายการชุด</th>
-      <th>ความคืบหน้า</th>
-      <th>สถานะ</th>
-      <th>การรับ</th>
-      <th style={{ width: 80 }} />
-    </tr>
-  </thead>
-  <tbody>
-    {paginated.map((r, ri) => {
-      const urg = URGENCY_META[r.urgency] || URGENCY_META.can_wait;
-      const fm  = FULFILL_META[r.summary?.fulfillStatus] || FULFILL_META.pending;
-      const exp = expandedIds.has(r.student_id);
-      const pct = (() => {
-        const parts = (r.summary?.receivedText || "0/0").split("/");
-        const rec = Number(parts[0] || 0), tot = Number(parts[1] || 0);
-        return tot > 0 ? Math.round((rec / tot) * 100) : 0;
-      })();
+              <table className="pm-table">
+                <thead>
+                  <tr>
+                    {/* ✅ รหัสนักเรียนเป็นคอลัมน์แรกแทนวันที่ */}
+                    <th style={{ width: 110 }}>รหัสนักเรียน</th>
+                    <th>นักเรียน</th>
+                    <th>ระดับชั้น</th>
+                    <th>ความเร่งด่วน</th>
+                    <th>รายการชุด</th>
+                    <th>ความคืบหน้า</th>
+                    <th>สถานะ</th>
+                    <th>การรับ</th>
+                    <th style={{ width: 80 }} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map((r, ri) => {
+                    const urg = URGENCY_META[r.urgency] || URGENCY_META.can_wait;
+                    const fm  = FULFILL_META[r.summary?.fulfillStatus] || FULFILL_META.pending;
+                    const exp = expandedIds.has(r.student_id);
+                    const pct = (() => {
+                      const parts = (r.summary?.receivedText || "0/0").split("/");
+                      const rec = Number(parts[0] || 0), tot = Number(parts[1] || 0);
+                      return tot > 0 ? Math.round((rec / tot) * 100) : 0;
+                    })();
 
-      return (
-        <>
-          <tr
-            key={r.student_id}
-            className={`pm-row ${exp ? "pm-row-expanded" : ""}`}
-            style={{ animationDelay: `${ri * 20}ms`, cursor: "pointer" }}
-            onClick={() => toggleExpand(r.student_id)}  // 👈 กดทั้งแถว
-          >
-            {/* ลบ td expand toggle ออกทั้งหมด */}
+                    return (
+                      <>
+                        <tr
+                          key={r.student_id}
+                          className={`pm-row ${exp ? "pm-row-expanded" : ""}`}
+                          style={{ animationDelay: `${ri * 20}ms`, cursor: "pointer" }}
+                          onClick={() => toggleExpand(r.student_id)}
+                        >
+                          {/* ✅ คอลัมน์รหัสนักเรียน — แทนที่วันที่ */}
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <div className="pm-code-cell">
+                              {r.student_code ? (
+                                <span className="pm-student-code-badge">
+                                  <Icon icon="mdi:identifier" width="12" style={{ opacity: 0.6 }} />
+                                  {r.student_code}
+                                </span>
+                              ) : (
+                                <span className="pm-code-empty">—</span>
+                              )}
+                            </div>
+                          </td>
 
-            {/* วันที่ */}
-            <td onClick={(e) => e.stopPropagation()}>  {/* ป้องกัน bubble ถ้าต้องการ */}
-              <div className="pm-date-cell">
-                <span>{new Date(r.created_at).toLocaleDateString("th-TH", {
-                  year: "numeric", month: "short", day: "numeric"
-                })}</span>
-              </div>
-            </td>
+                          {/* นักเรียน */}
+                          <td>
+                            <div className="pm-student-cell">
+                              <div>
+                                <div className="pm-student-name">{r.student_name}</div>
+                                <div className="pm-student-s">
+                                  <div className="pm-avatar" style={{
+                                    background: r.gender === "male" ? "#DBEAFE" : "#FCE7F3",
+                                    color: r.gender === "male" ? "#1D4ED8" : "#BE185D",
+                                  }}>
+                                    <Icon
+                                      icon={r.gender === "male" ? "solar:men-outline" : "solar:women-outline"}
+                                      width="10"
+                                    />
+                                  </div>
+                                  <div className="pm-student-sub">
+                                    {GENDER_TH[r.gender] || r.gender}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
 
-            {/* นักเรียน */}
-            <td>
-              <div className="pm-student-cell">
-                <div>
-                  <div className="pm-student-name">{r.student_name}</div>
-                  <div className="pm-student-s">
-                    <div className="pm-avatar" style={{
-                      background: r.gender === "male" ? "#DBEAFE" : "#FCE7F3",
-                      color: r.gender === "male" ? "#1D4ED8" : "#BE185D",
-                    }}>
-                      <Icon
-                        icon={r.gender === "male" ? "solar:men-outline" : "solar:women-outline"}
-                        width="10"
-                      />
-                    </div>
-                    <div className="pm-student-sub">
-                      {GENDER_TH[r.gender] || r.gender}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </td>
+                          {/* ระดับชั้น */}
+                          <td>
+                            <span className="pm-grade-tag">
+                              <span className="pm-grade-full"> {r.education_level}</span>
+                            </span>
+                          </td>
 
-            {/* ระดับชั้น */}
-            <td>
-              <span className="pm-grade-tag">
-                <span className="pm-grade-full"> {r.education_level}</span>
-              </span>
-            </td>
+                          {/* ความเร่งด่วน */}
+                          <td>
+                            <span className={`pm-urg-badge ${urg.cls}`}>
+                              <span className="pm-urg-dot" style={{ background: urg.dot }} />
+                              {urg.label}
+                            </span>
+                          </td>
 
-            {/* ความเร่งด่วน */}
-            <td>
-              <span className={`pm-urg-badge ${urg.cls}`}>
-                <span className="pm-urg-dot" style={{ background: urg.dot }} />
-                {urg.label}
-              </span>
-            </td>
+                          {/* รายการ */}
+                          <td>
+                            <span className="pm-items-count">
+                              {r.summary?.totalItems || 0} รายการ
+                            </span>
+                          </td>
 
-            {/* รายการ */}
-            <td>
-              <span className="pm-items-count">
-                {r.summary?.totalItems || 0} รายการ
-              </span>
-            </td>
+                          {/* progress */}
+                          <td>
+                            <div className="pm-prog-cell">
+                              <div className="pm-prog-bar">
+                                <div className="pm-prog-fill"
+                                  style={{
+                                    width: `${pct}%`,
+                                    background: pct >= 100 ? "#10B981" : pct > 0 ? "#F59E0B" : "#E5E7EB",
+                                  }} />
+                              </div>
+                              <span className="pm-prog-text">{r.summary?.receivedText || "0/0"}</span>
+                            </div>
+                          </td>
 
-            {/* progress */}
-            <td>
-              <div className="pm-prog-cell">
-                <div className="pm-prog-bar">
-                  <div className="pm-prog-fill"
-                    style={{
-                      width: `${pct}%`,
-                      background: pct >= 100 ? "#10B981" : pct > 0 ? "#F59E0B" : "#E5E7EB",
-                    }} />
-                </div>
-                <span className="pm-prog-text">{r.summary?.receivedText || "0/0"}</span>
-              </div>
-            </td>
+                          {/* สถานะ */}
+                          <td><span className={`pm-fulfill-badge ${fm.cls}`}>{fm.text}</span></td>
 
-            {/* สถานะ */}
-            <td><span className={`pm-fulfill-badge ${fm.cls}`}>{fm.text}</span></td>
+                          {/* การรับ */}
+                          <td>
+                            <span className="pm-support-tag">
+                              <Icon
+                                icon={r.summary?.supportLabel === "รับต่อเนื่อง" ? "mdi:calendar-sync" : "mdi:gift-outline"}
+                                width="13" style={{ marginRight: 4, verticalAlign: "middle" }}
+                              />
+                              {r.summary?.supportLabel || "—"}
+                            </span>
+                          </td>
 
-            {/* การรับ */}
-            <td>
-              <span className="pm-support-tag">
-                <Icon
-                  icon={r.summary?.supportLabel === "รับต่อเนื่อง" ? "mdi:calendar-sync" : "mdi:gift-outline"}
-                  width="13" style={{ marginRight: 4, verticalAlign: "middle" }}
-                />
-                {r.summary?.supportLabel || "—"}
-              </span>
-            </td>
+                          {/* actions */}
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <div className="pm-actions">
+                              <button className="pm-action-btn pm-action-edit"
+                                onClick={() => onEdit(r)} type="button" title="แก้ไข">
+                                <Icon icon="iconamoon:edit" width="50" height="50" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
 
-            {/* actions — ต้องหยุด event ไม่ให้ trigger expand */}
-            <td onClick={(e) => e.stopPropagation()}>
-              <div className="pm-actions">
-                <button className="pm-action-btn pm-action-edit"
-                  onClick={() => onEdit(r)} type="button" title="แก้ไข">
-                  <Icon icon="iconamoon:edit" width="50" height="50" />
-                </button>
-              </div>
-            </td>
-          </tr>
-
-          {/* ── Expanded needs ─────────────── */}
-          {exp && (
-            <tr key={`${r.student_id}-exp`} className="pm-row-detail">
-              <td colSpan="9" className="pm-td-detail">  {/* 👈 ลด colSpan เหลือ 9 */}
-                <NeedsExpanded needs={r.needs || []} />
-              </td>
-            </tr>
-          )}
-        </>
-      );
-    })}
-  </tbody>
-</table>
+                        {/* ── Expanded needs ─────────────── */}
+                        {exp && (
+                          <tr key={`${r.student_id}-exp`} className="pm-row-detail">
+                            <td colSpan="9" className="pm-td-detail">
+                              <NeedsExpanded needs={r.needs || []} />
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
             {/* ── Pagination ──────────────────────────── */}
@@ -626,6 +612,7 @@ export default function SchoolRequestManagePage() {
         onSave={onSave}
         uniformTypes={Array.isArray(uniformTypes) ? uniformTypes : []}
         initial={editing}
+        existingStudents={rows}
       />
       <ExcelImportModal
         open={importOpen}

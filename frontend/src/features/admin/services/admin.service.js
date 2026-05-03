@@ -30,6 +30,16 @@ export function removeSchool(id) {
   return request(`/admin/schools/${id}`, { method: "DELETE", auth: true });
 }
 
+/** POST /admin/schools/:id/suspend */
+export function suspendSchool(id) {
+  return request(`/admin/schools/${id}/suspend`, { method: "POST", auth: true });
+}
+
+/** POST /admin/schools/:id/unsuspend */
+export function unsuspendSchool(id) {
+  return request(`/admin/schools/${id}/unsuspend`, { method: "POST", auth: true });
+}
+
 /** GET /admin/overview */
 export function getOverview() {
   return request("/admin/overview", { method: "GET", auth: true });

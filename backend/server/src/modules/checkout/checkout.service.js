@@ -19,7 +19,7 @@ const getAddresses = async (userId) => {
 };
 
 const createAddress = async (userId, data) => {
-  const { recipient_name, phone, address_line, district, province, postcode, is_default = 0 } = data;
+  const { recipient_name, phone, address_line, district, amphoe, province, postcode, is_default = 0 } = data;
   if (is_default) {
     await db.execute("UPDATE address SET is_default = 0 WHERE user_id = ?", [userId]);
   }
@@ -28,23 +28,23 @@ const createAddress = async (userId, data) => {
   );
   const setDefault = is_default || Number(cnt) === 0 ? 1 : 0;
   const [result] = await db.execute(
-    `INSERT INTO address (user_id, recipient_name, phone, address_line, district, province, postcode, is_default)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [userId, recipient_name, phone, address_line, district, province, postcode, setDefault]
+    `INSERT INTO address (user_id, recipient_name, phone, address_line, district, amphoe, province, postcode, is_default)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [userId, recipient_name, phone, address_line, district, amphoe || null, province, postcode, setDefault]
   );
   const [[address]] = await db.execute("SELECT * FROM address WHERE address_id = ?", [result.insertId]);
   return address;
 };
 
 const updateAddress = async (userId, addressId, data) => {
-  const { recipient_name, phone, address_line, district, province, postcode, is_default } = data;
+  const { recipient_name, phone, address_line, district, amphoe, province, postcode, is_default } = data;
   if (is_default) {
     await db.execute("UPDATE address SET is_default = 0 WHERE user_id = ?", [userId]);
   }
   await db.execute(
-    `UPDATE address SET recipient_name=?, phone=?, address_line=?, district=?, province=?, postcode=?, is_default=?
+    `UPDATE address SET recipient_name=?, phone=?, address_line=?, district=?, amphoe=?, province=?, postcode=?, is_default=?
      WHERE address_id = ? AND user_id = ?`,
-    [recipient_name, phone, address_line, district, province, postcode, is_default ? 1 : 0, addressId, userId]
+    [recipient_name, phone, address_line, district, amphoe || null, province, postcode, is_default ? 1 : 0, addressId, userId]
   );
   const [[address]] = await db.execute("SELECT * FROM address WHERE address_id = ?", [addressId]);
   return address;

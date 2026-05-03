@@ -10,14 +10,17 @@ export default function SchoolDetailModal({
   onApprove,
   onReject,
   onRemove,
+  onSuspend,
+  onUnsuspend,
   busy = false,
 }) {
   const s = school || {};
   const status = s.verification_status || "pending";
 
   const statusBadge = useMemo(() => {
-    if (status === "approved") return <span className="sdBadge sdBadge--ok">อนุมัติแล้ว</span>;
-    if (status === "rejected") return <span className="sdBadge sdBadge--bad">ระงับบัญชี</span>;
+    if (status === "approved")  return <span className="sdBadge sdBadge--ok">อนุมัติแล้ว</span>;
+    if (status === "rejected")  return <span className="sdBadge sdBadge--bad">รอพิจารณาใหม่</span>;
+    if (status === "suspended") return <span className="sdBadge sdBadge--suspended">ระงับบัญชี</span>;
     return <span className="sdBadge sdBadge--wait">รอตรวจสอบ</span>;
   }, [status]);
 
@@ -361,7 +364,10 @@ export default function SchoolDetailModal({
                 <button className="sdBtn sdBtn--ok" onClick={() => onApprove?.(school)} disabled={busy} type="button">อนุมัติแทน</button>
               )}
               {status === "approved" && (
-                <button className="sdBtn sdBtn--warn" onClick={() => onRemove?.(school)} disabled={busy} type="button">ระงับบัญชี</button>
+                <button className="sdBtn sdBtn--warn" onClick={() => (onSuspend ?? onRemove)?.(school)} disabled={busy} type="button">ระงับบัญชี</button>
+              )}
+              {status === "suspended" && (
+                <button className="sdBtn sdBtn--ok" onClick={() => onUnsuspend?.(school)} disabled={busy} type="button">ปลดระงับ</button>
               )}
             </div>
           )}

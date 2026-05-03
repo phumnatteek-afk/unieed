@@ -92,15 +92,37 @@ export async function rejectSchool(school_id, note) {
   } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
 }
 
-export async function removeSchool(school_id) {
+// ระงับบัญชีโรงเรียน — ข้อมูลยังอยู่ครบ แต่ผู้ดูแลทุกคน login ไม่ได้
+export async function suspendSchool(school_id) {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
-    await conn.query(`DELETE FROM users WHERE school_id=? AND role='school_admin'`, [school_id]);
-    const [r] = await conn.query(`DELETE FROM schools WHERE school_id=?`, [school_id]);
+    const [r] = await conn.query(
+      `UPDATE schools SET verification_status='suspended' WHERE school_id=?`, [school_id]
+    );
     if (r.affectedRows === 0) throw Object.assign(new Error("School not found"), { status: 404 });
+    await conn.query(
+      `UPDATE users SET status='suspended' WHERE school_id=? AND role='school_admin'`, [school_id]
+    );
     await conn.commit();
-    return { message: "Removed" };
+    return { message: "Suspended" };
+  } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
+}
+
+// ปลดระงับบัญชีโรงเรียน
+export async function unsuspendSchool(school_id) {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [r] = await conn.query(
+      `UPDATE schools SET verification_status='approved' WHERE school_id=?`, [school_id]
+    );
+    if (r.affectedRows === 0) throw Object.assign(new Error("School not found"), { status: 404 });
+    await conn.query(
+      `UPDATE users SET status='active' WHERE school_id=? AND role='school_admin' AND status='suspended'`, [school_id]
+    );
+    await conn.commit();
+    return { message: "Unsuspended" };
   } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
 }
 

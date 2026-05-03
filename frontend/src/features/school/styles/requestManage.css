@@ -542,3 +542,34 @@
   white-space: nowrap;
 }
 .pm-date-icon { color: var(--pm-text-dim); flex-shrink: 0; }
+
+/* Cell wrapper */
+.pm-code-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+ 
+/* Badge รหัสนักเรียน */
+.pm-student-code-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+  border-radius: 7px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+  white-space: nowrap;
+}
+ 
+/* กรณีไม่มีรหัส */
+.pm-code-empty {
+  color: #D1D5DB;
+  font-size: 13px;
+}
+ 

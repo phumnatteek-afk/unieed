@@ -356,7 +356,105 @@ export default function HomePage() {
   const [navHover, setNavHover] = useState(false);
   const [faqOpen, setFaqOpen] = useState(null);
 
+  // ── แท็บ "โครงการใกล้ฉัน" ─────────────────────────────────
+  const NEARBY_TAB = "โครงการใกล้ฉัน";
+  const [nearbyProvince, setNearbyProvince]       = useState(() => localStorage.getItem("unieed_province") || "");
+  const [nearbyProjects, setNearbyProjects]       = useState([]);
+  const [nearbyLoading,  setNearbyLoading]        = useState(false);
+  const [nearbyGpsError, setNearbyGpsError]       = useState("");
+  const [showProvincePicker, setShowProvincePicker] = useState(false);
+  const [provinceInput, setProvinceInput]         = useState("");
+  const PROVINCES_LIST = [
+    "กระบี่","กรุงเทพมหานคร","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร",
+    "ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร",
+    "เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม",
+    "นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน",
+    "บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี",
+    "พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี",
+    "เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร",
+    "ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย",
+    "ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร",
+    "สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์",
+    "หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี",
+  ];
+
+  // โหลด projects ตามจังหวัด
+  const loadNearbyProjects = async (province) => {
+    if (!province) return;
+    setNearbyLoading(true);
+    setNearbyProjects([]);
+    try {
+      const data = await getJson(`/projects/by-province?province=${encodeURIComponent(province)}`, false);
+      setNearbyProjects(Array.isArray(data.projects) ? data.projects : []);
+    } catch { setNearbyProjects([]); }
+    finally { setNearbyLoading(false); }
+  };
+
+  // เมื่อเปลี่ยนแท็บมา "ใกล้ฉัน"
+  useEffect(() => {
+    if (homeTab !== NEARBY_TAB) return;
+    if (nearbyProvince) {
+      // มีใน cache → โหลดตรง
+      loadNearbyProjects(nearbyProvince);
+    } else {
+      // ไม่มีใน cache → ขอ GPS
+      setNearbyLoading(true);
+      setNearbyGpsError("");
+      if (!navigator.geolocation) {
+        setNearbyLoading(false);
+        setShowProvincePicker(true);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude: lat, longitude: lon } = pos.coords;
+            const r = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=th`
+            );
+            const geoData = await r.json();
+            const raw = geoData?.address?.state || geoData?.address?.province || "";
+            // normalize "จังหวัดเชียงใหม่" → "เชียงใหม่"
+            const prov = raw.replace(/^จังหวัด/, "").trim();
+            if (prov) {
+              localStorage.setItem("unieed_province", prov);
+              setNearbyProvince(prov);
+              loadNearbyProjects(prov);
+            } else {
+              setShowProvincePicker(true);
+            }
+          } catch {
+            setShowProvincePicker(true);
+          } finally {
+            setNearbyLoading(false);
+          }
+        },
+        () => {
+          setNearbyLoading(false);
+          setNearbyGpsError("ไม่ได้รับสิทธิ์เข้าถึงตำแหน่ง");
+          setShowProvincePicker(true);
+        },
+        { timeout: 8000 }
+      );
+    }
+  }, [homeTab]); // eslint-disable-line
+
+  const handleSelectProvince = (prov) => {
+    localStorage.setItem("unieed_province", prov);
+    setNearbyProvince(prov);
+    setShowProvincePicker(false);
+    setProvinceInput("");
+    loadNearbyProjects(prov);
+  };
+
+  const handleChangeProvince = () => {
+    setShowProvincePicker(true);
+    setProvinceInput("");
+  };
+  // ── end nearby ────────────────────────────────────────────
+
   const displayProjects = useMemo(() => {
+    if (homeTab === NEARBY_TAB) return nearbyProjects;
     if (!projects.length) return [];
     const today = new Date();
 
@@ -401,7 +499,7 @@ export default function HomePage() {
     }
 
     return projects;
-  }, [projects, homeTab]);
+  }, [projects, homeTab, nearbyProjects]);
 
   useEffect(() => {
     setProjPage(0);
@@ -890,8 +988,8 @@ export default function HomePage() {
           </h3>
           {/* Tab pills */}
           {(() => {
-            const TAB_COLORS = { "แนะนำ": "#FFBE1B", "ใหม่ล่าสุด": "#3b82f6", "ใกล้เวลาปิด": "#f97316", "ใกล้ถึงเป้าหมาย": "#10b981" };
-            const TAB_LABELS = { "แนะนำ": "โครงการแนะนำ", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย" };
+            const TAB_COLORS = { "แนะนำ": "#FFBE1B", "ใหม่ล่าสุด": "#3b82f6", "ใกล้เวลาปิด": "#f97316", "ใกล้ถึงเป้าหมาย": "#10b981", "โครงการใกล้ฉัน": "#8b5cf6" };
+            const TAB_LABELS = { "แนะนำ": "โครงการแนะนำ", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย", "โครงการใกล้ฉัน": "📍 ใกล้ฉัน" };
             return (
               <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
                 {Object.entries(TAB_LABELS).map(([key, label]) => {
@@ -907,22 +1005,93 @@ export default function HomePage() {
           })()}
         </div>
 
-        {loading ? (
-          <div className="muted">กำลังโหลด…</div>
+        {/* ── Nearby tab: province picker modal ── */}
+        {homeTab === NEARBY_TAB && showProvincePicker && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ background: "#fff", borderRadius: 16, padding: "28px 28px 24px", width: "min(92vw,420px)", boxShadow: "0 8px 40px rgba(0,0,0,0.18)", fontFamily: "Mitr, sans-serif" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                <span style={{ fontSize: 22 }}>📍</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 17, color: "#1e293b" }}>เลือกจังหวัดของคุณ</div>
+                  {nearbyGpsError && <div style={{ fontSize: 12, color: "#ef4444", marginTop: 2 }}>{nearbyGpsError}</div>}
+                  {!nearbyGpsError && <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>เพื่อแสดงโครงการในจังหวัดของคุณ</div>}
+                </div>
+              </div>
+              <input
+                type="text"
+                placeholder="พิมพ์ชื่อจังหวัด…"
+                value={provinceInput}
+                onChange={e => setProvinceInput(e.target.value)}
+                style={{ width: "100%", padding: "9px 14px", border: "1.5px solid #d1d5db", borderRadius: 8, fontSize: 14, fontFamily: "Mitr, sans-serif", outline: "none", boxSizing: "border-box", marginBottom: 12 }}
+                autoFocus
+              />
+              <div style={{ maxHeight: 260, overflowY: "auto", display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {PROVINCES_LIST.filter(p => !provinceInput || p.includes(provinceInput)).map(prov => (
+                  <button key={prov} onClick={() => handleSelectProvince(prov)}
+                    style={{ padding: "6px 14px", borderRadius: 99, border: "1.5px solid #e2e8f0", background: "#f8fafc", color: "#334155", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "Mitr, sans-serif", transition: "background 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "#8b5cf6"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.color = "#334155"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+                  >
+                    {prov}
+                  </button>
+                ))}
+              </div>
+              {nearbyProvince && (
+                <button onClick={() => setShowProvincePicker(false)} style={{ marginTop: 16, width: "100%", padding: "9px", border: "none", background: "#f1f5f9", borderRadius: 8, color: "#475569", fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif" }}>
+                  ยกเลิก
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Nearby tab: province label + change button ── */}
+        {homeTab === NEARBY_TAB && nearbyProvince && !showProvincePicker && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
+            <span style={{ background: "#ede9fe", color: "#6d28d9", padding: "5px 16px", borderRadius: 99, fontWeight: 600, fontSize: 14 }}>
+              📍 โครงการในจังหวัด{nearbyProvince}
+            </span>
+            <button onClick={handleChangeProvince} style={{ background: "none", border: "1.5px solid #c4b5fd", color: "#7c3aed", borderRadius: 99, padding: "5px 14px", fontSize: 13, cursor: "pointer", fontFamily: "Mitr, sans-serif", fontWeight: 500 }}>
+              เปลี่ยนจังหวัด
+            </button>
+          </div>
+        )}
+
+        {(loading || (homeTab === NEARBY_TAB && nearbyLoading)) ? (
+          /* Loading skeleton */
+          <div style={{ display: "flex", gap: 20, justifyContent: "center", padding: "24px 0" }}>
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{ width: 240, height: 280, borderRadius: 14, background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite", flexShrink: 0 }} />
+            ))}
+            <style>{`@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}`}</style>
+          </div>
         ) : (
           <>
             <div className="carouselRow">
               <button className="navArrow" onClick={goPrev} disabled={isSliding || projPages <= 1} aria-label="prev">‹</button>
               <div className="carouselViewport" onMouseEnter={() => setAutoPlay(false)} onMouseLeave={() => setAutoPlay(true)}>
                 {!displayProjects.length ? (
-                  <div className="muted" style={{ padding: "40px 0" }}>ไม่มีโครงการในหมวดนี้</div>
+                  <div style={{ padding: "48px 0", textAlign: "center" }}>
+                    {homeTab === NEARBY_TAB ? (
+                      <div style={{ color: "#94a3b8", fontFamily: "Mitr, sans-serif" }}>
+                        <div style={{ fontSize: 36, marginBottom: 10 }}>🏫</div>
+                        <div style={{ fontSize: 16, fontWeight: 500, color: "#475569", marginBottom: 6 }}>ยังไม่มีโครงการในจังหวัด{nearbyProvince}</div>
+                        <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>ลองเลือกจังหวัดอื่นดูนะ</div>
+                        <button onClick={handleChangeProvince} style={{ background: "#8b5cf6", color: "#fff", border: "none", borderRadius: 99, padding: "8px 22px", fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif", fontWeight: 500 }}>
+                          เปลี่ยนจังหวัด
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="muted">ไม่มีโครงการในหมวดนี้</div>
+                    )}
+                  </div>
                 ) : (
                   <div className="carouselTrack" style={{ transform: `translateX(-${projPage * 100}%)` }} onTransitionEnd={() => setIsSliding(false)}>
                     {Array.from({ length: projPages }).map((_, pageIndex) => {
                       const slice = displayProjects.slice(pageIndex * perPage, pageIndex * perPage + perPage);
                       return (
                         <div className="carouselPage" key={pageIndex}>
-                          {slice.map(p => <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel={homeTab} />)}
+                          {slice.map(p => <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel={homeTab === NEARBY_TAB ? null : homeTab} />)}
                           {slice.length < 2 && <div className="projCard projCardGhost" />}
                         </div>
                       );
@@ -933,7 +1102,7 @@ export default function HomePage() {
               <button className="navArrow" onClick={goNext} disabled={isSliding || projPages <= 1} aria-label="next">›</button>
             </div>
             {/* Navigate link */}
-            {(() => {
+            {homeTab !== NEARBY_TAB && (() => {
               const TAB_LABELS = { "แนะนำ": "โครงการแนะนำ", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย" };
               return (
                 <div style={{ textAlign: "center", marginTop: 24 }}>

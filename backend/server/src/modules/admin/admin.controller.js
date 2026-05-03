@@ -20,7 +20,21 @@ export async function adminApproveSchool(req, res, next) {
 export async function adminRemoveSchool(req, res, next) {
   try {
     const id = Number(req.params.id);
-    res.json(await svc.removeSchool(id));
+    res.json(await svc.suspendSchool(id)); // ระงับแทนลบ
+  } catch (e) { next(e); }
+}
+
+export async function adminSuspendSchool(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    res.json(await svc.suspendSchool(id));
+  } catch (e) { next(e); }
+}
+
+export async function adminUnsuspendSchool(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    res.json(await svc.unsuspendSchool(id));
   } catch (e) { next(e); }
 }
 

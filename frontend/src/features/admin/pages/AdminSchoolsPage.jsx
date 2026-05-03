@@ -23,7 +23,7 @@ export default function AdminSchoolsPage() {
   const [page, setPage] = useState(1);
 
   // confirm/reject modals (เดิมของคุณ)
-  const [confirmData, setConfirmData] = useState(null); // { type: "approve" | "remove", school_id }
+  const [confirmData, setConfirmData] = useState(null); // { type: "approve" | "suspend" | "unsuspend", school_id }
   const [rejectData, setRejectData] = useState(null);   // { school_id }
   const [rejectNote, setRejectNote] = useState("");
 
@@ -60,10 +60,12 @@ export default function AdminSchoolsPage() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, status, sort]);
   useEffect(() => { setPage(1); }, [q, status, sort]);
 
-  // open approve/reject/remove confirm
-  const onApprove = (school_id) => setConfirmData({ type: "approve", school_id });
-  const onRemove = (school_id) => setConfirmData({ type: "remove", school_id });
-  const onReject = (school_id) => { setRejectNote(""); setRejectData({ school_id }); };
+  // open approve/reject/suspend/unsuspend confirm
+  const onApprove    = (school_id) => setConfirmData({ type: "approve",   school_id });
+  const onRemove     = (school_id) => setConfirmData({ type: "suspend",   school_id });
+  const onSuspend    = (school_id) => setConfirmData({ type: "suspend",   school_id });
+  const onUnsuspend  = (school_id) => setConfirmData({ type: "unsuspend", school_id });
+  const onReject     = (school_id) => { setRejectNote(""); setRejectData({ school_id }); };
 
   const handleConfirm = async () => {
     if (!confirmData || actionLoading) return;
@@ -72,9 +74,12 @@ export default function AdminSchoolsPage() {
       if (confirmData.type === "approve") {
         await svc.approveSchool(confirmData.school_id);
         setToast({ type: "success", message: "อนุมัติสำเร็จ" });
-      } else {
-        await svc.removeSchool(confirmData.school_id);
-        setToast({ type: "success", message: "นำออกสำเร็จ" });
+      } else if (confirmData.type === "suspend") {
+        await svc.suspendSchool(confirmData.school_id);
+        setToast({ type: "success", message: "ระงับบัญชีสำเร็จ" });
+      } else if (confirmData.type === "unsuspend") {
+        await svc.unsuspendSchool(confirmData.school_id);
+        setToast({ type: "success", message: "ปลดระงับบัญชีสำเร็จ" });
       }
       setConfirmData(null);
       closeSchoolModal();
@@ -110,9 +115,10 @@ export default function AdminSchoolsPage() {
   };
 
   const statusBadge = (s) => {
-    if (s === "pending") return <span className="admBadge admPending">รอตรวจสอบ</span>;
-    if (s === "approved") return <span className="admBadge admApproved">อนุมัติแล้ว</span>;
-    if (s === "rejected") return <span className="admBadge admRejected">รอพิจารณาใหม่</span>;
+    if (s === "pending")   return <span className="admBadge admPending">รอตรวจสอบ</span>;
+    if (s === "approved")  return <span className="admBadge admApproved">อนุมัติแล้ว</span>;
+    if (s === "rejected")  return <span className="admBadge admRejected">รอพิจารณาใหม่</span>;
+    if (s === "suspended") return <span className="admBadge admSuspended">ระงับบัญชี</span>;
     return <span className="admBadge">-</span>;
   };
 
@@ -200,6 +206,7 @@ export default function AdminSchoolsPage() {
               <option value="pending">รอตรวจสอบ</option>
               <option value="approved">อนุมัติแล้ว</option>
               <option value="rejected">รอพิจารณาใหม่</option>
+              <option value="suspended">ระงับบัญชี</option>
             </select>
 
             <select value={sort} onChange={(e) => setSort(e.target.value)} className="admSelect">
@@ -312,9 +319,9 @@ export default function AdminSchoolsPage() {
             <div className="admModal">
               <h3>ยืนยันการดำเนินการ</h3>
               <p>
-                {confirmData.type === "approve"
-                  ? "ต้องการอนุมัติโรงเรียนนี้ใช่หรือไม่?"
-                  : "ต้องการนำโรงเรียนออกจากระบบใช่หรือไม่?"}
+                {confirmData.type === "approve"   && "ต้องการอนุมัติโรงเรียนนี้ใช่หรือไม่?"}
+                {confirmData.type === "suspend"   && "ต้องการระงับบัญชีโรงเรียนนี้ชั่วคราวใช่หรือไม่? โรงเรียนจะไม่สามารถเข้าสู่ระบบได้จนกว่าจะปลดระงับ"}
+                {confirmData.type === "unsuspend" && "ต้องการปลดระงับและเปิดใช้งานบัญชีโรงเรียนนี้อีกครั้งใช่หรือไม่?"}
               </p>
               <div className="admModalActions">
                 <button onClick={() => setConfirmData(null)} className="admBtnGhost" disabled={actionLoading}>
@@ -358,9 +365,11 @@ export default function AdminSchoolsPage() {
           onClose={closeSchoolModal}
           busy={actionLoading}
           onEditSave={handleEditSave}
-          onApprove={(s) => onApprove(s.school_id)}
-          onReject={(s) => onReject(s.school_id)}
-          onRemove={(s) => onRemove(s.school_id)}
+          onApprove={(s)    => onApprove(s.school_id)}
+          onReject={(s)     => onReject(s.school_id)}
+          onRemove={(s)     => onSuspend(s.school_id)}
+          onSuspend={(s)    => onSuspend(s.school_id)}
+          onUnsuspend={(s)  => onUnsuspend(s.school_id)}
         />
 
         {toast && <div className={`admToast ${toast.type}`}>{toast.message}</div>}

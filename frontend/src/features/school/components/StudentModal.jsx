@@ -56,7 +56,6 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
       setGrade(initial.education_level || "ประถมศึกษา");
       setGender(initial.gender || "female");
       setUrgency(initial.urgency || "can_wait");
-      // support_mode/years อยู่ระดับนักเรียน — ดึงจาก need แรก
       const firstNeed = Array.isArray(initial.needs) ? initial.needs[0] : null;
       setSupportMode(firstNeed?.support_mode || "one_time");
       setSupportYears(Number(firstNeed?.support_years || 1));
@@ -86,10 +85,8 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
     setActiveNeed((a) => Math.max(0, a >= idx ? a - 1 : a));
   };
 
-  // ── validation real-time ──────────────────────────────
   const nameErrors = useMemo(() => validateName(student_name), [student_name]);
 
-  // duplicate check กับ existing students (ยกเว้นตัวเองตอน edit)
   const dupWarning = useMemo(() => {
     if (!student_name.trim() || nameErrors.length) return null;
     const othersInDB = existingStudents.filter(s =>
@@ -129,7 +126,6 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
     setSubmitErrors([]);
     if (!canSave) return;
 
-    // final validation ครั้งสุดท้ายก่อนบันทึก
     const studentData = {
       student_name: student_name.trim(), gender, education_level, urgency,
       needs: needs.map(n => ({
@@ -145,7 +141,6 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
     const errs = validateStudent(studentData);
     if (errs.length) { setSubmitErrors(errs); return; }
 
-    // แจ้งเตือน duplicate ก่อนบันทึก
     if (dupWarning) {
       const typeLabel = dupWarning.type === "exact"
         ? "ข้อมูลซ้ำกันทั้งหมด — ยืนยันบันทึกซ้ำ?"
@@ -172,6 +167,7 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
   const selectedUrgency = URGENCY_OPTIONS.find((o) => o.value === urgency);
 
   const displayTypes = uniformTypes.filter(u => u.is_default === 1);
+
   return (
     <div className="smOverlay" onMouseDown={onClose}>
       <div className="smModal" onMouseDown={(e) => e.stopPropagation()}>
@@ -184,7 +180,23 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
             </div>
             <div>
               <div className="smTitle">{isEdit ? "แก้ไขข้อมูลนักเรียน" : "เพิ่มรายชื่อนักเรียน"}</div>
-              <div className="smSubtitle">กรอกข้อมูลให้ครบถ้วนก่อนบันทึก</div>
+              {/* ✅ แสดงรหัสนักเรียนใน header เมื่อเป็นโหมดแก้ไข */}
+              {isEdit && initial?.student_code ? (
+                <div className="smSubtitle" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    background: "rgba(255,255,255,0.18)", borderRadius: 6,
+                    padding: "2px 8px", fontSize: 12, fontWeight: 600,
+                    color: "#fff", letterSpacing: "0.5px",
+                    border: "1px solid rgba(255,255,255,0.25)",
+                  }}>
+                    <Icon icon="mdi:identifier" width="13" style={{ opacity: 0.85 }} />
+                    {initial.student_code}
+                  </span>
+                </div>
+              ) : (
+                <div className="smSubtitle">กรอกข้อมูลให้ครบถ้วนก่อนบันทึก</div>
+              )}
             </div>
           </div>
           <button className="smClose" onClick={onClose} type="button">
@@ -210,7 +222,6 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
                   onChange={(e) => { setName(e.target.value); setSubmitErrors([]); }}
                   placeholder="เช่น สมชาย ใจดี"
                 />
-                {/* แสดง error real-time */}
                 {nameErrors.length > 0 && (
                   <div className="smFieldErrList">
                     {nameErrors.map((e, i) => (
@@ -219,18 +230,7 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
                       </div>
                     ))}
                   </div>
-                )}
-                {/* แสดง duplicate warning */}
-                {!nameErrors.length && dupWarning && (
-                  <div className={`smDupWarn ${dupWarning.type === "exact" ? "smDupExact" : dupWarning.type === "update" ? "smDupUpdate" : "smDupSimilar"}`}>
-                    <Icon icon={dupWarning.type === "update" ? "mdi:refresh-circle" : "mdi:account-alert-outline"} width="14" />
-                    {dupWarning.type === "exact"
-                      ? `⚠️ ข้อมูลซ้ำกันทุก field กับ "${dupWarning.existingStudent.student_name}"`
-                      : dupWarning.type === "update"
-                      ? `🔄 พบนักเรียนชื่อเดียวกัน — จะอัปเดตรายการชุด`
-                      : `⚠️ คล้ายกับ "${dupWarning.existingStudent.student_name}" (${dupWarning.matchFields.join(", ")})`}
-                  </div>
-                )}
+                )}    
               </div>
 
               {/* เพศ */}
@@ -258,7 +258,6 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
               <div className="smField">
                 <label className="smLabel">ระดับชั้น <span className="smReq">*</span></label>
                 <div className="smToggleGroup smToggleGroup3">
-
                   {[
                     { v: "อนุบาล", l: "อนุบาล" },
                     { v: "ประถมศึกษา", l: "ประถม" },
@@ -351,7 +350,6 @@ export default function StudentModal({ open, onClose, onSave, uniformTypes = [],
                   const found = uniformTypes.find(
                     (u) => Number(u.uniform_type_id) === Number(n.uniform_type_id)
                   );
-
                   const typeName = found?.uniform_type_name || found?.type_name || "ไม่ระบุ";
                   return (
                     <button

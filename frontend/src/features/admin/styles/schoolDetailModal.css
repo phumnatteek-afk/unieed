@@ -268,6 +268,11 @@
   color: #d97706;
 }
 
+.sdBadge--suspended {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
 /* ===== Error ===== */
 .sdInlineError {
   margin: 12px 24px 0 24px;

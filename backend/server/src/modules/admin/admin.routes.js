@@ -6,6 +6,8 @@ import {
   adminApproveSchool,
   adminRejectSchool,
   adminRemoveSchool,
+  adminSuspendSchool,
+  adminUnsuspendSchool,
   adminOverview,
   getSchoolDetail,
   updateSchool,
@@ -29,9 +31,11 @@ r.get("/schools",             auth, requireRole(["admin"]), adminListSchools);
 r.get("/schools/:id",         auth, requireRole(["admin"]), getSchoolDetail);
 r.put("/schools/:id",         auth, requireRole(["admin"]), updateSchool);
 r.patch("/schools/:id",       auth, requireRole(["admin"]), adminUpdateSchool);
-r.post("/schools/:id/approve",auth, requireRole(["admin"]), adminApproveSchool);
-r.post("/schools/:id/reject", auth, requireRole(["admin"]), adminRejectSchool);
-r.delete("/schools/:id",      auth, requireRole(["admin"]), adminRemoveSchool);
+r.post("/schools/:id/approve",   auth, requireRole(["admin"]), adminApproveSchool);
+r.post("/schools/:id/reject",    auth, requireRole(["admin"]), adminRejectSchool);
+r.post("/schools/:id/suspend",   auth, requireRole(["admin"]), adminSuspendSchool);
+r.post("/schools/:id/unsuspend", auth, requireRole(["admin"]), adminUnsuspendSchool);
+r.delete("/schools/:id",         auth, requireRole(["admin"]), adminRemoveSchool);
 
 /* ─── Dashboard ─── */
 r.get("/overview",            auth, requireRole(["admin"]), adminOverview);

@@ -406,6 +406,7 @@ export async function listProjectStudents(req, res, next) {
               school_id,
               request_id,
               student_name,
+              student_code,
               education_level,
               gender,
               urgency,
@@ -518,7 +519,7 @@ function resolveGroup(edu) {
 export async function createStudentWithNeeds(req, res) {
   const request_id = Number(req.params.request_id);
   const school_id = req.user.school_id;
-  const { student_name, education_level, gender, urgency, needs } = req.body;
+  const { student_name, education_level, gender, urgency, needs, student_code: bodyCode } = req.body;
  
   const genderDb =
     gender === "ชาย" ? "male" :
@@ -581,20 +582,52 @@ export async function createStudentWithNeeds(req, res) {
     );
     // (ไม่บล็อก — เพียง log ไว้, frontend จัดการ warning เอง)
  
+    // ── กำหนด student_code ──────────────────────────────────
+    // ถ้า body ส่ง student_code มาและยังไม่ซ้ำในโรงเรียน → ใช้เลย
+    // ไม่งั้น → auto-generate ต่อจาก max
+    let newCode = null;
+    const providedCode = String(bodyCode ?? "").trim();
+    if (providedCode) {
+      const [codeCheck] = await conn.query(
+        `SELECT student_id FROM students WHERE school_id = ? AND student_code = ? LIMIT 1`,
+        [school_id, providedCode]
+      );
+      if (!codeCheck[0]) newCode = providedCode; // ไม่ซ้ำ → ใช้รหัสที่กรอกมา
+    }
+    if (!newCode) {
+      // auto-generate ต่อจาก max ที่มีอยู่
+      const [lastCode] = await conn.query(
+        `SELECT student_code FROM students WHERE school_id = ? AND student_code IS NOT NULL
+         ORDER BY CAST(student_code AS UNSIGNED) DESC LIMIT 1`,
+        [school_id]
+      );
+      if (lastCode[0]?.student_code) {
+        const match = String(lastCode[0].student_code).match(/\d+$/);
+        const num = match ? parseInt(match[0]) + 1 : 1;
+        newCode = String(num).padStart(5, "0");
+      } else {
+        const [[{ cnt }]] = await conn.query(
+          `SELECT COUNT(*) AS cnt FROM students WHERE school_id = ?`, [school_id]
+        );
+        newCode = String(Number(cnt) + 1).padStart(5, "0");
+      }
+    }
+
     const [ins] = await conn.query(
       `INSERT INTO students
          (school_id, request_id, student_name,
           education_level, education_level_group,
-          gender, urgency, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+          gender, urgency, student_code, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         school_id, request_id, student_name,
         education_level,
         resolveGroup(education_level),
         genderDb, urgency || "can_wait",
+        newCode,
       ]
     );
- 
+
     const student_id = ins.insertId;
  
     for (const n of needs) {
@@ -639,7 +672,7 @@ export async function updateStudentWithNeeds(req, res) {
   const request_id = Number(req.params.request_id);
   const school_id = req.user.school_id;
   const student_id = Number(req.params.student_id);
-  const { student_name, education_level, gender, urgency, needs } = req.body;
+  const { student_name, education_level, gender, urgency, needs, student_code: bodyCode } = req.body;
  
   const genderDb =
     gender === "ชาย" ? "male" :
@@ -659,19 +692,31 @@ export async function updateStudentWithNeeds(req, res) {
     );
     if (!check[0]) return res.status(404).json({ message: "ไม่พบนักเรียน" });
  
+    // ตรวจ student_code ที่ส่งมาว่าซ้ำกับคนอื่นในโรงเรียนไหม
+    const updateCode = String(bodyCode ?? "").trim() || null;
+    if (updateCode) {
+      const [codeConflict] = await conn.query(
+        `SELECT student_id FROM students WHERE school_id = ? AND student_code = ? AND student_id != ? LIMIT 1`,
+        [school_id, updateCode, student_id]
+      );
+      if (codeConflict[0]) {
+        await conn.rollback(); conn.release();
+        return res.status(409).json({ message: `รหัสนักเรียน "${updateCode}" ถูกใช้งานแล้วในโรงเรียนนี้` });
+      }
+    }
+
     await conn.query(
       `UPDATE students
        SET student_name          = ?,
            education_level       = ?,
-           education_level_group = ?,  -- ← เพิ่มตรงนี้
+           education_level_group = ?,
            gender                = ?,
            urgency               = ?
+           ${updateCode ? ", student_code = ?" : ""}
        WHERE student_id = ? AND school_id = ?`,
-      [student_name,
-        education_level,
-        resolveGroup(education_level),  // ← เพิ่มตรงนี้
-        genderDb, urgency,
-        student_id, school_id]
+      updateCode
+        ? [student_name, education_level, resolveGroup(education_level), genderDb, urgency, updateCode, student_id, school_id]
+        : [student_name, education_level, resolveGroup(education_level), genderDb, urgency, student_id, school_id]
     );
  
     // strategy: ลบ needs เดิม แล้ว insert ใหม่ (ง่าย + กัน mismatch)
@@ -1233,8 +1278,440 @@ export async function exportStudentsExcel(req, res, next) {
   }
 }
  
+// ── Import Template ───────────────────────────────────────────────────────────
+export async function generateImportTemplate(req, res, next) {
+  try {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    wb.creator  = "Unieed";
+    wb.created  = new Date();
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  สีธีม Unieed
+    // ═══════════════════════════════════════════════════════════════════
+    const C = {
+      BLUE:       "FF29B6E8",
+      BLUE_DARK:  "FF0E8BB5",
+      BLUE_DEEP:  "FF0A6E91",
+      BLUE_LT:    "FFE0F7FF",
+      BLUE_XLT:   "FFF0FBFF",
+      MALE_HD:    "FF1565C0",
+      MALE_MID:   "FF1976D2",
+      MALE_BG:    "FFE3F2FD",
+      MALE_LT:    "FFF3F8FF",
+      FEM_HD:     "FFAD1457",
+      FEM_MID:    "FFC2185B",
+      FEM_BG:     "FFFCE4EC",
+      FEM_LT:     "FFFFF0F5",
+      WHITE:      "FFFFFFFF",
+      GRAY_LT:    "FFF8FAFB",
+      GRAY_MID:   "FFE8EEF2",
+      GRAY_DARK:  "FF607D8B",
+      GREEN_BG:   "FFE8F5E9",
+      GREEN_FG:   "FF2E7D32",
+      GREEN_MID:  "FF43A047",
+      AMBER:      "FFFFF8E1",
+      AMBER_FG:   "FFF57F17",
+      SUPP_BG:    "FFD6EEF8",
+      SUPP_MID:   "FFBEDEF4",
+    };
+
+    const border = (color = "FFD0E8F5", style = "thin") => ({
+      top:    { style, color: { argb: color } },
+      left:   { style, color: { argb: color } },
+      bottom: { style, color: { argb: color } },
+      right:  { style, color: { argb: color } },
+    });
+    const borderMedium = border("FFA0CCE8", "medium");
+
+    // helper: apply cell to any worksheet
+    const cell = (sheet, addr, value, opts = {}) => {
+      const {
+        bg, fg = C.WHITE, bold = false, size = 10,
+        align = "center", wrap = false, italic = false,
+        border: bdr, indent = 0,
+      } = opts;
+      const c = sheet.getCell(addr);
+      c.value = value;
+      c.font  = { name: "Calibri", bold, size, color: { argb: fg }, italic };
+      if (bg) c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+      c.alignment = { horizontal: align, vertical: "middle", wrapText: wrap, indent };
+      if (bdr) c.border = bdr;
+      return c;
+    };
+
+    const COLS = "ABCDEFGHIJKLMNO".split("");
+
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  SHEET 1 — กรอกข้อมูล (data entry sheet)                       ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+    const ws = wb.addWorksheet("กรอกข้อมูล", {
+      views: [{ state: "frozen", ySplit: 7 }],   // freeze แถว 1-7
+      pageSetup: { fitToPage: true, fitToWidth: 1, orientation: "landscape" },
+    });
+
+    // ── Row 1: Main title banner ──────────────────────────
+    ws.mergeCells("A1:O1");
+    cell(ws, "A1", "🎒   Unieed  —  แบบฟอร์มนำเข้าข้อมูลนักเรียน", {
+      bg: C.BLUE, bold: true, size: 16, border: borderMedium,
+    });
+    ws.getRow(1).height = 52;
+
+    // ── Row 2: Sub-banner ─────────────────────────────────
+    ws.mergeCells("A2:O2");
+    cell(ws, "A2",
+      "📖  ดูคำอธิบายคอลัมน์และตัวอย่างการกรอกได้ที่ชีท  « คำแนะนำ »  ด้านล่าง", {
+      bg: C.BLUE_DEEP, size: 10, italic: true, border: border("FF0A6E91"),
+    });
+    ws.getRow(2).height = 24;
+
+    // ── Row 3: Section labels (info / male / female) ──────
+    ws.mergeCells("A3:G3");
+    cell(ws, "A3", "👤   ข้อมูลนักเรียน", {
+      bg: C.BLUE_DARK, bold: true, size: 10, border: borderMedium,
+    });
+    ws.mergeCells("H3:K3");
+    cell(ws, "H3", "👦   ชุดนักเรียนชาย", {
+      bg: C.MALE_HD, bold: true, size: 10, border: borderMedium,
+    });
+    ws.mergeCells("L3:O3");
+    cell(ws, "L3", "👧   ชุดนักเรียนหญิง", {
+      bg: C.FEM_HD, bold: true, size: 10, border: borderMedium,
+    });
+    ws.getRow(3).height = 24;
+
+    // ── Row 4: Column headers ─────────────────────────────
+    const hdrs = [
+      { label:"รหัสนักเรียน\n(optional)",   bg: C.BLUE,      fg: C.WHITE   },
+      { label:"ชื่อ-นามสกุล *",             bg: C.BLUE,      fg: C.WHITE   },
+      { label:"เพศ *\n▾ เลือก",             bg: C.BLUE,      fg: C.WHITE   },
+      { label:"ระดับชั้น *\n▾ เลือก",        bg: C.BLUE,      fg: C.WHITE   },
+      { label:"ความเร่งด่วน *\n▾ เลือก",    bg: C.BLUE,      fg: C.WHITE   },
+      { label:"การรับ *\n▾ เลือก",           bg: C.BLUE_DARK, fg: C.WHITE   },
+      { label:"จำนวนปี\n(ถ้ารับต่อเนื่อง)", bg: C.BLUE_DARK, fg: C.WHITE   },
+      { label:"รอบอก (cm)\nเสื้อชาย",       bg: C.MALE_BG,   fg: C.MALE_HD },
+      { label:"จำนวน (ตัว)\nเสื้อชาย",      bg: C.MALE_BG,   fg: C.MALE_HD },
+      { label:"รอบเอว (cm)\nกางเกงชาย",     bg: C.MALE_BG,   fg: C.MALE_HD },
+      { label:"จำนวน (ตัว)\nกางเกงชาย",     bg: C.MALE_BG,   fg: C.MALE_HD },
+      { label:"รอบอก (cm)\nเสื้อหญิง",      bg: C.FEM_BG,    fg: C.FEM_HD  },
+      { label:"จำนวน (ตัว)\nเสื้อหญิง",     bg: C.FEM_BG,    fg: C.FEM_HD  },
+      { label:"รอบเอว (cm)\nกระโปรงหญิง",   bg: C.FEM_BG,    fg: C.FEM_HD  },
+      { label:"จำนวน (ตัว)\nกระโปรงหญิง",   bg: C.FEM_BG,    fg: C.FEM_HD  },
+    ];
+    ws.getRow(4).height = 48;
+    hdrs.forEach((h, i) => {
+      cell(ws, `${COLS[i]}4`, h.label, {
+        bg: h.bg, fg: h.fg, bold: true, size: 9, wrap: true,
+        border: borderMedium,
+      });
+    });
+
+    // ── Row 5: Sub-header hints ───────────────────────────
+    const hints = [
+      "เช่น 00001", "ชื่อ นามสกุล",
+      "ชาย / หญิง", "เลือกจากรายการ", "เลือกจากรายการ", "เลือกจากรายการ",
+      "ระบุเมื่อรับต่อเนื่อง",
+      "cm","ตัว","cm","ตัว","cm","ตัว","cm","ตัว",
+    ];
+    ws.getRow(5).height = 16;
+    hints.forEach((h, i) => {
+      const isDropdown = i >= 2 && i <= 5;
+      cell(ws, `${COLS[i]}5`, h, {
+        bg: isDropdown ? "FFFFF9C4" : C.BLUE_XLT,
+        fg: isDropdown ? "FFE65100" : C.GRAY_DARK,
+        size: 8, italic: true, bold: isDropdown,
+        border: border(isDropdown ? "FFFFE082" : "FFD8EEF8"),
+      });
+    });
+
+    // ── Row 6: Empty spacer ───────────────────────────────
+    ws.mergeCells("A6:O6");
+    cell(ws, "A6", "", { bg: C.GRAY_MID, border: border("FFD0DCE4") });
+    ws.getRow(6).height = 6;
+
+    // ── Row 7: Start-here marker ──────────────────────────
+    ws.mergeCells("A7:O7");
+    cell(ws, "A7",
+      "▼   กรอกข้อมูลนักเรียนเริ่มจากแถวที่ 8 เป็นต้นไป   ▼", {
+      bg: C.GREEN_BG, fg: C.GREEN_FG, bold: true, size: 10,
+      border: border(C.GREEN_MID),
+    });
+    ws.getRow(7).height = 22;
+
+    // ── Rows 8-57: Pre-formatted empty data rows ──────────
+    for (let r = 8; r <= 57; r++) {
+      const isEven = (r % 2 === 0);
+      ws.getRow(r).height = 22;
+      COLS.forEach((col, ci) => {
+        const isMale    = ci >= 7  && ci <= 10;
+        const isFemale  = ci >= 11 && ci <= 14;
+        const isSupport = ci === 5 || ci === 6;
+        const isDropCol = ci >= 2  && ci <= 5;   // C D E F — dropdown cols
+        const bg = isMale    ? (isEven ? C.MALE_BG  : C.MALE_LT)
+                 : isFemale  ? (isEven ? C.FEM_BG   : C.FEM_LT)
+                 : isSupport ? (isEven ? C.SUPP_BG  : C.SUPP_MID)
+                 : isDropCol ? (isEven ? "FFFFFDE7"  : C.WHITE)
+                 :              (isEven ? C.GRAY_LT  : C.WHITE);
+        const c = ws.getCell(`${col}${r}`);
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+        c.font = { name: "Calibri", size: 10 };
+        c.alignment = { horizontal: ci === 1 ? "left" : "center", vertical: "middle" };
+        c.border = border("FFE0EEF5");
+      });
+
+      // ── Dropdown validation ───────────────────────────
+      ws.getCell(`C${r}`).dataValidation = {
+        type: "list", allowBlank: true,
+        formulae: ['"ชาย,หญิง"'],
+        showErrorMessage: true,
+        errorStyle: "stop",
+        errorTitle: "ค่าไม่ถูกต้อง",
+        error: "กรุณาเลือก: ชาย หรือ หญิง",
+        showInputMessage: true,
+        promptTitle: "เพศ",
+        prompt: "เลือก ชาย หรือ หญิง",
+      };
+      ws.getCell(`D${r}`).dataValidation = {
+        type: "list", allowBlank: true,
+        formulae: ['"อนุบาล,ประถมศึกษา,มัธยมตอนต้น,มัธยมตอนปลาย"'],
+        showErrorMessage: true,
+        errorStyle: "stop",
+        errorTitle: "ค่าไม่ถูกต้อง",
+        error: "กรุณาเลือกระดับชั้นจากรายการ",
+        showInputMessage: true,
+        promptTitle: "ระดับชั้น",
+        prompt: "เลือกระดับชั้นการศึกษา",
+      };
+      ws.getCell(`E${r}`).dataValidation = {
+        type: "list", allowBlank: true,
+        formulae: ['"เร่งด่วนมาก,เร่งด่วน,รอได้"'],
+        showErrorMessage: true,
+        errorStyle: "stop",
+        errorTitle: "ค่าไม่ถูกต้อง",
+        error: "กรุณาเลือก: เร่งด่วนมาก, เร่งด่วน หรือ รอได้",
+        showInputMessage: true,
+        promptTitle: "ความเร่งด่วน",
+        prompt: "เลือกระดับความเร่งด่วน",
+      };
+      ws.getCell(`F${r}`).dataValidation = {
+        type: "list", allowBlank: true,
+        formulae: ['"รับครั้งเดียว,รับต่อเนื่อง"'],
+        showErrorMessage: true,
+        errorStyle: "stop",
+        errorTitle: "ค่าไม่ถูกต้อง",
+        error: "กรุณาเลือก: รับครั้งเดียว หรือ รับต่อเนื่อง",
+        showInputMessage: true,
+        promptTitle: "การรับ",
+        prompt: "เลือกรูปแบบการรับบริจาค",
+      };
+    }
+
+    // ── Column widths ─────────────────────────────────────
+    const widths = [18, 28, 10, 20, 18, 18, 14, 14, 11, 16, 11, 14, 11, 18, 11];
+    COLS.forEach((col, i) => { ws.getColumn(col).width = widths[i]; });
+
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  SHEET 2 — คำแนะนำ & ตัวอย่าง                                  ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+    const wg = wb.addWorksheet("คำแนะนำ", {
+      views: [{ showGridLines: false }],
+    });
+    wg.getColumn("A").width = 5;
+    wg.getColumn("B").width = 24;
+    wg.getColumn("C").width = 52;
+    wg.getColumn("D").width = 32;
+    wg.getColumn("E").width = 20;
+
+    let gRow = 1;
+    const gCell = (addr, value, opts = {}) => cell(wg, addr, value, opts);
+    const gMerge = (range) => wg.mergeCells(range);
+    const nextRow = (h = 22) => { wg.getRow(gRow).height = h; gRow++; };
+    const gap = (h = 10) => { wg.getRow(gRow).height = h; gRow++; };
+
+    // ── Title ──────────────────────────────────────────────
+    gMerge(`A${gRow}:E${gRow}`);
+    gCell(`A${gRow}`, "📖   คำแนะนำการกรอกแบบฟอร์ม  Unieed", {
+      bg: C.BLUE, bold: true, size: 16, border: borderMedium,
+    });
+    nextRow(52); gap(6);
+
+    // ── Section: คำอธิบายคอลัมน์ ─────────────────────────
+    gMerge(`A${gRow}:E${gRow}`);
+    gCell(`A${gRow}`, "①   คำอธิบายคอลัมน์และค่าที่รับได้", {
+      bg: C.BLUE_DARK, bold: true, size: 12, border: borderMedium,
+    });
+    nextRow(30); gap(4);
+
+    // column guide table header
+    ["", "คอลัมน์", "คำอธิบาย", "ค่าที่รับได้", "หมายเหตุ"].forEach((h, i) => {
+      const cols2 = ["A","B","C","D","E"];
+      gCell(`${cols2[i]}${gRow}`, h, {
+        bg: C.BLUE_DARK, bold: true, size: 10,
+        border: borderMedium,
+      });
+    });
+    nextRow(24);
+
+    const colGuide = [
+      ["A", "รหัสนักเรียน",          "รหัสประจำตัวนักเรียน",                     "ตัวเลข เช่น 00001, 00042",           "ไม่บังคับ — ถ้าเว้นว่างระบบจะกำหนดให้อัตโนมัติ"],
+      ["B", "ชื่อ-นามสกุล *",        "ชื่อและนามสกุลของนักเรียน",                "ข้อความ เช่น สมชาย ใจดี",            "จำเป็นต้องกรอก"],
+      ["C", "เพศ *",                 "เพศของนักเรียน",                           "ชาย  หรือ  หญิง",                    "ตรงตัวอักษร ไม่รับ male/female"],
+      ["D", "ระดับชั้น *",            "ระดับการศึกษา",                            "อนุบาล / ประถมศึกษา\nมัธยมตอนต้น / มัธยมตอนปลาย", "เลือกจาก dropdown"],
+      ["E", "ความเร่งด่วน *",         "ระดับความเร่งด่วนในการรับบริจาค",         "เร่งด่วนมาก / เร่งด่วน / รอได้",     ""],
+      ["F", "การรับ *",               "รูปแบบการรับบริจาค",                       "รับครั้งเดียว  หรือ  รับต่อเนื่อง", ""],
+      ["G", "จำนวนปี",                "จำนวนปีที่ต้องการรับต่อเนื่อง",            "ตัวเลข เช่น 1, 2, 3",               "ระบุเฉพาะเมื่อ การรับ = รับต่อเนื่อง"],
+      ["H", "รอบอก เสื้อชาย",         "ขนาดรอบอก (cm) สำหรับเสื้อนักเรียนชาย",  "ตัวเลข เช่น 30, 32, 34, 36",         "เว้นว่างถ้าไม่ต้องการเสื้อชาย"],
+      ["I", "จำนวน เสื้อชาย",         "จำนวนตัวที่ต้องการ (เสื้อชาย)",           "ตัวเลข เช่น 1, 2",                   "เว้นว่างหรือ 0 ถ้าไม่ต้องการ"],
+      ["J", "รอบเอว กางเกงชาย",       "ขนาดรอบเอว (cm) สำหรับกางเกงนักเรียนชาย","ตัวเลข เช่น 24, 26, 28",             "เว้นว่างถ้าไม่ต้องการกางเกงชาย"],
+      ["K", "จำนวน กางเกงชาย",        "จำนวนตัวที่ต้องการ (กางเกงชาย)",          "ตัวเลข เช่น 1, 2",                   ""],
+      ["L", "รอบอก เสื้อหญิง",        "ขนาดรอบอก (cm) สำหรับเสื้อนักเรียนหญิง", "ตัวเลข เช่น 28, 30, 32",             "เว้นว่างถ้าไม่ต้องการเสื้อหญิง"],
+      ["M", "จำนวน เสื้อหญิง",        "จำนวนตัวที่ต้องการ (เสื้อหญิง)",          "ตัวเลข เช่น 1, 2",                   ""],
+      ["N", "รอบเอว กระโปรงหญิง",     "ขนาดรอบเอว (cm) สำหรับกระโปรงนักเรียนหญิง","ตัวเลข เช่น 22, 24, 26",           "เว้นว่างถ้าไม่ต้องการกระโปรง"],
+      ["O", "จำนวน กระโปรงหญิง",      "จำนวนตัวที่ต้องการ (กระโปรงหญิง)",        "ตัวเลข เช่น 1, 2",                   ""],
+    ];
+
+    colGuide.forEach(([colLetter, colName, desc, values, note], idx) => {
+      const isEven = idx % 2 === 0;
+      const bg = isEven ? C.BLUE_XLT : C.WHITE;
+      const cols2 = ["A","B","C","D","E"];
+      const rowVals = [colLetter, colName, desc, values, note];
+      rowVals.forEach((v, ci) => {
+        const bdr = ci === 1 ? border("FF90C8E0","medium") : border("FFD0E8F5");
+        gCell(`${cols2[ci]}${gRow}`, v, {
+          bg,
+          fg:    ci === 0 ? C.BLUE_DARK : ci === 4 ? C.GRAY_DARK : "FF1A2C38",
+          bold:  ci === 0 || ci === 1,
+          size:  ci === 0 ? 11 : 9,
+          align: ci === 2 || ci === 3 || ci === 4 ? "left" : "center",
+          wrap:  true,
+          border: bdr,
+        });
+      });
+      wg.getRow(gRow).height = desc.includes("\n") || values.includes("\n") ? 36 : 22;
+      gRow++;
+    });
+
+    gap(14);
+
+    // ── Section: ตัวอย่างการกรอก ──────────────────────────
+    gMerge(`A${gRow}:E${gRow}`);
+    gCell(`A${gRow}`, "②   ตัวอย่างการกรอกข้อมูล", {
+      bg: C.MALE_HD, bold: true, size: 12, border: borderMedium,
+    });
+    nextRow(30); gap(4);
+
+    // example mini-table — headers (resize cols for example area)
+    const EX_COLS = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P"];
+    const exWidths = [5, 18, 28, 9, 18, 16, 16, 14, 14, 11, 16, 11, 14, 11, 18, 11];
+    // need more columns for the example sheet
+    ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P"].forEach((c2, i) => {
+      wg.getColumn(c2).width = exWidths[i] ?? 12;
+    });
+
+    // Section headers for example
+    wg.mergeCells(`B${gRow}:H${gRow}`);
+    gCell(`B${gRow}`, "👤  ข้อมูลนักเรียน", { bg: C.BLUE_DARK, bold: true, size: 9, border: borderMedium });
+    wg.mergeCells(`I${gRow}:L${gRow}`);
+    gCell(`I${gRow}`, "👦  ชุดนักเรียนชาย", { bg: C.MALE_HD, bold: true, size: 9, border: borderMedium });
+    wg.mergeCells(`M${gRow}:P${gRow}`);
+    gCell(`M${gRow}`, "👧  ชุดนักเรียนหญิง", { bg: C.FEM_HD, bold: true, size: 9, border: borderMedium });
+    gCell(`A${gRow}`, "", { bg: C.BLUE_DARK, border: borderMedium });
+    nextRow(20);
+
+    // example col headers
+    const exHdrs = [
+      { label:"#",                   bg: C.BLUE,      fg: C.WHITE   },
+      { label:"รหัสนักเรียน",        bg: C.BLUE,      fg: C.WHITE   },
+      { label:"ชื่อ-นามสกุล",        bg: C.BLUE,      fg: C.WHITE   },
+      { label:"เพศ",                 bg: C.BLUE,      fg: C.WHITE   },
+      { label:"ระดับชั้น",            bg: C.BLUE,      fg: C.WHITE   },
+      { label:"ความเร่งด่วน",         bg: C.BLUE,      fg: C.WHITE   },
+      { label:"การรับ",               bg: C.BLUE_DARK, fg: C.WHITE   },
+      { label:"จำนวนปี",              bg: C.BLUE_DARK, fg: C.WHITE   },
+      { label:"รอบอก\nเสื้อชาย",     bg: C.MALE_BG,  fg: C.MALE_HD  },
+      { label:"จำนวน\nเสื้อชาย",     bg: C.MALE_BG,  fg: C.MALE_HD  },
+      { label:"รอบเอว\nกางเกง",      bg: C.MALE_BG,  fg: C.MALE_HD  },
+      { label:"จำนวน\nกางเกง",       bg: C.MALE_BG,  fg: C.MALE_HD  },
+      { label:"รอบอก\nเสื้อหญิง",    bg: C.FEM_BG,   fg: C.FEM_HD   },
+      { label:"จำนวน\nเสื้อหญิง",    bg: C.FEM_BG,   fg: C.FEM_HD   },
+      { label:"รอบเอว\nกระโปรง",     bg: C.FEM_BG,   fg: C.FEM_HD   },
+      { label:"จำนวน\nกระโปรง",      bg: C.FEM_BG,   fg: C.FEM_HD   },
+    ];
+    wg.getRow(gRow).height = 40;
+    exHdrs.forEach((h, i) => {
+      gCell(`${EX_COLS[i]}${gRow}`, h.label, {
+        bg: h.bg, fg: h.fg, bold: true, size: 9, wrap: true, border: borderMedium,
+      });
+    });
+    nextRow(40);
+
+    // example data rows
+    const exData = [
+      [1,"00001","สมชาย ใจดี",     "ชาย", "ประถมศึกษา",    "เร่งด่วน",  "รับครั้งเดียว","","32","1","","","","","",""],
+      [2,"00002","สมหญิง รักเรียน","หญิง","มัธยมตอนต้น","รอได้",      "รับครั้งเดียว","","","", "","","30","1","24","1"],
+      [3,"",     "สมศักดิ์ มั่นใจ","ชาย", "มัธยมตอนปลาย","เร่งด่วนมาก","รับต่อเนื่อง","2","34","1","28","1","","","",""],
+    ];
+    exData.forEach((row, ri) => {
+      wg.getRow(gRow).height = 22;
+      row.forEach((val, ci) => {
+        const isMale   = ci >= 8  && ci <= 11;
+        const isFemale = ci >= 12 && ci <= 15;
+        const isSupport = ci === 6 || ci === 7;
+        const isEven = ri % 2 === 0;
+        const bg = isMale   ? (isEven ? C.MALE_BG  : C.MALE_LT)
+                 : isFemale ? (isEven ? C.FEM_BG   : C.FEM_LT)
+                 : isSupport? (isEven ? C.SUPP_BG  : C.SUPP_MID)
+                 :             (isEven ? C.GRAY_LT  : C.WHITE);
+        gCell(`${EX_COLS[ci]}${gRow}`, val === "" ? null : val, {
+          bg, fg: "FF1A2C38", size: 10,
+          align: ci === 2 ? "left" : "center",
+          border: border("FFD0E8F5"),
+        });
+      });
+      gRow++;
+    });
+
+    gap(14);
+
+    // ── Section: หมายเหตุ ──────────────────────────────────
+    gMerge(`A${gRow}:E${gRow}`);
+    gCell(`A${gRow}`, "③   หมายเหตุสำคัญ", {
+      bg: C.AMBER_FG, bold: true, size: 12, border: borderMedium,
+    });
+    nextRow(30); gap(4);
+
+    const notes = [
+      ["⚠️", "คอลัมน์ที่มีเครื่องหมาย * จำเป็นต้องกรอกทุกครั้ง"],
+      ["📐", "ขนาดเสื้อผ้าทุกคอลัมน์ใช้หน่วยเป็น เซนติเมตร (cm)"],
+      ["🔢", "รหัสนักเรียนต้องไม่ซ้ำกันภายในโรงเรียนเดียวกัน"],
+      ["📋", "กรอกข้อมูลในชีท 'กรอกข้อมูล' เท่านั้น ตั้งแต่แถวที่ 8"],
+      ["🔄", "ระบบจะอ่านข้อมูลตั้งแต่แถว 8 เป็นต้นไปโดยอัตโนมัติ"],
+      ["🎯", "หากต้องการชุดนักเรียนชาย ให้กรอกทั้งขนาดและจำนวน (H+I หรือ J+K)"],
+      ["💡", "หากต้องการชุดนักเรียนหญิง ให้กรอกทั้งขนาดและจำนวน (L+M หรือ N+O)"],
+    ];
+    notes.forEach(([icon, text], ni) => {
+      const bg = ni % 2 === 0 ? C.AMBER : C.WHITE;
+      wg.mergeCells(`B${gRow}:E${gRow}`);
+      gCell(`A${gRow}`, icon, { bg, fg: C.AMBER_FG, bold: true, size: 12, border: border("FFFFE082") });
+      gCell(`B${gRow}`, text, { bg, fg: "FF3E2723", size: 10, align: "left", border: border("FFFFE082") });
+      wg.getRow(gRow).height = 22;
+      gRow++;
+    });
+
+    // ── Stream response ───────────────────────────────────
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''unieed_import_template.xlsx`);
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    next(err);
+  }
+}
+
 // school.controller.js
- 
+
 export async function uploadUniformImage(req, res, next) {
   try {
     const school_id = req.user.school_id;

@@ -5,6 +5,7 @@ import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import "../styles/CheckoutPage.css";
+import { searchAddress, suggestProvinces } from "../../../utils/thaiAddress.js";
 
 // ── Helpers ───────────────────────────────────────────────
 function getCategoryLabel(cid, gender) {
@@ -44,73 +45,275 @@ function groupBySeller(items) {
   return Array.from(map.values());
 }
 
+// ── Address Autocomplete Dropdown ─────────────────────────
+function AddrDropdown({ items, onSelect }) {
+  if (!items.length) return null;
+  return (
+    <div className="coAddrDropdown">
+      {items.map((it, i) => (
+        <div key={i} className="coAddrDropdownItem" onMouseDown={() => onSelect(it)}>
+          <span className="coAddrDropTambon">{it.tambon}</span>
+          <span className="coAddrDropSep"> › </span>
+          <span className="coAddrDropAmphoe">{it.amphoe}</span>
+          <span className="coAddrDropSep"> › </span>
+          <span className="coAddrDropProv">{it.province}</span>
+          <span className="coAddrDropZip">{it.zipcode}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Address Modal ─────────────────────────────────────────
 function AddressModal({ address, onSave, onClose }) {
-  const [form, setForm] = useState(address || {
+  const [form, setForm] = useState(() => ({
     recipient_name: "", phone: "", address_line: "",
-    district: "", province: "", postcode: "", is_default: false,
-  });
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-  const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
+    district: "", amphoe: "", province: "", postcode: "", is_default: false,
+    ...(address || {}),
+  }));
+  const [saving,  setSaving]  = useState(false);
+  const [errors,  setErrors]  = useState({});
+  const [addrSuggestions, setAddrSuggestions] = useState([]);
+  const [provSuggestions, setProvSuggestions]  = useState([]);
+  const [activeField, setActiveField] = useState(null);
+
+  const update = (k, v) => {
+    setForm(f => ({ ...f, [k]: v }));
+    setErrors(e => ({ ...e, [k]: "" }));
+  };
+
+  // autocomplete: ตำบล / อำเภอ / รหัสไปรษณีย์
+  const handleDistrictChange = (v) => {
+    update("district", v);
+    setAddrSuggestions(v.length >= 2 ? searchAddress(v) : []);
+    setActiveField("district");
+  };
+  const handleAmphoChange = (v) => {
+    update("amphoe", v);
+    setAddrSuggestions(v.length >= 2 ? searchAddress(v) : []);
+    setActiveField("amphoe");
+  };
+  const handleZipChange = (v) => {
+    const digits = v.replace(/\D/g, "").slice(0, 5);
+    update("postcode", digits);
+    setAddrSuggestions(digits.length >= 4 ? searchAddress(digits) : []);
+    setActiveField("postcode");
+  };
+  const handleProvinceChange = (v) => {
+    update("province", v);
+    setProvSuggestions(v.length >= 1 ? suggestProvinces(v) : []);
+    setActiveField("province");
+  };
+
+  const selectAddr = (it) => {
+    setForm(f => ({ ...f, district: it.tambon, amphoe: it.amphoe, province: it.province, postcode: it.zipcode }));
+    setAddrSuggestions([]);
+    setErrors(e => ({ ...e, district: "", amphoe: "", province: "", postcode: "" }));
+  };
+  const selectProv = (p) => {
+    update("province", p);
+    setProvSuggestions([]);
+  };
+
+  // phone validation
+  const validatePhone = (v) => {
+    const clean = v.replace(/[-\s]/g, "");
+    if (!clean) return "กรุณากรอกเบอร์โทร";
+    if (!/^0[0-9]{9}$/.test(clean)) return "เบอร์โทรต้องเป็นตัวเลข 10 หลัก ขึ้นต้นด้วย 0";
+    return "";
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.recipient_name?.trim()) e.recipient_name = "กรุณากรอกชื่อผู้รับ";
+    const phoneErr = validatePhone(form.phone || "");
+    if (phoneErr) e.phone = phoneErr;
+    if (!form.address_line?.trim()) e.address_line = "กรุณากรอกที่อยู่";
+    if (!form.district?.trim())     e.district     = "กรุณากรอกตำบล/แขวง";
+    if (!form.amphoe?.trim())       e.amphoe       = "กรุณากรอกอำเภอ/เขต";
+    if (!form.province?.trim())     e.province     = "กรุณากรอกจังหวัด";
+    if (!form.postcode?.trim() || form.postcode.length < 5) e.postcode = "รหัสไปรษณีย์ 5 หลัก";
+    return e;
+  };
 
   const handleSave = async () => {
-    if (!form.recipient_name || !form.phone || !form.address_line ||
-        !form.district || !form.province || !form.postcode) {
-      setErr("กรุณากรอกข้อมูลให้ครบถ้วน"); return;
-    }
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
-    try { await onSave(form); onClose(); }
-    catch (e) { setErr(e.message); }
+    try {
+      const cleanPhone = form.phone.replace(/[-\s]/g, "");
+      await onSave({ ...form, phone: cleanPhone });
+      onClose();
+    } catch (ex) { setErrors({ _: ex.message }); }
     finally { setSaving(false); }
   };
 
+  const Field = ({ id, label, required, children }) => (
+    <div className={`coFormGroup${errors[id] ? " coFormGroupErr" : ""}`}>
+      <label className="coFormLabel">
+        {label}{required && <span className="coFormRequired">*</span>}
+      </label>
+      {children}
+      {errors[id] && <div className="coFormErrMsg"><Icon icon="mdi:alert-circle-outline" fontSize={13}/> {errors[id]}</div>}
+    </div>
+  );
+
   return (
     <div className="coModalOverlay" onClick={onClose}>
-      <div className="coModal" onClick={e => e.stopPropagation()}>
+      <div className="coModal coModalLg" onClick={e => e.stopPropagation()}>
         <div className="coModalHeader">
-          <h3>{address ? "แก้ไขที่อยู่" : "เพิ่มที่อยู่ใหม่"}</h3>
+          <div className="coModalHeaderLeft">
+            <Icon icon="mdi:map-marker-plus-outline" fontSize={20} />
+            <h3>{address ? "แก้ไขที่อยู่" : "เพิ่มที่อยู่ใหม่"}</h3>
+          </div>
           <button className="coModalClose" onClick={onClose}><Icon icon="mdi:close" /></button>
         </div>
+
         <div className="coModalBody">
-          {err && <div className="coModalErr"><Icon icon="mdi:alert-circle" /> {err}</div>}
-          <div className="coFormGrid">
-            <div className="coFormGroup coSpan2">
-              <label>ชื่อผู้รับ *</label>
-              <input value={form.recipient_name} onChange={e => update("recipient_name", e.target.value)} placeholder="ชื่อ-นามสกุล" />
-            </div>
-            <div className="coFormGroup coSpan2">
-              <label>เบอร์โทร *</label>
-              <input value={form.phone} onChange={e => update("phone", e.target.value)} placeholder="08x-xxx-xxxx" />
-            </div>
-            <div className="coFormGroup coSpan2">
-              <label>ที่อยู่ *</label>
-              <input value={form.address_line} onChange={e => update("address_line", e.target.value)} placeholder="บ้านเลขที่ ถนน ซอย" />
-            </div>
-            <div className="coFormGroup">
-              <label>แขวง/ตำบล *</label>
-              <input value={form.district} onChange={e => update("district", e.target.value)} placeholder="แขวง/ตำบล" />
-            </div>
-            <div className="coFormGroup">
-              <label>จังหวัด *</label>
-              <input value={form.province} onChange={e => update("province", e.target.value)} placeholder="จังหวัด" />
-            </div>
-            <div className="coFormGroup">
-              <label>รหัสไปรษณีย์ *</label>
-              <input value={form.postcode} onChange={e => update("postcode", e.target.value)} placeholder="10xxx" maxLength={5} />
-            </div>
-            <div className="coFormGroup coSpan2">
-              <label className="coCheckLabel">
-                <input type="checkbox" checked={!!form.is_default} onChange={e => update("is_default", e.target.checked)} />
-                ตั้งเป็นที่อยู่หลัก
-              </label>
+          {errors._ && <div className="coModalErr"><Icon icon="mdi:alert-circle" /> {errors._}</div>}
+
+          {/* ── Section: ข้อมูลผู้รับ ── */}
+          <div className="coModalSection">
+            <div className="coModalSectionTitle"><Icon icon="mdi:account-outline" /> ข้อมูลผู้รับ</div>
+            <div className="coFormGrid2">
+              <Field id="recipient_name" label="ชื่อ-นามสกุลผู้รับ" required>
+                <div className="coInputWrap">
+                  <Icon icon="mdi:account-outline" className="coInputIcon" />
+                  <input
+                    className={`coFormInput coInputWithIcon${errors.recipient_name ? " coInputErr" : ""}`}
+                    value={form.recipient_name}
+                    onChange={e => update("recipient_name", e.target.value)}
+                    placeholder="ชื่อ นามสกุล"
+                  />
+                </div>
+              </Field>
+              <Field id="phone" label="เบอร์โทรศัพท์" required>
+                <div className="coInputWrap">
+                  <Icon icon="mdi:phone-outline" className="coInputIcon" />
+                  <input
+                    className={`coFormInput coInputWithIcon${errors.phone ? " coInputErr" : ""}`}
+                    value={form.phone}
+                    onChange={e => update("phone", e.target.value.replace(/[^\d-\s]/g, ""))}
+                    onBlur={e => {
+                      const msg = validatePhone(e.target.value);
+                      if (msg) setErrors(er => ({ ...er, phone: msg }));
+                    }}
+                    placeholder="0xx-xxx-xxxx"
+                    inputMode="tel"
+                    maxLength={13}
+                  />
+                </div>
+              </Field>
             </div>
           </div>
+
+          {/* ── Section: ที่อยู่ ── */}
+          <div className="coModalSection">
+            <div className="coModalSectionTitle"><Icon icon="mdi:home-outline" /> ที่อยู่</div>
+            <div className="coFormGridFull">
+              <Field id="address_line" label="บ้านเลขที่ / ถนน / ซอย" required>
+                <div className="coInputWrap">
+                  <Icon icon="mdi:home-outline" className="coInputIcon" />
+                  <input
+                    className={`coFormInput coInputWithIcon${errors.address_line ? " coInputErr" : ""}`}
+                    value={form.address_line}
+                    onChange={e => update("address_line", e.target.value)}
+                    placeholder="เช่น 123/4 ถ.สุขุมวิท ซ.5"
+                  />
+                </div>
+              </Field>
+            </div>
+
+            <div className="coAddrHint">
+              <Icon icon="mdi:lightbulb-outline" fontSize={14} />
+              <span>พิมพ์ตำบล, อำเภอ หรือรหัสไปรษณีย์ แล้วเลือกจากรายการ เพื่อกรอกข้อมูลอัตโนมัติ</span>
+            </div>
+
+            <div className="coFormGrid3">
+              <Field id="district" label="ตำบล / แขวง" required>
+                <div className="coInputWrapRel">
+                  <input
+                    className={`coFormInput${errors.district ? " coInputErr" : ""}`}
+                    value={form.district}
+                    onChange={e => handleDistrictChange(e.target.value)}
+                    onFocus={() => setActiveField("district")}
+                    onBlur={() => setTimeout(() => setAddrSuggestions([]), 200)}
+                    placeholder="ตำบล / แขวง"
+                  />
+                  {activeField === "district" && <AddrDropdown items={addrSuggestions} onSelect={selectAddr} />}
+                </div>
+              </Field>
+
+              <Field id="amphoe" label="อำเภอ / เขต" required>
+                <div className="coInputWrapRel">
+                  <input
+                    className={`coFormInput${errors.amphoe ? " coInputErr" : ""}`}
+                    value={form.amphoe}
+                    onChange={e => handleAmphoChange(e.target.value)}
+                    onFocus={() => setActiveField("amphoe")}
+                    onBlur={() => setTimeout(() => setAddrSuggestions([]), 200)}
+                    placeholder="อำเภอ / เขต"
+                  />
+                  {activeField === "amphoe" && <AddrDropdown items={addrSuggestions} onSelect={selectAddr} />}
+                </div>
+              </Field>
+
+              <Field id="province" label="จังหวัด" required>
+                <div className="coInputWrapRel">
+                  <input
+                    className={`coFormInput${errors.province ? " coInputErr" : ""}`}
+                    value={form.province}
+                    onChange={e => handleProvinceChange(e.target.value)}
+                    onFocus={() => { setActiveField("province"); setProvSuggestions(form.province ? suggestProvinces(form.province) : []); }}
+                    onBlur={() => setTimeout(() => setProvSuggestions([]), 200)}
+                    placeholder="จังหวัด"
+                  />
+                  {activeField === "province" && provSuggestions.length > 0 && (
+                    <div className="coAddrDropdown">
+                      {provSuggestions.map(p => (
+                        <div key={p} className="coAddrDropdownItem" onMouseDown={() => selectProv(p)}>
+                          <Icon icon="mdi:map-marker-outline" fontSize={13} style={{ marginRight: 4 }} />
+                          {p}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Field>
+
+              <Field id="postcode" label="รหัสไปรษณีย์" required>
+                <div className="coInputWrapRel">
+                  <input
+                    className={`coFormInput${errors.postcode ? " coInputErr" : ""}`}
+                    value={form.postcode}
+                    onChange={e => handleZipChange(e.target.value)}
+                    onFocus={() => setActiveField("postcode")}
+                    onBlur={() => setTimeout(() => setAddrSuggestions([]), 200)}
+                    placeholder="10xxx"
+                    inputMode="numeric"
+                    maxLength={5}
+                  />
+                  {activeField === "postcode" && <AddrDropdown items={addrSuggestions} onSelect={selectAddr} />}
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          <div className="coModalSection coModalSectionFlat">
+            <label className="coCheckLabel">
+              <input type="checkbox" checked={!!form.is_default} onChange={e => update("is_default", e.target.checked)} />
+              <span>ตั้งเป็นที่อยู่หลัก</span>
+            </label>
+          </div>
         </div>
+
         <div className="coModalFooter">
           <button className="coBtnOutline" onClick={onClose}>ยกเลิก</button>
           <button className="coBtnPrimary" onClick={handleSave} disabled={saving}>
-            {saving && <Icon icon="mdi:loading" className="coSpinner" />} บันทึก
+            {saving
+              ? <><Icon icon="mdi:loading" className="coSpinner" /> กำลังบันทึก...</>
+              : <><Icon icon="mdi:content-save-outline" /> บันทึกที่อยู่</>
+            }
           </button>
         </div>
       </div>
@@ -789,7 +992,7 @@ export default function CheckoutPage() {
                                       <span className="coAddrPhone">{a.phone}</span>
                                       {a.is_default ? <span className="coBadgeDefault">ที่อยู่หลัก</span> : null}
                                     </div>
-                                    <div className="coAddrText">{a.address_line} {a.district} {a.province} {a.postcode}</div>
+                                    <div className="coAddrText">{a.address_line} {a.district} {a.amphoe ? `อ.${a.amphoe}` : ""} {a.province} {a.postcode}</div>
                                   </div>
                                 </div>
                               ))}
@@ -823,7 +1026,7 @@ export default function CheckoutPage() {
                               <span className="coAddrPhone">{a.phone}</span>
                               {a.is_default ? <span className="coBadgeDefault">ที่อยู่หลัก</span> : null}
                             </div>
-                            <div className="coAddrText">{a.address_line} {a.district} {a.province} {a.postcode}</div>
+                            <div className="coAddrText">{a.address_line} {a.district} {a.amphoe ? `อ.${a.amphoe}` : ""} {a.province} {a.postcode}</div>
                           </div>
                           <div className="coAddrBtns">
                             <button className="coAddrBtn" onClick={e => { e.stopPropagation(); setEditAddr(a); setShowModal(true); }}>
@@ -907,7 +1110,7 @@ export default function CheckoutPage() {
                         <div className="coConfirmLabelText">ที่อยู่จัดส่ง</div>
                         <div className="coConfirmVal">
                           <b>{selectedAddr.recipient_name}</b> · {selectedAddr.phone}<br />
-                          {selectedAddr.address_line} {selectedAddr.district} {selectedAddr.province} {selectedAddr.postcode}
+                          {selectedAddr.address_line} {selectedAddr.district} {selectedAddr.amphoe ? `อ.${selectedAddr.amphoe}` : ""} {selectedAddr.province} {selectedAddr.postcode}
                         </div>
                       </div>
                       <button className="coEditLink" onClick={() => setStep(1)}>เปลี่ยน</button>

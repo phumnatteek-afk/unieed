@@ -15,6 +15,7 @@ import {
   listSchoolProjects,
   getLatestProject,
   exportStudentsExcel,
+  generateImportTemplate,
   getProjectById,
   getProjectByIdPublic,
   updateProject,
@@ -38,6 +39,7 @@ r.get("/me", auth, requireRole(["school_admin"]), schoolMe);
 r.get("/uniform-types", auth, requireRole(["school_admin"]), getUniformTypes);
 
 // ── Students ──────────────────────────────────────────────────────────────────
+r.get("/students/import-template",                     auth, requireRole(["school_admin"]), generateImportTemplate);
 r.get("/projects/:request_id/students",                auth, requireRole(["school_admin"]), listProjectStudents);
 r.get("/projects/:request_id/students/export",         auth, requireRole(["school_admin"]), exportStudentsExcel);
 r.post("/projects/:request_id/students",               auth, requireRole(["school_admin"]), createStudentWithNeeds);

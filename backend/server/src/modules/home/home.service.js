@@ -1,5 +1,56 @@
 import { db } from "../../config/db.js";
 
+// ── โครงการตามจังหวัด (สำหรับแท็บ "ใกล้ฉัน") ─────────────
+export async function getProjectsByProvince(province) {
+  if (!province) return [];
+  const [rows] = await db.query(`
+    SELECT
+      dr.request_id,
+      dr.school_id,
+      dr.request_title,
+      dr.request_description,
+      dr.request_image_url,
+      dr.status,
+      dr.created_at,
+      dr.start_date,
+      dr.end_date,
+      s.school_name,
+      s.school_address,
+      s.province AS school_province,
+      COALESCE((
+        SELECT SUM(don.quantity) FROM donation_record don
+        WHERE don.request_id = dr.request_id AND don.status != 'rejected'
+      ), 0) AS total_donated,
+      COALESCE((
+        SELECT SUM(don.quantity) FROM donation_record don
+        WHERE don.request_id = dr.request_id AND don.status = 'approved'
+          AND don.condition_status = 'usable'
+      ), 0) AS total_received,
+      COALESCE((
+        SELECT SUM(f.quantity_fulfilled) FROM fulfillment f
+        WHERE f.request_id = dr.request_id
+      ), 0) AS total_fulfilled,
+      COALESCE((
+        SELECT SUM(sn.quantity_needed)
+        FROM student_need sn
+        JOIN students st ON st.student_id = sn.student_id
+        WHERE st.request_id = dr.request_id
+      ), 0) AS total_needed,
+      (SELECT MAX(don2.created_at) FROM donation_record don2
+       WHERE don2.request_id = dr.request_id AND don2.status != 'rejected'
+      ) AS last_donation_at
+    FROM donation_request dr
+    JOIN schools s ON s.school_id = dr.school_id
+    WHERE dr.status = 'open'
+      AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
+      AND s.verification_status = 'approved'
+      AND s.province = ?
+    ORDER BY dr.created_at DESC
+    LIMIT 20
+  `, [province]);
+  return rows;
+}
+
 export async function getHomeData() {
   // 1) Stats
   const [[stats]] = await db.query(`

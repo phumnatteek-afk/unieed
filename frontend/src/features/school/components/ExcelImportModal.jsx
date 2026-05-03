@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { schoolRequestSvc } from "../services/schoolRequest.service.js";
+import { getBlob } from "../../../api/http.js";
 import "../styles/excelImport.css";
 
 // ── map ภาษาไทย → ค่า DB ─────────────────────────────────
@@ -26,6 +27,8 @@ function parseRows(ws) {
   const results = [];
   for (let i = 7; i < data.length; i++) {
     const r = data[i];
+    // column 0 = student_code (optional), column 1 = name
+    const student_code = String(r[0] ?? "").trim() || null;
     const name = String(r[1] ?? "").trim();
     if (!name) continue;
 
@@ -63,6 +66,7 @@ function parseRows(ws) {
 
     results.push({
       _rowNum: i + 1,          // Excel row number (1-based, for display)
+      student_code,
       student_name:    name,
       gender,
       education_level,
@@ -244,6 +248,23 @@ function ErrorPanel({ errors }) {
   );
 }
 
+// ── Download Template from backend (styled via exceljs) ──
+async function downloadTemplate() {
+  try {
+    const blob = await getBlob("/school/students/import-template");
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = "unieed_import_template.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert("ดาวน์โหลด template ไม่สำเร็จ: " + e.message);
+  }
+}
+
 // ── Main component ───────────────────────────────────────
 export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
   const inputRef = useRef();
@@ -338,6 +359,7 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
         } else if (dup?.type === "update" && dup.existingStudent?.student_id) {
           await schoolRequestSvc.updateStudent(requestId, dup.existingStudent.student_id, {
             student_name:    s.student_name,
+            student_code:    s.student_code || undefined,
             gender:          s.gender,
             education_level: s.education_level,
             urgency:         s.urgency,
@@ -405,9 +427,9 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
               </div>
               <p className="eiDesc">ดาวน์โหลด Template กรอกข้อมูล แล้วอัพโหลดไฟล์ .xlsx กลับมา</p>
               <div className="eiActions">
-                <a className="eiBtnGhost" href="/templates/unieed_template.xlsx" download>
+                <button className="eiBtnGhost" type="button" onClick={downloadTemplate}>
                   ⬇ ดาวน์โหลด Template
-                </a>
+                </button>
                 <label className="eiBtnPrimary">
                   📂 เลือกไฟล์ Excel
                   <input ref={inputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={onFile} />
@@ -457,6 +479,7 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                   <thead>
                     <tr>
                       <th style={{ width: 60 }}>#</th>
+                      <th style={{ width: 90 }}>รหัสนักเรียน</th>
                       <th>ชื่อ-นามสกุล</th>
                       <th>เพศ</th>
                       <th>ระดับ</th>
@@ -485,6 +508,11 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                             {!errObj && dup?.type === "update"  && <span className="eiTag eiTagUpdate">Update</span>}
                             {!errObj && dup?.type === "similar" && <span className="eiTag eiTagDup">คล้าย</span>}
                             {!errObj && dup?.type === "file_dup"&& <span className="eiTag eiTagDup">ซ้ำในไฟล์</span>}
+                          </td>
+                          <td>
+                            {s.student_code
+                              ? <span className="eiCodeBadge">{s.student_code}</span>
+                              : <span className="eiCellMissing" title="ระบบจะกำหนดให้อัตโนมัติ">อัตโนมัติ</span>}
                           </td>
                           <td className={errObj ? "eiCellErr" : ""}>{s.student_name}</td>
                           <td>{s.gender === "male" ? "ชาย" : "หญิง"}</td>

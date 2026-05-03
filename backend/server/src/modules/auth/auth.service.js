@@ -282,6 +282,12 @@ export async function login({ user_email, password }) {
   if (u.status === "banned") {
     throw Object.assign(new Error("Account banned"), { status: 403 });
   }
+  if (u.status === "suspended") {
+    throw Object.assign(
+      new Error("บัญชีถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ"),
+      { status: 403, code: "ACCOUNT_SUSPENDED" }
+    );
+  }
 
   if (u.role !== "admin" && !u.email_verified) {
     throw Object.assign(
