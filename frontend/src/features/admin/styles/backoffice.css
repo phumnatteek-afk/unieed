@@ -232,8 +232,7 @@
 
 /* ===== Card / Table Wrap ===== */
 .admCard{
-  width:100%;              /* ✅ ไม่ fix 1040px เพื่อไม่เบียด */
-  width:1040px;        /* ✅ คุมความกว้างแบบนุ่ม */
+  width:100%;
   background:#fff;
   border-radius:14px;
   border:1px solid #e9ecf2;
@@ -258,17 +257,35 @@
   table-layout:fixed; /* ✅ สำคัญ */
 }
 
-/* ปรับสัดส่วนใหม่ให้สมดุล (รวมกันได้ 100%) */
-.admTable thead th:nth-child(1), .admTable tbody td:nth-child(1){ width: 18%; } /* โรงเรียน */
-.admTable thead th:nth-child(2), .admTable tbody td:nth-child(2){ width: 18%; } /* ผู้ประสานงาน */
-.admTable thead th:nth-child(3), .admTable tbody td:nth-child(3){ width: 12%; } /* โทรศัพท์ */
-.admTable thead th:nth-child(4), .admTable tbody td:nth-child(4){ width: 16%; } /* ที่อยู่ */
-.admTable thead th:nth-child(5), .admTable tbody td:nth-child(5){ width: 12%; } /* เอกสาร */
-.admTable thead th:nth-child(6), .admTable tbody td:nth-child(6){ width: 12%; } /* สถานะ (เพิ่มจาก 9%) */
-.admTable thead th:nth-child(7), .admTable tbody td:nth-child(7){ width: 12%;  /* ดูเพิ่มเติม */
-  text-align:center;
-  white-space:nowrap;
-}
+/* ── School table column widths (7 cols) ── */
+.admTable thead th:nth-child(1), .admTable tbody td:nth-child(1){ width: 18%; }
+.admTable thead th:nth-child(2), .admTable tbody td:nth-child(2){ width: 18%; }
+.admTable thead th:nth-child(3), .admTable tbody td:nth-child(3){ width: 12%; }
+.admTable thead th:nth-child(4), .admTable tbody td:nth-child(4){ width: 16%; }
+.admTable thead th:nth-child(5), .admTable tbody td:nth-child(5){ width: 12%; }
+.admTable thead th:nth-child(6), .admTable tbody td:nth-child(6){ width: 12%; }
+.admTable thead th:nth-child(7), .admTable tbody td:nth-child(7){ width: 12%; text-align:center; white-space:nowrap; }
+
+/* ── Order table: ใช้ table-layout fixed + กำหนด % ทุก col ── */
+.admOrderCard .admTable{ table-layout: fixed; }
+.admOrderCard .admTable thead th:nth-child(1),
+.admOrderCard .admTable tbody td:nth-child(1){ width: 9%; padding-left:14px; } /* รหัส */
+.admOrderCard .admTable thead th:nth-child(2),
+.admOrderCard .admTable tbody td:nth-child(2){ width: 20%; }                   /* สินค้า */
+.admOrderCard .admTable thead th:nth-child(3),
+.admOrderCard .admTable tbody td:nth-child(3){ width: 12%; }                   /* ผู้ซื้อ */
+.admOrderCard .admTable thead th:nth-child(4),
+.admOrderCard .admTable tbody td:nth-child(4){ width: 12%; }                   /* ผู้ขาย */
+.admOrderCard .admTable thead th:nth-child(5),
+.admOrderCard .admTable tbody td:nth-child(5){ width: 9%; text-align:right; }  /* ยอดสินค้า */
+.admOrderCard .admTable thead th:nth-child(6),
+.admOrderCard .admTable tbody td:nth-child(6){ width: 10%; text-align:right; } /* ค่าธรรมเนียม */
+.admOrderCard .admTable thead th:nth-child(7),
+.admOrderCard .admTable tbody td:nth-child(7){ width: 10%; text-align:right; } /* ยอดโอน */
+.admOrderCard .admTable thead th:nth-child(8),
+.admOrderCard .admTable tbody td:nth-child(8){ width: 10%; text-align:center; }/* สถานะ */
+.admOrderCard .admTable thead th:nth-child(9),
+.admOrderCard .admTable tbody td:nth-child(9){ width: 8%; text-align:center; } /* จัดการ */
 
 /* Header */
 .admTable thead th{
@@ -310,11 +327,10 @@
   font-weight: 600;
   color: #1e293b;
   display: block;
-  /* ปรับตรงนี้: จาก 250px ลดเหลือพอประมาณ หรือเอาออกเพื่อให้ table-layout คุม */
-  min-width: 250px; 
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .admSmallMuted{

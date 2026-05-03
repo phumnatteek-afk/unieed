@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
+import { formatOrderNo } from "../../../utils/orderNo.js";
 import "../styles/PaymentSuccessPage.css";
  
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
@@ -181,7 +182,7 @@ export default function PaymentSuccessPage() {
           {/* Order pill */}
           <div className="psOrderPill">
             <span className="psOrderLabel">คำสั่งซื้อ</span>
-            <span className="psOrderId">#{orderId}</span>
+            <span className="psOrderId">{formatOrderNo(orderId)}</span>
             {totalAmount > 0 && (
               <span className="psOrderAmt">{Number(totalAmount).toLocaleString()} บาท</span>
             )}
@@ -315,8 +316,11 @@ export default function PaymentSuccessPage() {
  
           {/* ── Actions ── */}
           <div className="psActions">
-            <Link to={`/orders/${orderId}`} className="psBtnPrimary">
-              <Icon icon="mdi:receipt-text-outline" /> ดูรายละเอียดคำสั่งซื้อ
+            <Link to="/orders" className="psBtnPrimary">
+              <Icon icon="mdi:format-list-bulleted" /> ดูรายการสั่งซื้อทั้งหมด
+            </Link>
+            <Link to={`/orders/${orderId}`} className="psBtnOutline">
+              <Icon icon="mdi:receipt-text-outline" /> ดูรายละเอียดออเดอร์นี้
             </Link>
             <Link to="/market" className="psBtnOutline">
               <Icon icon="mdi:storefront-outline" /> ช้อปต่อ

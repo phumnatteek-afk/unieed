@@ -246,16 +246,13 @@ const getProductById = async (id) => {
   const [[product]] = await db.execute(
     `SELECT p.*,
             COALESCE(ut.type_name, p.custom_type_name) AS type_name,
-            ut.uniform_type_id,
-            ut.gender,
             ci.category_name,
-            COALESCE(p.category_id, ci.category_id) AS category_id,
             u.user_name AS seller_name,
             u.user_phone AS seller_phone
      FROM products p
      LEFT JOIN users        u  ON u.user_id         = p.seller_id
      LEFT JOIN uniform_type ut ON ut.uniform_type_id = p.uniform_type_id
-     LEFT JOIN category_item ci ON ci.category_id   = ut.category_id
+     LEFT JOIN category_item ci ON ci.category_id = COALESCE(p.category_id, ut.category_id)
      WHERE p.product_id = ?`,
     [id]
   );
@@ -349,6 +346,199 @@ const deleteProduct = async (productId, requesterId, requesterRole) => {
   );
 
   await db.execute('DELETE FROM products WHERE product_id = ?', [productId]);
+};
+
+const MAX_PRODUCT_IMAGES = 4;
+
+/** ลบ/เพิ่มรูป จำกัดรวม 4 รูป ต้องเหลืออย่างน้อย 1 รูป */
+async function applyProductImageUpdates(productId, removeImageIds, newFiles) {
+  const ids = Array.isArray(removeImageIds)
+    ? [...new Set(removeImageIds.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0))]
+    : [];
+
+  const [[countRow]] = await db.execute(
+    `SELECT COUNT(*) AS c FROM product_images WHERE product_id = ?`,
+    [productId]
+  );
+  const startCount = Number(countRow.c);
+
+  let removeIdsConfirmed = [];
+  if (ids.length) {
+    const [rows] = await db.execute(
+      `SELECT image_id FROM product_images WHERE product_id = ? AND image_id IN (${ids.map(() => "?").join(",")})`,
+      [productId, ...ids]
+    );
+    removeIdsConfirmed = rows.map((r) => r.image_id);
+  }
+
+  const uploadBuffers = (newFiles || []).filter((f) => f?.buffer && f.buffer.length);
+  const finalCount = startCount - removeIdsConfirmed.length + uploadBuffers.length;
+
+  if (finalCount > MAX_PRODUCT_IMAGES) {
+    throw { status: 400, message: `รูปสินค้าได้ไม่เกิน ${MAX_PRODUCT_IMAGES} รูป` };
+  }
+  if (finalCount < 1) {
+    throw { status: 400, message: "ต้องมีรูปสินค้าอย่างน้อย 1 รูป" };
+  }
+
+  if (removeIdsConfirmed.length) {
+    const [toDestroy] = await db.execute(
+      `SELECT public_id FROM product_images WHERE product_id = ? AND image_id IN (${removeIdsConfirmed.map(() => "?").join(",")})`,
+      [productId, ...removeIdsConfirmed]
+    );
+    await Promise.allSettled(toDestroy.map((r) => cloudinary.uploader.destroy(r.public_id)));
+    await db.execute(
+      `DELETE FROM product_images WHERE product_id = ? AND image_id IN (${removeIdsConfirmed.map(() => "?").join(",")})`,
+      [productId, ...removeIdsConfirmed]
+    );
+  }
+
+  const [[afterRow]] = await db.execute(
+    `SELECT COUNT(*) AS c FROM product_images WHERE product_id = ?`,
+    [productId]
+  );
+  const room = MAX_PRODUCT_IMAGES - Number(afterRow.c);
+  if (uploadBuffers.length > room) {
+    throw { status: 400, message: `เพิ่มรูปได้อีกไม่เกิน ${room} รูป` };
+  }
+
+  const [[mxRow]] = await db.execute(
+    `SELECT COALESCE(MAX(sort_order), -1) AS mx FROM product_images WHERE product_id = ?`,
+    [productId]
+  );
+  let nextSort = Number(mxRow.mx) + 1;
+
+  for (let j = 0; j < uploadBuffers.length; j++) {
+    const file = uploadBuffers[j];
+    const filename = `product_${productId}_${Date.now()}_${j}`;
+    const uploaded = await uploadToCloudinary(file.buffer, filename);
+    await db.execute(
+      `INSERT INTO product_images (product_id, image_url, public_id, is_cover, sort_order) VALUES (?, ?, ?, 0, ?)`,
+      [productId, uploaded.secure_url, uploaded.public_id, nextSort++]
+    );
+  }
+
+  const [all] = await db.execute(
+    `SELECT image_id FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, image_id ASC`,
+    [productId]
+  );
+  for (let i = 0; i < all.length; i++) {
+    await db.execute(
+      `UPDATE product_images SET sort_order = ?, is_cover = ? WHERE image_id = ?`,
+      [i, i === 0 ? 1 : 0, all[i].image_id]
+    );
+  }
+}
+
+const updateProduct = async (productId, requesterId, requesterRole, rawPayload = {}, newImageFiles = []) => {
+  const id = Number(productId);
+  if (!Number.isFinite(id)) throw { status: 400, message: "product_id ไม่ถูกต้อง" };
+
+  const [[product]] = await db.execute(
+    `SELECT product_id, seller_id, status FROM products WHERE product_id = ? LIMIT 1`,
+    [id]
+  );
+  if (!product) throw { status: 404, message: "ไม่พบสินค้า" };
+  if (Number(product.seller_id) !== Number(requesterId) && requesterRole !== "admin") {
+    throw { status: 403, message: "ไม่มีสิทธิ์แก้ไขสินค้านี้" };
+  }
+
+  const remove_image_ids = Array.isArray(rawPayload.remove_image_ids) ? rawPayload.remove_image_ids : [];
+  const payload = { ...rawPayload };
+  delete payload.remove_image_ids;
+
+  const newFiles = Array.isArray(newImageFiles) ? newImageFiles : [];
+  const hasImageWork = remove_image_ids.length > 0 || newFiles.length > 0;
+
+  const updates = [];
+  const values = [];
+
+  if (payload.product_title !== undefined) {
+    const v = String(payload.product_title || "").trim();
+    if (!v) throw { status: 400, message: "กรุณากรอกชื่อสินค้า" };
+    updates.push("product_title = ?"); values.push(v);
+  }
+  if (payload.product_description !== undefined) {
+    updates.push("product_description = ?"); values.push(String(payload.product_description || "").trim());
+  }
+  if (payload.price !== undefined) {
+    const v = Number(payload.price);
+    if (!Number.isFinite(v) || v < 0) throw { status: 400, message: "ราคาสินค้าไม่ถูกต้อง" };
+    updates.push("price = ?"); values.push(v);
+  }
+  if (payload.quantity !== undefined) {
+    const v = Number(payload.quantity);
+    if (!Number.isFinite(v) || v < 0) throw { status: 400, message: "จำนวนสินค้าไม่ถูกต้อง" };
+    updates.push("quantity = ?"); values.push(v);
+  }
+  if (payload.size !== undefined) {
+    const normalized = typeof payload.size === "string" ? payload.size : JSON.stringify(payload.size || {});
+    updates.push("size = ?"); values.push(normalized);
+  }
+  if (payload.category_id !== undefined) {
+    const c = Number(payload.category_id);
+    if (![1, 2, 3, 4].includes(c)) throw { status: 400, message: "หมวดสินค้าไม่ถูกต้อง" };
+    updates.push("category_id = ?"); values.push(c);
+  }
+  if (payload.gender !== undefined) {
+    const g = payload.gender;
+    if (g === null || g === "") {
+      updates.push("gender = ?"); values.push(null);
+    } else if (!["male", "female"].includes(g)) {
+      throw { status: 400, message: "เพศไม่ถูกต้อง" };
+    } else {
+      updates.push("gender = ?"); values.push(g);
+    }
+  }
+  if (payload.uniform_type_id !== undefined) {
+    const v = payload.uniform_type_id;
+    if (v === null || v === "") {
+      updates.push("uniform_type_id = ?"); values.push(null);
+    } else {
+      const n = Number(v);
+      if (!Number.isFinite(n) || n < 1) throw { status: 400, message: "ประเภทชุดไม่ถูกต้อง" };
+      updates.push("uniform_type_id = ?"); values.push(n);
+    }
+  }
+  if (payload.custom_type_name !== undefined) {
+    const s = payload.custom_type_name === null ? "" : String(payload.custom_type_name).trim();
+    updates.push("custom_type_name = ?"); values.push(s || null);
+  }
+  if (payload.level !== undefined) {
+    updates.push("level = ?"); values.push(String(payload.level ?? "").trim());
+  }
+  if (payload.school_name !== undefined) {
+    const s = payload.school_name === null ? "" : String(payload.school_name).trim();
+    updates.push("school_name = ?"); values.push(s || null);
+  }
+  if (payload.condition_percent !== undefined) {
+    const v = parseInt(payload.condition_percent, 10);
+    if (!Number.isFinite(v) || v < 10 || v > 100) throw { status: 400, message: "สภาพสินค้า (%) ไม่ถูกต้อง" };
+    updates.push("condition_percent = ?"); values.push(v);
+  }
+  if (payload.condition_label !== undefined) {
+    updates.push("condition_label = ?"); values.push(String(payload.condition_label ?? "").trim());
+  }
+  if (payload.status !== undefined) {
+    const allowed = ["available", "sold", "hidden"];
+    if (!allowed.includes(payload.status)) throw { status: 400, message: "สถานะสินค้าไม่ถูกต้อง" };
+    updates.push("status = ?"); values.push(payload.status);
+  }
+
+  if (!updates.length && !hasImageWork) {
+    throw { status: 400, message: "ไม่มีข้อมูลที่ต้องการอัปเดต" };
+  }
+
+  if (updates.length) {
+    values.push(id);
+    await db.execute(`UPDATE products SET ${updates.join(", ")} WHERE product_id = ?`, values);
+  }
+
+  if (hasImageWork) {
+    await applyProductImageUpdates(id, remove_image_ids, newFiles);
+  }
+
+  return await getProductById(id);
 };
 
 // ─────────────────────────────────────────────────────────
@@ -787,6 +977,7 @@ export {
   getProducts,
   getProductById,
   deleteProduct,
+  updateProduct,
   searchSchools,
   getUniformTypes,
   getUniformTypesBySchool,

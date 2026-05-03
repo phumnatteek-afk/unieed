@@ -17,6 +17,8 @@ import checkoutRoutes from "./modules/checkout/checkout.routes.js";
 
 import autocheckRoutes from "./modules/autocheck/autocheck.routes.js";
 import { runProjectLifecycleCron } from "./cron/projectLifecycle.js";
+import orderRoutes from "./modules/orders/order.routes.js";
+import sellerRoutes from "./modules/seller/seller.routes.js";
 
 const app = express();
 app.use(cors());
@@ -44,7 +46,8 @@ app.use("/notifications", notificationRouter); // ← register
 
 app.use("/api/cart", cartRoutes);
 app.use("/api/checkout", checkoutRoutes);
-
+app.use("/api/orders", orderRoutes);
+app.use("/seller", sellerRoutes);
 
 
 app.use(errorHandler);

@@ -585,6 +585,19 @@ export default function ProfileDropdown() {
   const handleLogout = () => { setOpen(false); logout(); navigate("/"); };
   const handleNavigate = (path) => { setOpen(false); navigate(path); };
   const handleModalClose = () => { setShowEditModal(false); setAvatarKey(k => k + 1); };
+  const handleManageListings = async () => {
+    setOpen(false);
+    try {
+      const sellerData = await request("/seller/dashboard", { auth: true });
+      if (sellerData?.is_seller) {
+        navigate("/seller");
+        return;
+      }
+      window.alert(sellerData?.message || "ยังไม่มีรายการขายของท่าน");
+    } catch (e) {
+      window.alert(e?.data?.message || "ยังไม่มีรายการขายของท่าน");
+    }
+  };
 
   return (
     <>
@@ -704,7 +717,7 @@ export default function ProfileDropdown() {
                     <span className="pd-item-label">จัดการคำสั่งซื้อ</span>
                   </div>
 
-                  <div className="pd-item" onClick={() => handleNavigate("/my-listings")}>
+                  <div className="pd-item" onClick={handleManageListings}>
                     <span className="pd-item-icon">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                         <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>

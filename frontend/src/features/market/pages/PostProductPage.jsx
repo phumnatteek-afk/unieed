@@ -48,8 +48,6 @@ const makeItem = () => ({
   quantity:         1,
   description:      "",
   images:           [],
-  // น้ำหนักอยู่ที่ item ระดับ item (step 1)
-  weight:           "",
 });
  
 // ── ShippingLogo component ────────────────────────────────
@@ -203,7 +201,6 @@ export default function PostProductPage() {
           price:                 item.price,
           quantity:              item.quantity,
           description:           item.description,
-          weight:                parseFloat(item.weight) || 0,
           // ✅ ส่ง provider_ids ที่เลือกร่วมกันจาก step 2
           shipping_provider_ids: selectedProviders,
         };
@@ -340,7 +337,6 @@ export default function PostProductPage() {
                               <div className="ppItemSummaryMeta">
                                 {summary.sizeStr}
                                 {item.price && ` · ${Number(item.price).toLocaleString()} บาท`}
-                                {item.weight && ` · ${item.weight} kg`}
                               </div>
                             </>
                           )}
@@ -577,33 +573,7 @@ export default function PostProductPage() {
                           </div>
                         </div>
  
-                        {/* ══ ⑤ น้ำหนักสินค้า (ย้ายมาอยู่ step 1) ══
-                        <div className="ppSection">
-                          <div className="ppSectionHeader">
-                            <span className="ppSectionDot ppDotGreen" />
-                            <span className="ppSectionTitle">น้ำหนักสินค้า</span>
-                            <span className="ppOptionalBadge">ใช้คำนวณค่าส่ง</span>
-                          </div>
-                          <div className="ppFieldBlock" style={{ maxWidth: 220 }}>
-                            <label className="ppFieldLabel">
-                              <Icon icon="mdi:weight-kilogram" /> น้ำหนัก
-                            </label>
-                            <div className="ppPriceWrap">
-                              <input
-                                className="ppInput ppPriceInput"
-                                type="number"
-                                min="0"
-                                step="0.1"
-                                placeholder="0.0"
-                                value={item.weight}
-                                onChange={e => updateItem(idx, { weight: e.target.value })}
-                              />
-                              <span className="ppUnit">kg</span>
-                            </div>
-                          </div>
-                        </div> */}
- 
-                        {/* ══ ⑥ รายละเอียดเพิ่มเติม (optional) ══ */}
+                        {/* ══ ⑤ รายละเอียดเพิ่มเติม (optional) ══ */}
                         <div className="ppSection ppSectionOptional">
                           <div className="ppSectionHeader">
                             <span className="ppSectionDot ppDotGray" />
@@ -683,7 +653,6 @@ export default function PostProductPage() {
                       <div className="ppShipSummaryName">{summary.typeName}</div>
                       <div className="ppShipSummaryPrice">
                         {item.price ? `${Number(item.price).toLocaleString()} บาท` : "—"}
-                        {item.weight ? ` · ${item.weight} kg` : ""}
                       </div>
                     </div>
                   </div>
@@ -701,7 +670,7 @@ export default function PostProductPage() {
  
               <p className="ppHint" style={{ marginBottom: 16 }}>
                 <Icon icon="mdi:information-outline" style={{ verticalAlign: "middle", marginRight: 4 }} />
-                ผู้ซื้อจะเห็นตัวเลือกขนส่งเหล่านี้ โดยราคาค่าส่งคำนวณจากน้ำหนักสินค้าโดยอัตโนมัติ
+                ผู้ซื้อจะเห็นตัวเลือกขนส่งเหล่านี้ โดยค่าจัดส่งคิดตามประเภทขนส่งและยอดคำสั่งซื้อ
               </p>
  
               {shippingProviders.length === 0 ? (

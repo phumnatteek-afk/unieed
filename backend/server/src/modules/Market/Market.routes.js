@@ -5,6 +5,7 @@ import {
   getProducts,
   getProductById,
   deleteProduct,
+  updateProduct,
   searchSchools,
   getUniformTypes,
   getUniformTypesBySchool,
@@ -13,7 +14,7 @@ import {
   getRecommendedProjectsByProduct,
 } from "./Market.controller.js";
 import { auth }                from "../../middleware/auth.js";
-import { uploadProductImages } from "../../config/cloudinary.js";
+import { uploadProductImages, uploadMarketPatchImages } from "../../config/cloudinary.js";
 
 const router = express.Router();
 
@@ -50,5 +51,6 @@ router.get("/:id", getProductById);
 
 // DELETE /api/market/:id
 router.delete("/:id", auth, deleteProduct);
+router.patch("/:id", auth, uploadMarketPatchImages, updateProduct);
 
 export default router;

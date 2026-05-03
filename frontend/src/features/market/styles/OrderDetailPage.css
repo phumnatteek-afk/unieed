@@ -100,6 +100,10 @@
   font-weight: 600;
   font-size: 14px;
   text-decoration: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
 }
 
 .btnSecondary {
@@ -110,6 +114,19 @@
 .btnPrimary {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
   color: #fff;
+}
+
+.btnDanger {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.btnDanger:disabled,
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Divider */

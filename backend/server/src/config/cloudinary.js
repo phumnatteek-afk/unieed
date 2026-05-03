@@ -22,6 +22,16 @@ const uploadProductImages = multer({
   Array.from({ length: 10 }, (_, i) => ({ name: `item${i}_images`, maxCount: 4 }))
 );
 
+/** PATCH /market/:id — แนบรูปใหม่ได้ไม่เกิน 4 รวมในรายการ */
+const uploadMarketPatchImages = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("อนุญาตเฉพาะไฟล์รูปภาพเท่านั้น"));
+  },
+}).array("images", 4);
+
 // helper — upload buffer ขึ้น Cloudinary
 const uploadToCloudinary = (buffer, filename) =>
   new Promise((resolve, reject) => {
@@ -36,4 +46,4 @@ const uploadToCloudinary = (buffer, filename) =>
     stream.end(buffer);
   });
 
-export { cloudinary, uploadProductImages, uploadToCloudinary };
+export { cloudinary, uploadProductImages, uploadMarketPatchImages, uploadToCloudinary };

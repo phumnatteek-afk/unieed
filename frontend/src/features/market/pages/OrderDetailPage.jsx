@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link, useParams, useLocation } from "react-router-dom";
+import { Link, useParams, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import { formatOrderNo } from "../../../utils/orderNo.js";
 import "../styles/OrderDetailPage.css";
 
 const STATUS_MAP = {
@@ -18,19 +19,28 @@ const PAY_MAP = {
   unpaid: { label: "ยังไม่ชำระ", color: "#f59e0b" },
 };
 
+// คืน true ถ้า shipping_date เกิน 7 วันแล้ว (ผู้ซื้อยกเลิกได้)
+const shippedOver7Days = (shippingDate) => {
+  if (!shippingDate) return false;
+  return Date.now() - new Date(shippingDate).getTime() > 7 * 24 * 60 * 60 * 1000;
+};
+
 export default function OrderDetailPage() {
   const { token }  = useAuth();
   const { id }     = useParams();
   const location   = useLocation();
+  const navigate   = useNavigate();
   const successMsg = location.state?.successMsg;
 
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [order, setOrder]       = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [err, setErr]           = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionMsg, setActionMsg]         = useState("");
 
-  useEffect(() => {
+  const loadOrder = () => {
     if (!token || !id) return;
-
+    setLoading(true);
     fetch(`/api/orders/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -41,7 +51,32 @@ export default function OrderDetailPage() {
       })
       .catch(() => setErr("เกิดข้อผิดพลาด"))
       .finally(() => setLoading(false));
-  }, [token, id]);
+  };
+
+  useEffect(() => { loadOrder(); }, [token, id]);
+
+  const handleAction = async (action) => {
+    if (!window.confirm(
+      action === "confirm-receipt"
+        ? "ยืนยันว่าได้รับสินค้าแล้ว?"
+        : "ยืนยันการยกเลิกคำสั่งซื้อนี้?"
+    )) return;
+    setActionLoading(true); setActionMsg("");
+    try {
+      const res = await fetch(`/api/orders/${id}/${action}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "เกิดข้อผิดพลาด");
+      setActionMsg(data.message || "ดำเนินการเรียบร้อย");
+      loadOrder();
+    } catch (e) {
+      setActionMsg(e.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const status  = STATUS_MAP[order?.order_status] || STATUS_MAP.pending;
   const payInfo = PAY_MAP[order?.payment_status] || PAY_MAP.unpaid;
@@ -99,7 +134,7 @@ export default function OrderDetailPage() {
             <div className="card orderHeader">
               <div>
                 <div className="orderLabel">คำสั่งซื้อ</div>
-                <div className="orderId">#{order.order_id}</div>
+                <div className="orderId">{formatOrderNo(order.order_id)}</div>
                 <div className="orderDate">
                   {new Date(order.created_at).toLocaleDateString("th-TH", {
                     year: "numeric",
@@ -125,12 +160,7 @@ export default function OrderDetailPage() {
                   style={{ background: payInfo.color + "20", color: payInfo.color }}
                 >
                   {payInfo.label}
-                  {order.payment_method &&
-                    ` · ${
-                      order.payment_method === "card"
-                        ? "บัตรเครดิต"
-                        : "PromptPay"
-                    }`}
+                  {order.payment_method === "card" && " · บัตรเครดิต"}
                 </span>
               </div>
             </div>
@@ -231,6 +261,51 @@ export default function OrderDetailPage() {
                 </span>
               </div>
             </div>
+
+            {/* Buyer action message */}
+            {actionMsg && (
+              <div className={actionMsg.includes("ข้อผิดพลาด") || actionMsg.includes("ไม่") || actionMsg.includes("สามารถ")
+                ? "errorBox" : "successBox"}
+                style={{ marginBottom: 12 }}>
+                <Icon icon={actionMsg.includes("ข้อผิดพลาด") || actionMsg.includes("ไม่") || actionMsg.includes("สามารถ")
+                  ? "mdi:alert-circle" : "mdi:check-circle"} />
+                <span style={{ marginLeft: 8 }}>{actionMsg}</span>
+              </div>
+            )}
+
+            {/* Buyer action buttons */}
+            {(() => {
+              const canConfirm = order.order_status === "shipping";
+              const canCancel  =
+                order.order_status === "pending" ||
+                (order.order_status === "shipping" && shippedOver7Days(order.shipping_date));
+
+              if (!canConfirm && !canCancel) return null;
+              return (
+                <div className="card" style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+                  {canConfirm && (
+                    <button
+                      className="btn btnPrimary"
+                      disabled={actionLoading}
+                      onClick={() => handleAction("confirm-receipt")}
+                    >
+                      <Icon icon="mdi:check-circle-outline" style={{ marginRight:6 }} />
+                      {actionLoading ? "กำลังดำเนินการ..." : "ยืนยันรับสินค้าแล้ว"}
+                    </button>
+                  )}
+                  {canCancel && (
+                    <button
+                      className="btn btnDanger"
+                      disabled={actionLoading}
+                      onClick={() => handleAction("cancel")}
+                    >
+                      <Icon icon="mdi:close-circle-outline" style={{ marginRight:6 }} />
+                      {actionLoading ? "กำลังดำเนินการ..." : "ยกเลิกคำสั่งซื้อ"}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Buttons */}
             <div className="buttonGroup">

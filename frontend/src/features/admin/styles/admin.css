@@ -550,23 +550,23 @@ height: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 24px 18px;
-  
-
-  border-bottom: 2px solid rgba(0,0,0,0.10); 
+  padding: 16px 28px 18px;
+  background: linear-gradient(90deg, #1d4ed8 0%, #5285e8 45%, #7dd3fc 100%);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(30, 64, 175, 0.22);
 }
 
 .boTitle {
   font-size: 32px;
-  font-weight: 600;
-  color: #053F5C;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .boAdmin {
   display: flex;
   align-items: center;
   gap: 14px;
-  color: #053F5C;
+  color: #ffffff;
 }
 
 .boAdminRole svg  {
@@ -577,14 +577,16 @@ height: auto;
   margin-right: 12px;
 }
 
-.boAdminText div, 
-.boAdminText span, 
-.boAdminText a {
-    color: #053f5c !important;
-}
-.boAdminText .pd-avatar svg {
-    color: #053F5C !important;
-}
+/* ── ชื่อ/Role ใน trigger ให้เป็นขาว แต่ไม่ครอบ dropdown popup ── */
+.boAdminText .pd-name    { color: #ffffff !important; }
+.boAdminText .pd-role    { color: rgba(255,255,255,0.85) !important; }
+.boAdminText .pd-chevron { color: #ffffff !important; }
+/* reset สีกลับใน popup เพื่อไม่ให้ขาวบนขาว */
+.boAdminText .pd-menu .pd-item-label  { color: #111827 !important; }
+.boAdminText .pd-menu .pd-item-icon   { color: #6b7280 !important; }
+.boAdminText .pd-menu .pd-sub-item    { color: #374151 !important; }
+.boAdminText .pd-menu .pd-item-label--red,
+.boAdminText .pd-menu .pd-item-icon--red { color: #ef4444 !important; }
 .boAdminRole {
   font-weight: 600;
 }
@@ -673,6 +675,58 @@ height: auto;
   background: rgba(231, 123, 123, 0.12);
   color: #a02222;
   font-weight: 700;
+}
+
+.boTradeToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.20);
+  border-radius: 0;
+  background: transparent;
+  color: rgb(210, 210, 210);
+  font-weight: 400;
+  font-size: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+ 
+.boTradeToggle.active {
+  color: #fff;
+  font-weight: 700;
+}
+ 
+.boTradeToggle__icon {
+  width: 30px;
+  height: 30px;
+}
+ 
+.boTradeToggle__label {
+  flex: 1;
+}
+ 
+.boTradeToggle__chevron {
+  width: 20px;
+  height: 20px;
+}
+ 
+/* submenu indent */
+.boTradeSubmenu {
+  padding-left: 16px;
+}
+ 
+/* sub-items — เล็กลงนิด */
+.boItem--sub {
+  padding-left: 8px;
+  font-size: 0.95em;
+}
+ 
+.boItem--sub__icon {
+  width: 24px;
+  height: 24px;
 }
 
 /* Optional: tiny responsiveness */

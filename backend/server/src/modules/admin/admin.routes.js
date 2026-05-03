@@ -9,23 +9,45 @@ import {
   adminOverview,
   getSchoolDetail,
   updateSchool,
-  adminUpdateSchool,  
+  adminUpdateSchool,
+  adminRevenue,
+  adminChart,
+  adminPendingTasks,
+  adminListOrders,
+  adminOrderDetail,
+  adminShipOrder,
+  adminCancelOrder,
+  adminListPayouts,
+  adminPaySeller,
+  adminPayAll,
 } from "./admin.controller.js";
 
 const r = Router();
 
-r.get("/schools", auth, requireRole(["admin"]), adminListSchools);
-r.get("/schools/:id", auth, requireRole(["admin"]), getSchoolDetail);
-
-r.put("/schools/:id", auth, requireRole(["admin"]), updateSchool);
-
-r.post("/schools/:id/approve", auth, requireRole(["admin"]), adminApproveSchool);
+/* ─── Schools ─── */
+r.get("/schools",             auth, requireRole(["admin"]), adminListSchools);
+r.get("/schools/:id",         auth, requireRole(["admin"]), getSchoolDetail);
+r.put("/schools/:id",         auth, requireRole(["admin"]), updateSchool);
+r.patch("/schools/:id",       auth, requireRole(["admin"]), adminUpdateSchool);
+r.post("/schools/:id/approve",auth, requireRole(["admin"]), adminApproveSchool);
 r.post("/schools/:id/reject", auth, requireRole(["admin"]), adminRejectSchool);
-r.delete("/schools/:id", auth, requireRole(["admin"]), adminRemoveSchool);
+r.delete("/schools/:id",      auth, requireRole(["admin"]), adminRemoveSchool);
 
-r.get("/overview", auth, requireRole(["admin"]), adminOverview);
+/* ─── Dashboard ─── */
+r.get("/overview",            auth, requireRole(["admin"]), adminOverview);
+r.get("/revenue",             auth, requireRole(["admin"]), adminRevenue);       // ?period=week|month|year
+r.get("/chart",               auth, requireRole(["admin"]), adminChart);         // ?months=6
+r.get("/pending-tasks",       auth, requireRole(["admin"]), adminPendingTasks);
 
-r.patch("/schools/:id", auth, requireRole(["admin"]), adminUpdateSchool);
+/* ─── Orders ─── */
+r.get("/orders",              auth, requireRole(["admin"]), adminListOrders);    // ?status=&q=&page=&limit=
+r.get("/orders/:id",          auth, requireRole(["admin"]), adminOrderDetail);
+r.patch("/orders/:id/ship",   auth, requireRole(["admin"]), adminShipOrder);
+r.patch("/orders/:id/cancel", auth, requireRole(["admin"]), adminCancelOrder);
 
+/* ─── Payouts ─── */
+r.get("/payouts",             auth, requireRole(["admin"]), adminListPayouts);   // ?period=&page=&limit=
+r.post("/payouts/pay-all",    auth, requireRole(["admin"]), adminPayAll);
+r.post("/payouts/:seller_id/pay", auth, requireRole(["admin"]), adminPaySeller);
 
 export default r;

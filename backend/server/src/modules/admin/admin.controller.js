@@ -1,79 +1,132 @@
 import * as svc from "./admin.service.js";
 
+/* ───────────── Schools ───────────── */
+
 export async function adminListSchools(req, res, next) {
   try {
     const { status = "", q = "", sort = "latest" } = req.query;
     const data = await svc.listSchools({ status, q, sort });
-    res.json(data); // ✅ {stats, rows}
-  } catch (e) {
-    next(e);
-  }
+    res.json(data);
+  } catch (e) { next(e); }
 }
 
 export async function adminApproveSchool(req, res, next) {
   try {
     const id = Number(req.params.id);
     res.json(await svc.approveSchool(id));
-  } catch (e) {
-    next(e);
-  }
+  } catch (e) { next(e); }
 }
 
 export async function adminRemoveSchool(req, res, next) {
   try {
     const id = Number(req.params.id);
     res.json(await svc.removeSchool(id));
-  } catch (e) {
-    next(e);
-  }
-}
-
-export async function adminOverview(req, res, next) {
-  try {
-    const stats = await svc.getOverviewStats();
-    res.json(stats);
-  } catch (e) {
-    next(e);
-  }
+  } catch (e) { next(e); }
 }
 
 export async function adminRejectSchool(req, res, next) {
   try {
     const school_id = Number(req.params.id);
     const note = String(req.body?.note || "").trim();
-    const result = await svc.rejectSchool(school_id, note);
-    res.json(result);
-  } catch (e) {
-    next(e);
-  }
+    res.json(await svc.rejectSchool(school_id, note));
+  } catch (e) { next(e); }
 }
-
 
 export async function getSchoolDetail(req, res, next) {
   try {
-    const data = await svc.getSchoolDetail(req.params.id);
-    res.json(data);
-  } catch (e) {
-    next(e);
-  }
+    res.json(await svc.getSchoolDetail(req.params.id));
+  } catch (e) { next(e); }
 }
 
 export async function updateSchool(req, res, next) {
   try {
-    const data = await svc.updateSchool(req.params.id, req.body);
-    res.json(data);
-  } catch (e) {
-    next(e);
-  }
+    res.json(await svc.updateSchool(req.params.id, req.body));
+  } catch (e) { next(e); }
 }
+
 export async function adminUpdateSchool(req, res, next) {
   try {
-    const data = await svc.adminUpdateSchool(req.params.id, req.body);
-    res.json(data);
-  } catch (e) {
-    next(e);
-  }
+    res.json(await svc.adminUpdateSchool(req.params.id, req.body));
+  } catch (e) { next(e); }
 }
 
+/* ───────────── Dashboard overview ───────────── */
 
+export async function adminOverview(req, res, next) {
+  try {
+    res.json(await svc.getOverviewStats());
+  } catch (e) { next(e); }
+}
 
+export async function adminRevenue(req, res, next) {
+  try {
+    const { period = "week" } = req.query;
+    res.json(await svc.getRevenueStats(period));
+  } catch (e) { next(e); }
+}
+
+export async function adminChart(req, res, next) {
+  try {
+    const months = Number(req.query.months) || 6;
+    res.json(await svc.getChartData(months));
+  } catch (e) { next(e); }
+}
+
+export async function adminPendingTasks(req, res, next) {
+  try {
+    res.json(await svc.getPendingTasks());
+  } catch (e) { next(e); }
+}
+
+/* ───────────── Orders ───────────── */
+
+export async function adminListOrders(req, res, next) {
+  try {
+    const { status = "", q = "", page = 1, limit = 10 } = req.query;
+    res.json(await svc.listOrders({ status, q, page: Number(page), limit: Number(limit) }));
+  } catch (e) { next(e); }
+}
+
+export async function adminOrderDetail(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    res.json(await svc.getOrderDetail(id));
+  } catch (e) { next(e); }
+}
+
+export async function adminShipOrder(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    res.json(await svc.shipOrder(id));
+  } catch (e) { next(e); }
+}
+
+export async function adminCancelOrder(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    res.json(await svc.cancelOrder(id));
+  } catch (e) { next(e); }
+}
+
+/* ───────────── Payouts ───────────── */
+
+export async function adminListPayouts(req, res, next) {
+  try {
+    const { period = "week", page = 1, limit = 10 } = req.query;
+    res.json(await svc.listPayouts({ period, page: Number(page), limit: Number(limit) }));
+  } catch (e) { next(e); }
+}
+
+export async function adminPaySeller(req, res, next) {
+  try {
+    const seller_id = Number(req.params.seller_id);
+    const { net_amount } = req.body;
+    res.json(await svc.paySeller(seller_id, Number(net_amount)));
+  } catch (e) { next(e); }
+}
+
+export async function adminPayAll(req, res, next) {
+  try {
+    res.json(await svc.payAllSellers());
+  } catch (e) { next(e); }
+}

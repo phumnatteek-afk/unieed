@@ -41,6 +41,8 @@ import AdminSchoolsPage from "./features/admin/pages/AdminSchoolsPage.jsx";
 import AdminGuard from "./routes/AdminGuard.jsx";
 import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
 import AdminDonationManagement from "./features/admin/pages/Admindonationmanagement.jsx";
+import AdminOrderPage from "./features/admin/pages/Adminorderpage.jsx";
+import AdminPayoutPage from "./features/admin/pages/AdminPayoutPage.jsx";
 
 import ProjectDetailPage from "./features/project/pages/ProjectDetailPage.jsx";
 import DonatePage from "./features/project/pages/Donatepage.jsx";
@@ -56,7 +58,16 @@ import CartPage from "./features/market/pages/CartPage.jsx";
 import CheckoutPage from "./features/market/pages/CheckoutPage.jsx";
 // ✅ เพิ่ม PaymentSuccessPage
 import PaymentSuccessPage from "./features/market/pages/PaymentSuccessPage.jsx";
+import MyOrdersPage from "./features/market/pages/MyOrdersPage.jsx";
+import OrderDetailPage from "./features/market/pages/OrderDetailPage.jsx";
 import { CartProvider } from "./features/market/context/CartContext.jsx";
+
+// Seller (ผู้ขาย — Dashboard / Orders / Payouts / Products)
+import SellerLayout from "./features/seller/layouts/SellerLayout.jsx";
+import SellerDashboardPage from "./features/seller/pages/SellerDashboardPage.jsx";
+import SellerOrdersPage from "./features/seller/pages/SellerOrdersPage.jsx";
+import SellerPayoutsPage from "./features/seller/pages/SellerPayoutsPage.jsx";
+import SellerProductsPage from "./features/seller/pages/SellerProductsPage.jsx";
 
 export default function App() {
   return (
@@ -69,7 +80,6 @@ export default function App() {
               <Route path="/" element={<RoleRedirect><HomePage /></RoleRedirect>} />
               <Route path="/projects" element={<RoleRedirect><DonationProject /></RoleRedirect>} />
               <Route path="/login" element={<RoleRedirect><LoginPage /></RoleRedirect>} />
-
               <Route path="/register" element={<RoleRedirect><RegisterChoicePage /></RoleRedirect>} />
               <Route path="/register/general" element={<RoleRedirect><RegisterGeneralPage /></RoleRedirect>} />
               <Route path="/register/school" element={<RoleRedirect><RegisterSchoolPage /></RoleRedirect>} />
@@ -84,9 +94,6 @@ export default function App() {
               <Route path="/profile/certificates" element={<CertificatePage />} />
 
               <Route path="/school/accept-invite" element={<AcceptInvitePage />} />
-
-
-
               <Route path="/projects/:requestId" element={<RoleRedirect><ProjectDetailPage /></RoleRedirect>} />
               <Route path="/donate/:requestId" element={<RoleRedirect><DonatePage /></RoleRedirect>} />
               <Route path="/market" element={<RoleRedirect><MarketPage /></RoleRedirect>} />
@@ -94,13 +101,14 @@ export default function App() {
               <Route path="/market/:id" element={<RoleRedirect><ProductDetailPage /></RoleRedirect>} />
               <Route path="/cart" element={<RoleRedirect><CartPage /></RoleRedirect>} />
               <Route path="/checkout" element={<RoleRedirect><CheckoutPage /></RoleRedirect>} />
-              {/* ✅ Route ที่ CheckoutPage navigate ไป */}
+    
               <Route path="/checkout/success" element={<PaymentSuccessPage />} />
+              <Route path="/orders" element={<MyOrdersPage />} />
+              <Route path="/orders/:id" element={<OrderDetailPage />} />
               <Route path="/donate/:projectId/market" element={<RoleRedirect><DonateMarketPage /></RoleRedirect>} />
 
               {/* School */}
               <Route path="/school/pending" element={<SchoolPendingPage />} />
-
               <Route
                 path="/school/welcome"
                 element={
@@ -129,15 +137,32 @@ export default function App() {
                 <Route path="testimonials" element={<SchoolTestimonialPage />} />
               </Route>
 
+              {/* Seller (ผู้ขาย) — เปิดเข้าได้ทุก user แต่ใน page จะ render
+                  "ยังไม่มีรายการขายของคุณ" ถ้ายังไม่ใช่ผู้ขาย */}
+              <Route
+                path="/seller"
+                element={
+                  <ProtectedRoute>
+                    <SellerLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<SellerDashboardPage />} />
+                <Route path="orders"   element={<SellerOrdersPage />} />
+                <Route path="payouts"  element={<SellerPayoutsPage />} />
+                <Route path="products" element={<SellerProductsPage />} />
+              </Route>
+
               {/* Admin */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
-
               <Route element={<AdminGuard />}>
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<Navigate to="/admin/backoffice" replace />} />
                   <Route path="/admin/backoffice" element={<AdminBackofficePage />} />
                   <Route path="/admin/schools" element={<AdminSchoolsPage />} />
                   <Route path="/admin/donations" element={<AdminDonationManagement />} />
+                  <Route path="/admin/orders" element={<AdminOrderPage />} />
+                  <Route path="/admin/payouts" element={<AdminPayoutPage />} />
                 </Route>
               </Route>
 

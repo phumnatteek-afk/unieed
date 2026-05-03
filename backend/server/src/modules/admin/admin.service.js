@@ -1,160 +1,95 @@
 import { db } from "../../config/db.js";
+import {
+  decryptBankAccountNumber,
+  formatBankAccountNumber,
+  isValidBankNumber,
+  maskBankAccountNumber,
+  sanitizeBankNumber,
+} from "../../utils/bankAccountSecurity.js";
 
-/* ---------------- helpers ---------------- */
+/* ────── helpers ────── */
 
 function normalizeThaiPhone(input) {
   if (!input) return null;
-
   let raw = String(input).replace(/\D/g, "");
   if (!raw) return null;
-
-  // 66xxxxxxxxx (11 หลัก) -> 0xxxxxxxxx
   if (raw.startsWith("66") && raw.length === 11) raw = "0" + raw.slice(2);
-
-  // 9 หลัก (ลืม 0) -> เติม 0
   if (raw.length === 9) raw = "0" + raw;
-
   return raw;
 }
 
-/* ---------------- list + stats ---------------- */
+function periodToDateRange(period) {
+  const now = new Date();
+  let from;
+  if (period === "week") {
+    from = new Date(now); from.setDate(now.getDate() - 7);
+  } else if (period === "month") {
+    from = new Date(now); from.setMonth(now.getMonth() - 1);
+  } else {
+    from = new Date(now); from.setFullYear(now.getFullYear() - 1);
+  }
+  return { from: from.toISOString().slice(0, 19), to: now.toISOString().slice(0, 19) };
+}
+
+/* ────── Schools ────── */
 
 export async function listSchools({ status = "", q = "", sort = "latest" } = {}) {
-  const where = [];
-  const params = [];
-
+  const where = []; const params = [];
   if (status && ["pending", "approved", "rejected"].includes(status)) {
-    where.push("s.verification_status = ?");
-    params.push(status);
+    where.push("s.verification_status = ?"); params.push(status);
   }
-
   if (q) {
-    where.push(
-      "(s.school_name LIKE ? OR s.school_address LIKE ? OR u.user_name LIKE ? OR u.user_email LIKE ?)"
-    );
-    const like = `%${q}%`;
-    params.push(like, like, like, like);
+    where.push("(s.school_name LIKE ? OR s.school_address LIKE ? OR u.user_name LIKE ? OR u.user_email LIKE ?)");
+    const like = `%${q}%`; params.push(like, like, like, like);
   }
-
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-  const orderSql =
-    sort === "oldest" ? "ORDER BY s.created_at ASC" : "ORDER BY s.created_at DESC";
+  const orderSql = sort === "oldest" ? "ORDER BY s.created_at ASC" : "ORDER BY s.created_at DESC";
 
-  const [rows] = await db.query(
-    `
-    SELECT
-      s.school_id,
-      s.school_name,
-      s.school_address,
-      s.school_phone,
-      s.school_doc_url,
-      s.school_doc_public_id,
-      s.school_logo_url,
-      s.school_logo_public_id,
-      s.school_code,
-      s.school_intent,
-      s.verification_status,
-      s.verification_note,
-      s.created_at,
-
-      u.user_name  AS coordinator_name,
-      u.user_email AS coordinator_email
+  const [rows] = await db.query(`
+    SELECT s.school_id, s.school_name, s.school_address, s.school_phone,
+      s.school_doc_url, s.school_doc_public_id, s.school_logo_url, s.school_logo_public_id,
+      s.school_code, s.school_intent, s.verification_status, s.verification_note, s.created_at,
+      u.user_name AS coordinator_name, u.user_email AS coordinator_email
     FROM schools s
-    LEFT JOIN users u
-      ON u.school_id = s.school_id
-     AND u.role = 'school_admin'
-    ${whereSql}
-    ${orderSql}
-    `,
-    params
-  );
+    LEFT JOIN users u ON u.school_id = s.school_id AND u.role = 'school_admin'
+    ${whereSql} ${orderSql}
+  `, params);
 
   const [[totalRow]] = await db.query(`SELECT COUNT(*) AS c FROM schools`);
-  const [[pendingRow]] = await db.query(
-    `SELECT COUNT(*) AS c FROM schools WHERE verification_status='pending'`
-  );
-  const [[approvedRow]] = await db.query(
-    `SELECT COUNT(*) AS c FROM schools WHERE verification_status='approved'`
-  );
+  const [[pendingRow]] = await db.query(`SELECT COUNT(*) AS c FROM schools WHERE verification_status='pending'`);
+  const [[approvedRow]] = await db.query(`SELECT COUNT(*) AS c FROM schools WHERE verification_status='approved'`);
 
   return {
-    stats: {
-      total: Number(totalRow?.c || 0),
-      pending: Number(pendingRow?.c || 0),
-      approved: Number(approvedRow?.c || 0),
-    },
+    stats: { total: Number(totalRow?.c || 0), pending: Number(pendingRow?.c || 0), approved: Number(approvedRow?.c || 0) },
     rows,
   };
 }
-
-/* ---------------- actions ---------------- */
 
 export async function approveSchool(school_id) {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
-
     const [r] = await conn.query(
-      `UPDATE schools
-       SET verification_status='approved',
-           verification_note=NULL
-       WHERE school_id=?`,
-      [school_id]
-    );
-
-    if (r.affectedRows === 0) {
-      throw Object.assign(new Error("School not found"), { status: 404 });
-    }
-
-    await conn.query(
-      `UPDATE users
-       SET status='active'
-       WHERE role='school_admin' AND school_id=?`,
-      [school_id]
-    );
-
+      `UPDATE schools SET verification_status='approved', verification_note=NULL WHERE school_id=?`, [school_id]);
+    if (r.affectedRows === 0) throw Object.assign(new Error("School not found"), { status: 404 });
+    await conn.query(`UPDATE users SET status='active' WHERE role='school_admin' AND school_id=?`, [school_id]);
     await conn.commit();
     return { message: "Approved" };
-  } catch (e) {
-    await conn.rollback();
-    throw e;
-  } finally {
-    conn.release();
-  }
+  } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
 }
 
 export async function rejectSchool(school_id, note) {
   if (!note) throw Object.assign(new Error("กรุณากรอกเหตุผลการปฏิเสธ"), { status: 400 });
-
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
-
     const [sr] = await conn.query(
-      `UPDATE schools
-       SET verification_status='rejected', verification_note=?
-       WHERE school_id=?`,
-      [note, school_id]
-    );
-    if (sr.affectedRows === 0) {
-      throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
-    }
-
-    await conn.query(
-      `UPDATE users
-       SET status='rejected'
-       WHERE role='school_admin' AND school_id=?`,
-      [school_id]
-    );
-
+      `UPDATE schools SET verification_status='rejected', verification_note=? WHERE school_id=?`, [note, school_id]);
+    if (sr.affectedRows === 0) throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
+    await conn.query(`UPDATE users SET status='rejected' WHERE role='school_admin' AND school_id=?`, [school_id]);
     await conn.commit();
     return { message: "Rejected", school_id };
-  } catch (e) {
-    await conn.rollback();
-    throw e;
-  } finally {
-    conn.release();
-  }
+  } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
 }
 
 export async function removeSchool(school_id) {
@@ -163,297 +98,619 @@ export async function removeSchool(school_id) {
     await conn.beginTransaction();
     await conn.query(`DELETE FROM users WHERE school_id=? AND role='school_admin'`, [school_id]);
     const [r] = await conn.query(`DELETE FROM schools WHERE school_id=?`, [school_id]);
-
-    if (r.affectedRows === 0) {
-      throw Object.assign(new Error("School not found"), { status: 404 });
-    }
-
+    if (r.affectedRows === 0) throw Object.assign(new Error("School not found"), { status: 404 });
     await conn.commit();
     return { message: "Removed" };
-  } catch (e) {
-    await conn.rollback();
-    throw e;
-  } finally {
-    conn.release();
-  }
+  } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
 }
 
-/* ---------------- overview ---------------- */
-
-export async function getOverviewStats() {
-  const [[usersRow]] = await db.query(`SELECT COUNT(*) AS total_users FROM users WHERE role='user'`);
-
-  const [[schoolsRow]] = await db.query(`
-    SELECT COUNT(*) AS total_schools
-    FROM schools
-    WHERE verification_status='approved'
-  `);
-
-  const [[productsRow]] = await db.query(`SELECT COUNT(*) AS total_products FROM products`);
-  const [[ordersRow]] = await db.query(`SELECT COUNT(*) AS total_orders FROM orders`);
-
-  return {
-    total_users: Number(usersRow?.total_users || 0),
-    total_schools: Number(schoolsRow?.total_schools || 0),
-    total_products: Number(productsRow?.total_products || 0),
-    total_orders: Number(ordersRow?.total_orders || 0),
-  };
-}
-
-/* ---------------- detail + update ---------------- */
-
-// ✅ ดูรายละเอียดโรงเรียน 1 แห่ง (ใช้กับปุ่ม "ดูเพิ่มเติม")
 export async function getSchoolDetail(school_id) {
   const id = Number(school_id);
-  if (!Number.isFinite(id)) {
-    throw Object.assign(new Error("school_id ไม่ถูกต้อง"), { status: 400 });
-  }
-
-  const [rows] = await db.query(
-    `
-    SELECT
-      s.school_id,
-      s.school_name,
-      s.school_address,
-      s.school_phone,
-      s.school_phone_verified,
-      s.school_code,
-      s.school_intent,
-
-      s.school_doc_url,
-      s.school_doc_public_id,
-
-      s.school_logo_url,
-      s.school_logo_public_id,
-
-      s.verification_status,
-      s.verification_note,
-      s.created_at,
-
-      u.user_name  AS coordinator_name,
-      u.user_email AS coordinator_email
+  if (!Number.isFinite(id)) throw Object.assign(new Error("school_id ไม่ถูกต้อง"), { status: 400 });
+  const [rows] = await db.query(`
+    SELECT s.*, u.user_name AS coordinator_name, u.user_email AS coordinator_email
     FROM schools s
-    LEFT JOIN users u
-      ON u.school_id = s.school_id
-     AND u.role = 'school_admin'
-    WHERE s.school_id = ?
-    LIMIT 1
-    `,
-    [id]
-  );
-
-  if (!rows.length) {
-    throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
-  }
+    LEFT JOIN users u ON u.school_id = s.school_id AND u.role = 'school_admin'
+    WHERE s.school_id = ? LIMIT 1
+  `, [id]);
+  if (!rows.length) throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
   return rows[0];
 }
 
-// ✅ แก้ไขข้อมูลโรงเรียน (ใช้กับปุ่ม "บันทึก" ใน modal)
 export async function updateSchool(school_id, payload = {}) {
   const id = Number(school_id);
-  if (!Number.isFinite(id)) {
-    throw Object.assign(new Error("school_id ไม่ถูกต้อง"), { status: 400 });
-  }
-
-  const {
-    school_name,
-    school_address,
-    school_phone,
-    school_code,
-    school_intent,
-    school_logo_url,
-    school_logo_public_id,
-  } = payload;
-
-  // school_code ต้องเป็นตัวเลข 10 หลักพอดี
+  if (!Number.isFinite(id)) throw Object.assign(new Error("school_id ไม่ถูกต้อง"), { status: 400 });
+  const { school_name, school_address, school_phone, school_code, school_intent, school_logo_url, school_logo_public_id } = payload;
   const codeDigits = String(school_code ?? "").replace(/\D/g, "");
-  if (!/^\d{10}$/.test(codeDigits)) {
-    throw Object.assign(new Error("รหัสสถานศึกษาต้องเป็นตัวเลข 10 หลักพอดี"), { status: 400 });
-  }
-
-  // phone ต้องเป็นเบอร์ไทย 10 หลักขึ้นต้น 0
+  if (!/^\d{10}$/.test(codeDigits)) throw Object.assign(new Error("รหัสสถานศึกษาต้องเป็นตัวเลข 10 หลักพอดี"), { status: 400 });
   const phoneDigits = normalizeThaiPhone(school_phone);
-  if (!phoneDigits || !/^0\d{9}$/.test(phoneDigits)) {
-    throw Object.assign(new Error("เบอร์โทรต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0"), { status: 400 });
-  }
-
-  if (!String(school_name || "").trim() || !String(school_address || "").trim()) {
-    throw Object.assign(new Error("กรุณากรอกข้อมูลให้ครบ"), { status: 400 });
-  }
-
+  if (!phoneDigits || !/^0\d{9}$/.test(phoneDigits)) throw Object.assign(new Error("เบอร์โทรต้องเป็นตัวเลข 10 หลัก"), { status: 400 });
+  if (!String(school_name || "").trim() || !String(school_address || "").trim()) throw Object.assign(new Error("กรุณากรอกข้อมูลให้ครบ"), { status: 400 });
   const [r] = await db.query(
-    `UPDATE schools
-     SET
-       school_name=?,
-       school_address=?,
-       school_phone=?,
-       school_code=?,
-       school_intent=?,
-       school_logo_url=?,
-       school_logo_public_id=?
-     WHERE school_id=?`,
-    [
-      String(school_name).trim(),
-      String(school_address).trim(),
-      phoneDigits,
-      codeDigits,
-      school_intent || null,
-      school_logo_url || null,
-      school_logo_public_id || null,
-      id,
-    ]
-  );
-
-  if (r.affectedRows === 0) {
-    throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
-  }
-
+    `UPDATE schools SET school_name=?, school_address=?, school_phone=?, school_code=?, school_intent=?, school_logo_url=?, school_logo_public_id=? WHERE school_id=?`,
+    [String(school_name).trim(), String(school_address).trim(), phoneDigits, codeDigits, school_intent || null, school_logo_url || null, school_logo_public_id || null, id]);
+  if (r.affectedRows === 0) throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
   return { message: "Updated", school_id: id };
 }
 
-
 export async function adminUpdateSchool(school_id, payload = {}) {
   const id = Number(school_id);
-  if (!Number.isFinite(id)) {
-    throw Object.assign(new Error("school_id ไม่ถูกต้อง"), { status: 400 });
-  }
-
-  const {
-    // schools
-    school_name,
-    school_address,
-    school_phone,
-    school_code, // optional
-    school_intent,
-    school_logo_url,
-    school_logo_public_id,
-
-    // coordinator (users)
-    coordinator_name,
-    coordinator_email,
-    coordinator_phone, // ถ้ามีใน users
-  } = payload;
-
-  // ===== validate โรงเรียน =====
+  if (!Number.isFinite(id)) throw Object.assign(new Error("school_id ไม่ถูกต้อง"), { status: 400 });
+  const { school_name, school_address, school_phone, school_code, school_intent, school_logo_url, school_logo_public_id, coordinator_name, coordinator_email, coordinator_phone } = payload;
   const name = String(school_name || "").trim();
   const addr = String(school_address || "").trim();
-  if (!name || !addr) {
-    throw Object.assign(new Error("กรุณากรอกข้อมูลโรงเรียนให้ครบ"), { status: 400 });
-  }
-
-  const phoneDigits = normalizeThaiPhone ? normalizeThaiPhone(school_phone) : String(school_phone || "").replace(/\D/g, "");
-  if (!phoneDigits || !/^0\d{9}$/.test(phoneDigits)) {
-    throw Object.assign(new Error("เบอร์โทรโรงเรียนต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0"), { status: 400 });
-  }
-
-  // school_code: optional สำหรับแอดมิน
+  if (!name || !addr) throw Object.assign(new Error("กรุณากรอกข้อมูลโรงเรียนให้ครบ"), { status: 400 });
+  const phoneDigits = normalizeThaiPhone(school_phone);
+  if (!phoneDigits || !/^0\d{9}$/.test(phoneDigits)) throw Object.assign(new Error("เบอร์โทรโรงเรียนต้องเป็นตัวเลข 10 หลัก"), { status: 400 });
   let codeDigits = null;
   if (school_code !== undefined) {
     const raw = String(school_code || "").trim();
     if (raw !== "") {
       const d = raw.replace(/\D/g, "");
-      if (!/^\d{10}$/.test(d)) {
-        throw Object.assign(new Error("รหัสสถานศึกษาต้องเป็นตัวเลข 10 หลักพอดี"), { status: 400 });
-      }
+      if (!/^\d{10}$/.test(d)) throw Object.assign(new Error("รหัสสถานศึกษาต้องเป็นตัวเลข 10 หลักพอดี"), { status: 400 });
       codeDigits = d;
     }
   }
+  const [[row]] = await db.query(`SELECT school_id, coordinator_user_id FROM schools WHERE school_id=? LIMIT 1`, [id]);
+  if (!row) throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const sFields = ["school_name=?", "school_address=?", "school_phone=?", "school_intent=?", "school_logo_url=?", "school_logo_public_id=?"];
+    const sVals = [name, addr, phoneDigits, school_intent || null, school_logo_url || null, school_logo_public_id || null];
+    if (codeDigits) { sFields.push("school_code=?"); sVals.push(codeDigits); }
+    sVals.push(id);
+    const [r1] = await conn.query(`UPDATE schools SET ${sFields.join(", ")} WHERE school_id=?`, sVals);
+    if (r1.affectedRows === 0) throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
+    const cName = String(coordinator_name ?? "").trim();
+    const cEmail = String(coordinator_email ?? "").trim();
+    const cPhoneRaw = String(coordinator_phone ?? "").trim();
+    const cPhoneDigits = cPhoneRaw ? normalizeThaiPhone(cPhoneRaw) : "";
+    if (cEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cEmail)) throw Object.assign(new Error("อีเมลผู้ประสานงานไม่ถูกต้อง"), { status: 400 });
+    const coordinatorUserId = row.coordinator_user_id;
+    const hasCoordPayload = coordinator_name !== undefined || coordinator_email !== undefined || coordinator_phone !== undefined;
+    if (coordinatorUserId && hasCoordPayload) {
+      const uFields = []; const uVals = [];
+      if (coordinator_name !== undefined) { uFields.push("user_name=?"); uVals.push(cName); }
+      if (coordinator_email !== undefined) { uFields.push("user_email=?"); uVals.push(cEmail || null); }
+      if (coordinator_phone !== undefined) { uFields.push("user_phone=?"); uVals.push(cPhoneDigits || null); }
+      if (uFields.length) { uVals.push(coordinatorUserId); await conn.query(`UPDATE users SET ${uFields.join(", ")} WHERE user_id=?`, uVals); }
+    }
+    await conn.commit();
+    return { message: "Updated", school_id: id };
+  } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
+}
 
-  // ===== หา coordinator user_id จากโรงเรียน =====
-  // ✅ เปลี่ยนคอลัมน์นี้ให้ตรงของคุณ:
-  // ถ้าโรงเรียนผูกกับ user โดย s.user_id ก็เปลี่ยน SELECT เป็น s.user_id
-  const [[row]] = await db.query(
-    `SELECT s.school_id, s.coordinator_user_id AS coordinator_user_id
-     FROM schools s
-     WHERE s.school_id = ?
+/* ────── Dashboard Overview ────── */
+
+export async function getOverviewStats() {
+  const [[usersRow]]    = await db.query(`SELECT COUNT(*) AS total_users    FROM users   WHERE role='user'`);
+  const [[schoolsRow]]  = await db.query(`SELECT COUNT(*) AS total_schools  FROM schools WHERE verification_status='approved'`);
+  const [[productsRow]] = await db.query(`SELECT COUNT(*) AS total_products FROM products`);
+  const [[ordersRow]]   = await db.query(`SELECT COUNT(*) AS total_orders   FROM orders`);
+  const [[donationsRow]] = await db.query(`SELECT COUNT(*) AS total_donations FROM donation_request`)
+    .catch(() => [[{ total_donations: 0 }]]);
+  return {
+    total_users:     Number(usersRow?.total_users        || 0),
+    total_schools:   Number(schoolsRow?.total_schools    || 0),
+    total_donations: Number(donationsRow?.total_donations|| 0),
+    total_products:  Number(productsRow?.total_products  || 0),
+    total_orders:    Number(ordersRow?.total_orders      || 0),
+  };
+}
+
+/**
+ * รายได้แพลตฟอร์ม
+ * - platform_revenue = ยอดขายสินค้ารวม (ก่อนหักค่าธรรมเนียม)
+ * - fee_revenue      = ค่าธรรมเนียม 15% (ขั้นต่ำ 20 บาท) ที่แพลตฟอร์มได้
+ * - net_revenue      = รายได้สุทธิหลังหักค่าธรรมเนียม (= ยอดที่ผู้ขายควรได้รวมกัน)
+ */
+export async function getRevenueStats(period = "week") {
+  const { from, to } = periodToDateRange(period);
+  const [[revenueRow]] = await db.query(`
+    SELECT
+      COALESCE(SUM(o.total_price), 0)           AS platform_revenue,
+      COALESCE(SUM(o.platform_fee), 0)          AS fee_revenue,
+      COALESCE(SUM(o.seller_payout_amount), 0)  AS net_revenue,
+      COUNT(*)                                  AS fee_count
+    FROM orders o
+    WHERE o.order_status='delivered'
+      AND o.created_at BETWEEN ? AND ?
+  `, [from, to]);
+  return {
+    platform_revenue: Math.round(Number(revenueRow?.platform_revenue || 0)),
+    fee_revenue:      Math.round(Number(revenueRow?.fee_revenue      || 0)),
+    net_revenue:      Math.round(Number(revenueRow?.net_revenue      || 0)),
+    fee_count:        Number(revenueRow?.fee_count || 0),
+  };
+}
+
+/**
+ * ข้อมูลกราฟ "ยอดขายรวม vs ค่าธรรมเนียม" ย้อนหลัง N เดือน
+ * - กรองด้วย payment_status = 'paid' (ครอบคลุม confirmed/shipping/delivered)
+ *   ไม่ filter เฉพาะ delivered เพื่อให้ chart มีข้อมูลทันทีหลัง buyer จ่ายเงิน
+ * - ใช้ 1 query เดียวต่อ N เดือน (เร็วกว่า loop)
+ */
+export async function getChartData(months = 6) {
+  const N = Math.max(1, Math.min(24, Number(months) || 6));
+
+  const [rows] = await db.query(`
+    SELECT
+      DATE_FORMAT(o.created_at, '%Y-%m')              AS ym,
+      COALESCE(SUM(o.total_price), 0)                 AS sales,
+      COALESCE(SUM(o.platform_fee), 0)                AS fees
+    FROM orders o
+    WHERE o.payment_status = 'paid'
+      AND o.created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL ? MONTH), '%Y-%m-01')
+    GROUP BY ym
+  `, [N - 1]);
+
+  // map ปี-เดือน -> {sales, fees}
+  const byYm = Object.fromEntries(rows.map(r => [r.ym, r]));
+
+  // เติมเดือนที่ไม่มีข้อมูลให้เป็น 0 (เพื่อให้ chart ลากเส้นเรียงต่อกัน N จุด)
+  const MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const labels = [];
+  const salesArr = [];
+  const feesArr  = [];
+  const now = new Date();
+  for (let i = N - 1; i >= 0; i--) {
+    const d  = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const r  = byYm[ym] || { sales: 0, fees: 0 };
+    labels.push(MONTHS[d.getMonth()]);
+    salesArr.push(Math.round(Number(r.sales || 0)));
+    feesArr.push(Math.round(Number(r.fees  || 0)));
+  }
+
+  // Donation status (donation_request)
+  const [[donOpen]] = await db.query(`SELECT COUNT(*) AS c FROM donation_request WHERE status='open'`)
+    .catch(() => [[{ c: 0 }]]);
+  const [[donAll]]  = await db.query(`SELECT COUNT(*) AS c FROM donation_request`)
+    .catch(() => [[{ c: 0 }]]);
+  const openPct = Number(donAll?.c) > 0 ? Math.round((Number(donOpen.c) / Number(donAll.c)) * 100) : 0;
+
+  return {
+    months:            labels,
+    sales:             salesArr,
+    fees:              feesArr,
+    donation_open_pct: openPct,
+  };
+}
+
+/**
+ * รายการรอดำเนินงาน — ส่งคืนเฉพาะหมวดที่มี > 0 รายการ
+ * frontend ใช้ tasks: [] เพื่อตัดสินใจซ่อนกล่องไปเลย
+ */
+export async function getPendingTasks() {
+  const [[schoolRow]] = await db.query(
+    `SELECT COUNT(*) AS c FROM schools WHERE verification_status='pending'`
+  );
+  const [[shipRow]] = await db.query(
+    `SELECT COUNT(*) AS c FROM orders WHERE order_status IN ('pending','shipping') AND payment_status='paid'`
+  ).catch(() => [[{ c: 0 }]]);
+  const [[donRow]] = await db.query(
+    `SELECT COUNT(*) AS c FROM donation_request WHERE status='pending'`
+  ).catch(() => [[{ c: 0 }]]);
+
+  const counts = {
+    pending_schools:   Number(schoolRow?.c || 0),
+    pending_shipments: Number(shipRow?.c   || 0),
+    pending_donations: Number(donRow?.c    || 0),
+  };
+
+  // Array แบบ frontend ใช้ render รายการได้เลย (ซ่อนกล่องเมื่อ tasks.length === 0)
+  const tasks = [];
+  if (counts.pending_schools > 0) {
+    tasks.push({ key: "schools",   label: "โรงเรียนรออนุมัติ",   count: counts.pending_schools,   unit: "แห่ง",    action: "อนุมัติ", url: "/admin/schools?status=pending",   color: "yellow" });
+  }
+  if (counts.pending_shipments > 0) {
+    tasks.push({ key: "shipments", label: "รายการสินค้าค้างส่ง", count: counts.pending_shipments, unit: "รายการ", action: "จัดการ",  url: "/admin/orders?status=shipping",  color: "red"    });
+  }
+  if (counts.pending_donations > 0) {
+    tasks.push({ key: "donations", label: "บริจาคไม่ถูกยืนยัน",   count: counts.pending_donations, unit: "รายการ", action: "จัดการ",  url: "/admin/donations?status=pending", color: "red"    });
+  }
+
+  return { ...counts, tasks };
+}
+
+/* ────── Orders ────── */
+
+export async function listOrders({ status = "", q = "", page = 1, limit = 10 } = {}) {
+  const where = []; const params = [];
+  if (status && ["pending", "confirmed", "shipping", "delivered", "cancelled"].includes(status)) {
+    where.push("o.order_status = ?"); params.push(status);
+  }
+  if (q) {
+    where.push("(buyer.user_name LIKE ? OR seller.user_name LIKE ? OR p.product_title LIKE ?)");
+    const like = `%${q}%`; params.push(like, like, like);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const safeLimit  = Math.min(100, Math.max(1, Number(limit) || 10));
+  const safePage   = Math.max(1, Number(page) || 1);
+  const offset     = (safePage - 1) * safeLimit;
+
+  // ── ดึง order list ────────────────────────────────────────────────
+  // FIX: เคยมี "LIMIT 1" แทรกกลาง LEFT JOIN -> SQL syntax error
+  // FIX: total_amount -> total_price, product_name -> product_title
+  const [rows] = await db.query(`
+    SELECT
+      o.order_id,
+      o.total_price,
+      o.platform_fee,
+      o.seller_payout_amount,
+      o.omise_charge_id,
+      o.order_status,
+      o.payment_status,
+      o.payout_status,
+      o.created_at,
+      COALESCE(SUM(oi.price_at_purchase * oi.quantity), 0) AS items_subtotal,
+      COALESCE(SUM(os.shipping_price), 0) AS shipping_total,
+      GROUP_CONCAT(DISTINCT p.product_title SEPARATOR ', ') AS products,
+      COALESCE(SUM(oi.quantity), 0) AS total_qty,
+      buyer.user_name  AS buyer_name,
+      buyer.user_phone AS buyer_phone,
+      seller.user_name AS seller_name
+    FROM orders o
+    LEFT JOIN order_items oi ON oi.order_id  = o.order_id
+    LEFT JOIN products    p  ON p.product_id = oi.product_id
+    LEFT JOIN order_shipping os ON os.order_id = o.order_id
+    LEFT JOIN users  buyer   ON buyer.user_id  = o.buyer_id
+    LEFT JOIN (
+      SELECT oi2.order_id, MIN(p2.seller_id) AS seller_id
+      FROM order_items oi2
+      JOIN products p2 ON p2.product_id = oi2.product_id
+      GROUP BY oi2.order_id
+    ) seller_map ON seller_map.order_id = o.order_id
+    LEFT JOIN users  seller  ON seller.user_id = seller_map.seller_id
+    ${whereSql}
+    GROUP BY o.order_id
+    ORDER BY o.created_at DESC
+    LIMIT ? OFFSET ?
+  `, [...params, safeLimit, offset]);
+
+  // ── นับจำนวนแถวทั้งหมด (ตาม filter เดียวกัน) ─────────────────────
+  // ต้องใช้ DISTINCT order_id เพราะ JOIN กับ order_items/products/users
+  const [[countRow]] = await db.query(`
+    SELECT COUNT(DISTINCT o.order_id) AS c
+    FROM orders o
+    LEFT JOIN order_items oi ON oi.order_id  = o.order_id
+    LEFT JOIN products    p  ON p.product_id = oi.product_id
+    LEFT JOIN users  buyer   ON buyer.user_id  = o.buyer_id
+    LEFT JOIN users  seller  ON seller.user_id = o.seller_id
+    ${whereSql}
+  `, params);
+
+  // ── Stats ───────────────────────────────────────────────────────
+  const [[stats]] = await db.query(`
+    SELECT
+      COUNT(*)                                              AS total,
+      SUM(order_status = 'pending')                         AS pending,
+      SUM(order_status IN ('confirmed','shipping'))         AS shipping,
+      SUM(order_status = 'delivered')                       AS delivered,
+      SUM(order_status = 'cancelled')                       AS cancelled
+    FROM orders
+  `);
+
+  return {
+    stats: {
+      total:     Number(stats.total),
+      pending:   Number(stats.pending),
+      shipping:  Number(stats.shipping),
+      delivered: Number(stats.delivered),
+      cancelled: Number(stats.cancelled),
+    },
+    rows: (rows || []).map((r) => {
+      const itemsSubtotal = Number(r.items_subtotal || 0);
+      const calculatedFee = itemsSubtotal >= 100
+        ? Math.round(itemsSubtotal * 0.15 * 100) / 100
+        : (itemsSubtotal > 0 ? 20 : 0);
+      return {
+        ...r,
+        items_subtotal: Math.round(itemsSubtotal),
+        shipping_total: Math.round(Number(r.shipping_total || 0)),
+        calculated_fee: Math.round(calculatedFee),
+      };
+    }),
+    total_pages: Math.max(1, Math.ceil(Number(countRow.c) / safeLimit)),
+  };
+}
+
+export async function getOrderDetail(orderId) {
+  const [[order]] = await db.query(
+    `SELECT
+       o.order_id,
+       o.total_price,
+       o.platform_fee,
+       o.seller_payout_amount,
+       o.order_status,
+       o.payment_status,
+       o.payout_status,
+       o.payment_method,
+       o.omise_charge_id,
+       o.tracking_number,
+       o.created_at,
+       o.recipient_name,
+       o.shipping_phone,
+       o.shipping_address,
+       o.shipping_province,
+       o.shipping_postcode,
+       buyer.user_name AS buyer_name,
+       buyer.user_phone AS buyer_phone,
+       seller.user_name AS seller_name,
+       seller.user_phone AS seller_phone
+     FROM orders o
+     LEFT JOIN users buyer ON buyer.user_id = o.buyer_id
+     LEFT JOIN (
+       SELECT oi2.order_id, MIN(p2.seller_id) AS seller_id
+       FROM order_items oi2
+       JOIN products p2 ON p2.product_id = oi2.product_id
+       GROUP BY oi2.order_id
+     ) seller_map ON seller_map.order_id = o.order_id
+     LEFT JOIN users seller ON seller.user_id = seller_map.seller_id
+     WHERE o.order_id = ?
      LIMIT 1`,
-    [id]
+    [orderId]
+  );
+  if (!order) throw Object.assign(new Error("ไม่พบออเดอร์"), { status: 404 });
+
+  const [items] = await db.query(
+    `SELECT
+       oi.order_item_id,
+       oi.product_id,
+       oi.quantity,
+       oi.price_at_purchase,
+       p.product_title,
+       p.size,
+       p.gender,
+       p.category_id,
+       p.level,
+       pi.image_url AS cover_image
+     FROM order_items oi
+     LEFT JOIN products p ON p.product_id = oi.product_id
+     LEFT JOIN product_images pi ON pi.product_id = oi.product_id AND pi.is_cover = 1
+     WHERE oi.order_id = ?
+     ORDER BY oi.order_item_id ASC`,
+    [orderId]
   );
 
-  if (!row) {
-    throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
+  const [shipping] = await db.query(
+    `SELECT
+       os.shipping_price,
+       os.seller_id,
+       os.provider_id,
+       sp.name AS provider_name
+     FROM order_shipping os
+     LEFT JOIN shipping_providers sp ON sp.provider_id = os.provider_id
+     WHERE os.order_id = ?`,
+    [orderId]
+  ).catch(() => [[]]);
+
+  const itemsSubtotal = items.reduce(
+    (sum, it) => sum + Number(it.price_at_purchase || 0) * Number(it.quantity || 0),
+    0
+  );
+  const calculatedFee = itemsSubtotal >= 100
+    ? Math.round(itemsSubtotal * 0.15 * 100) / 100
+    : (itemsSubtotal > 0 ? 20 : 0);
+
+  return {
+    ...order,
+    items,
+    shipping,
+    items_subtotal: Math.round(itemsSubtotal),
+    calculated_fee: Math.round(calculatedFee),
+  };
+}
+
+export async function shipOrder(order_id) {
+  const [r] = await db.query(
+    `UPDATE orders SET order_status='shipping' WHERE order_id=? AND order_status='pending'`,
+    [order_id]);
+  if (r.affectedRows === 0) throw Object.assign(new Error("ไม่พบออเดอร์หรือสถานะไม่ถูกต้อง"), { status: 400 });
+  return { message: "Shipped", order_id };
+}
+
+export async function cancelOrder(order_id) {
+  const [r] = await db.query(
+    `UPDATE orders SET order_status='cancelled' WHERE order_id=? AND order_status IN ('pending','shipping')`,
+    [order_id]);
+  if (r.affectedRows === 0) throw Object.assign(new Error("ไม่พบออเดอร์หรือสถานะไม่ถูกต้อง"), { status: 400 });
+  return { message: "Cancelled", order_id };
+}
+
+/* ────── Payouts ────── */
+
+/**
+ * รายการรอจ่ายเงินผู้ขาย + ประวัติ payouts
+ * ใช้คอลัมน์ที่ migration เพิ่ม:
+ *   - orders.platform_fee, orders.seller_payout_amount, orders.payout_status
+ *   - users.bank_account_number, users.bank_account_name, users.bank_code
+ *   - payouts (ตารางใหม่)
+ */
+export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}) {
+  const safeLimit = Math.min(100, Math.max(1, Number(limit) || 10));
+  const safePage  = Math.max(1, Number(page) || 1);
+  const offset    = (safePage - 1) * safeLimit;
+
+  // ผู้ขายที่มีออเดอร์ delivered + ยังไม่ได้จ่าย
+  const [pendingRows] = await db.query(`
+    SELECT
+      u.user_id                                      AS seller_id,
+      u.user_name                                    AS seller_name,
+      u.bank_account_number,
+      u.bank_account_name,
+      u.bank_code,
+      COUNT(o.order_id)                              AS order_count,
+      COALESCE(SUM(o.total_price), 0)                AS total_sales,
+      COALESCE(SUM(o.platform_fee), 0)               AS fee_amount,
+      COALESCE(SUM(o.seller_payout_amount), 0)       AS net_amount
+    FROM orders o
+    LEFT JOIN users u ON u.user_id = o.seller_id
+    WHERE o.order_status  = 'delivered'
+      AND o.payout_status = 'pending'
+    GROUP BY u.user_id, u.user_name, u.bank_account_number, u.bank_account_name, u.bank_code
+    ORDER BY total_sales DESC
+    LIMIT ? OFFSET ?
+  `, [safeLimit, offset]).catch(() => [[]]);
+
+  // ประวัติการโอน
+  const [historyRows] = await db.query(`
+    SELECT p.payout_id, p.seller_id, p.net_amount, p.fee_amount, p.order_count,
+           p.status, p.omise_transfer_id, p.created_at, p.completed_at,
+           u.user_name AS seller_name
+    FROM payouts p
+    LEFT JOIN users u ON u.user_id = p.seller_id
+    ORDER BY p.created_at DESC
+    LIMIT ? OFFSET ?
+  `, [safeLimit, offset]).catch(() => [[]]);
+
+  const [[countRow]] = await db.query(`
+    SELECT COUNT(DISTINCT seller_id) AS c
+    FROM orders
+    WHERE order_status='delivered' AND payout_status='pending'
+  `).catch(() => [[{ c: 0 }]]);
+
+  // Summary stats
+  const [[pendStats]] = await db.query(`
+    SELECT COALESCE(SUM(seller_payout_amount), 0) AS pending_total, COUNT(*) AS pending_count
+    FROM orders
+    WHERE order_status='delivered' AND payout_status='pending'
+  `).catch(() => [[{ pending_total: 0, pending_count: 0 }]]);
+
+  const [[paidStats]] = await db.query(`
+    SELECT COALESCE(SUM(net_amount), 0) AS paid_total, COUNT(*) AS paid_count
+    FROM payouts WHERE status='completed'
+  `).catch(() => [[{ paid_total: 0, paid_count: 0 }]]);
+
+  const [[feeStats]] = await db.query(`
+    SELECT COALESCE(SUM(platform_fee), 0) AS fee_total
+    FROM orders WHERE order_status='delivered'
+  `).catch(() => [[{ fee_total: 0 }]]);
+
+  return {
+    stats: {
+      pending_total: Math.round(Number(pendStats?.pending_total || 0)),
+      pending_count: Number(pendStats?.pending_count || 0),
+      paid_total:    Math.round(Number(paidStats?.paid_total    || 0)),
+      paid_count:    Number(paidStats?.paid_count    || 0),
+      fee_total:     Math.round(Number(feeStats?.fee_total      || 0)),
+    },
+    pending: (pendingRows || []).map(r => {
+      const rawNum = decryptBankAccountNumber(r.bank_account_number);
+      return {
+        ...r,
+        bank_account_number: rawNum,
+        bank_account_number_masked: maskBankAccountNumber(rawNum),
+        bank_account_number_formatted: formatBankAccountNumber(rawNum),
+        total_sales: Math.round(Number(r.total_sales || 0)),
+        fee_amount:  Math.round(Number(r.fee_amount  || 0)),
+        net_amount:  Math.round(Number(r.net_amount  || 0)),
+        order_count: Number(r.order_count || 0),
+      };
+    }),
+    history:     historyRows || [],
+    total_pages: Math.max(1, Math.ceil(Number(countRow?.c || 0) / safeLimit)),
+  };
+}
+
+export async function paySeller(seller_id, net_amount) {
+  if (!seller_id || !net_amount) {
+    throw Object.assign(new Error("ข้อมูลไม่ครบ"), { status: 400 });
   }
-
-  const coordinatorUserId = row.coordinator_user_id; // <-- ถ้าของคุณไม่ใช่ชื่อคอลัมน์นี้ ให้เปลี่ยนด้านบน
-
-  // ===== validate coordinator (optional แต่ถ้าส่งมาให้เช็ก) =====
-  const cName = String(coordinator_name ?? "").trim();
-  const cEmail = String(coordinator_email ?? "").trim();
-  const cPhoneRaw = String(coordinator_phone ?? "").trim();
-  const cPhoneDigits = cPhoneRaw ? (normalizeThaiPhone ? normalizeThaiPhone(cPhoneRaw) : cPhoneRaw.replace(/\D/g, "")) : "";
-
-  if (cEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cEmail)) {
-    throw Object.assign(new Error("อีเมลผู้ประสานงานไม่ถูกต้อง"), { status: 400 });
-  }
-  if (cPhoneRaw && !/^0\d{9}$/.test(cPhoneDigits)) {
-    throw Object.assign(new Error("เบอร์ผู้ประสานงานต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0"), { status: 400 });
-  }
-
-  // ===== ทำ transaction (อัปเดต 2 ตารางพร้อมกัน) =====
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
-    // --- update schools (dynamic) ---
-    const sFields = [];
-    const sVals = [];
-
-    sFields.push("school_name=?"); sVals.push(name);
-    sFields.push("school_address=?"); sVals.push(addr);
-    sFields.push("school_phone=?"); sVals.push(phoneDigits);
-    sFields.push("school_intent=?"); sVals.push(school_intent || null);
-    sFields.push("school_logo_url=?"); sVals.push(school_logo_url || null);
-    sFields.push("school_logo_public_id=?"); sVals.push(school_logo_public_id || null);
-
-    if (codeDigits) {
-      sFields.push("school_code=?");
-      sVals.push(codeDigits);
+    const [[seller]] = await conn.query(
+      `SELECT bank_code, bank_account_number, bank_account_name FROM users WHERE user_id = ? LIMIT 1`,
+      [seller_id]
+    );
+    const bankNum = sanitizeBankNumber(decryptBankAccountNumber(seller?.bank_account_number));
+    if (!seller?.bank_code || !bankNum || !seller?.bank_account_name) {
+      throw Object.assign(new Error("ผู้ขายยังไม่ได้ตั้งค่าบัญชีรับเงินให้ครบถ้วน"), { status: 400 });
+    }
+    if (!isValidBankNumber(bankNum)) {
+      throw Object.assign(new Error("เลขบัญชีผู้ขายไม่ถูกต้อง"), { status: 400 });
     }
 
-    sVals.push(id);
+    // 1) สรุปยอดผู้ขายก่อน mark
+    const [[sum]] = await conn.query(
+      `SELECT
+         COUNT(*)                                  AS order_count,
+         COALESCE(SUM(seller_payout_amount), 0)    AS net_total,
+         COALESCE(SUM(platform_fee), 0)            AS fee_total
+       FROM orders
+       WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
+      [seller_id]
+    );
+    if (Number(sum.order_count) === 0) {
+      throw Object.assign(new Error("ไม่มีออเดอร์ที่รอจ่าย"), { status: 400 });
+    }
 
-    const [r1] = await conn.query(
-      `UPDATE schools SET ${sFields.join(", ")} WHERE school_id=?`,
-      sVals
+    // 2) บันทึก payout
+    const [ins] = await conn.query(
+      `INSERT INTO payouts (seller_id, net_amount, fee_amount, order_count, status, created_at, completed_at)
+       VALUES (?, ?, ?, ?, 'completed', NOW(), NOW())`,
+      [seller_id, Math.round(Number(sum.net_total)), Math.round(Number(sum.fee_total)), sum.order_count]
+    );
+    const payoutId = ins.insertId;
+
+    // 3) อัปเดต orders -> payout_status='paid' + ผูก payout_id
+    await conn.query(
+      `UPDATE orders
+          SET payout_status='paid', payout_id=?, payout_date=NOW()
+        WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
+      [payoutId, seller_id]
     );
 
-    if (r1.affectedRows === 0) {
-      throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
-    }
-
-    // --- update users (coordinator) ---
-    // อัปเดตเฉพาะถ้ามี coordinatorUserId และมี field ส่งมาอย่างน้อย 1 ตัว
-    const hasCoordPayload =
-      coordinator_name !== undefined ||
-      coordinator_email !== undefined ||
-      coordinator_phone !== undefined;
-
-    if (coordinatorUserId && hasCoordPayload) {
-      const uFields = [];
-      const uVals = [];
-
-      // ⚠️ ชื่อคอลัมน์ใน users ของคุณอาจเป็น user_name/user_email/user_phone
-      if (coordinator_name !== undefined) { uFields.push("user_name=?"); uVals.push(cName); }
-      if (coordinator_email !== undefined) { uFields.push("user_email=?"); uVals.push(cEmail || null); }
-
-      // ถ้าตาราง users ไม่มี phone ให้ลบบล็อคนี้ออก
-      if (coordinator_phone !== undefined) { uFields.push("user_phone=?"); uVals.push(cPhoneDigits || null); }
-
-      if (uFields.length) {
-        uVals.push(coordinatorUserId);
-        await conn.query(
-          `UPDATE users SET ${uFields.join(", ")} WHERE user_id=?`,
-          uVals
-        );
-      }
-    }
-
     await conn.commit();
-    return { message: "Updated", school_id: id };
-  } catch (e) {
-    await conn.rollback();
-    throw e;
-  } finally {
-    conn.release();
-  }
+    return { message: "Paid", seller_id, payout_id: payoutId, net_amount: Math.round(Number(sum.net_total)) };
+  } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
+}
+
+export async function payAllSellers() {
+  const [sellers] = await db.query(`
+    SELECT
+      seller_id,
+      COUNT(*)                                  AS order_count,
+      COALESCE(SUM(seller_payout_amount), 0)    AS net_amount,
+      COALESCE(SUM(platform_fee), 0)            AS fee_amount
+    FROM orders
+    WHERE order_status='delivered' AND payout_status='pending'
+    GROUP BY seller_id
+  `).catch(() => [[]]);
+
+  if (!sellers.length) return { message: "No pending payouts", count: 0 };
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    let paidCount = 0;
+    for (const s of sellers) {
+      const [[seller]] = await conn.query(
+        `SELECT bank_code, bank_account_number, bank_account_name FROM users WHERE user_id = ? LIMIT 1`,
+        [s.seller_id]
+      );
+      const bankNum = sanitizeBankNumber(decryptBankAccountNumber(seller?.bank_account_number));
+      if (!seller?.bank_code || !bankNum || !seller?.bank_account_name || !isValidBankNumber(bankNum)) {
+        continue;
+      }
+
+      const [ins] = await conn.query(
+        `INSERT INTO payouts (seller_id, net_amount, fee_amount, order_count, status, created_at, completed_at)
+         VALUES (?, ?, ?, ?, 'completed', NOW(), NOW())`,
+        [s.seller_id, Math.round(Number(s.net_amount)), Math.round(Number(s.fee_amount)), Number(s.order_count)]
+      );
+      await conn.query(
+        `UPDATE orders
+            SET payout_status='paid', payout_id=?, payout_date=NOW()
+          WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
+        [ins.insertId, s.seller_id]
+      );
+      paidCount += 1;
+    }
+    await conn.commit();
+    return { message: "All paid", count: paidCount };
+  } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
 }

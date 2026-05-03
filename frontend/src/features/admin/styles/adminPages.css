@@ -1,0 +1,1125 @@
+
+.boPageInner {
+  padding: 18px 24px;
+}
+
+/* ── Top bar ── */
+.boTopDateRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px 0;
+}
+
+.boDateLabel {
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* ── Period tabs (shared) ── */
+.boPeriodTabs {
+  display: flex;
+  gap: 12px;
+}
+
+.boPeriodTab {
+  padding: 6px 18px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  background: transparent;
+  color: #64748b;
+}
+
+.boPeriodTab.active {
+  background: #5285e8;
+  color: #fff;
+}
+
+/* ── 5-col stat cards (Backoffice overview) ── */
+.boStatGrid5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+.boStatColorCard {
+  border-radius: 14px;
+  padding: 16px 12px;
+  text-align: center;
+  color: #053f5c;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.boStatColorCard__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.boStatColorCard__iconWrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.35);
+  margin: 4px auto;
+  display: grid;
+  place-items: center;
+}
+
+.boStatColorCard__value {
+  font-size: 46px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.boStatColorCard__change {
+  font-size: 11px;
+  color: rgba(5, 63, 92, 0.75);
+}
+
+/* ── Revenue cards (3-col) ── */
+.boRevGrid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.boRevCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px 20px;
+  border: 1px solid #e9ecf2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.boRevCard--highlight {
+  background: #fff8e1;
+  border-color: #ffe082;
+}
+
+.boRevCard__label {
+  color: #64748b;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.boRevCard__value {
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.boRevCard__value--blue  { color: #5285e8; }
+.boRevCard__value--amber { color: #f59e0b; }
+
+.boRevCard__sub {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.boRevCard__sub--green { color: #22b14c; }
+.boRevCard__sub--muted { color: #64748b; }
+
+/* ── Chart + Pending tasks row ── */
+.boChartRow {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.boChartCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px 22px;
+  border: 1px solid #e9ecf2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.boChartCard__title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.boChartLegend {
+  display: flex;
+  gap: 18px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.boChartLegend__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.boChartLegend__dot {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* ── Pending tasks card ── */
+.boPendingCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px 18px;
+  border: 1px solid #e9ecf2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.boPendingCard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.boPendingCard__title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.boPendingCard__count {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.boPendingItem {
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.boPendingItem__label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.boPendingItem__sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.boPendingItem__btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Donation donut card ── */
+.boDonutCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px 22px;
+  border: 1px solid #e9ecf2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  max-width: 360px;
+}
+
+.boDonutCard__title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1e293b;
+  margin-bottom: 14px;
+}
+
+.boDonutCard__inner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.boDonutCard__legend {
+  display: grid;
+  gap: 12px;
+}
+
+.boDonutCard__legendItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.boDonutCard__legendDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.boDonutCard__legendText {
+  font-size: 14px;
+  color: #1e293b;
+}
+
+/* ── AdminOrderPage stat cards (5-col) ── */
+.admStatGrid5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+/* ── Order page date label ── */
+.admDateRight {
+  text-align: right;
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 14px;
+}
+
+/* ── Card header row (title + controls) ── */
+.admCardHeader {
+  padding: 14px 18px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admCardTitle {
+  font-weight: 700;
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.admCardControls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Status filter tabs ── */
+.admStatusTabs {
+  display: flex;
+  gap: 6px;
+}
+
+.admStatusTab {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admStatusTab.active {
+  border-color: #5285e8;
+  background: #5285e8;
+  color: #fff;
+}
+
+/* boTop gradient now applied globally via admin.css */
+
+.admOrderCard {
+  border: 1px solid #dbe7ff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.admOrderCard .admTable thead th {
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-weight: 700;
+}
+
+.admOrderCard .admTable tbody tr:hover {
+  background: #f8fbff;
+}
+
+.admOrderCard .admActionsCell .admBtnSmall {
+  border-radius: 10px;
+}
+
+/* ── Payout page ── */
+.admPayoutDateRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.admPayoutPeriodTabs {
+  display: flex;
+  gap: 10px;
+}
+
+.admPayoutStatGrid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.admPayoutStatCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px 20px;
+  border: 1px solid #e9ecf2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.admPayoutStatCard--blue {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+.admPayoutStatCard__label {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.admPayoutStatCard__label--red   { color: #e03131; }
+.admPayoutStatCard__label--green { color: #22b14c; }
+.admPayoutStatCard__label--muted { color: #64748b; }
+
+.admPayoutStatCard__value {
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.admPayoutStatCard__value--red   { color: #e03131; }
+.admPayoutStatCard__value--green { color: #22b14c; }
+.admPayoutStatCard__value--blue  { color: #5285e8; }
+
+.admPayoutStatCard__sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* ── Pay-all button ── */
+.admPayAllBtn {
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: #22b14c;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Badge status dot ── */
+.admBadgeDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ── Table action buttons ── */
+.admActionsCell {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Confirm Payout Modal ── */
+.admModalSteps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 22px;
+}
+
+.admModalStep {
+  display: flex;
+  align-items: center;
+}
+
+.admModalStep__circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.admModalStep__circle--active {
+  background: #5285e8;
+  color: #fff;
+}
+
+.admModalStep__circle--inactive {
+  background: #e2e8f0;
+  color: #94a3b8;
+}
+
+.admModalStep__label {
+  font-size: 13px;
+  margin-left: 6px;
+}
+
+.admModalStep__label--active {
+  color: #5285e8;
+  font-weight: 700;
+}
+
+.admModalStep__label--inactive {
+  color: #94a3b8;
+}
+
+.admModalStep__line {
+  width: 60px;
+  height: 2px;
+  margin: 0 8px;
+}
+
+.admModalStep__line--active   { background: #5285e8; }
+.admModalStep__line--inactive { background: #e2e8f0; }
+
+/* ── Seller info box (inside modal) ── */
+.admSellerInfoBox {
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.admSellerInfoBox__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.admSellerAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #5285e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.admSellerInfoBox__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.admSellerInfoBox__fieldLabel {
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.admSellerInfoBox__fieldValue {
+  font-weight: 600;
+}
+
+/* ── Payout summary inside modal ── */
+.admPayoutSummary {
+  padding: 0 4px 8px;
+}
+
+.admPayoutSummary__row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.admPayoutSummary__rowLabel {
+  color: #64748b;
+}
+
+.admPayoutSummary__rowValue {
+  font-weight: 600;
+}
+
+.admPayoutSummary__rowValue--amber { color: #f59e0b; }
+
+.admPayoutSummary__total {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.admPayoutSummary__totalLabel {
+  font-weight: 800;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.admPayoutSummary__totalValue {
+  font-weight: 900;
+  color: #22b14c;
+  font-size: 20px;
+}
+
+/* ── Modal warning banner ── */
+.admModalWarning {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #92400e;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── Confirm payout button ── */
+.admConfirmPayBtn {
+  background: #22b14c;
+  padding: 10px 20px;
+  border-radius: 10px;
+}
+
+/* ── History table date cell ── */
+.admHistoryDate {
+  color: #64748b;
+}
+
+/* ── AdminLayout: collapsible trade section ── */
+.boTradeToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 10px;
+  border-radius: 10px;
+  border: none;
+  border-bottom: 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgb(230, 230, 230);
+  font-weight: 500;
+  font-size: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: all .18s ease;
+}
+
+.boTradeToggle.active {
+  color: #fff;
+  font-weight: 700;
+  background: linear-gradient(90deg, rgba(255, 204, 77, 0.22), rgba(82, 133, 232, 0.18));
+}
+
+.boTradeToggle:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.boTradeToggle__icon {
+  width: 30px;
+  height: 30px;
+}
+
+.boTradeToggle__label {
+  flex: 1;
+}
+
+.boTradeToggle__chevron {
+  width: 20px;
+  height: 20px;
+}
+
+.boTradeSubmenu {
+  padding: 8px 0 2px 18px;
+}
+
+.boItem--sub {
+  padding-left: 10px;
+  font-size: 0.95em;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.boItem--sub__icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* ── Admin orders page (modern shell) ── */
+.admOrderInner {
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.admOrderMetaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.admOrderSubhead {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748b;
+  letter-spacing: 0.01em;
+}
+
+.admOrderDatePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e40af;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+  border: 1px solid rgba(82, 133, 232, 0.35);
+  box-shadow: 0 2px 10px rgba(30, 64, 175, 0.08);
+}
+
+.admStatGrid5--order {
+  margin-bottom: 22px;
+}
+
+@media (max-width: 1100px) {
+  .admStatGrid5--order {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .admStatGrid5--order {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .admStatGrid5--order {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admStatTile {
+  position: relative;
+  border-radius: 16px;
+  padding: 16px 18px 18px;
+  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 8px 28px rgba(15, 23, 42, 0.07);
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.admStatTile::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+  background: var(--adm-stat-accent, #5285e8);
+}
+
+.admStatTile:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 14px 36px rgba(30, 64, 175, 0.12);
+}
+
+.admStatTile--blue   { --adm-stat-accent: #3b82f6; }
+.admStatTile--amber { --adm-stat-accent: #f59e0b; }
+.admStatTile--cyan  { --adm-stat-accent: #06b6d4; }
+.admStatTile--green { --adm-stat-accent: #22c55e; }
+.admStatTile--rose  { --adm-stat-accent: #f43f5e; }
+
+.admStatTile__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.admStatTile__iconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.admStatTile--blue .admStatTile__iconWrap {
+  background: rgba(59, 130, 246, 0.14);
+  color: #2563eb;
+}
+.admStatTile--amber .admStatTile__iconWrap {
+  background: rgba(245, 158, 11, 0.16);
+  color: #d97706;
+}
+.admStatTile--cyan .admStatTile__iconWrap {
+  background: rgba(6, 182, 212, 0.14);
+  color: #0891b2;
+}
+.admStatTile--green .admStatTile__iconWrap {
+  background: rgba(34, 197, 94, 0.14);
+  color: #16a34a;
+}
+.admStatTile--rose .admStatTile__iconWrap {
+  background: rgba(244, 63, 94, 0.12);
+  color: #e11d48;
+}
+
+.admStatTile__icon {
+  font-size: 24px;
+}
+
+.admStatTile__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.admStatTile__num {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+}
+
+.admOrderCard--elevated {
+  border-radius: 18px;
+  border: 1px solid rgba(82, 133, 232, 0.2);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.03),
+    0 18px 40px rgba(15, 23, 42, 0.07);
+  background: #fff;
+  overflow: hidden;
+}
+
+.admOrderToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+
+.admSearch--order {
+  max-width: 280px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.admSearch--order input {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 10px 14px;
+  font-size: 14px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.admSearch--order input:focus {
+  outline: none;
+  border-color: #5285e8;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(82, 133, 232, 0.15);
+}
+
+.admSearch--order .admSearchBtn {
+  border-radius: 12px;
+}
+
+.admOrderLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 24px;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.admOrderEmpty {
+  text-align: center;
+  padding: 48px 24px !important;
+  color: #94a3b8;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.admOrderNoCell {
+  font-weight: 800;
+  color: #2563eb;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.admOrderProductCell {
+  font-weight: 600;
+  color: #0f172a;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.admOrderNameCell {
+  font-weight: 500;
+  color: #334155;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.admOrderMoney {
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.admOrderFee {
+  font-weight: 700;
+  color: #d97706;
+  font-variant-numeric: tabular-nums;
+}
+
+.admOrderNet {
+  font-weight: 700;
+  color: #16a34a;
+  font-variant-numeric: tabular-nums;
+}
+
+.admOrderBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admActionsCell--stack {
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.admOrderActionBtn {
+  min-width: 96px;
+  font-size: 12px;
+  padding: 7px 12px;
+  border: none;
+  cursor: pointer;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.admOrderActionBtn:hover {
+  filter: brightness(1.06);
+}
+
+.admOrderActionBtn:active {
+  transform: scale(0.98);
+}
+
+/* Order detail modal */
+.admOrderModal {
+  width: 820px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 20px;
+  padding: 4px 4px 8px;
+}
+
+.admOrderModal__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admOrderModal__title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.admOrderModal__sub {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.admOrderPanelGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 640px) {
+  .admOrderPanelGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admOrderPanel {
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border-radius: 14px;
+  padding: 16px 18px;
+  border: 1px solid #e2e8f0;
+}
+
+.admOrderPanel__k {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.admOrderPanel__v {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.admOrderPanel__muted {
+  color: #64748b;
+  font-size: 13px;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.admOrderItemsHead {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+.admOrderItemsTable table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admOrderItemsTable thead tr {
+  background: linear-gradient(90deg, #eff6ff 0%, #e0f2fe 100%);
+}
+
+.admOrderItemsTable th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 700;
+  color: #1e3a8a;
+  font-size: 13px;
+}
+
+.admOrderItemsTable td {
+  padding: 10px 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.admOrderItemsTable tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.admOrderFinance {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 14px;
+  padding: 16px 18px;
+  border: 1px solid #e2e8f0;
+  margin-top: 4px;
+}
+
+.admOrderFinance__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.admOrderFinance__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.admOrderFinance__row--fee {
+  color: #d97706;
+}
+
+.admOrderFinance__total {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+}
+
+.admOrderFinance__totalLabel {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.admOrderFinance__totalValue {
+  font-weight: 900;
+  color: #16a34a;
+}

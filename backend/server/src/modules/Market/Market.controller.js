@@ -4,6 +4,7 @@ import {
   getProducts         as svcGetProducts,
   getProductById      as svcGetById,
   deleteProduct       as svcDelete,
+  updateProduct       as svcUpdate,
   searchSchools       as svcSearchSchools,
   getUniformTypes     as svcGetTypes,
   getUniformTypesBySchool as svcGetTypesBySchool,
@@ -117,6 +118,30 @@ const deleteProduct = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────
+// PATCH /api/market/:id
+// ─────────────────────────────────────────────────────────
+const updateProduct = async (req, res) => {
+  try {
+    let payload = {};
+    if (typeof req.body?.patch === "string") {
+      try {
+        payload = JSON.parse(req.body.patch);
+      } catch {
+        return res.status(400).json({ message: "รูปแบบข้อมูลไม่ถูกต้อง" });
+      }
+    } else if (req.body && typeof req.body === "object") {
+      payload = { ...req.body };
+    }
+    const files = Array.isArray(req.files) ? req.files : [];
+    const updated = await svcUpdate(req.params.id, req.user.user_id, req.user.role, payload, files);
+    res.json({ message: "อัปเดตสินค้าสำเร็จ", product: updated });
+  } catch (err) {
+    console.error("[Market.updateProduct]", err);
+    res.status(err.status || 500).json({ message: err.message || "เกิดข้อผิดพลาด" });
+  }
+};
+
+// ─────────────────────────────────────────────────────────
 // GET /api/market/schools/search?search=xx
 // ─────────────────────────────────────────────────────────
 const searchSchools = async (req, res) => {
@@ -186,6 +211,7 @@ export {
   getProducts,
   getProductById,
   deleteProduct,
+  updateProduct,
   searchSchools,
   getUniformTypes,
   getUniformTypesBySchool,

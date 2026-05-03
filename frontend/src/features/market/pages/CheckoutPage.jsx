@@ -466,67 +466,6 @@ function OmiseCardForm({ amount, onToken, onError, disabled }) {
   );
 }
 
-// ── PromptPay Block ───────────────────────────────────────
-// FIX: รับ qrImageUrl (URL ตรงๆ จาก Omise) แทน qrBase64
-function PromptPayBlock({ qrImageUrl, amount, onConfirm, mockMode = false }) {
-  const [polling, setPolling] = useState(false);
-  const [checkingNow, setCheckingNow] = useState(false);
-  const pollRef = useRef(null);
-
-  useEffect(() => {
-    if (!qrImageUrl) return;
-    setPolling(true);
-    pollRef.current = setInterval(() => {
-      onConfirm(false);
-    }, 3000);
-    return () => { clearInterval(pollRef.current); setPolling(false); };
-  }, [qrImageUrl]); // eslint-disable-line
-
-  if (!qrImageUrl) return null;
-
-  const handleCheckNow = async () => {
-    setCheckingNow(true);
-    try { await onConfirm(true); }
-    finally { setCheckingNow(false); }
-  };
-
-  return (
-    <div className="coQrBlock">
-      <div className="coQrHeader">
-        <Icon icon="mdi:qrcode-scan" />
-        <span>สแกน QR Code ด้วย Mobile Banking</span>
-      </div>
-      <div className="coQrHint">
-        เปิดแอปธนาคาร &gt; เลือกสแกนจ่าย &gt; ยืนยันยอดเงิน
-      </div>
-      {mockMode && (
-        <div className="coQrMockTag">
-          โหมดทดสอบ: กดปุ่มตรวจสอบเพื่อจำลองการชำระสำเร็จ
-        </div>
-      )}
-      <div className="coQrFrame">
-        <img src={qrImageUrl} alt="PromptPay QR" className="coQrImage" />
-      </div>
-      <div className="coQrAmtLabel">ยอดที่ต้องชำระ</div>
-      <div className="coQrAmt">{Number(amount).toLocaleString()} บาท</div>
-      <div className="coQrNote" aria-live="polite">
-        {polling
-          ? <><Icon icon="mdi:loading" className="coSpinner" /> กำลังรอการชำระเงิน...</>
-          : "กรุณาสแกนและชำระภายใน 15 นาที"}
-      </div>
-      <button
-        className="coQrCheckBtn"
-        onClick={handleCheckNow}
-        disabled={checkingNow}
-      >
-        {checkingNow
-          ? <><Icon icon="mdi:loading" className="coSpinner" /> กำลังตรวจสอบ...</>
-          : <><Icon icon="mdi:check-circle-outline" /> {mockMode ? "ยืนยันการชำระ" : "ฉันชำระแล้ว ตรวจสอบตอนนี้"}</>}
-      </button>
-    </div>
-  );
-}
-
 // ═══════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════
@@ -563,26 +502,12 @@ export default function CheckoutPage() {
   const [donationAddrMode, setDonationAddrMode] = useState("school");
   const [shippingOptions,  setShippingOptions]  = useState({});
   const [selectedShipping, setSelectedShipping] = useState({});
-  const [payMethod,        setPayMethod]        = useState("card");
   const [loading,          setLoading]          = useState(true);
   const [placing,          setPlacing]          = useState(false);
   const [err,              setErr]              = useState("");
   const [showModal,        setShowModal]        = useState(false);
   const [editAddr,         setEditAddr]         = useState(null);
   const [confirmDeleteId,  setConfirmDeleteId]  = useState(null);
-  const [orderId,          setOrderId]          = useState(null);
-  const [qrImageUrl,       setQrImageUrl]       = useState(null);
-  const [authorizeUri,     setAuthorizeUri]      = useState(null);
-  const [mockMode,         setMockMode]         = useState(false);
-  const pollRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (qrImageUrl && String(qrImageUrl).startsWith("blob:")) {
-        URL.revokeObjectURL(qrImageUrl);
-      }
-    };
-  }, [qrImageUrl]);
 
   const groups = groupBySeller(items);
 
@@ -758,84 +683,6 @@ export default function CheckoutPage() {
     } catch (e) { setErr(e.message); }
     finally { setPlacing(false); }
   };
-
-  // ── PromptPay ─────────────────────────────────────────
-  const handlePromptPay = async () => {
-    setPlacing(true); setErr("");
-    try {
-      const res  = await fetch("/api/checkout/orders", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ ...buildOrderBody(), payment_method: "promptpay" }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "เกิดข้อผิดพลาด");
-      setOrderId(data.order_id);
-      // qr_image_url endpoint requires auth header, so fetch it first
-      // then convert to a temporary object URL for <img src=...>.
-      if (data.qr_image_url) {
-        if (String(data.qr_image_url).startsWith("data:image/")) {
-          setQrImageUrl(data.qr_image_url);
-        } else {
-          const qrRes = await fetch(data.qr_image_url, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!qrRes.ok) throw new Error("โหลด QR Code ไม่สำเร็จ");
-          const contentType = qrRes.headers.get("content-type") || "";
-          if (!contentType.includes("image/")) {
-            let detail = "";
-            try {
-              const maybeJson = await qrRes.json();
-              detail = maybeJson?.message || "";
-            } catch {
-              try { detail = await qrRes.text(); } catch {}
-            }
-            throw new Error(detail || "รูป QR ไม่ถูกต้อง");
-          }
-          const qrBlob = await qrRes.blob();
-          setQrImageUrl(URL.createObjectURL(qrBlob));
-        }
-      } else {
-        setQrImageUrl(null);
-      }
-      setMockMode(Boolean(data.mock_mode));
-      setAuthorizeUri(data.authorize_uri || null);
-    } catch (e) { setErr(e.message); }
-    finally { setPlacing(false); }
-  };
-
-  // ── Poll PromptPay status ─────────────────────────────
-  const checkPromptPayStatus = useCallback(async (forceMock = false) => {
-    if (!orderId) return;
-    try {
-      const res  = await fetch(`/api/checkout/orders/${orderId}/payment-status${forceMock ? "?mock=1" : ""}`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "ตรวจสอบสถานะชำระเงินไม่สำเร็จ");
-      if (data.paid) {
-        clearInterval(pollRef.current);
-        navigate("/checkout/success", {
-          state: {
-            orderId,
-            isDonation,
-            projectId,
-            projectTitle,
-            schoolName:     useSchoolAddr ? (donationAddr?.name || "") : (selectedAddr?.address_line || ""),
-            totalAmount:    total,
-            paymentMethod:  "promptpay",
-            donorName:      user?.display_name || user?.name || user?.username || "",
-            shippingCarrier: Object.values(selectedShipping)[0]?.name || null,
-            orderItems: items.map(i => ({
-              name:            i.product_title || i.title || i.name || "",
-              quantity:        i.quantity,
-              uniform_type_id: i.uniform_type_id || null,
-            })),
-          }
-        });
-      }
-    } catch (e) {
-      setErr(e.message || "ตรวจสอบสถานะชำระเงินไม่สำเร็จ");
-    }
-  }, [orderId, token, navigate]); // eslint-disable-line
 
   if (!token) return null;
 
@@ -1015,7 +862,7 @@ export default function CheckoutPage() {
               {step === 2 && (
                 <div className="coSection">
                   <h2><Icon icon="mdi:truck-outline" /> การจัดส่ง</h2>
-                  <p className="coStepDesc">เลือกบริษัทขนส่งสำหรับแต่ละร้านค้า ค่าจัดส่งคำนวณตามน้ำหนักและยอดสินค้า</p>
+                  <p className="coStepDesc">เลือกบริษัทขนส่งสำหรับแต่ละร้านค้า ค่าจัดส่งคำนวณตามประเภทขนส่งและยอดสินค้า</p>
                   <div className="coSellerList">
                     {groups.map(g => (
                       <SellerShippingBlock
@@ -1100,81 +947,26 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* ── ชำระเงิน ── */}
-                  {!qrImageUrl && (
-                    <>
-                      {isDonation && (
-                        <div className="coDonationNote" style={{ marginBottom: 12 }}>
-                          <Icon icon="mdi:information-outline" />
-                          กรุณาชำระเงินเพื่อยืนยันการส่งต่อ — สินค้าจะถูกจัดส่งตรงไปยังโรงเรียน
-                        </div>
-                      )}
-                      <div className="coPayMethodBar">
-                        <button
-                          className={`coPayMethodBtn ${payMethod === "card" ? "coPayMethodActive" : ""}`}
-                          onClick={() => setPayMethod("card")}
-                        >
-                          <Icon icon="mdi:credit-card-outline" /> บัตรเครดิต/เดบิต
-                        </button>
-                        <button
-                          className={`coPayMethodBtn ${payMethod === "promptpay" ? "coPayMethodActive" : ""}`}
-                          onClick={() => setPayMethod("promptpay")}
-                        >
-                          <Icon icon="mdi:qrcode" /> PromptPay
-                        </button>
-                      </div>
-
-                      {payMethod === "card" && (
-                        <OmiseCardForm
-                          amount={total}
-                          onToken={handleCardPayment}
-                          onError={msg => setErr(msg)}
-                          disabled={placing}
-                        />
-                      )}
-
-                      {payMethod === "promptpay" && (
-                        <div className="coPromptPaySection">
-                          <p className="coPromptPayDesc">
-                            <Icon icon="mdi:information-outline" />
-                            กด "สร้าง QR Code" แล้วสแกนด้วยแอปธนาคาร ระบบจะยืนยันอัตโนมัติ
-                          </p>
-                          <button className="coBtnYellow coCardPayBtn" onClick={handlePromptPay} disabled={placing}>
-                            {placing
-                              ? <><Icon icon="mdi:loading" className="coSpinner" /> กำลังสร้าง QR...</>
-                              : <><Icon icon="mdi:qrcode-scan" /> สร้าง QR Code {total.toLocaleString()} บาท</>
-                            }
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* QR Code PromptPay */}
-                  {qrImageUrl && (
-                    <PromptPayBlock
-                      qrImageUrl={qrImageUrl}
-                      amount={total}
-                      onConfirm={checkPromptPayStatus}
-                      mockMode={mockMode}
-                    />
-                  )}
-
-                  {/* Fallback: authorize_uri */}
-                  {!qrImageUrl && authorizeUri && (
-                    <div className="coAuthorizeBlock">
-                      <Icon icon="mdi:qrcode-scan" style={{ fontSize: 32, color: "#3b82f6" }} />
-                      <p>ไม่สามารถโหลด QR Code ได้ กรุณากดปุ่มด้านล่างเพื่อชำระเงินผ่าน Omise</p>
-                      <a href={authorizeUri} target="_blank" rel="noopener noreferrer"
-                        className="coBtnYellow coCardPayBtn"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-                        <Icon icon="mdi:open-in-new" /> เปิดหน้าชำระ PromptPay
-                      </a>
-                      <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>
-                        หลังชำระเงินแล้ว กลับมาที่หน้านี้ ระบบจะยืนยันอัตโนมัติ
-                      </p>
+                  {/* ── ชำระเงิน (เฉพาะบัตรเครดิต/เดบิต ผ่าน Omise) ── */}
+                  {isDonation && (
+                    <div className="coDonationNote" style={{ marginBottom: 12 }}>
+                      <Icon icon="mdi:information-outline" />
+                      กรุณาชำระเงินเพื่อยืนยันการส่งต่อ — สินค้าจะถูกจัดส่งตรงไปยังโรงเรียน
                     </div>
                   )}
+
+                  <div className="coPayMethodBar">
+                    <div className="coPayMethodBtn coPayMethodActive" style={{ pointerEvents: "none" }}>
+                      <Icon icon="mdi:credit-card-outline" /> บัตรเครดิต/เดบิต
+                    </div>
+                  </div>
+
+                  <OmiseCardForm
+                    amount={total}
+                    onToken={handleCardPayment}
+                    onError={msg => setErr(msg)}
+                    disabled={placing}
+                  />
 
                   {err && <div className="coErr"><Icon icon="mdi:alert-circle" /> {err}</div>}
 
