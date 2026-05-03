@@ -309,7 +309,7 @@ export default function ProjectDetailPage() {
                   )}
                 </span>
                 <div className="pdUniformRowRight">
-                  <span className="pdUniformQty">{remaining} ชิ้น</span>
+                  <span className="pdUniformQty">{remaining} ตัว</span>
                   <div className="pdQtyStepper">
                     <button className="pdQtyBtn" onClick={() => changeQty(item, -1)} disabled={qty <= 0}>−</button>
                     <input
@@ -334,7 +334,7 @@ export default function ProjectDetailPage() {
         {/* สรุป */}
         {totalSelected > 0 && (
           <div className="pdQtySummary">
-            เลือกบริจาคแล้ว <strong>{totalSelected} ชิ้น</strong>
+            เลือกบริจาคแล้ว <strong>{totalSelected} ตัว</strong>
           </div>
         )}
       </div>
@@ -565,7 +565,7 @@ export default function ProjectDetailPage() {
                         onClick={handleDonate}
                         style={{ opacity: (selectedMethod !== "buy" && totalSelected === 0) ? 0.5 : 1, cursor: (selectedMethod !== "buy" && totalSelected === 0) ? "not-allowed" : "pointer" }}
                       >
-                        {totalSelected > 0 ? `ส่งต่อ ${totalSelected} ชิ้น` : "ส่งต่อ"}
+                        {totalSelected > 0 ? `ส่งต่อ ${totalSelected} ตัว` : "ส่งต่อ"}
                       </button>
                     )}
                     <p className="pdNote">*รับเกียรติบัตรออนไลน์ เพียงอัปโหลดหลักฐานการส่งต่อของท่าน*</p>
