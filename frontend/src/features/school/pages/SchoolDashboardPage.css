@@ -60,6 +60,8 @@
 .dbStatCard--blue   .dbStatValue { color: #5285E8; }
 .dbStatCard--sky    .dbStatValue { color: #0284C7; }
 .dbStatCard--violet .dbStatValue { color: #7C3AED; }
+.dbStatUnit { font-size: 13px; font-weight: 500; }
+.dbStatSub  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
 .dbStatLabel { font-size: 12px; color: #6B7280; margin-top: 3px; }
 
 /* ── Charts ── */

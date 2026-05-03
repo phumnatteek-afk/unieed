@@ -15,7 +15,7 @@ function CardCarousel({ images = [], title, quantity }) {
   useEffect(() => setIdx(0), [images]);
 
   const stockBadge = quantity > 0 && (
-    <span className="mkStockBadge">{quantity} ชิ้น</span>
+    <span className="mkStockBadge">{quantity} ตัว</span>
   );
 
   if (!images.length) return (
@@ -30,7 +30,7 @@ function CardCarousel({ images = [], title, quantity }) {
   return (
     <div className="mkCarouselWrap" style={{ position: "relative" }}>
       {quantity > 0 && (
-        <span className="mkStockBadge">{quantity} ชิ้น</span>
+        <span className="mkStockBadge">{quantity} ตัว</span>
       )}
       <div className="mkCarouselMain">
         <img
@@ -418,7 +418,7 @@ export default function DonateMarketPage() {
               <span className="dmNeedTypeName">{n.type_name}</span>
               <span className="dmNeedMeta">
                 {sizeLabel && <span>{sizeLabel}</span>}
-                <span className="dmNeedQty">× {n.quantity_needed} ชิ้น</span>
+                <span className="dmNeedQty">× {n.quantity_needed} ตัว</span>
               </span>
             </div>
           </div>

@@ -230,7 +230,7 @@
   outline: none;
   transition: border 0.15s;
 }
-.sapTimeInput:focus { border-color: #93c5fd; }
+.sapTimeInput:focus { border-color: #e5e7eb; outline: none; box-shadow: none; }
  
 /* ── Note textarea ── */
 .sapNoteInput {

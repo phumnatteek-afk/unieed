@@ -166,8 +166,8 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .sdSearchWrap:focus-within {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(59,111,212,0.1);
+  border-color: #e2e8f0;
+  box-shadow: none;
 }
 
 .sdSearch {
@@ -178,6 +178,11 @@
   color: var(--text);
   width: 100%;
   background: transparent;
+}
+.sdSearch:focus,
+.sdSearch:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 .sdSearch::placeholder { color: var(--text-3); }
 

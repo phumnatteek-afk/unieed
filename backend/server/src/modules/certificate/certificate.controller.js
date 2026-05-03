@@ -156,10 +156,10 @@ export async function verifyAndIssueCertificate(req, res, next) {
 
 
             if (isAdmin) {
-            // Admin approve — ไม่ set condition_status
+            // Admin approve — set condition_status = 'usable' เป็น default
             await db.query(
                 `UPDATE donation_record
-                SET status = 'approved', updated_at = NOW(),
+                SET status = 'approved', condition_status = 'usable', updated_at = NOW(),
                     admin_approved = 1, admin_approved_at = NOW()
                 WHERE donation_id = ?`,
                 [donation_id]

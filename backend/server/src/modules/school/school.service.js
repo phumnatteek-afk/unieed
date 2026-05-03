@@ -14,6 +14,7 @@ export async function getSchoolMe(user_id) {
       u.status AS user_status,
 
       s.school_name,
+      s.school_logo_url,
       s.school_address,
       s.school_phone,
       s.school_doc_url,

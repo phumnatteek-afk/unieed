@@ -220,7 +220,7 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
               <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            ส่งถึงโรงเรียนแล้ว <strong>{totalFulfilled}</strong> ชุด
+            ส่งถึงโรงเรียนแล้ว <strong>{totalFulfilled}</strong> ตัว
           </div>
           <button
             className="dpCardBtn"

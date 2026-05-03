@@ -135,7 +135,7 @@ export default function ProjectDetailPage() {
   };
 
   const needed    = project?.total_needed    || 0;
-  const fulfilled = project?.total_fulfilled || 0;  // ชุดที่ใช้งานได้ (primary metric)
+  const fulfilled = project?.total_received  || 0;  // ชุดที่โรงเรียนยืนยันรับแล้ว (primary metric)
   const pending   = project?.total_pending   || 0;  // 🔵 กำลังดำเนินการ
   const remaining = Math.max(needed - fulfilled, 0);
   const pct       = needed > 0 ? Math.min(Math.round((fulfilled / needed) * 100), 100) : 0;
@@ -309,7 +309,7 @@ export default function ProjectDetailPage() {
                   )}
                 </span>
                 <div className="pdUniformRowRight">
-                  <span className="pdUniformQty">{remaining} ชิ้น</span>
+                  <span className="pdUniformQty">{remaining} ตัว</span>
                   <div className="pdQtyStepper">
                     <button className="pdQtyBtn" onClick={() => changeQty(item, -1)} disabled={qty <= 0}>−</button>
                     <input
@@ -334,7 +334,7 @@ export default function ProjectDetailPage() {
         {/* สรุป */}
         {totalSelected > 0 && (
           <div className="pdQtySummary">
-            เลือกบริจาคแล้ว <strong>{totalSelected} ชิ้น</strong>
+            เลือกบริจาคแล้ว <strong>{totalSelected} ตัว</strong>
           </div>
         )}
       </div>
@@ -414,7 +414,7 @@ export default function ProjectDetailPage() {
                 <div className="pdProgressBlock">
                   <div className="pdProgressTopRow">
                     <span className="pdProgressCount">
-                      ยอดที่โรงเรียนยืนยันรับแล้ว: <strong>{fulfilled}</strong> / {needed} ชุด
+                      ยอดที่โรงเรียนยืนยันรับและใช้งานได้: <strong>{fulfilled}</strong> / {needed} ตัว
                     </span>
                     <span className="pdProgressPct">{pct}%</span>
                   </div>
@@ -430,14 +430,14 @@ export default function ProjectDetailPage() {
                     {fulfilled > 0 && (
                       <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#34d399", flexShrink: 0 }} />
-                        ถึงมือเด็กแล้ว <strong style={{ marginLeft: 2 }}>{fulfilled}</strong>
+                        ยืนยันรับแล้ว <strong style={{ marginLeft: 2 }}>{fulfilled}</strong>
                       </span>
                     )}
 
                     {pending > 0 && (
                       <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#818cf8", flexShrink: 0 }} />
-                        กำลังดำเนินการ <strong style={{ marginLeft: 2 }}>{pending}</strong>
+                        รอตรวจรับ <strong style={{ marginLeft: 2 }}>{pending}</strong>
                       </span>
                     )}
                   </div>
@@ -448,7 +448,7 @@ export default function ProjectDetailPage() {
                     </div>
                   ) : (
                     <div className="pdProgressRemaining">
-                      เหลืออีก <strong>{remaining} ชุด</strong> เพียงช่วยคนละนิดก็ใกล้บรรลุเป้าหมายแล้ว!
+                      เหลืออีก <strong>{remaining} ตัว</strong> เพียงช่วยคนละนิดก็ใกล้บรรลุเป้าหมายแล้ว!
                     </div>
                   )}
                 </div>
@@ -565,7 +565,7 @@ export default function ProjectDetailPage() {
                         onClick={handleDonate}
                         style={{ opacity: (selectedMethod !== "buy" && totalSelected === 0) ? 0.5 : 1, cursor: (selectedMethod !== "buy" && totalSelected === 0) ? "not-allowed" : "pointer" }}
                       >
-                        {totalSelected > 0 ? `ส่งต่อ ${totalSelected} ชิ้น` : "ส่งต่อ"}
+                        {totalSelected > 0 ? `ส่งต่อ ${totalSelected} ตัว` : "ส่งต่อ"}
                       </button>
                     )}
                     <p className="pdNote">*รับเกียรติบัตรออนไลน์ เพียงอัปโหลดหลักฐานการส่งต่อของท่าน*</p>
@@ -615,19 +615,19 @@ export default function ProjectDetailPage() {
                     );
                     return (
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                          {sc("#87c7eb", needed, "ชุด", "ขอรับทั้งหมด",
+                          {sc("#87c7eb", needed, "ตัว", "ขอรับทั้งหมด",
                             <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24"><g fill="none"><path d="m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z"/><path fill="currentColor" d="M8.024 3.001L15.847 3c.13 0 .258.002.384.029l.124.036a2 2 0 0 1 1.488 2.056l-.016.162l-.158 1.104l1.059.264a3 3 0 0 1 2.267 2.732l.005.179V18a3 3 0 0 1-2.824 2.995L18 21H6a3 3 0 0 1-2.995-2.824L3 18V9.562A3 3 0 0 1 5.1 6.7l.172-.049l1.059-.264l-.158-1.104A2 2 0 0 1 7.497 3.11l.148-.045c.123-.047.25-.06.379-.064m9.36 5.376l-.296 2.078a1.5 1.5 0 0 1-2.156 1.13L13 10.617V19h5a1 1 0 0 0 1-1V9.562a1 1 0 0 0-.758-.97l-.857-.215Zm-10.769 0l-.858.214a1 1 0 0 0-.75.857L5 9.562V18a1 1 0 0 0 .883.993L6 19h5v-8.382l-1.932.966a1.5 1.5 0 0 1-2.132-1l-.024-.13zM17 14a1 1 0 0 1 0 2h-1a1 1 0 1 1 0-2zm-1.29-8.036L13.553 8.66l1.652.826l.503-3.52Zm-7.42 0l.504 3.521l1.652-.826l-2.155-2.695ZM13.92 5h-3.84L12 7.4z"/></g></svg>
                           )}
                           {sc("#818cf8", project.donor_count || 0, "คน", "ผู้บริจาค",
                             <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 256 256"><path fill="currentColor" d="M230.33 141.06a24.34 24.34 0 0 0-18.61-4.77C230.5 117.33 240 98.48 240 80c0-26.47-21.29-48-47.46-48A47.58 47.58 0 0 0 156 48.75A47.58 47.58 0 0 0 119.46 32C93.29 32 72 53.53 72 80c0 11 3.24 21.69 10.06 33a31.87 31.87 0 0 0-14.75 8.4L44.69 144H16a16 16 0 0 0-16 16v40a16 16 0 0 0 16 16h104a8 8 0 0 0 1.94-.24l64-16a7 7 0 0 0 1.19-.4L226 182.82l.44-.2a24.6 24.6 0 0 0 3.93-41.56ZM119.46 48a31.15 31.15 0 0 1 29.14 19a8 8 0 0 0 14.8 0a31.15 31.15 0 0 1 29.14-19C209.59 48 224 62.65 224 80c0 19.51-15.79 41.58-45.66 63.9l-11.09 2.55A28 28 0 0 0 140 112h-39.32C92.05 100.36 88 90.12 88 80c0-17.35 14.41-32 31.46-32M16 160h24v40H16Zm203.43 8.21l-38 16.18L119 200H56v-44.69l22.63-22.62A15.86 15.86 0 0 1 89.94 128H140a12 12 0 0 1 0 24h-28a8 8 0 0 0 0 16h32a8.3 8.3 0 0 0 1.79-.2l67-15.41l.31-.08a8.6 8.6 0 0 1 6.3 15.9Z"/></svg>
                           )}
-                          {sc("#34d399", fulfilled, "ชุด", "ใช้งานได้จริง",
+                          {sc("#34d399", fulfilled, "ตัว", "ยืนยันรับแล้ว",
                             <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24"><g fill="currentColor"><path d="M10.243 16.314L6 12.07l1.414-1.414l2.829 2.828l5.656-5.657l1.415 1.415z"/><path fillRule="evenodd" d="M1 12C1 5.925 5.925 1 12 1s11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12m11 9a9 9 0 1 1 0-18a9 9 0 0 1 0 18" clipRule="evenodd"/></g></svg>
                           )}
-                          {sc("#FFBE1B", pending, "ชุด", "รอดำเนินการ",
+                          {sc("#FFBE1B", pending, "ตัว", "รอตรวจรับ",
                             <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0-18 0"/><path d="M12 7v5l3 3"/></g></svg>
                           )}
-                          {sc("#ef4444", remaining, "ชุด", "ยังต้องการ",
+                          {sc("#ef4444", remaining, "ตัว", "ยังต้องการ",
                             <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 14 14"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M2.5.5v13m0-13l9 4.5l-9 4.5" strokeWidth="1"/></svg>
                           )}
                       </div>
