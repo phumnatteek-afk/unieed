@@ -382,3 +382,187 @@
   letter-spacing: 0.03em;
 }
 
+/* ── Preview wrapper ─────────────────────────── */
+.eiPreview { display: flex; flex-direction: column; gap: 0; }
+
+/* ── Save button ────────────────────────────── */
+.eiBtnSave {
+  padding: 9px 20px; border-radius: 8px;
+  background: #16a34a; color: #fff;
+  border: none; font-size: 14px; font-weight: 500;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.15s;
+}
+.eiBtnSave:hover { background: #15803d; }
+
+/* ═══════════════════════════════════════════════
+   IssuePanel
+   ═══════════════════════════════════════════════ */
+.eiIssuePanel {
+  border: 1.5px solid #fca5a5;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background: #fff;
+}
+
+.eiIssuePanelHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: #fef2f2;
+}
+.eiIssuePanelLeft {
+  display: flex; align-items: center; gap: 8px;
+}
+.eiIssuePanelIcon {
+  font-size: 15px; color: #b91c1c;
+}
+.eiIssuePanelTitle {
+  font-size: 13.5px; font-weight: 600; color: #991b1b;
+}
+.eiIssuePanelCounts {
+  display: flex; gap: 6px;
+}
+.eiIssueCountPill {
+  font-size: 11.5px; font-weight: 600;
+  padding: 2px 9px; border-radius: 999px;
+}
+.eiIssueCountPill--hard { background: #fee2e2; color: #b91c1c; }
+.eiIssueCountPill--warn { background: #fff7ed; color: #c2410c; }
+
+.eiIssuePanelList {
+  display: flex; flex-direction: column;
+  max-height: 380px; overflow-y: auto;
+}
+
+/* Individual issue item */
+.eiIssueItem {
+  border-top: 1px solid #f0f0f0;
+  transition: background 0.1s;
+}
+.eiIssueItem--hard  { border-left: 3px solid #ef4444; }
+.eiIssueItem--soft  { border-left: 3px solid #f59e0b; }
+.eiIssueItem--dup   { border-left: 3px solid #fb923c; }
+.eiIssueItem--editing { background: #f0f9ff; }
+
+.eiIssueItemRow {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 14px;
+  flex-wrap: wrap;
+}
+.eiIssueBadge {
+  flex-shrink: 0; font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 5px;
+}
+.eiIssueBadge--hard { background: #ef4444; color: #fff; }
+.eiIssueBadge--soft { background: #f59e0b; color: #fff; }
+.eiIssueBadge--dup  { background: #fb923c; color: #fff; }
+
+.eiIssueName {
+  font-size: 13px; font-weight: 600; color: #1a1a2e;
+  flex-shrink: 0;
+}
+.eiIssueMsgs {
+  flex: 1; font-size: 12.5px; color: #6b7280; line-height: 1.5;
+}
+.eiIssueDot { color: #d1d5db; margin: 0 2px; }
+
+.eiIssueAction { flex-shrink: 0; margin-left: auto; }
+.eiIssueBtn {
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: none; border-radius: 6px; padding: 4px 10px;
+  transition: opacity 0.15s;
+}
+.eiIssueBtn:hover { opacity: 0.8; }
+.eiIssueBtn--fix     { background: #2563eb; color: #fff; }
+.eiIssueBtn--open    { background: #6b7280; color: #fff; }
+.eiIssueBtn--compare { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+.eiIssueWarnTag {
+  font-size: 11.5px; color: #b45309; font-weight: 600;
+  background: #fffbeb; padding: 2px 8px; border-radius: 5px;
+}
+
+/* ═══════════════════════════════════════════════
+   RowEditDrawer
+   ═══════════════════════════════════════════════ */
+.eiEditDrawer {
+  background: #f8faff;
+  border-top: 1px solid #dbeafe;
+  padding: 16px 14px 14px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+.eiEditSection {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.eiEditSectionTitle {
+  font-size: 12px; font-weight: 700; color: #6b7280;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.eiEditGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.eiEditField {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.eiEditField--wide {
+  grid-column: span 2;
+}
+.eiEditField label {
+  font-size: 11.5px; font-weight: 600; color: #374151;
+}
+.eiEditField input,
+.eiEditField select {
+  padding: 6px 10px; border-radius: 7px;
+  border: 1.5px solid #d1d5db; font-size: 13px;
+  outline: none; background: #fff;
+  transition: border-color 0.15s;
+}
+.eiEditField input:focus,
+.eiEditField select:focus { border-color: #2563eb; }
+.eiEditReq { color: #ef4444; }
+
+/* Uniform cards grid */
+.eiEditUniformGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.eiEditUniformCard {
+  border-radius: 10px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.eiEditUniformCard--male   { background: #eff6ff; border: 1.5px solid #bfdbfe; }
+.eiEditUniformCard--female { background: #fdf2f8; border: 1.5px solid #f9a8d4; }
+
+.eiEditUniformLabel {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 600; color: #1a1a2e;
+}
+.eiEditUniformGenderDot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.eiEditUniformInputRow {
+  display: flex; gap: 8px;
+}
+.eiEditUniformInputGroup {
+  flex: 1; display: flex; flex-direction: column; gap: 3px;
+}
+.eiEditUniformInputGroup span {
+  font-size: 11px; color: #6b7280; font-weight: 500;
+}
+.eiEditUniformInputGroup input {
+  padding: 5px 8px; border-radius: 6px;
+  border: 1.5px solid #d1d5db; font-size: 13px;
+  outline: none; width: 100%; background: #fff;
+  transition: border-color 0.15s;
+}
+.eiEditUniformInputGroup input:focus { border-color: #2563eb; }
+
+/* Edit drawer footer */
+.eiEditActions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding-top: 4px;
+}

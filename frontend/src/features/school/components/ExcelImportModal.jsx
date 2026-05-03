@@ -4,41 +4,82 @@ import { schoolRequestSvc } from "../services/schoolRequest.service.js";
 import { getBlob } from "../../../api/http.js";
 import "../styles/excelImport.css";
 
-// ── map ภาษาไทย → ค่า DB ─────────────────────────────────
-const MAP_GENDER   = { "ชาย": "male", "หญิง": "female" };
-function translateGenderInText(text) {
-  return text
-    .replace(/\bเพศ\s*male\b/g,   "เพศชาย")
-    .replace(/\bเพศ\s*female\b/g, "เพศหญิง")
-    .replace(/\bmale\b/g,   "ชาย")
-    .replace(/\bfemale\b/g, "หญิง");
-}
-const MAP_URGENCY  = { "เร่งด่วนมาก": "very_urgent", "เร่งด่วน": "urgent", "รอได้": "can_wait" };
-const MAP_SUPPORT  = { "รับครั้งเดียว": "one_time", "รับต่อเนื่อง": "recurring" };
+// ─── Constants ────────────────────────────────────────────────────────────────
+const MAP_GENDER  = { "ชาย": "male", "หญิง": "female" };
+const MAP_URGENCY = { "เร่งด่วนมาก": "very_urgent", "เร่งด่วน": "urgent", "รอได้": "can_wait" };
+const MAP_SUPPORT = { "รับครั้งเดียว": "one_time", "รับต่อเนื่อง": "recurring" };
+const VALID_LEVELS = ["อนุบาล", "ประถมศึกษา", "มัธยมตอนต้น", "มัธยมตอนปลาย"];
+const GENDER_TH  = { male: "ชาย", female: "หญิง" };
+const URGENCY_TH = { very_urgent: "เร่งด่วนมาก", urgent: "เร่งด่วน", can_wait: "รอได้" };
+const MALE_TYPES = [1, 3];
+const FEM_TYPES  = [2, 4];
+const U_META = {
+  1: { name: "เสื้อชาย",    sizeLabel: "รอบอก",  sizeKey: "chest" },
+  2: { name: "เสื้อหญิง",   sizeLabel: "รอบอก",  sizeKey: "chest" },
+  3: { name: "กางเกงชาย",   sizeLabel: "รอบเอว", sizeKey: "waist" },
+  4: { name: "กระโปรงหญิง", sizeLabel: "รอบเอว", sizeKey: "waist" },
+};
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function mapVal(dict, val) {
   const v = String(val ?? "").trim();
   return dict[v] ?? v;
 }
+function getSize(need) {
+  if (!need?.size) return "";
+  try {
+    const obj = typeof need.size === "string" ? JSON.parse(need.size) : need.size;
+    return String(Object.values(obj || {})[0] ?? "");
+  } catch { return ""; }
+}
+function makeSize(typeId, val) {
+  return JSON.stringify({ [U_META[typeId]?.sizeKey ?? "size"]: String(val) });
+}
+function translateGenderInText(text) {
+  return text
+    .replace(/\bเพศ\s*male\b/g, "เพศชาย")
+    .replace(/\bเพศ\s*female\b/g, "เพศหญิง")
+    .replace(/\bmale\b/g, "ชาย")
+    .replace(/\bfemale\b/g, "หญิง");
+}
+function needsToUniforms(needs) {
+  const u = { 1: { size: "", qty: 0 }, 2: { size: "", qty: 0 }, 3: { size: "", qty: 0 }, 4: { size: "", qty: 0 } };
+  for (const n of (needs || [])) {
+    if (u[n.uniform_type_id] !== undefined)
+      u[n.uniform_type_id] = { size: getSize(n), qty: n.quantity_needed || 0 };
+  }
+  return u;
+}
+function uniformsToNeeds(uniforms, support_mode, support_years) {
+  return Object.entries(uniforms)
+    .filter(([, { size, qty }]) => size || qty > 0)
+    .map(([typeId, { size, qty }]) => ({
+      uniform_type_id:   parseInt(typeId),
+      size:              makeSize(parseInt(typeId), size),
+      quantity_needed:   qty,
+      quantity_received: 0,
+      status:            "pending",
+      support_mode,
+      support_years,
+    }));
+}
 
-// ── parse แถวจาก sheet ──────────────────────────────────
+// ─── parseRows ────────────────────────────────────────────────────────────────
 function parseRows(ws) {
   const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
   const results = [];
   for (let i = 7; i < data.length; i++) {
-    const r = data[i];
-    // column 0 = student_code (optional), column 1 = name
+    const r            = data[i];
     const student_code = String(r[0] ?? "").trim() || null;
-    const name = String(r[1] ?? "").trim();
+    const name         = String(r[1] ?? "").trim();
     if (!name) continue;
 
-    const gender         = mapVal(MAP_GENDER, r[2]);
+    const gender          = mapVal(MAP_GENDER,  r[2]);
     const education_level = String(r[3] ?? "").trim();
-    const urgency        = mapVal(MAP_URGENCY, r[4]);
-    const support_mode   = mapVal(MAP_SUPPORT, r[5]);
-    const support_years  = support_mode === "recurring"
-      ? Math.max(1, parseInt(r[6]) || 1)
-      : null;
+    const urgency         = mapVal(MAP_URGENCY, r[4]);
+    const support_mode    = mapVal(MAP_SUPPORT, r[5]);
+    const support_years   = support_mode === "recurring"
+      ? Math.max(1, parseInt(r[6]) || 1) : null;
 
     const needDefs = [
       { typeId: 1, sizeKey: "chest", sizeIdx: 7,  qtyIdx: 8  },
@@ -46,12 +87,11 @@ function parseRows(ws) {
       { typeId: 2, sizeKey: "chest", sizeIdx: 11, qtyIdx: 12 },
       { typeId: 4, sizeKey: "waist", sizeIdx: 13, qtyIdx: 14 },
     ];
-
     const needs = [];
     for (const def of needDefs) {
       const sizeVal = String(r[def.sizeIdx] ?? "").trim();
       const qty     = parseInt(r[def.qtyIdx]) || 0;
-      if (sizeVal && qty > 0) {
+      if (sizeVal || qty > 0) {  // capture partial entries for validation
         needs.push({
           uniform_type_id:   def.typeId,
           size:              JSON.stringify({ [def.sizeKey]: sizeVal }),
@@ -63,228 +103,411 @@ function parseRows(ws) {
         });
       }
     }
-
-    results.push({
-      _rowNum: i + 1,          // Excel row number (1-based, for display)
-      student_code,
-      student_name:    name,
-      gender,
-      education_level,
-      urgency,
-      support_mode,
-      support_years,
-      needs,
-    });
+    results.push({ _rowNum: i + 1, student_code, student_name: name, gender, education_level, urgency, support_mode, support_years, needs });
   }
   return results;
 }
 
-// ── Validation ───────────────────────────────────────────
-// Validates a single student row; returns array of error strings
+// ─── validateRow — returns { hard: string[], soft: string[] } ─────────────────
 function validateRow(s) {
-  const errs = [];
+  const hard = [], soft = [];
 
-  // ── ชื่อ ─────────────────────────────────────────────
-  const nameParts = s.student_name.trim().split(/\s+/);
-  if (!s.student_name.trim()) {
-    errs.push("ไม่มีชื่อ");
-  } else if (nameParts.length < 2) {
-    errs.push("ต้องมีทั้งชื่อและนามสกุล (คั่นด้วยช่องว่าง)");
-  } else if (/\d/.test(s.student_name)) {
-    errs.push("ชื่อ-นามสกุลต้องไม่มีตัวเลข");
-  }
-
-  // ── เพศ ──────────────────────────────────────────────
-  if (!["male", "female"].includes(s.gender)) {
-    errs.push(`เพศ "${s.gender}" ไม่ถูกต้อง (ใช้ ชาย / หญิง)`);
-  }
-
-  // ── ระดับชั้น ────────────────────────────────────────
-  if (!s.education_level) {
-    errs.push("ไม่ระบุระดับชั้น");
-  }
-
-  // ── ความเร่งด่วน ─────────────────────────────────────
-  if (!["very_urgent", "urgent", "can_wait"].includes(s.urgency)) {
-    errs.push(`ความเร่งด่วน "${s.urgency}" ไม่ถูกต้อง (ใช้ เร่งด่วนมาก / เร่งด่วน / รอได้)`);
-  }
-
-  // ── support mode ─────────────────────────────────────
-  if (!["one_time", "recurring"].includes(s.support_mode)) {
-    errs.push(`รูปแบบการรับ "${s.support_mode}" ไม่ถูกต้อง (ใช้ รับครั้งเดียว / รับต่อเนื่อง)`);
-  }
-
-  if (s.support_mode === "recurring" && (!s.support_years || s.support_years < 1)) {
-    errs.push("ระยะเวลาต้องเป็นตัวเลขอย่างน้อย 1 ปี");
-  }
-
-  // ── needs ────────────────────────────────────────────
-  if (!s.needs || s.needs.length === 0) {
-    errs.push("ไม่มีรายการชุดนักเรียน (ต้องกรอกขนาดและจำนวนอย่างน้อย 1 รายการ)");
+  // Name
+  const name = s.student_name.trim();
+  if (!name) {
+    hard.push("ชื่อ-นามสกุล: ว่างเปล่า");
   } else {
-    s.needs.forEach((n, ni) => {
-      if (!n.size || n.size === "{}") {
-        errs.push(`รายการชุดที่ ${ni + 1}: ไม่ระบุขนาด`);
+    if (name.split(/\s+/).length < 2) hard.push("ชื่อ-นามสกุล: ใส่แต่ชื่อ ขาดนามสกุล");
+    if (/\d/.test(name))              hard.push("ชื่อ-นามสกุล: มีตัวเลขปนในชื่อ");
+  }
+
+  // Gender
+  if (!["male","female"].includes(s.gender)) hard.push("เพศ: ยังไม่ได้เลือกเพศ");
+
+  // Education level
+  if (!s.education_level || !VALID_LEVELS.includes(s.education_level))
+    hard.push("ระดับชั้น: ยังไม่ได้ระบุ");
+
+  // Urgency
+  if (!["very_urgent","urgent","can_wait"].includes(s.urgency))
+    hard.push("ความเร่งด่วน: ยังไม่ได้ระบุ");
+
+  // Support mode
+  if (!["one_time","recurring"].includes(s.support_mode)) {
+    hard.push('การรับ: ต้องเป็น "รับครั้งเดียว" หรือ "รับต่อเนื่อง"');
+  } else if (s.support_mode === "recurring") {
+    if (!s.support_years || s.support_years < 1)
+      hard.push('จำนวนปี: เลือก "รับต่อเนื่อง" แต่ไม่ได้ระบุจำนวนปี');
+    else if (s.support_years > 5)
+      soft.push(`จำนวนปี: ${s.support_years} ปี — สูงผิดปกติ`);
+  }
+
+  // Student code
+  if (s.student_code && !/^\d+$/.test(s.student_code))
+    hard.push("รหัสนักเรียน: ต้องเป็นตัวเลขเท่านั้น");
+
+  // Uniforms
+  if (!s.needs || s.needs.length === 0) {
+    hard.push("จำนวนชุด: ยังไม่ได้กรอกจำนวนชุด");
+  } else {
+    let hasValidNeed = false;
+    for (const n of s.needs) {
+      const sv    = getSize(n);
+      const hasS  = !!sv;
+      const hasQ  = n.quantity_needed > 0;
+      const label = U_META[n.uniform_type_id]?.name ?? "ชุด";
+      if      (hasS && !hasQ)  hard.push(`${label}: ระบุรอบแล้ว แต่ไม่ได้กรอกจำนวน`);
+      else if (!hasS && hasQ)  hard.push(`${label}: กรอกจำนวนแล้ว แต่ไม่ได้ระบุรอบ`);
+      else if (hasS && hasQ) {
+        const cm = parseFloat(sv);
+        if (!isNaN(cm) && (cm < 20 || cm > 120))
+          hard.push(`${label}: รอบ ${cm} cm นอกช่วง (20–120 cm)`);
+        else hasValidNeed = true;
       }
-      if (!n.quantity_needed || n.quantity_needed < 1) {
-        errs.push(`รายการชุดที่ ${ni + 1}: จำนวนต้องมากกว่า 0`);
-      }
+    }
+    if (!hasValidNeed && !hard.some(e => e.startsWith("จำนวนชุด")))
+      hard.push("จำนวนชุด: ยังไม่ได้กรอกจำนวนชุด");
+
+    // Gender-uniform mismatch
+    if (["male","female"].includes(s.gender)) {
+      const hasMaleNeed   = s.needs.some(n => MALE_TYPES.includes(n.uniform_type_id) && getSize(n) && n.quantity_needed > 0);
+      const hasFemaleNeed = s.needs.some(n => FEM_TYPES.includes(n.uniform_type_id)  && getSize(n) && n.quantity_needed > 0);
+      if (s.gender === "male"   && hasFemaleNeed) hard.push("ชุดนักเรียน: นักเรียนชายไม่ควรมีชุดนักเรียนหญิง");
+      if (s.gender === "female" && hasMaleNeed)   hard.push("ชุดนักเรียน: นักเรียนหญิงไม่ควรมีชุดนักเรียนชาย");
+    }
+  }
+  return { hard, soft };
+}
+
+// ─── buildRowIssues — per-row + cross-row validation ─────────────────────────
+function buildRowIssues(rows, existing) {
+  const issues = new Map();
+  const addErr = (idx, msg, isSoft = false) => {
+    const cur = issues.get(idx) ?? { hard: [], soft: [] };
+    if (isSoft) { if (!cur.soft.includes(msg)) cur.soft.push(msg); }
+    else         { if (!cur.hard.includes(msg)) cur.hard.push(msg); }
+    issues.set(idx, cur);
+  };
+
+  // Per-row
+  rows.forEach((s, i) => {
+    const { hard, soft } = validateRow(s);
+    if (hard.length || soft.length) issues.set(i, { hard, soft });
+  });
+
+  // Code dup within file
+  const codeToIdx = new Map();
+  rows.forEach((s, i) => {
+    if (!s.student_code || !/^\d+$/.test(s.student_code)) return;
+    if (codeToIdx.has(s.student_code)) {
+      const prevIdx = codeToIdx.get(s.student_code);
+      addErr(i,       `รหัสนักเรียน ${s.student_code} ซ้ำกับแถวที่ ${rows[prevIdx]._rowNum} ในไฟล์`);
+      addErr(prevIdx, `รหัสนักเรียน ${s.student_code} ซ้ำกับแถวที่ s._rowNum ในไฟล์`);
+    } else codeToIdx.set(s.student_code, i);
+  });
+
+  // Code dup in system
+  const sysCodeSet = new Set(existing.map(e => e.student_code).filter(Boolean));
+  rows.forEach((s, i) => {
+    if (s.student_code && /^\d+$/.test(s.student_code) && sysCodeSet.has(s.student_code))
+      addErr(i, `รหัสนักเรียน ${s.student_code} มีในระบบแล้ว`);
+  });
+
+  // Code format inconsistency (soft)
+  const validCodes = rows.filter(s => s.student_code && /^\d+$/.test(s.student_code));
+  if (validCodes.length >= 2) {
+    const freq = {};
+    validCodes.forEach(s => { freq[s.student_code.length] = (freq[s.student_code.length] || 0) + 1; });
+    const dominant = parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
+    rows.forEach((s, i) => {
+      if (!s.student_code || !/^\d+$/.test(s.student_code)) return;
+      if (s.student_code.length !== dominant)
+        addErr(i, `รหัส ${s.student_code} มี ${s.student_code.length} หลัก ซึ่งต่างจากรหัสอื่นในไฟล์ (${dominant} หลัก)`, true);
     });
   }
-
-  return errs;
+  return issues;
 }
 
-// ── Duplicate detection ───────────────────────────────────
-// Uses full name (first+last) comparison — NOT just first name
-// Returns Map<arrayIndex, { type, existingStudent, matchFields, source }>
-//
-// type "exact"  = name+gender+level+urgency+needs all identical → skip
-// type "update" = name+gender+level match, but needs differ    → update
-// type "similar"= only name matches                            → warn
-//
-function detectDuplicatesWithExisting(rows, existing) {
+// ─── detectSimilarity — name vs existing DB ───────────────────────────────────
+function detectSimilarity(rows, existing) {
   const result = new Map();
-
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
-    const fullName = r.student_name.trim().toLowerCase();
-
-    // Compare against existing DB students
+    const nm = r.student_name.trim().toLowerCase();
     for (const ex of existing) {
-      const exName = (ex.student_name || "").trim().toLowerCase();
-
-      // Only consider it a potential duplicate if the FULL name matches
-      if (fullName !== exName) continue;
-
-      // Exact match on name + gender + level + urgency
-      const coreMatch =
-        r.gender          === ex.gender          &&
-        r.education_level === ex.education_level &&
-        r.urgency         === ex.urgency;
-
-      // Compare needs (simple hash)
-      const needsHash  = (ns) => JSON.stringify(
-        (ns || [])
-          .map(n => `${n.uniform_type_id}:${n.size}:${n.quantity_needed}`)
-          .sort()
-      );
-      const needsSame  = needsHash(r.needs) === needsHash(ex.needs || ex.uniform_needs);
-
-      if (coreMatch && needsSame) {
-        result.set(i, { type: "exact", existingStudent: ex, matchFields: ["ทุกข้อมูล"] });
-      } else if (coreMatch) {
-        result.set(i, { type: "update", existingStudent: ex, matchFields: ["ชื่อ", "เพศ", "ระดับ", "ความเร่งด่วน"] });
-      } else {
-        // Same full name but different other fields — just warn
-        const matchFields = ["ชื่อ-นามสกุล"];
-        result.set(i, { type: "similar", existingStudent: ex, matchFields });
-      }
-      break; // found a match, stop checking more existing students
+      if (nm !== (ex.student_name || "").trim().toLowerCase()) continue;
+      const coreMatch = r.gender === ex.gender && r.education_level === ex.education_level && r.urgency === ex.urgency;
+      const needsHash = ns => JSON.stringify((ns || []).map(n => `${n.uniform_type_id}:${n.size}:${n.quantity_needed}`).sort());
+      const needsSame = needsHash(r.needs) === needsHash(ex.needs || ex.uniform_needs);
+      if (coreMatch && needsSame)     result.set(i, { type: "exact",   existingStudent: ex, matchFields: ["ทุกข้อมูล"] });
+      else if (coreMatch)             result.set(i, { type: "update",  existingStudent: ex, matchFields: ["ชื่อ-นามสกุล", "เพศ", "ระดับ"] });
+      else                            result.set(i, { type: "similar", existingStudent: ex, matchFields: ["ชื่อ-นามสกุล"] });
+      break;
     }
   }
   return result;
 }
 
-// Detect duplicates within the uploaded file itself
-function detectDuplicatesInFile(rows) {
-  const result = new Map();
-  for (let i = 0; i < rows.length; i++) {
-    for (let j = 0; j < i; j++) {
-      if (result.has(i)) break;
-      const a = rows[i], b = rows[j];
-      if (a.student_name.trim().toLowerCase() === b.student_name.trim().toLowerCase()) {
-        result.set(i, {
-          type: "file_dup",
-          matchIndex: j,
-          matchFields: ["ชื่อ-นามสกุลซ้ำกับแถวที่ " + (j + 1)],
-          source: "file",
-        });
-      }
-    }
-  }
-  return result;
-}
+// ─── RowEditDrawer ────────────────────────────────────────────────────────────
+function RowEditDrawer({ student, onSave, onCancel }) {
+  const [draft, setDraft] = useState(() => ({
+    student_code:    student.student_code ?? "",
+    student_name:    student.student_name ?? "",
+    gender:          ["male","female"].includes(student.gender) ? student.gender : "male",
+    education_level: VALID_LEVELS.includes(student.education_level) ? student.education_level : VALID_LEVELS[0],
+    urgency:         ["very_urgent","urgent","can_wait"].includes(student.urgency) ? student.urgency : "urgent",
+    support_mode:    ["one_time","recurring"].includes(student.support_mode) ? student.support_mode : "one_time",
+    support_years:   student.support_years ?? 1,
+    uniforms:        needsToUniforms(student.needs),
+  }));
 
-// ── Error panel sub-component ────────────────────────────
-function ErrorPanel({ errors }) {
-  const [open, setOpen] = useState(true);
-  if (!errors.length) return null;
+  const set  = (k, v) => setDraft(p => ({ ...p, [k]: v }));
+  const setU = (tid, k, v) => setDraft(p => ({ ...p, uniforms: { ...p.uniforms, [tid]: { ...p.uniforms[tid], [k]: v } } }));
+
+  const handleSave = () => {
+    const sm    = draft.support_mode;
+    const years = sm === "recurring" ? (parseInt(draft.support_years) || 1) : null;
+    onSave({
+      ...student,
+      student_code:    draft.student_code.trim() || null,
+      student_name:    draft.student_name.trim(),
+      gender:          draft.gender,
+      education_level: draft.education_level,
+      urgency:         draft.urgency,
+      support_mode:    sm,
+      support_years:   years,
+      needs:           uniformsToNeeds(draft.uniforms, sm, years),
+    });
+  };
+
   return (
-    <div className="eiErrPanel">
-      <button
-        className="eiErrPanelHeader"
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="eiErrPanelIcon">⚠</span>
-        <span className="eiErrPanelTitle">
-          พบข้อมูลผิดพลาด {errors.length} แถว — แถวเหล่านี้จะถูกข้ามไป
-        </span>
-        <span className="eiErrPanelChevron">{open ? "▲" : "▼"}</span>
-      </button>
-
-      {open && (
-        <div className="eiErrPanelBody">
-          {errors.map((e) => (
-            <div className="eiErrItem" key={e.index}>
-              <div className="eiErrItemHeader">
-                <span className="eiErrRowBadge">แถว {e.index}</span>
-                <span className="eiErrRowName">{e.name || "—"}</span>
-              </div>
-              <ul className="eiErrItemList">
-                {e.errors.map((msg, mi) => (
-                  <li key={mi} className="eiErrItemMsg">
-                    <span className="eiErrBullet">•</span>
-                    {msg}
-                  </li>
-                ))}
-              </ul>
+    <div className="eiEditDrawer">
+      <div className="eiEditSection">
+        <div className="eiEditSectionTitle">ข้อมูลส่วนตัว</div>
+        <div className="eiEditGrid">
+          <div className="eiEditField">
+            <label>รหัสนักเรียน</label>
+            <input type="text" value={draft.student_code} placeholder="optional (ตัวเลขเท่านั้น)"
+              onChange={e => set("student_code", e.target.value)} />
+          </div>
+          <div className="eiEditField eiEditField--wide">
+            <label>ชื่อ-นามสกุล <span className="eiEditReq">*</span></label>
+            <input type="text" value={draft.student_name} placeholder="ชื่อ นามสกุล"
+              onChange={e => set("student_name", e.target.value)} />
+          </div>
+          <div className="eiEditField">
+            <label>เพศ <span className="eiEditReq">*</span></label>
+            <select value={draft.gender} onChange={e => set("gender", e.target.value)}>
+              <option value="male">ชาย</option>
+              <option value="female">หญิง</option>
+            </select>
+          </div>
+          <div className="eiEditField">
+            <label>ระดับชั้น <span className="eiEditReq">*</span></label>
+            <select value={draft.education_level} onChange={e => set("education_level", e.target.value)}>
+              {VALID_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+          <div className="eiEditField">
+            <label>ความเร่งด่วน <span className="eiEditReq">*</span></label>
+            <select value={draft.urgency} onChange={e => set("urgency", e.target.value)}>
+              <option value="very_urgent">เร่งด่วนมาก</option>
+              <option value="urgent">เร่งด่วน</option>
+              <option value="can_wait">รอได้</option>
+            </select>
+          </div>
+          <div className="eiEditField">
+            <label>การรับ <span className="eiEditReq">*</span></label>
+            <select value={draft.support_mode} onChange={e => set("support_mode", e.target.value)}>
+              <option value="one_time">รับครั้งเดียว</option>
+              <option value="recurring">รับต่อเนื่อง</option>
+            </select>
+          </div>
+          {draft.support_mode === "recurring" && (
+            <div className="eiEditField">
+              <label>จำนวนปี <span className="eiEditReq">*</span></label>
+              <input type="number" min="1" max="10" value={draft.support_years}
+                onChange={e => set("support_years", e.target.value)} />
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </div>
+
+      <div className="eiEditSection">
+        <div className="eiEditSectionTitle">รายการชุดนักเรียน</div>
+        <div className="eiEditUniformGrid">
+          {[1, 3, 2, 4].map(tid => {
+            const meta = U_META[tid];
+            const u    = draft.uniforms[tid];
+            const isMale = MALE_TYPES.includes(tid);
+            return (
+              <div key={tid} className={`eiEditUniformCard ${isMale ? "eiEditUniformCard--male" : "eiEditUniformCard--female"}`}>
+                <div className="eiEditUniformLabel">
+                  <span className="eiEditUniformGenderDot" style={{ background: isMale ? "#1565C0" : "#AD1457" }} />
+                  {meta.name}
+                </div>
+                <div className="eiEditUniformInputRow">
+                  <div className="eiEditUniformInputGroup">
+                    <span>{meta.sizeLabel} (cm)</span>
+                    <input type="number" min="0" max="200" placeholder="—"
+                      value={u.size}
+                      onChange={e => setU(tid, "size", e.target.value)} />
+                  </div>
+                  <div className="eiEditUniformInputGroup">
+                    <span>จำนวน (ตัว)</span>
+                    <input type="number" min="0" placeholder="—"
+                      value={u.qty || ""}
+                      onChange={e => setU(tid, "qty", parseInt(e.target.value) || 0)} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="eiEditActions">
+        <button className="eiBtnGhost" type="button" onClick={onCancel}>ยกเลิก</button>
+        <button className="eiBtnSave"  type="button" onClick={handleSave}>✓  บันทึกการแก้ไข</button>
+      </div>
     </div>
   );
 }
 
-// ── Download Template from backend (styled via exceljs) ──
+// ─── IssuePanel ───────────────────────────────────────────────────────────────
+function IssuePanel({ students, rowIssues, dupMap, editingIdx, onEdit, onCancelEdit, onSave }) {
+  // Build flat list of issue items
+  const items = [];
+  const seenIdx = new Set();
+
+  // Hard errors first
+  for (const [idx, { hard, soft }] of rowIssues.entries()) {
+    if (hard.length > 0) {
+      items.push({ idx, severity: "hard", msgs: hard });
+      seenIdx.add(`${idx}-hard`);
+    }
+    if (soft.length > 0) {
+      items.push({ idx, severity: "soft", msgs: soft });
+    }
+  }
+
+  // Similarity warnings
+  for (const [idx, dup] of dupMap.entries()) {
+    if (dup.type === "similar") {
+      const ex = dup.existingStudent;
+      items.push({
+        idx,
+        severity: "dup",
+        msgs: [`คล้ายกับ "${ex?.student_name}" ในระบบ — ตรงกัน: ${dup.matchFields.join(", ")}`],
+      });
+    }
+  }
+
+  if (items.length === 0) return null;
+
+  const hardCount = items.filter(it => it.severity === "hard").length;
+  const warnCount = items.filter(it => it.severity !== "hard").length;
+
+  return (
+    <div className="eiIssuePanel">
+      <div className="eiIssuePanelHeader">
+        <div className="eiIssuePanelLeft">
+          <span className="eiIssuePanelIcon">⊙</span>
+          <span className="eiIssuePanelTitle">สรุปปัญหาทั้งหมด {items.length} รายการ</span>
+        </div>
+        <div className="eiIssuePanelCounts">
+          {hardCount > 0 && <span className="eiIssueCountPill eiIssueCountPill--hard">{hardCount} ข้อผิดพลาด</span>}
+          {warnCount > 0 && <span className="eiIssueCountPill eiIssueCountPill--warn">{warnCount} คำเตือน</span>}
+        </div>
+      </div>
+
+      <div className="eiIssuePanelList">
+        {items.map((item, ii) => {
+          const s         = students[item.idx];
+          const isEditing = editingIdx === item.idx && item.severity === "hard";
+          return (
+            <div key={`${item.idx}-${item.severity}-${ii}`}
+                 className={`eiIssueItem eiIssueItem--${item.severity} ${isEditing ? "eiIssueItem--editing" : ""}`}>
+              <div className="eiIssueItemRow">
+                <span className={`eiIssueBadge eiIssueBadge--${item.severity}`}>
+                  แถว {s._rowNum}
+                </span>
+                <span className="eiIssueName">"{s.student_name}"</span>
+                <span className="eiIssueMsgs">
+                  {item.msgs.map((m, mi) => (
+                    <span key={mi}>
+                      {mi > 0 && <span className="eiIssueDot"> · </span>}
+                      {m}
+                    </span>
+                  ))}
+                </span>
+                <div className="eiIssueAction">
+                  {item.severity === "hard" && (
+                    <button
+                      className={`eiIssueBtn eiIssueBtn--fix ${isEditing ? "eiIssueBtn--open" : ""}`}
+                      type="button"
+                      onClick={() => isEditing ? onCancelEdit() : onEdit(item.idx)}
+                    >
+                      {isEditing ? "ปิด ✕" : "แก้ไข →"}
+                    </button>
+                  )}
+                  {item.severity === "dup" && (
+                    <button className="eiIssueBtn eiIssueBtn--compare" type="button">เทียบ →</button>
+                  )}
+                  {item.severity === "soft" && (
+                    <span className="eiIssueWarnTag">⚠ คำเตือน</span>
+                  )}
+                </div>
+              </div>
+
+              {isEditing && (
+                <RowEditDrawer
+                  student={s}
+                  onSave={(updated) => onSave(item.idx, updated)}
+                  onCancel={onCancelEdit}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── downloadTemplate ─────────────────────────────────────────────────────────
 async function downloadTemplate() {
   try {
     const blob = await getBlob("/school/students/import-template");
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
-    a.href     = url;
-    a.download = "unieed_import_template.xlsx";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } catch (e) {
-    alert("ดาวน์โหลด template ไม่สำเร็จ: " + e.message);
-  }
+    a.href = url; a.download = "unieed_import_template.xlsx";
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch (e) { alert("ดาวน์โหลด template ไม่สำเร็จ: " + e.message); }
 }
 
-// ── Main component ───────────────────────────────────────
+// ─── ExcelImportModal ─────────────────────────────────────────────────────────
 export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
   const inputRef = useRef();
-  const [step, setStep]                   = useState("idle");
-  const [students, setStudents]           = useState([]);
-  const [errors, setErrors]               = useState([]);
-  const [dupWarnings, setDupWarnings]     = useState(new Map());
-  const [existingStudents, setExistingStudents] = useState([]);
-  const [result, setResult]               = useState(null);
-  const [importErr, setImportErr]         = useState("");
+  const [step, setStep]               = useState("idle");
+  const [students, setStudents]       = useState([]);
+  const [rowIssues, setRowIssues]     = useState(new Map()); // Map<idx, {hard[], soft[]}>
+  const [dupMap, setDupMap]           = useState(new Map()); // Map<idx, {type, existingStudent, matchFields}>
+  const [existingStudents, setExisting] = useState([]);
+  const [result, setResult]           = useState(null);
+  const [importErr, setImportErr]     = useState("");
+  const [editingIdx, setEditingIdx]   = useState(null);
 
   if (!open) return null;
 
   const reset = () => {
-    setStep("idle"); setStudents([]); setErrors([]);
-    setResult(null); setImportErr(""); setDupWarnings(new Map());
+    setStep("idle"); setStudents([]); setRowIssues(new Map()); setDupMap(new Map());
+    setResult(null); setImportErr(""); setEditingIdx(null);
   };
   const handleClose = () => { reset(); onClose(); };
 
-  // ── Read xlsx ──────────────────────────────────────────
+  // ── Parse & validate file ─────────────────────────────
   const onFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -293,8 +516,8 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
-        const wb   = XLSX.read(ev.target.result, { type: "array" });
-        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const wb     = XLSX.read(ev.target.result, { type: "array" });
+        const ws     = wb.Sheets[wb.SheetNames[0]];
         const parsed = parseRows(ws);
 
         if (!parsed.length) {
@@ -302,34 +525,15 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
           return;
         }
 
-        // Load existing students from DB
         let existing = [];
         try {
           existing = await schoolRequestSvc.listStudents(requestId) || [];
-          setExistingStudents(existing);
-        } catch { /* ถ้าโหลดไม่ได้ก็ตรวจ dup เฉพาะในไฟล์ */ }
-
-        // Validate each row
-        const errs = [];
-        parsed.forEach((s, i) => {
-          const ve = validateRow(s);
-          if (ve.length) errs.push({ index: i + 1, name: s.student_name, errors: ve });
-        });
-
-        // Detect dups vs DB (using full-name logic)
-        const dupWithDb   = detectDuplicatesWithExisting(parsed, existing);
-        // Detect dups within file
-        const dupInFile   = detectDuplicatesInFile(parsed);
-
-        // Merge: DB duplicates take priority
-        const allDups = new Map([...dupWithDb]);
-        for (const [idx, info] of dupInFile.entries()) {
-          if (!allDups.has(idx)) allDups.set(idx, info);
-        }
+          setExisting(existing);
+        } catch { /* ไม่มีข้อมูลเดิม */ }
 
         setStudents(parsed);
-        setErrors(errs);
-        setDupWarnings(allDups);
+        setRowIssues(buildRowIssues(parsed, existing));
+        setDupMap(detectSimilarity(parsed, existing));
         setStep("preview");
       } catch (err) {
         setImportErr("อ่านไฟล์ไม่ได้: " + err.message);
@@ -338,45 +542,49 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
     reader.readAsArrayBuffer(file);
   };
 
+  // ── Edit row ──────────────────────────────────────────
+  const handleSaveEdit = (idx, updated) => {
+    const newStudents = students.map((s, i) => i === idx ? updated : s);
+    setStudents(newStudents);
+    setRowIssues(buildRowIssues(newStudents, existingStudents));
+    setDupMap(detectSimilarity(newStudents, existingStudents));
+    setEditingIdx(null);
+  };
+
   // ── Import ────────────────────────────────────────────
   const doImport = async () => {
     setStep("importing");
     setImportErr("");
 
-    const errorIdxSet = new Set(errors.map(e => e.index - 1));
-    const toImport    = students
-      .map((s, i) => ({ s, i }))
-      .filter(({ i }) => !errorIdxSet.has(i));
+    const hardErrIdxs = new Set(
+      [...rowIssues.entries()].filter(([, v]) => v.hard.length > 0).map(([k]) => k)
+    );
+    const toImport = students.map((s, i) => ({ s, i })).filter(({ i }) => !hardErrIdxs.has(i));
 
     let created = 0, updated = 0, skipped = 0, failed = 0;
     const failedRows = [];
 
     for (const { s, i } of toImport) {
-      const dup = dupWarnings.get(i);
+      const dup = dupMap.get(i);
       try {
         if (dup?.type === "exact") {
           skipped++;
         } else if (dup?.type === "update" && dup.existingStudent?.student_id) {
           await schoolRequestSvc.updateStudent(requestId, dup.existingStudent.student_id, {
-            student_name:    s.student_name,
-            student_code:    s.student_code || undefined,
-            gender:          s.gender,
-            education_level: s.education_level,
-            urgency:         s.urgency,
-            needs:           s.needs,
+            student_name: s.student_name, student_code: s.student_code || undefined,
+            gender: s.gender, education_level: s.education_level, urgency: s.urgency, needs: s.needs,
           });
           updated++;
         } else {
-          // "similar" or "file_dup" or no dup → always create new
           await schoolRequestSvc.createStudent(requestId, s);
           created++;
         }
-      } catch (e) {
+      } catch (err) {
         failed++;
         failedRows.push({
           name:  s.student_name,
           row:   s._rowNum,
-          error: e?.data?.message || e?.response?.data?.message || e.message || "เกิดข้อผิดพลาด",
+          error: err?.data?.message || err?.response?.data?.message || err.message || "เกิดข้อผิดพลาด",
         });
       }
     }
@@ -386,21 +594,21 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
     if (created > 0 || updated > 0) onDone?.();
   };
 
-  const validCount = students.length - errors.length;
-  const hasErrors  = errors.length > 0;
-
-  const dupExact   = [...dupWarnings.values()].filter(d => d.type === "exact").length;
-  const dupUpdate  = [...dupWarnings.values()].filter(d => d.type === "update").length;
-  const dupWarn    = [...dupWarnings.values()].filter(d => !["exact","update"].includes(d.type)).length;
+  // ── Derived counts ────────────────────────────────────
+  const hardErrCount = [...rowIssues.values()].filter(v => v.hard.length > 0).length;
+  const dupExact     = [...dupMap.values()].filter(d => d.type === "exact").length;
+  const dupUpdate    = [...dupMap.values()].filter(d => d.type === "update").length;
+  const dupSimilar   = [...dupMap.values()].filter(d => d.type === "similar").length;
+  const validCount   = students.length - hardErrCount;
 
   return (
     <div className="eiOverlay" onMouseDown={handleClose}>
-      <div className="eiModal" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="eiModal" onMouseDown={e => e.stopPropagation()}>
 
-        {/* ── Head ── */}
+        {/* Header */}
         <div className="eiHead">
           <div className="eiTitle">
-            <svg width="18" height="18" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+            <svg width="18" height="18" viewBox="0 0 50 50" fill="none" style={{flexShrink:0}}>
               <path d="M44.1176 1.47059H5.88235C3.44559 1.47059 1.47059 3.44559 1.47059 5.88235V44.1176C1.47059 46.5544 3.44559 48.5294 5.88235 48.5294H44.1176C46.5544 48.5294 48.5294 46.5544 48.5294 44.1176V5.88235C48.5294 3.44559 46.5544 1.47059 44.1176 1.47059Z" fill="#CCD6DD"/>
               <path d="M17.6471 47.0588H8.82353V22.0588C8.82353 20.4353 10.1412 19.1176 11.7647 19.1176H14.7059C16.3294 19.1176 17.6471 20.4353 17.6471 22.0588V47.0588Z" fill="#5C913B"/>
               <path d="M41.1765 47.0588H32.3529V11.7647C32.3529 10.1412 33.6706 8.82353 35.2941 8.82353H38.2353C39.8588 8.82353 41.1765 10.1412 41.1765 11.7647V47.0588Z" fill="#3B94D9"/>
@@ -413,13 +621,13 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
 
         <div className="eiBody">
 
-          {/* ── STEP: idle ── */}
+          {/* STEP: idle */}
           {step === "idle" && (
             <div className="eiIdle">
               <div className="eiIconWrap">
-                <svg width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="50" height="50" viewBox="0 0 50 50" fill="none">
                   <path d="M44.1176 1.47059H5.88235C3.44559 1.47059 1.47059 3.44559 1.47059 5.88235V44.1176C1.47059 46.5544 3.44559 48.5294 5.88235 48.5294H44.1176C46.5544 48.5294 48.5294 46.5544 48.5294 44.1176V5.88235C48.5294 3.44559 46.5544 1.47059 44.1176 1.47059Z" fill="#CCD6DD"/>
-                  <path d="M44.1176 0H5.88235C2.63382 0 0 2.63382 0 5.88235V44.1176C0 47.3662 2.63382 50 5.88235 50H44.1176C47.3662 50 50 47.3662 50 44.1176V5.88235C50 2.63382 47.3662 0 44.1176 0ZM47.0588 44.1176C47.0588 45.7397 45.7397 47.0588 44.1176 47.0588H38.2353V38.2353H47.0588V44.1176ZM47.0588 35.2941H38.2353V26.4706H47.0588V35.2941ZM47.0588 23.5294H38.2353V14.7059H47.0588V23.5294ZM47.0588 11.7647H38.2353V2.94118H44.1176C45.7397 2.94118 47.0588 4.26029 47.0588 5.88235V11.7647Z" fill="#E1E8ED"/>
+                  <path d="M44.1176 0H5.88235C2.63382 0 0 2.63382 0 5.88235V44.1176C0 47.3662 2.63382 50 5.88235 50H44.1176C47.3662 50 50 47.3662 50 44.1176V5.88235C50 2.63382 47.3662 0 44.1176 0ZM47.0588 44.1176C47.0588 45.7397 45.7397 47.0588 44.1176 47.0588H38.2353V38.2353H47.0588V44.1176Z" fill="#E1E8ED"/>
                   <path d="M17.6471 47.0588H8.82353V22.0588C8.82353 20.4353 10.1412 19.1176 11.7647 19.1176H14.7059C16.3294 19.1176 17.6471 20.4353 17.6471 22.0588V47.0588Z" fill="#5C913B"/>
                   <path d="M41.1765 47.0588H32.3529V11.7647C32.3529 10.1412 33.6706 8.82353 35.2941 8.82353H38.2353C39.8588 8.82353 41.1765 10.1412 41.1765 11.7647V47.0588Z" fill="#3B94D9"/>
                   <path d="M29.4118 47.0588H20.5882V32.3529C20.5882 30.7294 21.9059 29.4118 23.5294 29.4118H26.4706C28.0941 29.4118 29.4118 30.7294 29.4118 32.3529V47.0588Z" fill="#DD2E44"/>
@@ -427,23 +635,21 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
               </div>
               <p className="eiDesc">ดาวน์โหลด Template กรอกข้อมูล แล้วอัพโหลดไฟล์ .xlsx กลับมา</p>
               <div className="eiActions">
-                <button className="eiBtnGhost" type="button" onClick={downloadTemplate}>
-                  ⬇ ดาวน์โหลด Template
-                </button>
+                <button className="eiBtnGhost" type="button" onClick={downloadTemplate}>⬇ ดาวน์โหลด Template</button>
                 <label className="eiBtnPrimary">
                   📂 เลือกไฟล์ Excel
-                  <input ref={inputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={onFile} />
+                  <input ref={inputRef} type="file" accept=".xlsx,.xls" style={{ display:"none" }} onChange={onFile} />
                 </label>
               </div>
               {importErr && <div className="eiErr">{importErr}</div>}
             </div>
           )}
 
-          {/* ── STEP: preview ── */}
+          {/* STEP: preview */}
           {step === "preview" && (
             <div className="eiPreview">
 
-              {/* Summary badges */}
+              {/* Summary bar */}
               <div className="eiSummaryBar">
                 <span className="eiSumBadge eiSumOk">
                   <span className="eiSumBadgeNum">{validCount}</span> พร้อม import
@@ -458,28 +664,36 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                     <span className="eiSumBadgeNum">{dupExact}</span> ซ้ำ (ข้าม)
                   </span>
                 )}
-                {dupWarn > 0 && (
+                {dupSimilar > 0 && (
                   <span className="eiSumBadge eiSumWarnDup">
-                    <span className="eiSumBadgeNum">{dupWarn}</span> คล้ายกัน
+                    <span className="eiSumBadgeNum">{dupSimilar}</span> คล้ายกัน
                   </span>
                 )}
-                {hasErrors && (
+                {hardErrCount > 0 && (
                   <span className="eiSumBadge eiSumErr">
-                    <span className="eiSumBadgeNum">{errors.length}</span> ข้อมูลผิด
+                    <span className="eiSumBadgeNum">{hardErrCount}</span> ข้อมูลผิด
                   </span>
                 )}
               </div>
 
-              {/* Error panel — collapsible, row-by-row */}
-              <ErrorPanel errors={errors} />
+              {/* Issue panel */}
+              <IssuePanel
+                students={students}
+                rowIssues={rowIssues}
+                dupMap={dupMap}
+                editingIdx={editingIdx}
+                onEdit={idx => setEditingIdx(idx)}
+                onCancelEdit={() => setEditingIdx(null)}
+                onSave={handleSaveEdit}
+              />
 
-              {/* Table */}
+              {/* Preview table */}
               <div className="eiPreviewTable">
                 <table>
                   <thead>
                     <tr>
-                      <th style={{ width: 60 }}>#</th>
-                      <th style={{ width: 90 }}>รหัสนักเรียน</th>
+                      <th style={{width:56}}>#</th>
+                      <th style={{width:86}}>รหัส</th>
                       <th>ชื่อ-นามสกุล</th>
                       <th>เพศ</th>
                       <th>ระดับ</th>
@@ -491,48 +705,40 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                   </thead>
                   <tbody>
                     {students.map((s, i) => {
-                      const errObj = errors.find((e) => e.index === i + 1);
-                      const dup    = dupWarnings.get(i);
-                      const rowCls = errObj        ? "eiRowErr"    :
-                                     dup?.type === "exact"   ? "eiRowExact"  :
-                                     dup?.type === "update"  ? "eiRowUpdate" :
-                                     dup                     ? "eiRowDup"    : "";
+                      const issue = rowIssues.get(i);
+                      const dup   = dupMap.get(i);
+                      const hasHard = issue?.hard?.length > 0;
+                      const rowCls  = hasHard          ? "eiRowErr"
+                                    : dup?.type === "exact"  ? "eiRowExact"
+                                    : dup?.type === "update" ? "eiRowUpdate"
+                                    : dup                    ? "eiRowDup" : "";
                       return (
                         <tr key={i} className={rowCls}>
                           <td>
                             <span className="eiRowNum">{i + 1}</span>
-                            {errObj && (
-                              <span className="eiTag eiTagErr" title={errObj.errors.join(" | ")}>Error</span>
-                            )}
-                            {!errObj && dup?.type === "exact"   && <span className="eiTag eiTagExact">ซ้ำ</span>}
-                            {!errObj && dup?.type === "update"  && <span className="eiTag eiTagUpdate">Update</span>}
-                            {!errObj && dup?.type === "similar" && <span className="eiTag eiTagDup">คล้าย</span>}
-                            {!errObj && dup?.type === "file_dup"&& <span className="eiTag eiTagDup">ซ้ำในไฟล์</span>}
+                            {hasHard && <span className="eiTag eiTagErr">Error</span>}
+                            {!hasHard && dup?.type === "exact"   && <span className="eiTag eiTagExact">ซ้ำ</span>}
+                            {!hasHard && dup?.type === "update"  && <span className="eiTag eiTagUpdate">Update</span>}
+                            {!hasHard && dup?.type === "similar" && <span className="eiTag eiTagDup">คล้าย</span>}
                           </td>
                           <td>
                             {s.student_code
                               ? <span className="eiCodeBadge">{s.student_code}</span>
-                              : <span className="eiCellMissing" title="ระบบจะกำหนดให้อัตโนมัติ">อัตโนมัติ</span>}
+                              : <span className="eiCellMissing">อัตโนมัติ</span>}
                           </td>
-                          <td className={errObj ? "eiCellErr" : ""}>{s.student_name}</td>
-                          <td>{s.gender === "male" ? "ชาย" : "หญิง"}</td>
+                          <td className={hasHard ? "eiCellErr" : ""}>{s.student_name}</td>
+                          <td>{GENDER_TH[s.gender] ?? s.gender}</td>
                           <td>{s.education_level || <span className="eiCellMissing">—</span>}</td>
                           <td>
                             <span className={`eiUrgBadge eiUrg-${s.urgency}`}>
-                              {s.urgency === "very_urgent" ? "เร่งด่วนมาก" :
-                               s.urgency === "urgent"      ? "เร่งด่วน"    : "รอได้"}
+                              {URGENCY_TH[s.urgency] ?? s.urgency}
                             </span>
                           </td>
-                          <td>{s.support_mode === "recurring"
-                            ? `ต่อเนื่อง ${s.support_years} ปี`
-                            : "ครั้งเดียว"}
-                          </td>
+                          <td>{s.support_mode === "recurring" ? `ต่อเนื่อง ${s.support_years} ปี` : "ครั้งเดียว"}</td>
                           <td>{s.needs.length} รายการ</td>
                           <td>
-                            {errObj ? (
-                              <span className="eiStatusErr">
-                                ⚠ {errObj.errors.length} ปัญหา
-                              </span>
+                            {hasHard ? (
+                              <span className="eiStatusErr">⚠ {issue.hard.length} ปัญหา</span>
                             ) : dup?.type === "exact" ? (
                               <span className="eiStatusSkip">ข้าม</span>
                             ) : dup?.type === "update" ? (
@@ -550,7 +756,7 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
             </div>
           )}
 
-          {/* ── STEP: importing ── */}
+          {/* STEP: importing */}
           {step === "importing" && (
             <div className="eiLoading">
               <div className="eiSpinner" />
@@ -558,12 +764,10 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
             </div>
           )}
 
-          {/* ── STEP: done ── */}
+          {/* STEP: done */}
           {step === "done" && result && (
             <div className="eiDone">
-              <div className="eiDoneIcon">
-                {result.failed === 0 ? "🎉" : "⚠️"}
-              </div>
+              <div className="eiDoneIcon">{result.failed === 0 ? "🎉" : "⚠️"}</div>
               <div className="eiDoneStats">
                 <div className="eiDoneStat ok">
                   <span className="eiDoneNum">{result.created}</span>
@@ -584,27 +788,20 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                   </div>
                 )}
               </div>
-
-              {/* Failed rows panel */}
               {result.failedRows?.length > 0 && (
-                <div className="eiErrPanel" style={{ marginTop: 16 }}>
-                  <div className="eiErrPanelHeader" style={{ cursor: "default" }}>
-                    <span className="eiErrPanelIcon">✕</span>
-                    <span className="eiErrPanelTitle">รายการที่ import ไม่สำเร็จ</span>
+                <div className="eiIssuePanel" style={{marginTop:16}}>
+                  <div className="eiIssuePanelHeader">
+                    <span className="eiIssuePanelIcon">✕</span>
+                    <span className="eiIssuePanelTitle">รายการที่ import ไม่สำเร็จ</span>
                   </div>
-                  <div className="eiErrPanelBody">
+                  <div className="eiIssuePanelList">
                     {result.failedRows.map((r, i) => (
-                      <div className="eiErrItem" key={i}>
-                        <div className="eiErrItemHeader">
-                          {r.row && <span className="eiErrRowBadge">แถว {r.row}</span>}
-                          <span className="eiErrRowName">{r.name}</span>
+                      <div key={i} className="eiIssueItem eiIssueItem--hard">
+                        <div className="eiIssueItemRow">
+                          {r.row && <span className="eiIssueBadge eiIssueBadge--hard">แถว {r.row}</span>}
+                          <span className="eiIssueName">"{r.name}"</span>
+                          <span className="eiIssueMsgs">{translateGenderInText(r.error)}</span>
                         </div>
-                        <ul className="eiErrItemList">
-                          <li className="eiErrItemMsg">
-                            <span className="eiErrBullet">•</span>
-                            {translateGenderInText(r.error)}
-                          </li>
-                        </ul>
                       </div>
                     ))}
                   </div>
@@ -615,25 +812,21 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
 
         </div>
 
-        {/* ── Foot ── */}
+        {/* Footer */}
         <div className="eiFoot">
           {step === "preview" && (
             <>
-              <button className="eiBtnGhost" onClick={reset} type="button">
-                ← เลือกไฟล์ใหม่
-              </button>
-              <button
-                className="eiBtnPrimary"
-                onClick={doImport}
-                disabled={validCount === 0}
-                type="button"
-              >
+              <button className="eiBtnGhost" onClick={reset} type="button">← เลือกไฟล์ใหม่</button>
+              <button className="eiBtnPrimary" onClick={doImport} disabled={validCount === 0} type="button">
                 นำเข้า {validCount} คน
               </button>
             </>
           )}
           {step === "idle" && (
             <button className="eiBtnGhost" onClick={handleClose} type="button">ยกเลิก</button>
+          )}
+          {step === "done" && (
+            <button className="eiBtnGhost" onClick={handleClose} type="button">ปิด</button>
           )}
         </div>
 
