@@ -183,7 +183,7 @@ export const getMyOrders = async (userId) => {
        GROUP_CONCAT(DISTINCT p.product_title SEPARATOR ', ') AS product_names,
        (
          SELECT sp.name FROM order_shipping os
-         LEFT JOIN shipping_providers sp ON sp.provider_id = os.provider_id
+         LEFT JOIN shipping_provider sp ON sp.provider_id = os.provider_id
          WHERE os.order_id = o.order_id LIMIT 1
        ) AS shipping_provider_name,
        COALESCE((
@@ -201,7 +201,8 @@ export const getMyOrders = async (userId) => {
            'category_id', p2.category_id,
            'cover_image', (
              SELECT pi2.image_url FROM product_images pi2
-             WHERE pi2.product_id = p2.product_id AND pi2.is_cover = 1
+             WHERE pi2.product_id = p2.product_id
+             ORDER BY pi2.is_cover DESC, pi2.sort_order ASC
              LIMIT 1
            )
          ))

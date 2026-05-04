@@ -51,6 +51,15 @@ export async function runMigrations() {
       `);
     } catch (_) { /* column อาจมี enum นี้อยู่แล้ว */ }
 
+    // ── orders.order_status — รองรับทุก status ที่ระบบใช้ ─────────────────
+    try {
+      await db.query(`
+        ALTER TABLE orders MODIFY COLUMN order_status
+          ENUM('pending','confirmed','shipping','delivered','cancelled')
+          NOT NULL DEFAULT 'pending'
+      `);
+    } catch (_) { /* enum อาจครบแล้ว */ }
+
     // ── address (เพิ่ม amphoe) ────────────────────────────
     await addColumnIfMissing("address", "amphoe", "VARCHAR(100) NULL DEFAULT NULL AFTER district");
 

@@ -96,8 +96,8 @@ export async function adminPendingTasks(req, res, next) {
 
 export async function adminListOrders(req, res, next) {
   try {
-    const { status = "", q = "", page = 1, limit = 10 } = req.query;
-    res.json(await svc.listOrders({ status, q, page: Number(page), limit: Number(limit) }));
+    const { status = "", q = "", page = 1, limit = 10, seller_id = "" } = req.query;
+    res.json(await svc.listOrders({ status, q, page: Number(page), limit: Number(limit), seller_id }));
   } catch (e) { next(e); }
 }
 

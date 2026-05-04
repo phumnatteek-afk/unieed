@@ -7,57 +7,103 @@ import "../styles/adminPages.css";
 import { Icon } from "@iconify/react";
 import { formatOrderNo } from "../../../utils/orderNo.js";
 
+/* ── Shipping tracking URLs (same as buyer page) ── */
+const TRACKING_URLS = {
+  "ไทยไปรษณีย์":     (n) => `https://track.thailandpost.co.th/?trackNumber=${n}`,
+  "Thailand Post":    (n) => `https://track.thailandpost.co.th/?trackNumber=${n}`,
+  "EMS":              (n) => `https://track.thailandpost.co.th/?trackNumber=${n}`,
+  "Kerry":            (n) => `https://th.kerryexpress.com/th/track/?track=${n}`,
+  "Kerry Express":    (n) => `https://th.kerryexpress.com/th/track/?track=${n}`,
+  "Flash":            (n) => `https://www.flashexpress.co.th/tracking/?se=${n}`,
+  "Flash Express":    (n) => `https://www.flashexpress.co.th/tracking/?se=${n}`,
+  "J&T":              (n) => `https://www.jtexpress.co.th/trajectoryQuery?bills=${n}`,
+  "J&T Express":      (n) => `https://www.jtexpress.co.th/trajectoryQuery?bills=${n}`,
+  "SCG Yamato":       (n) => `https://www.scgyamato.co.th/tracking?trackingNo=${n}`,
+  "DHL":              (n) => `https://www.dhl.com/th-en/home/tracking.html?tracking-id=${n}`,
+  "Ninja Van":        (n) => `https://www.ninjavan.co/th-th/tracking?id=${n}`,
+  "NinjaVan":         (n) => `https://www.ninjavan.co/th-th/tracking?id=${n}`,
+  "Best Express":     (n) => `https://www.best-inc-th.com/track/${n}`,
+  "Shopee Express":   (n) => `https://spx.co.th/tracking?trackingNumber=${n}`,
+  "Lazada Logistics": () => `https://lazada.co.th/track`,
+};
+const getTrackingUrl = (providerName, trackingNo) => {
+  if (!trackingNo) return null;
+  if (!providerName) return null;
+  const key = Object.keys(TRACKING_URLS).find(k =>
+    providerName.toLowerCase().includes(k.toLowerCase()) ||
+    k.toLowerCase().includes(providerName.toLowerCase())
+  );
+  return key ? TRACKING_URLS[key](trackingNo) : null;
+};
+
 const STATUS_TABS = [
-  { key: "", label: "ทั้งหมด" },
-  { key: "pending", label: "รอดำเนินการ" },
-  { key: "shipping", label: "กำลังจัดส่ง" },
-  { key: "delivered", label: "จัดส่งสำเร็จ" },
+  { key: "",          label: "ทั้งหมด" },
+  { key: "pending",   label: "รอจัดส่ง" },
+  { key: "shipping",  label: "กำลังจัดส่ง" },
+  { key: "delivered", label: "สำเร็จ" },
   { key: "cancelled", label: "ยกเลิก" },
 ];
 
 const STATUS_BADGE = {
-  pending:   { cls: "admPending",  label: "รอดำเนินการ",  dot: "#f1aa00" },
-  shipping:  { cls: "admPending",  label: "กำลังจัดส่ง", dot: "#3b82f6" },
-  delivered: { cls: "admApproved", label: "จัดส่งสำเร็จ", dot: "#22b14c" },
-  cancelled: { cls: "admRejected", label: "ยกเลิก",       dot: "#e03131" },
+  pending:   { cls: "admBadge--amber", label: "รอจัดส่ง",    dot: "#f59e0b" },
+  confirmed: { cls: "admBadge--amber", label: "รอจัดส่ง",    dot: "#f59e0b" },
+  shipping:  { cls: "admBadge--blue",  label: "กำลังจัดส่ง", dot: "#3b82f6" },
+  delivered: { cls: "admBadge--green", label: "สำเร็จ",       dot: "#22c55e" },
+  cancelled: { cls: "admBadge--red",   label: "ยกเลิก",       dot: "#ef4444" },
 };
+
+const PAY_BADGE = {
+  paid:   { cls: "admBadge--green", label: "ชำระแล้ว" },
+  unpaid: { cls: "admBadge--red",   label: "ยังไม่ชำระ" },
+};
+
 const getSizeText = (size, categoryId) => {
   if (!size) return "-";
   let s = size;
-  if (typeof s === "string") {
-    try { s = JSON.parse(s); } catch { return String(size); }
-  }
+  if (typeof s === "string") { try { s = JSON.parse(s); } catch { return String(size); } }
   const cid = Number(categoryId);
   const parts = [];
   if (cid === 1) {
-    if (s.chest) parts.push(`อก ${s.chest}`);
+    if (s.chest)  parts.push(`อก ${s.chest}`);
     if (s.length) parts.push(`ยาว ${s.length}`);
   } else {
-    if (s.waist) parts.push(`เอว ${s.waist}`);
+    if (s.waist)  parts.push(`เอว ${s.waist}`);
     if (s.length) parts.push(`ยาว ${s.length}`);
   }
   return parts.join(" / ") || "-";
 };
 
-export default function AdminOrderPage() {
-  const [stats, setStats] = useState({ total: 0, pending: 0, shipping: 0, delivered: 0, cancelled: 0 });
-  const [rows, setRows] = useState([]);
-  const [statusFilter, setStatusFilter] = useState("");
-  const [q, setQ] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
-  const [toast, setToast] = useState(null);
-  const [detail, setDetail] = useState(null);
+const fmtBaht = (n) => "฿" + Number(n || 0).toLocaleString();
+const fmtDate = (d) => new Date(d).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
 
-  const now = new Date();
+/* ── inline styles ── */
+const thSt = { padding: "10px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b", whiteSpace: "nowrap" };
+const tdSt = { padding: "13px 16px", verticalAlign: "middle" };
+const badgeSt = { display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600 };
+const btnSt = (color) => ({
+  background: color + "15", color, border: `1px solid ${color}40`,
+  borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600,
+  cursor: "pointer", whiteSpace: "nowrap",
+});
+
+export default function AdminOrderPage() {
+  const [stats, setStats]               = useState({ total: 0, pending: 0, shipping: 0, delivered: 0, cancelled: 0 });
+  const [rows, setRows]                 = useState([]);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [q, setQ]                       = useState("");
+  const [page, setPage]                 = useState(1);
+  const [totalPages, setTotalPages]     = useState(1);
+  const [loading, setLoading]           = useState(true);
+  const [err, setErr]                   = useState("");
+  const [toast, setToast]               = useState(null);
+  const [detail, setDetail]             = useState(null);
+
+  const now     = new Date();
   const dateStr = now.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
   const timeStr = now.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
 
   const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    setToast({ msg, type }); setTimeout(() => setToast(null), 3000);
   };
 
   const loadOrders = useCallback(async () => {
@@ -70,9 +116,7 @@ export default function AdminOrderPage() {
       setTotalPages(data.total_pages || 1);
     } catch (e) {
       setErr(e?.data?.message || e.message || "โหลดข้อมูลไม่สำเร็จ");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [statusFilter, q, page]);
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
@@ -83,174 +127,166 @@ export default function AdminOrderPage() {
     if (!window.confirm("ยืนยันการยกเลิกออเดอร์นี้?")) return;
     try {
       await request(`/admin/orders/${orderId}/cancel`, { method: "PATCH", auth: true });
-      showToast("ยกเลิกออเดอร์แล้ว");
-      loadOrders();
-    } catch (e) {
-      showToast(e?.data?.message || "เกิดข้อผิดพลาด", "error");
-    }
+      showToast("ยกเลิกออเดอร์แล้ว"); loadOrders();
+    } catch (e) { showToast(e?.data?.message || "เกิดข้อผิดพลาด", "error"); }
   };
 
   const openDetail = async (orderId) => {
     try {
       const d = await request(`/admin/orders/${orderId}`, { method: "GET", auth: true });
       setDetail(d);
-    } catch (e) {
-      showToast(e?.data?.message || "โหลดรายละเอียดออเดอร์ไม่สำเร็จ", "error");
-    }
+    } catch (e) { showToast("โหลดรายละเอียดไม่สำเร็จ", "error"); }
   };
 
   const statCards = [
-    { key: "total",     label: "ออเดอร์ทั้งหมด",  icon: "mdi:receipt-text-outline",   tileCls: "admStatTile--blue" },
-    { key: "pending",   label: "รอดำเนินการ",    icon: "mdi:clock-outline",            tileCls: "admStatTile--amber" },
-    { key: "shipping",  label: "กำลังจัดส่ง",    icon: "mdi:truck-delivery-outline",  tileCls: "admStatTile--cyan" },
-    { key: "delivered", label: "จัดส่งสำเร็จ",   icon: "mdi:package-check",            tileCls: "admStatTile--green" },
-    { key: "cancelled", label: "ยกเลิก",         icon: "mdi:close-octagon-outline",   tileCls: "admStatTile--rose" },
+    { key: "total",     label: "ทั้งหมด",      icon: "mdi:receipt-text-outline",  color: "#3b82f6", bg: "#eff6ff" },
+    { key: "pending",   label: "รอจัดส่ง",     icon: "mdi:clock-outline",          color: "#f59e0b", bg: "#fffbeb" },
+    { key: "shipping",  label: "กำลังจัดส่ง",  icon: "mdi:truck-delivery-outline", color: "#06b6d4", bg: "#ecfeff" },
+    { key: "delivered", label: "สำเร็จ",        icon: "mdi:package-check",          color: "#22c55e", bg: "#f0fdf4" },
+    { key: "cancelled", label: "ยกเลิก",        icon: "mdi:close-octagon-outline",  color: "#ef4444", bg: "#fef2f2" },
   ];
 
   return (
     <div className="boPage admOrderPage">
       <div className="boTop">
-        <div>
-          <div className="boTitle">จัดการออเดอร์</div>
-        </div>
-        <div className="boAdmin">
-          <div className="boAdminText"><ProfileDropdown /></div>
-        </div>
+        <div className="boTitle">จัดการออเดอร์</div>
+        <div className="boAdmin"><ProfileDropdown /></div>
       </div>
 
       <div className="boPageInner admOrderInner">
         <div className="admOrderMetaRow">
           <p className="admOrderSubhead">ติดตามคำสั่งซื้อ สถานะการชำระ และการจัดส่งในตลาดมือสอง</p>
           <div className="admOrderDatePill">
-            <Icon icon="mdi:calendar-clock" style={{ fontSize: 18, opacity: 0.85 }} />
+            <Icon icon="mdi:calendar-clock" style={{ fontSize: 16 }} />
             {dateStr} · {timeStr}
           </div>
         </div>
 
-        <div className="admStatGrid5 admStatGrid5--order">
+        {/* ── Stat cards ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 20 }}>
           {statCards.map(c => (
-            <div key={c.key} className={`admStatTile ${c.tileCls}`}>
-              <div className="admStatTile__top">
-                <span className="admStatTile__iconWrap">
-                  <Icon icon={c.icon} className="admStatTile__icon" />
-                </span>
+            <div key={c.key}
+              style={{ background: c.bg, borderRadius: 14, padding: "16px 18px", border: `1px solid ${c.color}28` }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <Icon icon={c.icon} style={{ fontSize: 18, color: c.color }} />
+                <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>{c.label}</span>
               </div>
-              <div className="admStatTile__label">{c.label}</div>
-              <div className="admStatTile__num">{stats[c.key] ?? 0}</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: c.color }}>{stats[c.key] ?? 0}</div>
             </div>
           ))}
         </div>
 
-        <div className="admCard admOrderCard admOrderCard--elevated">
-          <div className="admCardHeader">
-            <div>
-              <div className="admCardTitle">รายการออเดอร์</div>
-              <div className="admOrderSubhead" style={{ marginTop: 6, fontSize: 13 }}>
-                กรองตามสถานะหรือค้นหาจากชื่อผู้ซื้อ ผู้ขาย หรือชื่อสินค้า
-              </div>
-            </div>
-            <div className="admCardControls admOrderToolbar">
+        {/* ── Table card ── */}
+        <div className="admCard" style={{ borderRadius: 16, overflow: "hidden" }}>
+          {/* toolbar */}
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+            <div className="admCardTitle">รายการออเดอร์</div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <div className="admStatusTabs">
                 {STATUS_TABS.map(t => (
-                  <button
-                    key={t.key}
-                    type="button"
+                  <button key={t.key} type="button"
                     onClick={() => { setStatusFilter(t.key); setPage(1); }}
-                    className={`admStatusTab${statusFilter === t.key ? " active" : ""}`}
-                  >
+                    className={`admStatusTab${statusFilter === t.key ? " active" : ""}`}>
                     {t.label}
                   </button>
                 ))}
               </div>
               <form onSubmit={handleSearch} className="admSearch admSearch--order">
-                <input value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหา…" aria-label="ค้นหาออเดอร์" />
-                <button type="submit" className="admSearchBtn" aria-label="ค้นหา"><Icon icon="mdi:magnify" /></button>
+                <input value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหา…" />
+                <button type="submit" className="admSearchBtn"><Icon icon="mdi:magnify" /></button>
               </form>
             </div>
           </div>
 
           {loading && (
-            <div className="admOrderLoading">
-              <Icon icon="eos-icons:loading" style={{ fontSize: 28 }} />
-              กำลังโหลดข้อมูล…
+            <div style={{ padding: 48, textAlign: "center", color: "#94a3b8" }}>
+              <Icon icon="eos-icons:loading" style={{ fontSize: 28 }} /> กำลังโหลด…
             </div>
           )}
-          {err && <div className="boError" style={{ margin: "16px 18px" }}>{err}</div>}
+          {err && <div className="boError" style={{ margin: "16px 20px" }}>{err}</div>}
 
           {!loading && !err && (
-            <div className="admTableWrap" style={{ marginTop: 12 }}>
-              <table className="admTable">
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
-                  <tr>
-                    <th>รหัสออเดอร์</th>
-                    <th>สินค้า</th>
-                    <th>ผู้ซื้อ</th>
-                    <th>ผู้ขาย</th>
-                    <th style={{ textAlign: "right" }}>ยอดสินค้า</th>
-                    <th style={{ textAlign: "right" }}>ค่าธรรมเนียม</th>
-                    <th style={{ textAlign: "right" }}>ยอดโอนผู้ขาย</th>
-                    <th style={{ textAlign: "center" }}>สถานะ</th>
-                    <th style={{ textAlign: "center" }}>จัดการ</th>
+                  <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
+                    <th style={thSt}>รหัสออเดอร์</th>
+                    <th style={thSt}>สินค้า</th>
+                    <th style={thSt}>ผู้ซื้อ / ผู้ขาย</th>
+                    <th style={{ ...thSt, textAlign: "right" }}>ยอดรวม</th>
+                    <th style={{ ...thSt, textAlign: "center" }}>ชำระเงิน</th>
+                    <th style={{ ...thSt, textAlign: "center" }}>สถานะ</th>
+                    <th style={{ ...thSt, textAlign: "center" }}>จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="admOrderEmpty">ไม่พบออเดอร์ตามเงื่อนไข</td>
+                      <td colSpan={7} style={{ textAlign: "center", padding: 48, color: "#94a3b8", fontSize: 14 }}>
+                        <Icon icon="mdi:inbox-outline" style={{ fontSize: 36, display: "block", margin: "0 auto 8px" }} />
+                        ไม่พบออเดอร์ตามเงื่อนไข
+                      </td>
                     </tr>
-                  ) : rows.map(row => {
-                    const badge = STATUS_BADGE[row.order_status] || STATUS_BADGE.pending;
-                    const subtotal = Number(row.items_subtotal || 0);
-                    const fee = subtotal >= 100
-                      ? Math.round(subtotal * 0.15)
-                      : (subtotal > 0 ? 20 : 0);
-                    const net = Math.max(0, subtotal - fee);
+                  ) : rows.map((row, i) => {
+                    const badge    = STATUS_BADGE[row.order_status] || STATUS_BADGE.pending;
+                    const payBadge = PAY_BADGE[row.payment_status]  || PAY_BADGE.unpaid;
                     return (
-                      <tr key={row.order_id}>
-                        <td>
-                          <span className="admOrderNoCell">{formatOrderNo(row.order_id)}</span>
+                      <tr key={row.order_id}
+                        style={{ borderBottom: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa",
+                          transition: "background 0.15s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
+                        onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"}
+                      >
+                        <td style={tdSt}>
+                          <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 12, letterSpacing: "0.3px" }}>
+                            {formatOrderNo(row.order_id)}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 3 }}>{fmtDate(row.created_at)}</div>
                         </td>
-                        <td>
-                          <span className="admOrderProductCell">
+
+                        <td style={{ ...tdSt, maxWidth: 200 }}>
+                          <div style={{ fontWeight: 600, color: "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
                             {row.products || "-"}
-                          </span>
+                          </div>
+                          {row.total_qty > 0 && (
+                            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{row.total_qty} ชิ้น</div>
+                          )}
                         </td>
-                        <td>
-                          <span className="admOrderNameCell">{row.buyer_name || "-"}</span>
+
+                        <td style={tdSt}>
+                          <div style={{ fontSize: 12, color: "#1e293b", fontWeight: 600 }}>
+                            <Icon icon="mdi:account-outline" style={{ fontSize: 11, color: "#3b82f6", marginRight: 3 }} />
+                            {row.buyer_name || "-"}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 3 }}>
+                            <Icon icon="mdi:storefront-outline" style={{ fontSize: 11, color: "#94a3b8", marginRight: 3 }} />
+                            {row.seller_name || "-"}
+                          </div>
                         </td>
-                        <td>
-                          <span className="admOrderNameCell">{row.seller_name || "-"}</span>
+
+                        <td style={{ ...tdSt, textAlign: "right" }}>
+                          <span style={{ fontWeight: 800, color: "#0f172a", fontSize: 14 }}>{fmtBaht(row.total_price)}</span>
                         </td>
-                        <td style={{ textAlign: "right" }}>
-                          <span className="admOrderMoney">฿{subtotal.toLocaleString()}</span>
+
+                        <td style={{ ...tdSt, textAlign: "center" }}>
+                          <span className={`admBadge ${payBadge.cls}`} style={badgeSt}>{payBadge.label}</span>
                         </td>
-                        <td style={{ textAlign: "right" }}>
-                          <span className="admOrderFee">฿{fee.toLocaleString()}</span>
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          <span className="admOrderNet">฿{net.toLocaleString()}</span>
-                        </td>
-                        <td style={{ textAlign: "center" }}>
-                          <span className={`admBadge ${badge.cls} admOrderBadge`}>
-                            <span className="admBadgeDot" style={{ background: badge.dot }} />
+
+                        <td style={{ ...tdSt, textAlign: "center" }}>
+                          <span className={`admBadge ${badge.cls}`} style={badgeSt}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: badge.dot, display: "inline-block", marginRight: 5, flexShrink: 0 }} />
                             {badge.label}
                           </span>
                         </td>
-                        <td style={{ textAlign: "center" }}>
-                          <div className="admActionsCell admActionsCell--stack">
-                            <button
-                              type="button"
-                              className="admBtnSmall admBtnPrimary admOrderActionBtn"
-                              onClick={() => openDetail(row.order_id)}
-                            >
+
+                        <td style={{ ...tdSt, textAlign: "center" }}>
+                          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                            <button type="button" style={btnSt("#3b82f6")} onClick={() => openDetail(row.order_id)}>
                               รายละเอียด
                             </button>
-                            {["pending", "shipping"].includes(row.order_status) && (
-                              <button
-                                type="button"
-                                className="admBtnSmall admBtnDanger admOrderActionBtn"
-                                onClick={() => handleCancel(row.order_id)}
-                              >
+                            {["pending", "confirmed", "shipping"].includes(row.order_status) && (
+                              <button type="button" style={btnSt("#ef4444")} onClick={() => handleCancel(row.order_id)}>
                                 ยกเลิก
                               </button>
                             )}
@@ -264,7 +300,6 @@ export default function AdminOrderPage() {
             </div>
           )}
 
-          {/* pagination */}
           {totalPages > 1 && (
             <div className="admPager">
               <div className="admPagerNums">
@@ -273,79 +308,77 @@ export default function AdminOrderPage() {
                 ))}
               </div>
               <div className="admPagerBtns">
-                <button className="admPagerBtn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>{"< Back"}</button>
-                <button className="admPagerBtn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>{"Next >"}</button>
+                <button className="admPagerBtn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>‹ ก่อนหน้า</button>
+                <button className="admPagerBtn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>ถัดไป ›</button>
               </div>
             </div>
           )}
         </div>
       </div>
 
+      {/* ── Order Detail Modal ── */}
       {detail && (() => {
-        const detailFee = Number(detail.calculated_fee || detail.platform_fee || 0);
+        const detailFee      = Number(detail.platform_fee || 0);
         const detailSubtotal = Number(detail.items_subtotal || 0);
-        const detailNet = detailSubtotal - detailFee;
-        const detailBadge = STATUS_BADGE[detail.order_status] || STATUS_BADGE.pending;
+        const detailNet      = Math.max(0, detailSubtotal - detailFee);
+        const detailBadge    = STATUS_BADGE[detail.order_status] || STATUS_BADGE.pending;
         return (
           <div className="admModalOverlay" onClick={() => setDetail(null)}>
-            <div className="admModal admOrderModal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="adm-order-modal-title">
+            <div className="admModal" style={{ width: 580, maxHeight: "88vh", overflowY: "auto", borderRadius: 20, padding: 28 }}
+              onClick={e => e.stopPropagation()}>
 
-              <div className="admOrderModal__head">
+              {/* header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
                 <div>
-                  <h2 id="adm-order-modal-title" className="admOrderModal__title">รายละเอียดออเดอร์</h2>
-                  <div className="admOrderModal__sub">{formatOrderNo(detail.order_id)}</div>
+                  <div style={{ fontWeight: 800, fontSize: 18, color: "#0f172a" }}>รายละเอียดออเดอร์</div>
+                  <div style={{ fontSize: 13, color: "#64748b", marginTop: 3 }}>{formatOrderNo(detail.order_id)} · {fmtDate(detail.created_at)}</div>
                 </div>
-                <span className={`admBadge ${detailBadge.cls} admOrderBadge`} style={{ fontSize: 13 }}>
-                  <span className="admBadgeDot" style={{ background: detailBadge.dot }} />
+                <span className={`admBadge ${detailBadge.cls}`} style={{ ...badgeSt, fontSize: 12 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: detailBadge.dot, display: "inline-block", marginRight: 5 }} />
                   {detailBadge.label}
                 </span>
               </div>
 
-              <div className="admOrderPanelGrid">
-                <div className="admOrderPanel">
-                  <div className="admOrderPanel__k">ผู้ซื้อ</div>
-                  <div className="admOrderPanel__v">{detail.buyer_name || "-"}</div>
-                  {detail.buyer_phone && <div className="admOrderPanel__muted">{detail.buyer_phone}</div>}
-                  {detail.recipient_name && detail.recipient_name !== detail.buyer_name && (
-                    <div className="admOrderPanel__muted">รับสินค้า: {detail.recipient_name}</div>
-                  )}
-                  {detail.shipping_address && (
-                    <div className="admOrderPanel__muted" style={{ marginTop: 8 }}>
-                      {detail.shipping_address}{detail.shipping_province ? ` ${detail.shipping_province}` : ""}{detail.shipping_postcode ? ` ${detail.shipping_postcode}` : ""}
-                    </div>
-                  )}
-                </div>
-                <div className="admOrderPanel">
-                  <div className="admOrderPanel__k">ผู้ขาย</div>
-                  <div className="admOrderPanel__v">{detail.seller_name || "-"}</div>
-                  {detail.seller_phone && <div className="admOrderPanel__muted">{detail.seller_phone}</div>}
-                  {detail.omise_charge_id && (
-                    <div className="admOrderPanel__muted" style={{ marginTop: 8, fontSize: 12 }}>Charge ID: {detail.omise_charge_id}</div>
-                  )}
-                </div>
+              {/* buyer / seller */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
+                {[
+                  { label: "ผู้ซื้อ", name: detail.buyer_name, phone: detail.buyer_phone, extra: detail.shipping_address ? `${detail.shipping_address}${detail.shipping_province ? ` ${detail.shipping_province}` : ""}${detail.shipping_postcode ? ` ${detail.shipping_postcode}` : ""}` : null },
+                  { label: "ผู้ขาย", name: detail.seller_name, phone: detail.seller_phone, extra: null },
+                ].map(p => (
+                  <div key={p.label} style={{ background: "#f8fafc", borderRadius: 12, padding: "12px 14px" }}>
+                    <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>{p.label}</div>
+                    <div style={{ fontWeight: 700, color: "#0f172a", fontSize: 14 }}>{p.name || "-"}</div>
+                    {p.phone && <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>{p.phone}</div>}
+                    {p.extra && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 5, lineHeight: 1.5 }}>{p.extra}</div>}
+                  </div>
+                ))}
               </div>
 
+              {/* items table */}
               <div style={{ marginBottom: 18 }}>
-                <div className="admOrderItemsHead">รายการสินค้า</div>
-                <div className="admTableWrap admOrderItemsTable" style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
-                  <table>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#334155", marginBottom: 10 }}>รายการสินค้า</div>
+                <div style={{ border: "1px solid #e2e8f0", borderRadius: 10, overflow: "hidden" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
-                      <tr>
-                        <th>สินค้า</th>
-                        <th style={{ textAlign: "center", width: 72 }}>จำนวน</th>
-                        <th style={{ textAlign: "right", width: 110 }}>ราคา/ชิ้น</th>
-                        <th style={{ textAlign: "right", width: 110 }}>รวม</th>
-                        <th style={{ width: 130 }}>ไซส์</th>
+                      <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                        <th style={thSt}>สินค้า</th>
+                        <th style={{ ...thSt, textAlign: "center", width: 60 }}>จำนวน</th>
+                        <th style={{ ...thSt, textAlign: "right", width: 90 }}>ราคา/ชิ้น</th>
+                        <th style={{ ...thSt, textAlign: "right", width: 90 }}>รวม</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(detail.items || []).map((it) => (
-                        <tr key={it.order_item_id}>
-                          <td style={{ fontWeight: 600, color: "#0f172a" }}>{it.product_title || `#${it.product_id}`}</td>
-                          <td style={{ textAlign: "center", color: "#475569" }}>{it.quantity}</td>
-                          <td style={{ textAlign: "right", color: "#475569" }}>฿{Number(it.price_at_purchase || 0).toLocaleString()}</td>
-                          <td style={{ textAlign: "right", fontWeight: 700, color: "#0f172a" }}>฿{(Number(it.price_at_purchase || 0) * Number(it.quantity || 0)).toLocaleString()}</td>
-                          <td style={{ color: "#64748b", fontSize: 13 }}>{getSizeText(it.size, it.category_id)}</td>
+                      {(detail.items || []).map((it, i) => (
+                        <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={tdSt}>
+                            <div style={{ fontWeight: 600, color: "#1e293b" }}>{it.product_title || `#${it.product_id}`}</div>
+                            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{getSizeText(it.size, it.category_id)}</div>
+                          </td>
+                          <td style={{ ...tdSt, textAlign: "center", color: "#64748b" }}>{it.quantity}</td>
+                          <td style={{ ...tdSt, textAlign: "right", color: "#64748b" }}>{fmtBaht(it.price_at_purchase)}</td>
+                          <td style={{ ...tdSt, textAlign: "right", fontWeight: 700, color: "#0f172a" }}>
+                            {fmtBaht(Number(it.price_at_purchase) * Number(it.quantity))}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -353,24 +386,53 @@ export default function AdminOrderPage() {
                 </div>
               </div>
 
-              <div className="admOrderFinance">
-                <div className="admOrderFinance__title">สรุปการเงิน</div>
-                <div className="admOrderFinance__row">
-                  <span>ยอดสินค้า</span>
-                  <span style={{ fontWeight: 600 }}>฿{detailSubtotal.toLocaleString()}</span>
-                </div>
-                <div className="admOrderFinance__row admOrderFinance__row--fee">
-                  <span>ค่าธรรมเนียมระบบ {detailSubtotal >= 100 ? "(15%)" : "(คงที่ ฿20)"}</span>
-                  <span style={{ fontWeight: 600 }}>− ฿{detailFee.toLocaleString()}</span>
-                </div>
-                <div className="admOrderFinance__total">
-                  <span className="admOrderFinance__totalLabel">ยอดโอนให้ผู้ขาย</span>
-                  <span className="admOrderFinance__totalValue">฿{Math.max(0, detailNet).toLocaleString()}</span>
+              {/* finance */}
+              <div style={{ background: "#f8fafc", borderRadius: 12, padding: "14px 16px", marginBottom: 18 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#334155", marginBottom: 10 }}>สรุปการเงิน</div>
+                {[
+                  { label: "ยอดสินค้า", val: fmtBaht(detailSubtotal), color: "#0f172a" },
+                  { label: `ค่าธรรมเนียม ${detailSubtotal >= 100 ? "15%" : "ขั้นต่ำ 20 บาท"}`, val: `− ${fmtBaht(detailFee)}`, color: "#f59e0b" },
+                  { label: "ค่าจัดส่ง", val: fmtBaht(detail.shipping_total || 0), color: "#64748b" },
+                ].map(r => (
+                  <div key={r.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, fontSize: 13 }}>
+                    <span style={{ color: "#64748b" }}>{r.label}</span>
+                    <span style={{ fontWeight: 600, color: r.color }}>{r.val}</span>
+                  </div>
+                ))}
+                <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 700, color: "#0f172a" }}>ยอดโอนให้ผู้ขาย</span>
+                  <span style={{ fontWeight: 800, fontSize: 17, color: "#22c55e" }}>{fmtBaht(detailNet)}</span>
                 </div>
               </div>
 
-              <div className="admModalActions" style={{ marginTop: 20 }}>
-                <button type="button" className="admBtnPrimary" onClick={() => setDetail(null)}>ปิด</button>
+              {/* tracking */}
+              {(() => {
+                const tracking = detail.tracking_number;
+                const providerName = detail.shipping?.[0]?.provider_name || detail.shipping_provider_name || "";
+                const trackUrl = getTrackingUrl(providerName, tracking);
+                if (!tracking) return null;
+                return (
+                  <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "12px 16px", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <Icon icon="mdi:barcode-scan" style={{ color: "#3b82f6", fontSize: 20, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>เลขพัสดุ{providerName ? ` · ${providerName}` : ""}</div>
+                        <div style={{ fontWeight: 800, color: "#1e40af", fontSize: 15, letterSpacing: "0.5px", marginTop: 2 }}>{tracking}</div>
+                      </div>
+                    </div>
+                    {trackUrl && (
+                      <a href={trackUrl} target="_blank" rel="noreferrer"
+                        style={{ background: "#2563eb", color: "#fff", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+                        <Icon icon="mdi:truck-fast-outline" style={{ fontSize: 14 }} />
+                        ติดตามพัสดุ
+                      </a>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div style={{ textAlign: "right" }}>
+                <button style={btnSt("#64748b")} onClick={() => setDetail(null)}>ปิด</button>
               </div>
             </div>
           </div>

@@ -269,7 +269,7 @@ const getProductById = async (id) => {
   const [shippingRows] = await db.execute(
     `SELECT sp.provider_id, sp.name, sp.code
      FROM product_shipping ps
-     JOIN shipping_providers sp ON sp.provider_id = ps.provider_id
+     JOIN shipping_provider sp ON sp.provider_id = ps.provider_id
      WHERE ps.product_id = ?
      ORDER BY sp.name`,
     [id]
@@ -707,7 +707,7 @@ const getMatchedProducts = async (project_id) => {
      LEFT JOIN category_item  ci ON ci.category_id      = ut.category_id
      LEFT JOIN product_images pi ON pi.product_id       = p.product_id
      LEFT JOIN product_shipping ps ON ps.product_id     = p.product_id
-     LEFT JOIN shipping_providers sp ON sp.provider_id  = ps.provider_id
+     LEFT JOIN shipping_provider sp ON sp.provider_id  = ps.provider_id
      WHERE p.status = 'available' AND p.quantity > 0
      GROUP BY p.product_id`
   );

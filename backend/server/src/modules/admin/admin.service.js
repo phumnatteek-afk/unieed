@@ -205,45 +205,157 @@ export async function adminUpdateSchool(school_id, payload = {}) {
 
 /* ────── Dashboard Overview ────── */
 
+/** คำนวณ % เปลี่ยนแปลง เทียบกับค่าก่อนหน้า (ไม่ให้หาร 0) */
+function pctChange(current, previous) {
+  if (!previous || previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
 export async function getOverviewStats() {
-  const [[usersRow]]    = await db.query(`SELECT COUNT(*) AS total_users    FROM users   WHERE role='user'`);
-  const [[schoolsRow]]  = await db.query(`SELECT COUNT(*) AS total_schools  FROM schools WHERE verification_status='approved'`);
-  const [[productsRow]] = await db.query(`SELECT COUNT(*) AS total_products FROM products`);
-  const [[ordersRow]]   = await db.query(`SELECT COUNT(*) AS total_orders   FROM orders`);
-  const [[donationsRow]] = await db.query(`SELECT COUNT(*) AS total_donations FROM donation_request`)
-    .catch(() => [[{ total_donations: 0 }]]);
+  // เดือนนี้ vs เดือนที่แล้ว
+  const [[cur]] = await db.query(`
+    SELECT
+      SUM(role='user')                                                       AS users,
+      SUM(1)                                                                 AS schools_approved,
+      (SELECT COUNT(*) FROM products)                                        AS products,
+      (SELECT COUNT(*) FROM orders)                                          AS orders,
+      (SELECT COUNT(*) FROM donation_request)                                AS donations
+    FROM users u
+    LEFT JOIN schools s ON s.verification_status = 'approved'
+    WHERE u.role = 'user'
+  `).catch(() => [[{}]]);
+
+  // นับจริงทีละตาราง (ชัดเจนกว่า)
+  const [[usersRow]]    = await db.query(`SELECT COUNT(*) AS c FROM users WHERE role='user'`);
+  const [[schoolsRow]]  = await db.query(`SELECT COUNT(*) AS c FROM schools WHERE verification_status='approved'`);
+  const [[productsRow]] = await db.query(`SELECT COUNT(*) AS c FROM products`);
+  const [[ordersRow]]   = await db.query(`SELECT COUNT(*) AS c FROM orders`);
+  const [[donationsRow]] = await db.query(`SELECT COUNT(*) AS c FROM donation_request`)
+    .catch(() => [[{ c: 0 }]]);
+
+  // เดือนที่แล้ว (สร้างใหม่ในเดือนนั้น)
+  const [[prevUsers]]    = await db.query(`
+    SELECT COUNT(*) AS c FROM users
+    WHERE role='user'
+      AND created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
+      AND created_at <  DATE_FORMAT(CURDATE(), '%Y-%m-01')
+  `);
+  const [[prevSchools]]  = await db.query(`
+    SELECT COUNT(*) AS c FROM schools
+    WHERE verification_status='approved'
+      AND created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
+      AND created_at <  DATE_FORMAT(CURDATE(), '%Y-%m-01')
+  `);
+  const [[prevProducts]] = await db.query(`
+    SELECT COUNT(*) AS c FROM products
+    WHERE created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
+      AND created_at <  DATE_FORMAT(CURDATE(), '%Y-%m-01')
+  `);
+  const [[prevOrders]]   = await db.query(`
+    SELECT COUNT(*) AS c FROM orders
+    WHERE created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
+      AND created_at <  DATE_FORMAT(CURDATE(), '%Y-%m-01')
+  `);
+  const [[prevDonations]] = await db.query(`
+    SELECT COUNT(*) AS c FROM donation_request
+    WHERE created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
+      AND created_at <  DATE_FORMAT(CURDATE(), '%Y-%m-01')
+  `).catch(() => [[{ c: 0 }]]);
+
+  // เดือนนี้ (สร้างใหม่เดือนนี้)
+  const [[thisUsers]]    = await db.query(`SELECT COUNT(*) AS c FROM users WHERE role='user' AND created_at >= DATE_FORMAT(CURDATE(),'%Y-%m-01')`);
+  const [[thisSchools]]  = await db.query(`SELECT COUNT(*) AS c FROM schools WHERE verification_status='approved' AND created_at >= DATE_FORMAT(CURDATE(),'%Y-%m-01')`);
+  const [[thisProducts]] = await db.query(`SELECT COUNT(*) AS c FROM products WHERE created_at >= DATE_FORMAT(CURDATE(),'%Y-%m-01')`);
+  const [[thisOrders]]   = await db.query(`SELECT COUNT(*) AS c FROM orders WHERE created_at >= DATE_FORMAT(CURDATE(),'%Y-%m-01')`);
+  const [[thisDonations]] = await db.query(`SELECT COUNT(*) AS c FROM donation_request WHERE created_at >= DATE_FORMAT(CURDATE(),'%Y-%m-01')`)
+    .catch(() => [[{ c: 0 }]]);
+
   return {
-    total_users:     Number(usersRow?.total_users        || 0),
-    total_schools:   Number(schoolsRow?.total_schools    || 0),
-    total_donations: Number(donationsRow?.total_donations|| 0),
-    total_products:  Number(productsRow?.total_products  || 0),
-    total_orders:    Number(ordersRow?.total_orders      || 0),
+    total_users:          Number(usersRow?.c        || 0),
+    total_schools:        Number(schoolsRow?.c      || 0),
+    total_donations:      Number(donationsRow?.c    || 0),
+    total_products:       Number(productsRow?.c     || 0),
+    total_orders:         Number(ordersRow?.c       || 0),
+    // % เปลี่ยนแปลงเทียบเดือนที่แล้ว (ใช้ยอดสร้างใหม่เดือนนี้ vs เดือนที่แล้ว)
+    pct_users:            pctChange(Number(thisUsers?.c||0),    Number(prevUsers?.c||0)),
+    pct_schools:          pctChange(Number(thisSchools?.c||0),  Number(prevSchools?.c||0)),
+    pct_donations:        pctChange(Number(thisDonations?.c||0),Number(prevDonations?.c||0)),
+    pct_products:         pctChange(Number(thisProducts?.c||0), Number(prevProducts?.c||0)),
+    pct_orders:           pctChange(Number(thisOrders?.c||0),   Number(prevOrders?.c||0)),
   };
 }
 
 /**
  * รายได้แพลตฟอร์ม
  * - platform_revenue = ยอดขายสินค้ารวม (ก่อนหักค่าธรรมเนียม)
- * - fee_revenue      = ค่าธรรมเนียม 15% (ขั้นต่ำ 20 บาท) ที่แพลตฟอร์มได้
+ * - fee_revenue      = ค่าธรรมเนียม (15% หรือขั้นต่ำ 20 บาท) ที่แพลตฟอร์มได้
+ * - fee_min_revenue  = ส่วนที่เป็น "ขั้นต่ำ 20 บาท" (สินค้าราคา < 100 บาท)
  * - net_revenue      = รายได้สุทธิหลังหักค่าธรรมเนียม (= ยอดที่ผู้ขายควรได้รวมกัน)
  */
 export async function getRevenueStats(period = "week") {
   const { from, to } = periodToDateRange(period);
-  const [[revenueRow]] = await db.query(`
+
+  // คำนวณ "ช่วงก่อนหน้า" ที่ยาวเท่ากัน สำหรับ % เปลี่ยนแปลง
+  const fromDate = new Date(from);
+  const toDate   = new Date(to);
+  const diffMs   = toDate - fromDate;
+  const prevTo   = new Date(fromDate - 1).toISOString().slice(0, 19);
+  const prevFrom = new Date(fromDate - diffMs - 1).toISOString().slice(0, 19);
+
+  // Query รายได้ + แยกประเภทค่าธรรมเนียม
+  // fee_15_revenue  = ค่าธรรมเนียม 15% (orders ที่ item_subtotal >= 100 บาท)
+  // fee_min_revenue = ค่าธรรมเนียมขั้นต่ำ 20 บาท (orders ที่ item_subtotal < 100 บาท → fee = 20 flat)
+  const revenueQuery = `
     SELECT
       COALESCE(SUM(o.total_price), 0)           AS platform_revenue,
       COALESCE(SUM(o.platform_fee), 0)          AS fee_revenue,
       COALESCE(SUM(o.seller_payout_amount), 0)  AS net_revenue,
-      COUNT(*)                                  AS fee_count
+      COUNT(*)                                  AS fee_count,
+      -- ค่าธรรมเนียม 15% (สินค้ารวม >= 100 บาท)
+      COALESCE(SUM(
+        CASE WHEN COALESCE(items_sub.subtotal, 0) >= 100 THEN o.platform_fee ELSE 0 END
+      ), 0) AS fee_15_revenue,
+      -- ค่าธรรมเนียมขั้นต่ำ 20 บาท (สินค้ารวม < 100 บาท)
+      COALESCE(SUM(
+        CASE WHEN COALESCE(items_sub.subtotal, 0) < 100 AND o.platform_fee > 0 THEN o.platform_fee ELSE 0 END
+      ), 0) AS fee_min_revenue,
+      COUNT(CASE WHEN COALESCE(items_sub.subtotal, 0) >= 100 THEN 1 END) AS fee_15_count,
+      COUNT(CASE WHEN COALESCE(items_sub.subtotal, 0) < 100 AND o.platform_fee > 0 THEN 1 END) AS fee_min_count
     FROM orders o
-    WHERE o.order_status='delivered'
+    LEFT JOIN (
+      SELECT order_id,
+             SUM(price_at_purchase * quantity) AS subtotal
+      FROM order_items
+      GROUP BY order_id
+    ) items_sub ON items_sub.order_id = o.order_id
+    WHERE o.payment_status = 'paid'
       AND o.created_at BETWEEN ? AND ?
-  `, [from, to]);
+  `;
+
+  const [[revenueRow]] = await db.query(revenueQuery, [from, to]);
+  const [[prevRow]]    = await db.query(revenueQuery, [prevFrom, prevTo]);
+
   return {
-    platform_revenue: Math.round(Number(revenueRow?.platform_revenue || 0)),
-    fee_revenue:      Math.round(Number(revenueRow?.fee_revenue      || 0)),
-    net_revenue:      Math.round(Number(revenueRow?.net_revenue      || 0)),
-    fee_count:        Number(revenueRow?.fee_count || 0),
+    platform_revenue:     Math.round(Number(revenueRow?.platform_revenue || 0)),
+    fee_revenue:          Math.round(Number(revenueRow?.fee_revenue      || 0)),
+    fee_15_revenue:       Math.round(Number(revenueRow?.fee_15_revenue   || 0)),
+    fee_min_revenue:      Math.round(Number(revenueRow?.fee_min_revenue  || 0)),
+    fee_15_count:         Number(revenueRow?.fee_15_count  || 0),
+    fee_min_count:        Number(revenueRow?.fee_min_count || 0),
+    net_revenue:          Math.round(Number(revenueRow?.net_revenue      || 0)),
+    fee_count:            Number(revenueRow?.fee_count || 0),
+    pct_platform_revenue: pctChange(
+      Number(revenueRow?.platform_revenue || 0),
+      Number(prevRow?.platform_revenue    || 0)
+    ),
+    pct_fee_15:           pctChange(
+      Number(revenueRow?.fee_15_revenue || 0),
+      Number(prevRow?.fee_15_revenue    || 0)
+    ),
+    pct_fee_min:          pctChange(
+      Number(revenueRow?.fee_min_revenue || 0),
+      Number(prevRow?.fee_min_revenue    || 0)
+    ),
   };
 }
 
@@ -308,8 +420,9 @@ export async function getPendingTasks() {
   const [[schoolRow]] = await db.query(
     `SELECT COUNT(*) AS c FROM schools WHERE verification_status='pending'`
   );
+  // ค้างส่ง = paid แต่ยังไม่ได้จัดส่ง (pending หรือ confirmed เท่านั้น, ไม่รวม shipping)
   const [[shipRow]] = await db.query(
-    `SELECT COUNT(*) AS c FROM orders WHERE order_status IN ('pending','shipping') AND payment_status='paid'`
+    `SELECT COUNT(*) AS c FROM orders WHERE order_status IN ('pending','confirmed') AND payment_status='paid'`
   ).catch(() => [[{ c: 0 }]]);
   const [[donRow]] = await db.query(
     `SELECT COUNT(*) AS c FROM donation_request WHERE status='pending'`
@@ -338,7 +451,7 @@ export async function getPendingTasks() {
 
 /* ────── Orders ────── */
 
-export async function listOrders({ status = "", q = "", page = 1, limit = 10 } = {}) {
+export async function listOrders({ status = "", q = "", page = 1, limit = 10, seller_id = "" } = {}) {
   const where = []; const params = [];
   if (status && ["pending", "confirmed", "shipping", "delivered", "cancelled"].includes(status)) {
     where.push("o.order_status = ?"); params.push(status);
@@ -346,6 +459,9 @@ export async function listOrders({ status = "", q = "", page = 1, limit = 10 } =
   if (q) {
     where.push("(buyer.user_name LIKE ? OR seller.user_name LIKE ? OR p.product_title LIKE ?)");
     const like = `%${q}%`; params.push(like, like, like);
+  }
+  if (seller_id) {
+    where.push("o.seller_id = ?"); params.push(Number(seller_id));
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const safeLimit  = Math.min(100, Math.max(1, Number(limit) || 10));
@@ -503,7 +619,7 @@ export async function getOrderDetail(orderId) {
        os.provider_id,
        sp.name AS provider_name
      FROM order_shipping os
-     LEFT JOIN shipping_providers sp ON sp.provider_id = os.provider_id
+     LEFT JOIN shipping_provider sp ON sp.provider_id = os.provider_id
      WHERE os.order_id = ?`,
     [orderId]
   ).catch(() => [[]]);

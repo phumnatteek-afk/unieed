@@ -11,22 +11,30 @@ import {
 } from "recharts";
 
 const OVERVIEW_CARDS = [
-  { key: "total_users",     label: "ยอดผู้ใช้งานรวม",   icon: "material-symbols:person-rounded", bg: "#bce3f6" },
-  { key: "total_schools",   label: "โรงเรียน",           icon: "teenyicons:school-outline",         bg: "#bdf2ce" },
-  { key: "total_donations", label: "โครงการขอบริจาค",   icon: "mdi:hand-heart-outline",            bg: "#ffe2c2" },
-  { key: "total_products",  label: "รายการสินค้า",       icon: "icon-park-outline:ad-product",      bg: "#fff1be" },
-  { key: "total_orders",    label: "รายการสั่งซื้อสินค้า", icon: "lets-icons:order",                 bg: "#ffd6d6" },
+  { key: "total_users",     pctKey: "pct_users",     label: "ยอดผู้ใช้งานรวม",      icon: "material-symbols:person-rounded", bg: "#bce3f6" },
+  { key: "total_schools",   pctKey: "pct_schools",   label: "โรงเรียน",              icon: "teenyicons:school-outline",       bg: "#bdf2ce" },
+  { key: "total_donations", pctKey: "pct_donations", label: "โครงการขอบริจาค",      icon: "mdi:hand-heart-outline",          bg: "#ffe2c2" },
+  { key: "total_products",  pctKey: "pct_products",  label: "รายการสินค้า",          icon: "icon-park-outline:ad-product",    bg: "#fff1be" },
+  { key: "total_orders",    pctKey: "pct_orders",    label: "รายการสั่งซื้อสินค้า", icon: "lets-icons:order",                bg: "#ffd6d6" },
 ];
+
+function pctLabel(pct) {
+  if (pct === null || pct === undefined) return null;
+  const sign = pct >= 0 ? "+" : "";
+  return `${sign}${pct}% จากเดือนที่แล้ว`;
+}
 
 export default function AdminBackofficePage() {
   const [stats, setStats] = useState({
-    total_users: 0,
-    total_schools: 0,
-    total_donations: 0,
-    total_products: 0,
-    total_orders: 0,
+    total_users: 0, total_schools: 0, total_donations: 0, total_products: 0, total_orders: 0,
+    pct_users: null, pct_schools: null, pct_donations: null, pct_products: null, pct_orders: null,
   });
-  const [revenue, setRevenue] = useState({ platform_revenue: 0, fee_revenue: 0, fee_count: 0 });
+  const [revenue, setRevenue] = useState({
+    platform_revenue: 0, fee_revenue: 0,
+    fee_15_revenue: 0, fee_min_revenue: 0,
+    fee_15_count: 0, fee_min_count: 0, fee_count: 0,
+    pct_platform_revenue: null, pct_fee_15: null, pct_fee_min: null,
+  });
   const [chart, setChart] = useState({ months: [], sales: [], fees: [], donation_open_pct: 0 });
   const [tasks, setTasks] = useState({ pending_schools: 0, pending_shipments: 0, pending_donations: 0 });
   const [period, setPeriod] = useState("week");
@@ -51,11 +59,16 @@ export default function AdminBackofficePage() {
         ]);
         if (cancelled) return;
         setStats({
-          total_users: Number(ov?.total_users || 0),
-          total_schools: Number(ov?.total_schools || 0),
+          total_users:     Number(ov?.total_users     || 0),
+          total_schools:   Number(ov?.total_schools   || 0),
           total_donations: Number(ov?.total_donations || 0),
-          total_products: Number(ov?.total_products || 0),
-          total_orders: Number(ov?.total_orders || 0),
+          total_products:  Number(ov?.total_products  || 0),
+          total_orders:    Number(ov?.total_orders    || 0),
+          pct_users:       ov?.pct_users     ?? null,
+          pct_schools:     ov?.pct_schools   ?? null,
+          pct_donations:   ov?.pct_donations ?? null,
+          pct_products:    ov?.pct_products  ?? null,
+          pct_orders:      ov?.pct_orders    ?? null,
         });
         setTasks({
           pending_schools: Number(tk?.pending_schools || 0),
@@ -79,9 +92,16 @@ export default function AdminBackofficePage() {
       .then((r) => {
         if (cancelled) return;
         setRevenue({
-          platform_revenue: Number(r?.platform_revenue || 0),
-          fee_revenue: Number(r?.fee_revenue || 0),
-          fee_count: Number(r?.fee_count || 0),
+          platform_revenue:     Number(r?.platform_revenue  || 0),
+          fee_revenue:          Number(r?.fee_revenue       || 0),
+          fee_15_revenue:       Number(r?.fee_15_revenue    || 0),
+          fee_min_revenue:      Number(r?.fee_min_revenue   || 0),
+          fee_15_count:         Number(r?.fee_15_count      || 0),
+          fee_min_count:        Number(r?.fee_min_count     || 0),
+          fee_count:            Number(r?.fee_count         || 0),
+          pct_platform_revenue: r?.pct_platform_revenue ?? null,
+          pct_fee_15:           r?.pct_fee_15           ?? null,
+          pct_fee_min:          r?.pct_fee_min          ?? null,
         });
       })
       .catch(() => {});
@@ -105,8 +125,6 @@ export default function AdminBackofficePage() {
     ];
   }, [chart.donation_open_pct]);
 
-  const netRevenue = revenue.platform_revenue - revenue.fee_revenue;
-
   return (
     <div className="boPage">
       <div className="boTop">
@@ -128,16 +146,25 @@ export default function AdminBackofficePage() {
 
         {!loading && !err && (
           <div className="boStatGrid5" style={{ marginBottom: 22 }}>
-            {OVERVIEW_CARDS.map((c) => (
-              <div key={c.key} className="boStatColorCard" style={{ background: c.bg }}>
-                <div className="boStatColorCard__label">{c.label}</div>
-                <div className="boStatColorCard__iconWrap">
-                  <Icon icon={c.icon} width="32" height="32" />
+            {OVERVIEW_CARDS.map((c) => {
+              const pct = stats[c.pctKey];
+              const label = pctLabel(pct);
+              const isUp = pct !== null && pct >= 0;
+              return (
+                <div key={c.key} className="boStatColorCard" style={{ background: c.bg }}>
+                  <div className="boStatColorCard__label">{c.label}</div>
+                  <div className="boStatColorCard__iconWrap">
+                    <Icon icon={c.icon} width="32" height="32" />
+                  </div>
+                  <div className="boStatColorCard__value">{formatNumber(stats[c.key])}</div>
+                  {label && (
+                    <div className="boStatColorCard__change" style={{ color: isUp ? "#16a34a" : "#dc2626" }}>
+                      {label}
+                    </div>
+                  )}
                 </div>
-                <div className="boStatColorCard__value">{formatNumber(stats[c.key])}</div>
-                <div className="boStatColorCard__change">+5% จากเดือนที่แล้ว</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -164,19 +191,51 @@ export default function AdminBackofficePage() {
 
         {/* ===== Revenue cards ===== */}
         <div className="boRevGrid3">
-          <div className="boRevCard">
-            <div className="boRevCard__label">รายได้รวมแพลตฟอร์ม</div>
-            <div className="boRevCard__value boRevCard__value--blue">{formatBaht(revenue.platform_revenue)}</div>
-            <div className="boRevCard__sub boRevCard__sub--green">+5% จากเดือนที่แล้ว</div>
+          {/* Card 1: รายได้รวม — ธีม gradient เดียวกับ header */}
+          <div className="boRevCard" style={{ background: "linear-gradient(90deg,#1d4ed8 0%,#5285e8 55%,#7dd3fc 100%)", border: "none", position: "relative", overflow: "hidden" }}>
+            {/* decorative circle */}
+            <div style={{ position: "absolute", right: -20, top: -20, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+            <div style={{ position: "absolute", right: 20, bottom: -30, width: 70, height: 70, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <Icon icon="mdi:currency-usd" style={{ color: "rgba(255,255,255,0.7)", fontSize: 16 }} />
+              <div className="boRevCard__label" style={{ color: "rgba(255,255,255,0.82)", marginBottom: 0 }}>รายได้รวมแพลตฟอร์ม</div>
+            </div>
+            <div className="boRevCard__value" style={{ color: "#fff", fontSize: 28, fontWeight: 800 }}>{formatBaht(revenue.platform_revenue)}</div>
+            {revenue.pct_platform_revenue !== null && (
+              <div className="boRevCard__sub" style={{ color: revenue.pct_platform_revenue >= 0 ? "#86efac" : "#fca5a5" }}>
+                {pctLabel(revenue.pct_platform_revenue)}
+              </div>
+            )}
           </div>
-          <div className="boRevCard">
-            <div className="boRevCard__label">ค่าธรรมเนียม 15%</div>
-            <div className="boRevCard__value boRevCard__value--amber">{formatBaht(revenue.fee_revenue)}</div>
-            <div className="boRevCard__sub boRevCard__sub--muted">{formatNumber(revenue.fee_count)} รายการ</div>
+
+          {/* Card 2: ค่าธรรมเนียม 15% */}
+          <div className="boRevCard" style={{ borderTop: "3px solid #f59e0b" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+              <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>15%</span>
+              <div className="boRevCard__label" style={{ marginBottom: 0 }}>ค่าธรรมเนียม</div>
+            </div>
+            <div className="boRevCard__value boRevCard__value--amber">{formatBaht(revenue.fee_15_revenue)}</div>
+            <div className="boRevCard__sub boRevCard__sub--muted">{formatNumber(revenue.fee_15_count)} รายการ · ยอด ≥ 100 บาท</div>
+            {revenue.pct_fee_15 !== null && (
+              <div className="boRevCard__sub" style={{ color: revenue.pct_fee_15 >= 0 ? "#16a34a" : "#dc2626", marginTop: 2 }}>
+                {pctLabel(revenue.pct_fee_15)}
+              </div>
+            )}
           </div>
-          <div className="boRevCard boRevCard--highlight">
-            <div className="boRevCard__label">รายได้สุทธิหลังหักค่าธรรมเนียม</div>
-            <div className="boRevCard__value boRevCard__value--amber">{formatBaht(netRevenue)}</div>
+
+          {/* Card 3: ค่าธรรมเนียมขั้นต่ำ 20 บาท */}
+          <div className="boRevCard" style={{ borderTop: "3px solid #f59e0b" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+              <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>฿20 min</span>
+              <div className="boRevCard__label" style={{ marginBottom: 0 }}>ค่าธรรมเนียมขั้นต่ำ</div>
+            </div>
+            <div className="boRevCard__value boRevCard__value--amber">{formatBaht(revenue.fee_min_revenue)}</div>
+            <div className="boRevCard__sub boRevCard__sub--muted">{formatNumber(revenue.fee_min_count)} รายการ · ยอด &lt; 100 บาท</div>
+            {revenue.pct_fee_min !== null && (
+              <div className="boRevCard__sub" style={{ color: revenue.pct_fee_min >= 0 ? "#16a34a" : "#dc2626", marginTop: 2 }}>
+                {pctLabel(revenue.pct_fee_min)}
+              </div>
+            )}
           </div>
         </div>
 
@@ -216,30 +275,42 @@ export default function AdminBackofficePage() {
               </div>
             </div>
 
-            <PendingItem
-              label="โรงเรียนรออนุมัติ"
-              count={tasks.pending_schools}
-              link="/admin/schools"
-              bg="#fff8d8"
-              labelColor="#92400e"
-              btnLabel="อนุมัติ"
-            />
-            <PendingItem
-              label="รายการสินค้าค้างส่ง"
-              count={tasks.pending_shipments}
-              link="/admin/orders"
-              bg="#ffe2e2"
-              labelColor="#991b1b"
-              btnLabel="จัดการ"
-            />
-            <PendingItem
-              label="บริจาคไม่ถูกยืนยัน"
-              count={tasks.pending_donations}
-              link="/admin/donations"
-              bg="#ffe2e2"
-              labelColor="#991b1b"
-              btnLabel="จัดการ"
-            />
+            {tasks.pending_schools === 0 && tasks.pending_shipments === 0 && tasks.pending_donations === 0 ? (
+              <div style={{ color: "#94a3b8", fontSize: 13, padding: "16px 4px" }}>ไม่มีรายการรอดำเนินงาน</div>
+            ) : (
+              <>
+                {tasks.pending_schools > 0 && (
+                  <PendingItem
+                    label="โรงเรียนรออนุมัติ"
+                    count={tasks.pending_schools}
+                    link="/admin/schools"
+                    bg="#fff8d8"
+                    labelColor="#92400e"
+                    btnLabel="อนุมัติ"
+                  />
+                )}
+                {tasks.pending_shipments > 0 && (
+                  <PendingItem
+                    label="รายการสินค้าค้างส่ง"
+                    count={tasks.pending_shipments}
+                    link="/admin/orders"
+                    bg="#ffe2e2"
+                    labelColor="#991b1b"
+                    btnLabel="จัดการ"
+                  />
+                )}
+                {tasks.pending_donations > 0 && (
+                  <PendingItem
+                    label="บริจาคไม่ถูกยืนยัน"
+                    count={tasks.pending_donations}
+                    link="/admin/donations"
+                    bg="#ffe2e2"
+                    labelColor="#991b1b"
+                    btnLabel="จัดการ"
+                  />
+                )}
+              </>
+            )}
           </div>
         </div>
 

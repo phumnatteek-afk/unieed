@@ -304,12 +304,18 @@ export async function listSellerOrders(sellerId, { tab = "to_ship", q = "", page
       buyer.user_name  AS buyer_name,
       COALESCE((
         SELECT JSON_ARRAYAGG(JSON_OBJECT(
-          'product_id', oi2.product_id,
-          'title',      p2.product_title,
-          'qty',        oi2.quantity,
-          'price',      oi2.price_at_purchase,
-          'size',       p2.size,
-          'category_id', p2.category_id
+          'product_id',  oi2.product_id,
+          'title',       p2.product_title,
+          'qty',         oi2.quantity,
+          'price',       oi2.price_at_purchase,
+          'size',        p2.size,
+          'category_id', p2.category_id,
+          'cover_image', (
+            SELECT pi2.image_url FROM product_images pi2
+            WHERE pi2.product_id = oi2.product_id
+            ORDER BY pi2.is_cover DESC, pi2.sort_order ASC
+            LIMIT 1
+          )
         ))
         FROM order_items oi2
         LEFT JOIN products p2 ON p2.product_id = oi2.product_id
@@ -322,7 +328,7 @@ export async function listSellerOrders(sellerId, { tab = "to_ship", q = "", page
       ), 0) AS shipping_price,
       (
         SELECT sp.name FROM order_shipping os
-        LEFT JOIN shipping_providers sp ON sp.provider_id = os.provider_id
+        LEFT JOIN shipping_provider sp ON sp.provider_id = os.provider_id
         WHERE os.order_id = o.order_id AND os.seller_id = o.seller_id
         LIMIT 1
       ) AS shipping_provider_name,

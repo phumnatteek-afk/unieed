@@ -4,6 +4,148 @@ import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import "../styles/admin.css";
 import "../styles/adminPages.css";
 import { Icon } from "@iconify/react";
+import { formatOrderNo } from "../../../utils/orderNo.js";
+
+/* ─── helpers ─── */
+const fmtBaht = (n) => "฿" + Number(n || 0).toLocaleString("th-TH", { minimumFractionDigits: 0 });
+const fmtDate = (d) =>
+  d ? new Date(d).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) : "-";
+
+const STATUS_BADGE = {
+  pending:   { label: "รอดำเนินการ", bg: "#fef9c3", color: "#92400e" },
+  confirmed: { label: "ยืนยันแล้ว",  bg: "#dbeafe", color: "#1e40af" },
+  shipping:  { label: "จัดส่งแล้ว",  bg: "#ede9fe", color: "#5b21b6" },
+  delivered: { label: "ส่งถึงแล้ว",  bg: "#dcfce7", color: "#15803d" },
+  cancelled: { label: "ยกเลิก",      bg: "#fee2e2", color: "#991b1b" },
+};
+
+/* ─── SellerOrdersModal ─── */
+function SellerOrdersModal({ seller, onClose }) {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await request(
+          `/admin/orders?seller_id=${seller.seller_id}&status=delivered&limit=50`,
+          { method: "GET", auth: true }
+        );
+        setOrders(data.rows || data.orders || []);
+      } catch (e) {
+        setErr(e?.data?.message || "โหลดข้อมูลไม่สำเร็จ");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [seller.seller_id]);
+
+  const totalSales  = orders.reduce((s, o) => s + Number(o.total_price  || 0), 0);
+  const totalFee    = orders.reduce((s, o) => s + Number(o.platform_fee || 0), 0);
+  const totalPayout = totalSales - totalFee;
+
+  const thSt = { padding: "10px 14px", background: "#f8fafc", color: "#475569", fontSize: 11, fontWeight: 700, textAlign: "left", borderBottom: "2px solid #e2e8f0", textTransform: "uppercase", letterSpacing: "0.4px" };
+  const tdSt = { padding: "12px 14px", fontSize: 13, color: "#334155", borderBottom: "1px solid #f1f5f9", verticalAlign: "middle" };
+
+  return (
+    <div className="admModalOverlay" onClick={onClose}>
+      <div
+        className="admModal"
+        style={{ width: 760, borderRadius: 20, maxHeight: "88vh", overflowY: "auto", padding: 0, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* gradient header */}
+        <div style={{ background: "linear-gradient(90deg,#1d4ed8 0%,#5285e8 60%,#7dd3fc 100%)", padding: "20px 24px", borderRadius: "20px 20px 0 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>ออเดอร์ที่สำเร็จ</div>
+            <div style={{ fontSize: 13, color: "#bfdbfe", marginTop: 2 }}>
+              <Icon icon="mdi:storefront-outline" style={{ verticalAlign: "middle", marginRight: 5 }} />
+              {seller.seller_name} · {loading ? "…" : `${orders.length} ออเดอร์`}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8, cursor: "pointer", color: "#fff", width: 32, height: 32, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+        </div>
+
+        {/* seller summary strip */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", background: "#fff", padding: "14px 24px", borderBottom: "1px solid #e2e8f0", gap: 12 }}>
+          {[
+            { label: "ยอดขายรวม",    value: fmtBaht(totalSales),  color: "#0f172a" },
+            { label: "ค่าธรรมเนียม", value: fmtBaht(totalFee),    color: "#f59e0b" },
+            { label: "ยอดโอนสุทธิ",  value: fmtBaht(totalPayout), color: "#16a34a" },
+          ].map(s => (
+            <div key={s.label} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{s.label}</div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: s.color, marginTop: 2 }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* body */}
+        <div style={{ padding: "16px 24px 24px" }}>
+          {loading && (
+            <div style={{ textAlign: "center", color: "#94a3b8", padding: 40 }}>
+              <Icon icon="eos-icons:loading" style={{ fontSize: 28, display: "block", margin: "0 auto 8px" }} />
+              กำลังโหลด…
+            </div>
+          )}
+          {err && <div style={{ textAlign: "center", color: "#ef4444", padding: 16 }}>{err}</div>}
+          {!loading && !err && (
+            <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={thSt}>รหัสออเดอร์</th>
+                    <th style={thSt}>วันที่สั่ง</th>
+                    <th style={thSt}>สินค้า</th>
+                    <th style={{ ...thSt, textAlign: "right" }}>ยอดรวม</th>
+                    <th style={{ ...thSt, textAlign: "right" }}>ค่าธรรมเนียม</th>
+                    <th style={{ ...thSt, textAlign: "right" }}>ยอดโอน</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ ...tdSt, textAlign: "center", color: "#94a3b8", padding: 40 }}>
+                        <Icon icon="mdi:inbox-outline" style={{ fontSize: 30, display: "block", margin: "0 auto 8px" }} />
+                        ไม่มีออเดอร์ที่สำเร็จ
+                      </td>
+                    </tr>
+                  ) : orders.map((o, i) => {
+                    const fee   = Number(o.platform_fee || 0);
+                    const total = Number(o.total_price  || 0);
+                    const net   = total - fee;
+                    return (
+                      <tr key={i}
+                        style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
+                        onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"}
+                      >
+                        <td style={tdSt}>
+                          <span style={{ fontWeight: 700, color: "#1e40af", fontSize: 12, letterSpacing: "0.3px" }}>
+                            {formatOrderNo(o.order_id)}
+                          </span>
+                        </td>
+                        <td style={{ ...tdSt, color: "#64748b" }}>{fmtDate(o.created_at)}</td>
+                        <td style={{ ...tdSt, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>
+                          {o.products || o.product_names || "-"}
+                        </td>
+                        <td style={{ ...tdSt, textAlign: "right", fontWeight: 600 }}>{fmtBaht(total)}</td>
+                        <td style={{ ...tdSt, textAlign: "right", color: "#f59e0b", fontWeight: 700 }}>{fmtBaht(fee)}</td>
+                        <td style={{ ...tdSt, textAlign: "right", color: "#16a34a", fontWeight: 700 }}>{fmtBaht(net)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ConfirmPayoutModal({ item, onConfirm, onCancel }) {
   if (!item) return null;
@@ -107,6 +249,7 @@ export default function AdminPayoutPage() {
   const [historyRows, setHistoryRows] = useState([]);
   const [period, setPeriod] = useState("week");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [sellerDetail, setSellerDetail] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -264,7 +407,7 @@ export default function AdminPayoutPage() {
                                 โอนเงิน
                               </button>
                               <button className="admBtnSmall admBtnPrimary" style={{ border: "none", cursor: "pointer", borderRadius: 8, background: "#e2e8f0", color: "#334155" }}
-                                onClick={() => window.alert(`ดูรายละเอียดผู้ขาย: ${row.seller_name}`)}>
+                                onClick={() => setSellerDetail({ ...row })}>
                                 ดูรายละเอียด
                               </button>
                             </div>
@@ -359,6 +502,14 @@ export default function AdminPayoutPage() {
           item={selectedItem}
           onConfirm={handleConfirmPayout}
           onCancel={() => setSelectedItem(null)}
+        />
+      )}
+
+      {/* Seller Orders Detail Modal */}
+      {sellerDetail && (
+        <SellerOrdersModal
+          seller={sellerDetail}
+          onClose={() => setSellerDetail(null)}
         />
       )}
 

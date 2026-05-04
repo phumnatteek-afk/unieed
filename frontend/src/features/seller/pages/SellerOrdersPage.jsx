@@ -196,7 +196,20 @@ function OrderCard({ row, tab, trackInput, onChangeTracking, onConfirmShip, onOp
           <div className="slOrderItemList">
             {items.map((it, i) => (
               <div key={i} className="slOrderItem">
-                <div className="slOrderItem__thumb" />
+                {it.cover_image ? (
+                  <img
+                    src={it.cover_image}
+                    alt={it.title}
+                    className="slOrderItem__thumb"
+                    style={{ objectFit: "cover", borderRadius: 6 }}
+                    onError={e => { e.currentTarget.style.display = "none"; }}
+                  />
+                ) : (
+                  <div className="slOrderItem__thumb"
+                    style={{ background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon icon="mdi:hanger" style={{ color: "#cbd5e1", fontSize: 18 }} />
+                  </div>
+                )}
                 <span style={{ fontSize:13 }}>
                   {it.title || `สินค้า #${it.product_id}`} x{it.qty}
                   <span style={{ color:"#64748b", marginLeft:6 }}>({getSizeText(it.size, it.category_id)})</span>
