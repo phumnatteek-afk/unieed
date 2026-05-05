@@ -94,6 +94,12 @@ export default function DonationHistoryPage() {
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [suspension, setSuspension] = useState(null);
+  const [appealOpen, setAppealOpen] = useState(false);
+  const [appealReason, setAppealReason] = useState("");
+  const [appealSubmitting, setAppealSubmitting] = useState(false);
+  const [appealDone, setAppealDone] = useState(false);
+  const [appealErr, setAppealErr] = useState("");
   const [expanded, setExpanded] = useState(null);
   const [trackingInputs, setTrackingInputs] = useState({});
   const [courierInputs, setCourierInputs] = useState({});
@@ -182,17 +188,39 @@ export default function DonationHistoryPage() {
     }
   };
 
+  const submitAppeal = async () => {
+    if (!appealReason.trim()) return setAppealErr("กรุณาระบุเหตุผล");
+    try {
+      setAppealSubmitting(true);
+      setAppealErr("");
+      const res = await fetch(`${BASE}/donations/appeal-strike`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: appealReason.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) return setAppealErr(data?.message || "ส่งไม่สำเร็จ");
+      setAppealDone(true);
+    } catch { setAppealErr("เกิดข้อผิดพลาด กรุณาลองใหม่"); }
+    finally { setAppealSubmitting(false); }
+  };
+
   useEffect(() => {
     if (!token) { navigate("/login"); return; }
     (async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${BASE}/donations/my/history`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
-        const data = await res.json();
+        const [histRes, suspRes] = await Promise.all([
+          fetch(`${BASE}/donations/my/history`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${BASE}/donations/my-suspension`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (!histRes.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+        const data = await histRes.json();
         setDonations(data);
+        if (suspRes.ok) {
+          const suspData = await suspRes.json();
+          if (suspData.is_suspended) setSuspension(suspData);
+        }
       } catch (e) {
         setErr(e.message);
       } finally {
@@ -246,6 +274,75 @@ export default function DonationHistoryPage() {
             รายการบริจาคทั้งหมดของคุณ
           </div>
         </div>
+
+        {/* Suspension Banner */}
+        {suspension && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 14, padding: "16px 20px", marginBottom: 24, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 24 }}>🚫</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#991b1b", marginBottom: 2 }}>
+                บัญชีของคุณถูกระงับการบริจาคชั่วคราว
+              </div>
+              <div style={{ fontSize: 13, color: "#b91c1c" }}>
+                ระงับถึง {new Date(suspension.suspended_until).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                {" · "}strike {suspension.strike_count}/3
+              </div>
+            </div>
+            <button
+              onClick={() => { setAppealOpen(true); setAppealDone(false); setAppealReason(""); setAppealErr(""); }}
+              style={{ fontSize: 13, fontWeight: 600, color: "#fff", background: "#2563eb", border: "none", borderRadius: 10, padding: "9px 18px", cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              📋 ยื่น Appeal
+            </button>
+          </div>
+        )}
+
+        {/* Appeal Modal */}
+        {appealOpen && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+            onClick={() => setAppealOpen(false)}>
+            <div style={{ background: "#fff", borderRadius: 18, width: "100%", maxWidth: 420, overflow: "hidden" }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ background: "#1d4ed8", padding: "20px 24px", textAlign: "center" }}>
+                <div style={{ fontSize: 28 }}>📋</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginTop: 4 }}>ยื่น Appeal</div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", marginTop: 2 }}>โต้แย้งการถูกระงับการบริจาค</div>
+              </div>
+              <div style={{ padding: "20px 24px" }}>
+                {appealDone ? (
+                  <>
+                    <div style={{ textAlign: "center", padding: "12px 0", fontSize: 14, color: "#16a34a" }}>
+                      ✓ ส่งคำร้องเรียบร้อยแล้ว ทีมงานจะตรวจสอบและติดต่อกลับ
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+                      <button onClick={() => setAppealOpen(false)} style={{ fontSize: 13, padding: "9px 24px", borderRadius: 10, border: "1px solid #e2e8f0", cursor: "pointer", background: "#f8fafc" }}>ปิด</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>
+                      อธิบายเหตุผลที่คิดว่าการระงับนี้ไม่ถูกต้อง หรือสิ่งที่เกิดขึ้นจริง
+                    </div>
+                    <textarea
+                      value={appealReason}
+                      onChange={e => setAppealReason(e.target.value)}
+                      rows={4}
+                      placeholder="เช่น ของที่ส่งตรงตามที่โครงการระบุทุกอย่าง..."
+                      style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", marginBottom: 8 }}
+                    />
+                    {appealErr && <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 8 }}>{appealErr}</div>}
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                      <button onClick={() => setAppealOpen(false)} disabled={appealSubmitting} style={{ fontSize: 13, padding: "9px 18px", borderRadius: 10, border: "1px solid #e2e8f0", cursor: "pointer", background: "#f8fafc" }}>ยกเลิก</button>
+                      <button onClick={submitAppeal} disabled={appealSubmitting} style={{ fontSize: 13, fontWeight: 600, padding: "9px 18px", borderRadius: 10, border: "none", background: appealSubmitting ? "#94a3b8" : "#2563eb", color: "#fff", cursor: appealSubmitting ? "not-allowed" : "pointer" }}>
+                        {appealSubmitting ? "กำลังส่ง..." : "ส่งคำร้อง"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tab bar */}
         {!loading && !err && donations.length > 0 && (

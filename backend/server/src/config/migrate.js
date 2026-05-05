@@ -42,6 +42,8 @@ export async function runMigrations() {
     await addColumnIfMissing("users", "bank_code",             "VARCHAR(20) NULL DEFAULT NULL");
     await addColumnIfMissing("users", "bank_account_number",   "TEXT NULL DEFAULT NULL");
     await addColumnIfMissing("users", "bank_account_name",     "VARCHAR(200) NULL DEFAULT NULL");
+    await addColumnIfMissing("users", "strike_count",          "INT NOT NULL DEFAULT 0");
+    await addColumnIfMissing("users", "suspended_until",       "DATETIME NULL DEFAULT NULL");
     // รองรับสถานะ suspended (ระงับชั่วคราว)
     try {
       await db.query(`
@@ -186,6 +188,10 @@ export async function runMigrations() {
       )
       WHERE province IS NULL
     `);
+
+    // ── donation_record ───────────────────────────────────
+    await addColumnIfMissing("donation_record", "admin_resolved_at", "DATETIME NULL DEFAULT NULL");
+    await addColumnIfMissing("donation_record", "strike_issued",     "TINYINT(1) NOT NULL DEFAULT 0");
 
     // ── payouts ───────────────────────────────────────────
     // สร้าง table payouts ถ้ายังไม่มี

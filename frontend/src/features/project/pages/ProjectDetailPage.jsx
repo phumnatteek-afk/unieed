@@ -28,6 +28,8 @@ export default function ProjectDetailPage() {
 
   // ── Donate qty map: key = index ใน uniform_items array ──
   const [donateQty, setDonateQty] = useState({});
+  const [suspension, setSuspension] = useState({ is_suspended: false, suspended_until: null, strike_count: 0 });
+  const [appealSent, setAppealSent] = useState(false);
 
   const reviewRef = useRef(null);
   const shouldScrollRef = useRef(location.state?.tab === "review");
@@ -71,6 +73,13 @@ export default function ProjectDetailPage() {
       }
     })();
   }, [requestId]);
+
+  useEffect(() => {
+    if (!token) return;
+    getJson("/donations/my-suspension", true)
+      .then(d => setSuspension(d))
+      .catch(() => {});
+  }, [token]);
 
   const formatSize = (size) => {
     if (!size) return "";
@@ -540,12 +549,36 @@ export default function ProjectDetailPage() {
                   <>
                     <UniformBlock />
                     <div className="pdProgressLabel"><span>ช่องทางการส่งต่อ</span></div>
+                    {suspension.is_suspended && (
+                      <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "12px 16px", marginBottom: 12, fontSize: 13, color: "#dc2626" }}>
+                        <strong>ถูกจำกัดช่องทางบริจาคชั่วคราว</strong> เนื่องจากรายการบริจาคไม่ตรงกัน {suspension.strike_count} ครั้ง
+                        <div style={{ color: "#64748b", marginTop: 4 }}>
+                          จะสามารถใช้งานได้อีกครั้งในวันที่ {new Date(suspension.suspended_until).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}
+                        </div>
+                        {!appealSent ? (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { postJson } = await import("../../../api/http.js");
+                                await postJson("/donations/appeal-strike", {}, true);
+                                setAppealSent(true);
+                              } catch {}
+                            }}
+                            style={{ marginTop: 8, background: "none", border: "1px solid #fca5a5", borderRadius: 8, padding: "5px 12px", fontSize: 12, color: "#dc2626", cursor: "pointer", fontFamily: "inherit" }}
+                          >
+                            ขอให้ทีมงานตรวจสอบ
+                          </button>
+                        ) : (
+                          <div style={{ marginTop: 8, fontSize: 12, color: "#16a34a" }}>✓ ส่งคำร้องเรียบร้อยแล้ว</div>
+                        )}
+                      </div>
+                    )}
                     <div className="pdChannels">
-                      <div className={`pdChannel ${selectedMethod === "parcel" ? "pdChannelActive" : ""}`} onClick={() => setSelectedMethod("parcel")}>
+                      <div className={`pdChannel ${selectedMethod === "parcel" ? "pdChannelActive" : ""} ${suspension.is_suspended ? "pdChannelDisabled" : ""}`} onClick={() => !suspension.is_suspended && setSelectedMethod("parcel")}>
                         <svg width="43" height="31" viewBox="0 0 43 31" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M43 21.8149C43 24.3511 40.8607 26.4075 38.2222 26.4075H4.77778C2.13925 26.4075 0 24.3511 0 21.8149V18.3705C0 15.8343 2.13925 13.778 4.77778 13.778H38.2222C40.8607 13.778 43 15.8343 43 18.3705V21.8149Z" fill="#DD2E44" /><path d="M22.6944 5.74067L21.5251 4.59253H8.5355C4.77778 4.59253 3.58333 6.8888 3.58333 6.8888L0 13.7305V19.5183H22.6944V5.74067Z" fill="#FFEEC3" /><path d="M10.7498 13.7779H2.38867L4.77756 9.18531C4.77756 9.18531 5.97201 6.88904 8.36089 6.88904H10.7498V13.7779Z" fill="#55ACEE" /><path d="M10.7504 31C13.3891 31 15.5282 28.9439 15.5282 26.4075C15.5282 23.8711 13.3891 21.8149 10.7504 21.8149C8.11174 21.8149 5.97266 23.8711 5.97266 26.4075C5.97266 28.9439 8.11174 31 10.7504 31Z" fill="#292F33" /><path d="M10.7502 28.7034C12.0696 28.7034 13.1391 27.6753 13.1391 26.4071C13.1391 25.1389 12.0696 24.1108 10.7502 24.1108C9.43087 24.1108 8.36133 25.1389 8.36133 26.4071C8.36133 27.6753 9.43087 28.7034 10.7502 28.7034Z" fill="#CCD6DD" /><path d="M32.2504 31C34.8891 31 37.0282 28.9439 37.0282 26.4075C37.0282 23.8711 34.8891 21.8149 32.2504 21.8149C29.6117 21.8149 27.4727 23.8711 27.4727 26.4075C27.4727 28.9439 29.6117 31 32.2504 31Z" fill="#292F33" /><path d="M32.2502 28.7034C33.5696 28.7034 34.6391 27.6753 34.6391 26.4071C34.6391 25.1389 33.5696 24.1108 32.2502 24.1108C30.9309 24.1108 29.8613 25.1389 29.8613 26.4071C29.8613 27.6753 30.9309 28.7034 32.2502 28.7034Z" fill="#CCD6DD" /><path d="M38.2218 0.00012207H20.3051C17.6666 0.00012207 15.5273 2.05643 15.5273 4.59267V19.5184H42.9996V4.59267C42.9996 2.05643 40.8603 0.00012207 38.2218 0.00012207Z" fill="#CCD6DD" /></svg>
                         <span>จัดส่งพัสดุ</span>
                       </div>
-                      <div className={`pdChannel ${selectedMethod === "dropoff" ? "pdChannelActive" : ""}`} onClick={() => setSelectedMethod("dropoff")}>
+                      <div className={`pdChannel ${selectedMethod === "dropoff" ? "pdChannelActive" : ""} ${suspension.is_suspended ? "pdChannelDisabled" : ""}`} onClick={() => !suspension.is_suspended && setSelectedMethod("dropoff")}>
                         <svg width="41" height="44" viewBox="0 0 41 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0.00195312 13.5022V28.7514C0.00195312 31.2677 1.60232 31.8124 1.60232 31.8124L18.549 43.0247C21.2167 44.7893 20.5008 41.0741 20.5008 41.0741V27.0571L0.00195312 13.5022Z" fill="#662113" /><path d="M41 13.5022V28.7514C41 31.2677 39.4435 31.8124 39.4435 31.8124C39.4435 31.8124 25.1427 41.2601 22.4764 43.0247C19.8071 44.7893 20.5012 41.0741 20.5012 41.0741V27.0571L41 13.5022Z" fill="#C1694F" /><path d="M22.3869 0.56376C21.2843 -0.18792 19.4761 -0.18792 18.3721 0.56376L0.828005 12.306C-0.276002 13.0577 -0.276002 14.2862 0.828005 15.0367L18.4321 26.9231C19.5361 27.6735 21.3444 27.6735 22.4484 26.9231L40.1711 14.9332C41.2751 14.1827 41.2751 12.9542 40.1711 12.2025L22.3869 0.56376Z" fill="#D99E82" /><path d="M20.4994 43.9999C19.6911 43.9999 19.0352 43.406 19.0352 42.6715V26.7421C19.0352 26.0076 19.6911 25.4137 20.4994 25.4137C21.3091 25.4137 21.9636 26.0076 21.9636 26.7421V42.6715C21.9636 43.406 21.3091 43.9999 20.4994 43.9999Z" fill="#D99E82" /><path d="M35.1426 23.1575C35.1426 24.5179 35.2949 25.1858 33.6784 26.1667L30.0633 28.4809C28.4468 29.463 27.8216 28.6201 27.8216 27.2585V23.6097C27.8216 23.3719 27.7835 23.1168 27.4146 22.8605C23.6398 20.242 8.9832 10.4442 6.3125 8.63529L13.0844 4.10303C14.9381 5.2441 28.829 14.2717 34.6404 18.1225C34.9288 18.3147 35.1426 18.5266 35.1426 18.7583V23.1575Z" fill="#99AAB5" /><path d="M34.6389 18.1225C28.829 14.2717 14.9381 5.2441 13.0844 4.10303L10.5645 5.78876L6.3125 8.63529C8.98467 10.4442 23.6398 20.242 27.4146 22.8605C27.6356 23.0145 27.7323 23.1686 27.7777 23.3177L35.0006 18.4305C34.9127 18.3233 34.7868 18.2198 34.6389 18.1225Z" fill="#CCD6DD" /><path d="M35.1423 23.1575V18.7583C35.1423 18.5267 34.9285 18.3159 34.6386 18.1225C28.8287 14.2717 14.9378 5.2441 13.0841 4.10303L10.0488 6.13503C15.0169 9.42393 28.3235 18.0646 31.8068 20.396C32.1817 20.6474 32.2139 20.9074 32.2139 21.1452V27.1044L33.6781 26.1667C35.2946 25.1846 35.1423 24.5179 35.1423 23.1575Z" fill="#CCD6DD" /><path d="M34.6386 18.1225C28.8287 14.2716 14.9378 5.2441 13.0841 4.10303L10.0488 6.13503C15.0169 9.42393 28.3235 18.0645 31.8068 20.396C31.861 20.4317 31.8947 20.4687 31.9342 20.5044L35.0003 18.4305C34.9124 18.3233 34.7865 18.2198 34.6386 18.1225Z" fill="#E1E8ED" /></svg>
                         <span>Drop-off</span>
                       </div>

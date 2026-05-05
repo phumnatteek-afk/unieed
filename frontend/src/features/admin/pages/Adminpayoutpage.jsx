@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { request } from "../../../api/http.js";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import NotificationBell from "../../../pages/NotificationBell.jsx";
 import "../styles/admin.css";
 import "../styles/adminPages.css";
 import { Icon } from "@iconify/react";
@@ -313,6 +314,7 @@ export default function AdminPayoutPage() {
       <div className="boTop">
         <div className="boTitle">โอนเงินให้ผู้ขาย</div>
         <div className="boAdmin">
+          <NotificationBell />
           <div className="boAdminText"><ProfileDropdown /></div>
         </div>
       </div>

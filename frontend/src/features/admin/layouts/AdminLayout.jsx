@@ -8,7 +8,11 @@ export default function AdminLayout() {
   const tradeActive =
     location.pathname.includes("/admin/orders") ||
     location.pathname.includes("/admin/payouts");
-  const [tradeOpen, setTradeOpen] = useState(tradeActive);
+  const donationActive =
+    location.pathname.includes("/admin/donations") ||
+    location.pathname.includes("/admin/wrong-items");
+  const [tradeOpen,    setTradeOpen]    = useState(tradeActive);
+  const [donationOpen, setDonationOpen] = useState(donationActive);
 
   return (
     <div className="boShell">
@@ -38,17 +42,44 @@ export default function AdminLayout() {
             จัดการโรงเรียน
           </NavLink>
 
-          <NavLink
-            to="/admin/donations"
-            className={({ isActive }) => (isActive ? "boItem active" : "boItem")}
-          >
-            <span className="boMenuIcon" /><Icon icon="mdi:package-variant-closed" />
-            จัดการการบริจาค
-          </NavLink>
+          {/* จัดการการบริจาค (collapsible) */}
+          <div>
+            <div
+              onClick={() => setDonationOpen(o => !o)}
+              className={`boTradeToggle${donationActive ? " active" : ""}`}
+            >
+              <Icon icon="mdi:package-variant-closed" className="boTradeToggle__icon" />
+              <span className="boTradeToggle__label">จัดการการบริจาค</span>
+              <Icon
+                icon={donationOpen ? "mdi:chevron-up" : "mdi:chevron-down"}
+                className="boTradeToggle__chevron"
+              />
+            </div>
+
+            {donationOpen && (
+              <div className="boTradeSubmenu">
+                <NavLink
+                  to="/admin/donations"
+                  className={({ isActive }) => (isActive ? "boItem boItem--sub active" : "boItem boItem--sub")}
+                >
+                  <Icon icon="mdi:clock-alert-outline" className="boItem--sub__icon" />
+                  รายการค้างนาน
+                </NavLink>
+
+                <NavLink
+                  to="/admin/wrong-items"
+                  className={({ isActive }) => (isActive ? "boItem boItem--sub active" : "boItem boItem--sub")}
+                >
+                  <Icon icon="mdi:swap-horizontal-circle-outline" className="boItem--sub__icon" />
+                  ตรวจสอบของไม่ตรง
+                </NavLink>
+              </div>
+            )}
+          </div>
 
           {/* จัดการซื้อ-ขาย (collapsible) */}
           <div>
-            <button
+            <div
               onClick={() => setTradeOpen(o => !o)}
               className={`boTradeToggle${tradeActive ? " active" : ""}`}
             >
@@ -58,7 +89,7 @@ export default function AdminLayout() {
                 icon={tradeOpen ? "mdi:chevron-up" : "mdi:chevron-down"}
                 className="boTradeToggle__chevron"
               />
-            </button>
+            </div>
 
             {tradeOpen && (
               <div className="boTradeSubmenu">

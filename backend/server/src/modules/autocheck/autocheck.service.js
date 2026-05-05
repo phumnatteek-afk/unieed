@@ -168,7 +168,7 @@ export async function runAutoCheck() {
      WHERE dr.status          = 'pending'
        AND dr.delivery_method = 'parcel'
        AND dr.tracking_number IS NOT NULL
-       AND TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7
+       AND TIMESTAMPDIFF(DAY, COALESCE(dr.donation_date, dr.created_at), DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7
      ORDER BY dr.created_at ASC`
   );
 
@@ -303,7 +303,7 @@ export async function runAutoCheck() {
 export async function getOverdueDonations() {
   const [rows] = await db.query(
     `SELECT
-       dr.donation_id, dr.donor_name, dr.shipping_carrier,
+       dr.donation_id, dr.donor_id, dr.donor_name, dr.shipping_carrier,
        dr.tracking_number, dr.created_at, dr.auto_approved, dr.auto_approved_at,
        dr.admin_approved, dr.admin_approved_at,
        dr.donation_pic, dr.delivery_method,
@@ -311,15 +311,13 @@ export async function getOverdueDonations() {
        dr.items_snapshot, dr.quantity,
        dr.condition_status, dr.status,
        dr.reject_reason,
-       CASE
-         WHEN dr.delivery_method = 'dropoff'
-           THEN TIMESTAMPDIFF(DAY, dr.donation_date, DATE_ADD(NOW(), INTERVAL 7 HOUR))
-         ELSE TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR))
-       END AS days_elapsed,
-       req.school_id, s.school_name
+       TIMESTAMPDIFF(DAY, COALESCE(dr.donation_date, dr.created_at), DATE_ADD(NOW(), INTERVAL 7 HOUR)) AS days_elapsed,
+       req.school_id, s.school_name,
+       u.strike_count, u.suspended_until
      FROM donation_record dr
      JOIN donation_request req ON req.request_id = dr.request_id
      JOIN schools s ON s.school_id = req.school_id
+     LEFT JOIN users u ON u.user_id = dr.donor_id
      WHERE (
        dr.status = 'pending'
        OR (dr.status IN ('approved', 'rejected') AND dr.admin_approved = 1)
@@ -331,7 +329,7 @@ export async function getOverdueDonations() {
          AND TIMESTAMPDIFF(DAY, dr.donation_date, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 3)
        OR
        (dr.delivery_method != 'dropoff'
-         AND TIMESTAMPDIFF(DAY, dr.created_at, DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7)
+         AND TIMESTAMPDIFF(DAY, COALESCE(dr.donation_date, dr.created_at), DATE_ADD(NOW(), INTERVAL 7 HOUR)) >= 7)
      )
      ORDER BY days_elapsed DESC`
   );

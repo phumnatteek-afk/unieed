@@ -3,6 +3,7 @@ import * as svc from "../services/admin.service.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import SchoolDetailModal from "../components/SchoolDetailModal.jsx";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import NotificationBell from "../../../pages/NotificationBell.jsx";
 import "../styles/backoffice.css";
 import { Icon } from "@iconify/react";
 
@@ -166,6 +167,7 @@ export default function AdminSchoolsPage() {
         <div className="boTitle">จัดการโรงเรียน</div>
 
         <div className="boAdmin">
+          <NotificationBell />
           <div className="boAdminText">
             <ProfileDropdown />
           </div>

@@ -627,7 +627,7 @@
   border-radius: 10px;
   border: none;
   border-bottom: 0;
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   color: rgb(230, 230, 230);
   font-weight: 500;
   font-size: inherit;
@@ -639,12 +639,11 @@
 .boTradeToggle.active {
   color: #fff;
   font-weight: 700;
-  background: linear-gradient(90deg, rgba(255, 204, 77, 0.22), rgba(82, 133, 232, 0.18));
+  background: transparent;
 }
 
 .boTradeToggle:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.12);
+  background: transparent;
 }
 
 .boTradeToggle__icon {

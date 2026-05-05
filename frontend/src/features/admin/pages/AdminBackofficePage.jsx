@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as svc from "../services/admin.service.js";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import NotificationBell from "../../../pages/NotificationBell.jsx";
 import { formatBaht, formatNumber } from "../utils/format.js";
 import "../styles/admin.css";
 import "../styles/adminPages.css";
@@ -130,6 +131,7 @@ export default function AdminBackofficePage() {
       <div className="boTop">
         <div className="boTitle">Dashboard</div>
         <div className="boAdmin">
+          <NotificationBell />
           <div className="boAdminText"><ProfileDropdown /></div>
         </div>
       </div>

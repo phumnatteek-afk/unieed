@@ -150,6 +150,10 @@
   background: linear-gradient(135deg, #f97316, #FFBE1B);
 }
 
+.nb-item-icon--suspension {
+  background: linear-gradient(135deg, #991b1b, #dc2626);
+}
+
 .nb-item-body {
   flex: 1;
   min-width: 0;

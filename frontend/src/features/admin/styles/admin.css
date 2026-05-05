@@ -270,6 +270,10 @@ button{
   transform: translateY(-1px);
   background: rgba(255,255,255,.09);
 }
+.boShell .nb-btn:hover {
+  transform: none;
+  background: rgba(255,255,255,.15);
+}
 button:disabled{
   opacity: .55;
   cursor: not-allowed;
@@ -687,11 +691,24 @@ height: auto;
   border-bottom: 2px solid rgba(255, 255, 255, 0.20);
   border-radius: 0;
   background: transparent;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
   color: rgb(210, 210, 210);
   font-weight: 400;
   font-size: inherit;
   cursor: pointer;
   text-align: left;
+}
+
+.boTradeToggle:hover,
+.boTradeToggle:focus,
+.boTradeToggle:focus-visible,
+.boTradeToggle:active {
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: #fff;
 }
  
 .boTradeToggle.active {

@@ -121,6 +121,103 @@ r.patch("/:donationId/cancel", auth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Donor ดูสถานะ suspend ของตัวเอง ──────────────────────────────────────────
+r.get("/my-suspension", auth, async (req, res, next) => {
+  try {
+    const [[donor]] = await db.query(
+      `SELECT strike_count, suspended_until FROM users WHERE user_id = ?`,
+      [req.user.user_id]
+    );
+    const now = new Date();
+    const isSuspended = donor?.suspended_until && new Date(donor.suspended_until) > now;
+    res.json({
+      strike_count: donor?.strike_count || 0,
+      suspended_until: donor?.suspended_until || null,
+      is_suspended: !!isSuspended,
+    });
+  } catch (err) { next(err); }
+});
+
+// ── Donor appeal strike ───────────────────────────────────────────────────────
+r.post("/appeal-strike", auth, async (req, res, next) => {
+  try {
+    const user_id = req.user.user_id;
+    const { reason } = req.body;
+    const [[donor]] = await db.query(
+      `SELECT strike_count, suspended_until FROM users WHERE user_id = ?`,
+      [user_id]
+    );
+    if (!donor) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
+    if (!donor.suspended_until || new Date(donor.suspended_until) < new Date())
+      return res.status(400).json({ message: "ไม่ได้ถูกระงับการบริจาค" });
+
+    const [admins] = await db.query(`SELECT user_id FROM users WHERE role = 'admin'`);
+    const [[user]] = await db.query(`SELECT user_name FROM users WHERE user_id = ?`, [user_id]);
+    for (const admin of admins) {
+      await db.query(
+        `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
+         VALUES (?, 'strike_appeal', ?, ?, ?, 0, NOW())`,
+        [
+          admin.user_id,
+          `${user?.user_name || "ผู้บริจาค"} ขอ appeal การระงับบัญชี`,
+          JSON.stringify({ donor_id: user_id, donor_name: user?.user_name, strike_count: donor.strike_count, suspended_until: donor.suspended_until, reason: reason || "" }),
+          user_id,
+        ]
+      );
+    }
+    res.json({ message: "ส่งคำร้องเรียบร้อย ทีมงานจะตรวจสอบและติดต่อกลับ" });
+  } catch (err) { next(err); }
+});
+
+// ── Admin reset strike ────────────────────────────────────────────────────────
+r.patch("/users/:userId/reset-strike", auth, requireRole(["admin"]), async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    await db.query(
+      `UPDATE users SET strike_count = 0, suspended_until = NULL WHERE user_id = ?`,
+      [userId]
+    );
+    // แจ้ง donor ว่าถูก reset แล้ว
+    await db.query(
+      `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
+       VALUES (?, 'strike_reset', 'ทีมงานได้ตรวจสอบและปลดล็อคการบริจาคของท่านแล้ว', ?, ?, 0, NOW())`,
+      [userId, JSON.stringify({ message: "ท่านสามารถบริจาคผ่านช่องทางจัดส่งพัสดุและ Drop-off ได้ตามปกติ" }), userId]
+    );
+    res.json({ message: "reset strike เรียบร้อย" });
+  } catch (err) { next(err); }
+});
+
+// ── Admin: รายการบริจาคที่โรงเรียนแจ้งว่ารายการไม่ตรง ────────────────────────
+r.get("/wrong-items", auth, requireRole(["admin"]), async (req, res, next) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         u.user_id AS donor_id,
+         u.user_name AS donor_name,
+         u.strike_count,
+         u.suspended_until,
+         COUNT(dr.donation_id) AS total_cases,
+         JSON_ARRAYAGG(JSON_OBJECT(
+           'donation_id',              dr.donation_id,
+           'items_snapshot',           dr.items_snapshot,
+           'items_condition_snapshot', dr.items_condition_snapshot,
+           'updated_at',               dr.updated_at,
+           'request_title',            req.request_title,
+           'school_name',              s.school_name
+         ) ORDER BY dr.updated_at ASC) AS cases
+       FROM users u
+       JOIN donation_record dr
+         ON dr.donor_id = u.user_id AND dr.condition_status = 'wrong_item'
+       JOIN donation_request req ON req.request_id = dr.request_id
+       JOIN schools s ON s.school_id = req.school_id
+       WHERE u.strike_count > 0
+       GROUP BY u.user_id, u.user_name, u.strike_count, u.suspended_until
+       ORDER BY u.strike_count DESC, u.suspended_until DESC`
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
 // ── dynamic routes (ต้องอยู่ท้ายสุด) ─────────────────────────────────────────
 r.post("/:requestId", (req, _res, next) => {
   if (req.headers.authorization?.startsWith("Bearer ")) return auth(req, _res, next);

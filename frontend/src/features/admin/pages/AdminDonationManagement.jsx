@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import NotificationBell from "../../../pages/NotificationBell.jsx";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
@@ -222,6 +223,13 @@ function DonationRow({ donation, token, doneStatus, onDone }) {
         </td>
         <td style={{ padding:"12px 16px", fontSize:13, fontWeight:600, color:"#1e293b" }}>
           {donation.donor_name}
+          {donation.strike_count > 0 && (
+            <div style={{ marginTop:4 }}>
+              <span style={{ fontSize:11, fontWeight:600, color:"#dc2626", background:"#fee2e2", border:"1px solid #fca5a5", borderRadius:20, padding:"2px 8px" }}>
+                ⚠ strike {donation.strike_count}/3
+              </span>
+            </div>
+          )}
         </td>
         <td style={{ padding:"12px 16px" }} onClick={e => e.stopPropagation()}>
           <DeliveryCell d={donation} onOpenTracking={(c,n) => window.open(getTrackingUrl(c,n),"_blank")} />
@@ -466,10 +474,11 @@ export default function AdminDonationManagement() {
 
       <div className="boTop" style={{ marginBottom:24 }}>
         <div>
-          <div className="boTitle">จัดการการบริจาค</div>
-          <p style={{ fontSize:13, color:"#64748b", margin:"4px 0 0" }}>รายการที่เกิน 7 วันและยังรอแอดมินตรวจสอบ</p>
+          <div className="boTitle">รายการค้างนาน</div>
+          <p style={{ fontSize:13, color:"#fff", margin:"4px 0 0" }}>รายการบริจาคที่ยังรอแอดมินตรวจสอบ</p>
         </div>
         <div className="boAdmin">
+          <NotificationBell />
           <div className="boAdminText"><ProfileDropdown /></div>
         </div>
       </div>

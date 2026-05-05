@@ -289,6 +289,10 @@ export default function SchoolAppointmentPage() {
   const [detailPopup,  setDetailPopup]  = useState(null);
   const [checkedItems, setCheckedItems] = useState({});
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [verifyPopup,    setVerifyPopup]    = useState(null);
+  const [itemConditions, setItemConditions] = useState({});
+  const [thankMsg,       setThankMsg]       = useState("");
+  const [verifying,      setVerifying]      = useState(false);
 
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -316,6 +320,58 @@ export default function SchoolAppointmentPage() {
       }
     })();
   }, []);
+
+  const deriveOverallCondition = (conditions) => {
+    const vals = Object.values(conditions);
+    if (vals.includes("wrong_item")) return "wrong_item";
+    if (vals.includes("not_sent"))   return "not_sent";
+    if (vals.includes("damaged"))    return "damaged";
+    if (vals.includes("incomplete")) return "incomplete";
+    return "usable";
+  };
+
+  const openVerifyPopup = (donation) => {
+    setDetailPopup(null);
+    setVerifyPopup(donation);
+    setItemConditions({});
+    setThankMsg(
+      `ขอบคุณคุณ ${donation.donor_name} มากๆ ที่ได้บริจาคชุดนักเรียนให้กับทางโรงเรียน ` +
+      `การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`
+    );
+  };
+
+  const handleVerify = async () => {
+    const snapItems = parseItems(verifyPopup?.items_snapshot);
+    const allSet = snapItems.length === 0 || snapItems.every(it => itemConditions[it.uniform_type_id]);
+    if (!allSet) return alert("กรุณาเลือกสภาพชุดให้ครบทุกรายการ");
+    try {
+      setVerifying(true);
+      const overall = snapItems.length > 0 ? deriveOverallCondition(itemConditions) : "usable";
+      const items_received = snapItems.map(it => ({
+        uniform_type_id: it.uniform_type_id,
+        qty_received: it.quantity,
+        item_condition: itemConditions[it.uniform_type_id] ?? "usable",
+      }));
+      const res = await fetch(`${BASE}/donations/${verifyPopup.donation_id}/verify`, {
+        method: "PATCH",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ condition_status: overall, thank_message: thankMsg, items_received }),
+      });
+      if (!res.ok) throw new Error("ยืนยันไม่สำเร็จ");
+      setVerifyPopup(null);
+      setItemConditions({});
+      setThankMsg("");
+      // reload dropoffs
+      const projRes = await fetch(`${BASE}/school/projects/latest`, { headers });
+      const proj    = await projRes.json();
+      if (proj?.request_id) {
+        const r    = await fetch(`${BASE}/donations/project/${proj.request_id}`, { headers });
+        const data = await r.json();
+        setDropoffs((Array.isArray(data) ? data : []).filter(d => d.delivery_method === "dropoff"));
+      }
+    } catch (e) { alert(e.message); }
+    finally { setVerifying(false); }
+  };
 
   // group by date key
   const byDate = useMemo(() => {
@@ -573,7 +629,7 @@ export default function SchoolAppointmentPage() {
                       >
                         <input
                           type="checkbox"
-                          checked={false}
+                          checked={!!checkedItems[i]}
                           disabled={isOverdue}
                           onChange={isOverdue ? undefined : e => setCheckedItems(prev => ({ ...prev, [i]: e.target.checked }))}
                           style={{ width: 18, height: 18, accentColor: "#16a34a", cursor: isOverdue ? "not-allowed" : "pointer" }}
@@ -644,13 +700,102 @@ export default function SchoolAppointmentPage() {
                     className="sapPopupBtnPrimary"
                     disabled={!allChecked}
                     style={{ opacity: allChecked ? 1 : 0.45, cursor: allChecked ? "pointer" : "not-allowed" }}
-                    onClick={() => navigate(`/confirm/${detailPopup.donation_id}`)}
+                    onClick={() => openVerifyPopup(detailPopup)}
                   >
                     <Icon icon="mdi:check-circle-outline" width="16" />
                     ยืนยันรับของ
                   </button>
                 );
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Verify Popup ── */}
+      {verifyPopup && (
+        <div className="sapOverlay" onClick={() => setVerifyPopup(null)}>
+          <div className="sapPopup" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <button className="sapPopupClose" onClick={() => setVerifyPopup(null)}>
+              <Icon icon="mdi:close" width="18" />
+            </button>
+            <div className="sapPopupHead">
+              <div className="sapPopupAvatar">
+                <Icon icon="mdi:certificate-outline" width="24" color="#fff" />
+              </div>
+              <div>
+                <div className="sapPopupName">ยืนยันรับบริจาค + ออกใบประกาศนียบัตร</div>
+                <div className="sapPopupMeta">จาก {verifyPopup.donor_name}</div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon icon="mdi:message-text-outline" width="16" />
+                ข้อความขอบคุณ (ส่งให้ผู้บริจาคพร้อมใบประกาศ)
+              </div>
+              <textarea
+                rows={4}
+                value={thankMsg}
+                onChange={e => setThankMsg(e.target.value)}
+                style={{ width: "100%", padding: "9px 12px", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon icon="mdi:tshirt-crew-outline" width="16" />
+                ประเมินสภาพชุดแต่ละรายการ <span style={{ color: "#ef4444" }}>*</span>
+              </div>
+              {parseItems(verifyPopup.items_snapshot).map(it => {
+                const OPTS = [
+                  { value: "usable",     label: "ใช้งานได้",    color: "#16a34a", bg: "#dcfce7" },
+                  { value: "wrong_item", label: "รายการไม่ตรง",  color: "#d97706", bg: "#fef3c7" },
+                  { value: "damaged",    label: "เสียหาย",       color: "#dc2626", bg: "#fee2e2" },
+                  { value: "incomplete", label: "ได้รับไม่ครบ",  color: "#1d4ed8", bg: "#eff6ff" },
+                  { value: "not_sent",   label: "ไม่ได้รับพัสดุ", color: "#7c3aed", bg: "#f5f3ff" },
+                ];
+                return (
+                  <div key={it.uniform_type_id} style={{ marginBottom: 10, padding: "10px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>
+                      {it.name} <span style={{ fontWeight: 400, color: "#64748b" }}>× {it.quantity} ตัว</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {OPTS.map(opt => (
+                        <button key={opt.value}
+                          onClick={() => setItemConditions(prev => ({ ...prev, [it.uniform_type_id]: opt.value }))}
+                          style={{
+                            padding: "6px 14px", borderRadius: 20, fontSize: 12, fontFamily: "inherit", cursor: "pointer",
+                            border: itemConditions[it.uniform_type_id] === opt.value ? `1.5px solid ${opt.color}` : "1.5px solid #e5e7eb",
+                            background: itemConditions[it.uniform_type_id] === opt.value ? opt.bg : "#fff",
+                            color: itemConditions[it.uniform_type_id] === opt.value ? opt.color : "#6b7280",
+                            fontWeight: itemConditions[it.uniform_type_id] === opt.value ? 600 : 400,
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "#eff6ff", border: "0.5px solid #bfdbfe", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#1e40af", marginBottom: 20 }}>
+              <Icon icon="mdi:certificate-outline" width="16" style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>เมื่อยืนยัน ระบบจะ<strong> ออกใบประกาศนียบัตรอัตโนมัติ</strong> และส่ง notification พร้อมข้อความขอบคุณให้ผู้บริจาคทันที</span>
+            </div>
+
+            <div className="sapPopupActions">
+              <button className="sapPopupBtnGhost" onClick={() => setVerifyPopup(null)}>ยกเลิก</button>
+              <button
+                className="sapPopupBtnPrimary"
+                onClick={handleVerify}
+                disabled={verifying}
+                style={{ opacity: verifying ? 0.6 : 1, cursor: verifying ? "not-allowed" : "pointer" }}
+              >
+                {verifying ? "กำลังบันทึก..." : "ยืนยัน + ออกใบประกาศ"}
+              </button>
             </div>
           </div>
         </div>
@@ -672,9 +817,26 @@ export default function SchoolAppointmentPage() {
 }
 
 // ── AppointCard (unchanged) ───────────────────────────────────────
+const CONDITION_BADGE = {
+  wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" },
+  damaged:    { label: "เสียหาย",      color: "#dc2626", bg: "#fee2e2" },
+  incomplete: { label: "ได้รับไม่ครบ", color: "#1d4ed8", bg: "#eff6ff" },
+  not_sent:   { label: "ไม่ได้รับ",    color: "#7c3aed", bg: "#f5f3ff" },
+};
+
 function AppointCard({ d, onClick }) {
   const items = parseItems(d.items_snapshot);
-  const sm    = STATUS_META[d.status] || STATUS_META.pending;
+
+  const getBadge = () => {
+    if (d.is_overdue)
+      return { label: "เกินกำหนดยืนยันรับ", color: "#dc2626", bg: "#fee2e2", icon: "mdi:clock-alert-outline" };
+    if (d.status === "approved" && d.condition_status && d.condition_status !== "usable")
+      return { ...(CONDITION_BADGE[d.condition_status] || { label: d.condition_status, color: "#64748b", bg: "#f1f5f9" }) };
+    return STATUS_META[d.status] || STATUS_META.pending;
+  };
+
+  const badge = getBadge();
+
   return (
     <div className="sapCard" onClick={onClick}>
       <div className="sapCardLeft">
@@ -698,16 +860,10 @@ function AppointCard({ d, onClick }) {
           </span>
         </div>
       </div>
-      {d.is_overdue ? (
-        <span className="sdBadge sapCardBadge" style={{ color: "#dc2626", background: "#fee2e2" }}>
-          <Icon icon="mdi:clock-alert-outline" width="13" style={{ marginRight: 3 }} />
-          เกินกำหนดยืนยันรับ
-        </span>
-      ) : (
-        <span className="sdBadge sapCardBadge" style={{ color: sm.color, background: sm.bg }}>
-          {sm.label}
-        </span>
-      )}
+      <span className="sdBadge sapCardBadge" style={{ color: badge.color, background: badge.bg }}>
+        {badge.icon && <Icon icon={badge.icon} width="13" style={{ marginRight: 3 }} />}
+        {badge.label}
+      </span>
     </div>
   );
 }

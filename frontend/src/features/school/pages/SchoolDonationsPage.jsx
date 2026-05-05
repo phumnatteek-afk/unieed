@@ -220,9 +220,9 @@ export default function SchoolDonationPage() {
   const [confirmPopup, setConfirmPopup] = useState(null);
   const [verifyPopup,  setVerifyPopup]  = useState(null);
   const [apptPopup,    setApptPopup]    = useState(null);
-  const [thankMsg,     setThankMsg]     = useState("");
-  const [condition,    setCondition]    = useState("");
-  const [verifying,    setVerifying]    = useState(false);
+  const [thankMsg,       setThankMsg]       = useState("");
+  const [itemConditions, setItemConditions] = useState({});
+  const [verifying,      setVerifying]      = useState(false);
   const [currentPage,  setCurrentPage]  = useState(1);
   const PAGE_SIZE = 15;
  
@@ -295,16 +295,24 @@ export default function SchoolDonationPage() {
   };
  
   const handleVerify = async () => {
-    if (!condition) return alert("กรุณาเลือกสภาพชุด");
+    const snapItems = parseItems(verifyPopup?.items_snapshot);
+    const allSet = snapItems.length === 0 || snapItems.every(it => itemConditions[it.uniform_type_id]);
+    if (!allSet) return alert("กรุณาเลือกสภาพชุดให้ครบทุกรายการ");
     try {
       setVerifying(true);
+      const overall = snapItems.length > 0 ? deriveOverallCondition(itemConditions) : "usable";
+      const items_received = snapItems.map(it => ({
+        uniform_type_id: it.uniform_type_id,
+        qty_received: it.quantity,
+        item_condition: itemConditions[it.uniform_type_id] ?? "usable",
+      }));
       await fetch(`${BASE}/donations/${verifyPopup.donation_id}/verify`, {
         method: "PATCH",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ condition_status: condition, thank_message: thankMsg }),
+        body: JSON.stringify({ condition_status: overall, thank_message: thankMsg, items_received }),
       });
       setVerifyPopup(null);
-      setCondition("");
+      setItemConditions({});
       setThankMsg("");
       loadDonations();
     } catch (e) { console.error(e); }
@@ -313,11 +321,20 @@ export default function SchoolDonationPage() {
  
   const openVerifyPopup = (donation) => {
     setVerifyPopup(donation);
-    setCondition("");
+    setItemConditions({});
     setThankMsg(
       `ขอบคุณคุณ ${donation.donor_name} มากๆ ที่ได้บริจาคชุดนักเรียนให้กับทางโรงเรียน ` +
       `การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`
     );
+  };
+
+  const deriveOverallCondition = (conditions) => {
+    const vals = Object.values(conditions);
+    if (vals.includes("wrong_item")) return "wrong_item";
+    if (vals.includes("not_sent"))   return "not_sent";
+    if (vals.includes("damaged"))    return "damaged";
+    if (vals.includes("incomplete")) return "incomplete";
+    return "usable";
   };
  
   return (
@@ -801,19 +818,26 @@ export default function SchoolDonationPage() {
             <div className="sdVerifySection">
               <label className="sdVerifyLabel">
                 <Icon icon="mdi:tshirt-crew-outline" width="16" />
-                ประเมินสภาพชุดที่ได้รับ<span style={{ color:"#ef4444" }}> *</span>
+                ประเมินสภาพชุดแต่ละรายการ<span style={{ color:"#ef4444" }}> *</span>
               </label>
-              <div className="sdConditionGroup">
-                {CONDITION_OPTIONS.map(opt => (
-                  <button key={opt.value}
-                    className={`sdConditionBtn ${condition === opt.value ? "sdConditionActive" : ""}`}
-                    style={condition === opt.value ? { background:opt.bg, borderColor:opt.color, color:opt.color } : {}}
-                    onClick={() => setCondition(opt.value)}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+              {parseItems(verifyPopup.items_snapshot).map(it => (
+                <div key={it.uniform_type_id} style={{ marginBottom: 12, padding: "10px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>
+                    {it.name} <span style={{ fontWeight: 400, color: "#64748b" }}>× {it.quantity} ตัว</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {CONDITION_OPTIONS.map(opt => (
+                      <button key={opt.value}
+                        className={`sdConditionBtn ${itemConditions[it.uniform_type_id] === opt.value ? "sdConditionActive" : ""}`}
+                        style={itemConditions[it.uniform_type_id] === opt.value ? { background: opt.bg, borderColor: opt.color, color: opt.color } : {}}
+                        onClick={() => setItemConditions(prev => ({ ...prev, [it.uniform_type_id]: opt.value }))}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
  
             <div className="sdVerifyNote" style={{ background:"#eff6ff", border:"0.5px solid #bfdbfe", borderRadius:"8px", padding:"10px 12px", fontSize:"12px", color:"#1e40af", display:"flex", alignItems:"flex-start", gap:"8px", marginBottom:"16px" }}>
@@ -826,7 +850,7 @@ export default function SchoolDonationPage() {
  
             <div className="sdPopupActions">
               <button className="sdPopupBtnGhost" onClick={() => setVerifyPopup(null)}>ยกเลิก</button>
-              <button className="sdPopupBtnPrimary" onClick={handleVerify} disabled={verifying || !condition}>
+              <button className="sdPopupBtnPrimary" onClick={handleVerify} disabled={verifying}>
                 {verifying ? "กำลังบันทึก..." : "ยืนยัน + ออกใบประกาศ"}
               </button>
             </div>

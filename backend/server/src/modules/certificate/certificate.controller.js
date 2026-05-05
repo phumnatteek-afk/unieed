@@ -257,76 +257,185 @@ export async function verifyAndIssueCertificate(req, res, next) {
         const donation = rows[0];
         console.log("donor_id:", donation.donor_id);
 
-        // 3. ออก certificate เฉพาะ usable, damaged, incomplete (ไม่ออกถ้า wrong_item / not_sent)
+        // 3. ออก certificate — ออกถ้ามี item usable อย่างน้อย 1 อัน (ไม่ออกถ้า not_sent)
         let cert = null;
-        if (condition_status !== "wrong_item" && condition_status !== "not_sent") {
-            cert = await getCertByDonation(donation_id);
-            if (!cert) {
-                let items = [];
-                try {
-                    items = typeof donation.items_snapshot === "string"
-                        ? JSON.parse(donation.items_snapshot)
-                        : donation.items_snapshot || [];
-                } catch { items = []; }
+        if (condition_status !== "not_sent") {
+            let snapItems = [];
+            try {
+                snapItems = typeof donation.items_snapshot === "string"
+                    ? JSON.parse(donation.items_snapshot)
+                    : donation.items_snapshot || [];
+            } catch { snapItems = []; }
 
-                const items_summary = items.length > 0
-                    ? items.map(i => {
+            // หา item ที่ usable เท่านั้น
+            let usableItems = [];
+            if (Array.isArray(items_received) && items_received.length > 0) {
+                const condMap = {};
+                for (const r of items_received) condMap[r.uniform_type_id] = r.item_condition ?? null;
+                usableItems = snapItems.filter(it => condMap[it.uniform_type_id] === "usable");
+            } else {
+                // backward compat — ไม่มี per-item → ใช้ overall
+                if (condition_status !== "wrong_item") usableItems = snapItems;
+            }
+
+            if (usableItems.length > 0) {
+                cert = await getCertByDonation(donation_id);
+                if (!cert) {
+                    const items_summary = usableItems.map(i => {
                         const name = String(i.name || "").replace(/\s*\(.*?\)\s*/g, "").trim();
                         return `${name} จำนวน ${i.quantity} ตัว`;
-                    }).join(", ")
-                    : `ชุดนักเรียน จำนวน ${donation.quantity} ชิ้น`;
+                    }).join(", ");
 
-                const certificate_code = genCertCode();
-                const issued_at = new Date().toISOString().split("T")[0];
+                    const certificate_code = genCertCode();
+                    const issued_at = new Date().toISOString().split("T")[0];
 
-                const html = await buildCertHtml({
-                    donor_name: donation.donor_name,
-                    items_summary,
-                    project_title: donation.request_title,
-                    issued_at,
-                    certificate_code,
-                });
+                    const html = await buildCertHtml({
+                        donor_name: donation.donor_name,
+                        items_summary,
+                        project_title: donation.request_title,
+                        issued_at,
+                        certificate_code,
+                    });
 
-                const { png, pdf } = await renderCert(html);
+                    const { png, pdf } = await renderCert(html);
 
-                const pngResult = await uploadBuffer(png, {
-                    folder: "unieed/certificates",
-                    public_id: `cert_${certificate_code}`,
-                    resource_type: "image",
-                });
-                const pdfResult = await uploadBuffer(pdf, {
-                    folder: "unieed/certificates",
-                    public_id: `cert_${certificate_code}_pdf`,
-                    resource_type: "raw",
-                });
+                    const pngResult = await uploadBuffer(png, {
+                        folder: "unieed/certificates",
+                        public_id: `cert_${certificate_code}`,
+                        resource_type: "image",
+                    });
+                    const pdfResult = await uploadBuffer(pdf, {
+                        folder: "unieed/certificates",
+                        public_id: `cert_${certificate_code}_pdf`,
+                        resource_type: "raw",
+                    });
 
-                const certificate_id = await insertCert({
-                    donation_id,
-                    user_id: donation.donor_id ?? null,
-                    donor_name: donation.donor_name,
-                    certificate_code,
-                    items_summary,
-                    project_title: donation.request_title,
-                    school_name: donation.school_name,
-                    issued_at,
-                    certificate_url: pngResult.secure_url,
-                    certificate_public_id: pngResult.public_id,
-                    pdf_url: pdfResult.secure_url,
-                    pdf_public_id: pdfResult.public_id,
-                });
+                    const certificate_id = await insertCert({
+                        donation_id,
+                        user_id: donation.donor_id ?? null,
+                        donor_name: donation.donor_name,
+                        certificate_code,
+                        items_summary,
+                        project_title: donation.request_title,
+                        school_name: donation.school_name,
+                        issued_at,
+                        certificate_url: pngResult.secure_url,
+                        certificate_public_id: pngResult.public_id,
+                        pdf_url: pdfResult.secure_url,
+                        pdf_public_id: pdfResult.public_id,
+                    });
 
-                cert = {
-                    certificate_id,
-                    certificate_url: pngResult.secure_url,
-                    pdf_url: pdfResult.secure_url,
-                    certificate_code,
-                    items_summary,
-                    issued_at,
-                };
+                    cert = {
+                        certificate_id,
+                        certificate_url: pngResult.secure_url,
+                        pdf_url: pdfResult.secure_url,
+                        certificate_code,
+                        items_summary,
+                        issued_at,
+                    };
+                }
             }
         }
 
-        // 4. Insert notification (ทุก condition แต่ข้อความต่างกัน)
+        // 4. Strike logic — เพิ่ม strike เฉพาะ wrong_item และยังไม่เคย issue ของ donation นี้
+        let justSuspended = false;
+        let suspendedUntilDate = null;
+        if (!isAdmin && donation.donor_id && condition_status === "wrong_item") {
+            const [[dr]] = await db.query(
+                `SELECT strike_issued FROM donation_record WHERE donation_id = ?`, [donation_id]
+            );
+            if (dr?.strike_issued) {
+                // เคย increment แล้ว ข้ามไป (กรณี retry หลัง partial failure)
+            } else {
+            await db.query(
+                `UPDATE users SET strike_count = strike_count + 1 WHERE user_id = ?`,
+                [donation.donor_id]
+            );
+            await db.query(
+                `UPDATE donation_record SET strike_issued = 1 WHERE donation_id = ?`, [donation_id]
+            );
+            const [[donor]] = await db.query(
+                `SELECT strike_count, user_name FROM users WHERE user_id = ?`,
+                [donation.donor_id]
+            );
+            if (donor && donor.strike_count >= 3) {
+                const [[alreadySuspended]] = await db.query(
+                    `SELECT suspended_until FROM users WHERE user_id = ? AND suspended_until > NOW()`,
+                    [donation.donor_id]
+                );
+                if (!alreadySuspended) {
+                    await db.query(
+                        `UPDATE users SET suspended_until = DATE_ADD(NOW(), INTERVAL 30 DAY) WHERE user_id = ?`,
+                        [donation.donor_id]
+                    );
+                    const [[updated]] = await db.query(
+                        `SELECT suspended_until FROM users WHERE user_id = ?`,
+                        [donation.donor_id]
+                    );
+                    justSuspended = true;
+                    suspendedUntilDate = updated?.suspended_until;
+
+                    // แจ้ง donor ว่าถูกระงับ
+                    await db.query(
+                        `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
+                         VALUES (?, 'suspension', ?, ?, ?, 0, NOW())`,
+                        [
+                            donation.donor_id,
+                            "คุณถูกระงับการบริจาคชั่วคราว 30 วัน",
+                            JSON.stringify({
+                                message: "เนื่องจากส่งรายการบริจาคไม่ตรงตามที่โครงการระบุ 3 ครั้ง คุณถูกระงับการบริจาคผ่านพัสดุและ drop-off เป็นเวลา 30 วัน",
+                                suspended_until: suspendedUntilDate,
+                                strike_count: donor.strike_count,
+                                donor_name: donor.user_name,
+                            }),
+                            donation_id,
+                        ]
+                    );
+
+                    // แจ้ง admin ทุกคน
+                    const [admins] = await db.query(
+                        `SELECT user_id FROM users WHERE role = 'admin'`
+                    );
+                    await Promise.all(admins.map(admin =>
+                        db.query(
+                            `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
+                             VALUES (?, 'suspension', ?, ?, ?, 0, NOW())`,
+                            [
+                                admin.user_id,
+                                `ผู้บริจาค ${donor.user_name || "ไม่ระบุชื่อ"} ถูกระงับอัตโนมัติ (strike 3/3)`,
+                                JSON.stringify({
+                                    message: `ผู้บริจาคถูกระงับการส่งพัสดุและ drop-off เป็นเวลา 30 วัน เนื่องจากส่งรายการไม่ตรง 3 ครั้ง`,
+                                    suspended_until: suspendedUntilDate,
+                                    donor_id: donation.donor_id,
+                                    donor_name: donor.user_name,
+                                }),
+                                donation_id,
+                            ]
+                        )
+                    ));
+                }
+            }
+            } // end else (strike not yet issued)
+        }
+
+        // 5. Insert notification (ทุก condition แต่ข้อความต่างกัน)
+        // build wrong_items list สำหรับแจ้ง donor ว่ารายการไหนไม่ตรง
+        let wrong_items = [];
+        if (condition_status === "wrong_item" && Array.isArray(items_received) && items_received.length > 0) {
+            let snapForNotif = [];
+            try {
+                snapForNotif = typeof donation.items_snapshot === "string"
+                    ? JSON.parse(donation.items_snapshot)
+                    : donation.items_snapshot || [];
+            } catch { snapForNotif = []; }
+            const condMapNotif = {};
+            for (const r of items_received) condMapNotif[r.uniform_type_id] = r.item_condition ?? null;
+            wrong_items = snapForNotif
+                .filter(it => condMapNotif[it.uniform_type_id] === "wrong_item")
+                .map(it => String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim())
+                .filter(Boolean);
+        }
+
         if (donation.donor_id) {
             console.log("📨 inserting notification for user:", donation.donor_id);
 
@@ -342,13 +451,21 @@ export async function verifyAndIssueCertificate(req, res, next) {
                     school_name: donation.school_name,
                 });
             } else if (condition_status === "wrong_item") {
-                notifType  = "donation_issue";
-                notifTitle = `${donation.school_name} แจ้งว่ารายการบริจาคไม่ตรง`;
+                notifType  = cert ? "certificate" : "donation_issue";
+                notifTitle = cert
+                    ? `${donation.school_name} รับของบริจาคบางส่วน (มีรายการไม่ตรง)`
+                    : `${donation.school_name} แจ้งว่ารายการบริจาคไม่ตรง`;
                 notifBody  = JSON.stringify({
-                    message: thank_message || `โรงเรียน ${donation.school_name} แจ้งว่ารายการที่บริจาคไม่ตรงกับที่ขอ กรุณาตรวจสอบรายละเอียดโครงการและติดต่อโรงเรียนหากต้องการแก้ไข`,
+                    message: thank_message || `โรงเรียน ${donation.school_name} แจ้งว่ามีรายการที่บริจาคไม่ตรงกับที่ขอ`,
                     condition_status: "wrong_item",
+                    wrong_items,
+                    certificate_url: cert?.certificate_url,
+                    pdf_url: cert?.pdf_url,
+                    certificate_code: cert?.certificate_code,
+                    items_summary: cert?.items_summary,
                     project_title: donation.request_title,
                     school_name: donation.school_name,
+                    issued_at: cert?.issued_at,
                 });
             } else if (condition_status === "damaged") {
                 notifType  = "certificate";

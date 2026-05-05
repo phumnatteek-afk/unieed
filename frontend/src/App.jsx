@@ -41,6 +41,7 @@ import AdminSchoolsPage from "./features/admin/pages/AdminSchoolsPage.jsx";
 import AdminGuard from "./routes/AdminGuard.jsx";
 import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
 import AdminDonationManagement from "./features/admin/pages/Admindonationmanagement.jsx";
+import AdminWrongItemPage from "./features/admin/pages/AdminWrongItemPage.jsx";
 import AdminOrderPage from "./features/admin/pages/Adminorderpage.jsx";
 import AdminPayoutPage from "./features/admin/pages/AdminPayoutPage.jsx";
 
@@ -161,6 +162,7 @@ export default function App() {
                   <Route path="/admin/backoffice" element={<AdminBackofficePage />} />
                   <Route path="/admin/schools" element={<AdminSchoolsPage />} />
                   <Route path="/admin/donations" element={<AdminDonationManagement />} />
+                  <Route path="/admin/wrong-items" element={<AdminWrongItemPage />} />
                   <Route path="/admin/orders" element={<AdminOrderPage />} />
                   <Route path="/admin/payouts" element={<AdminPayoutPage />} />
                 </Route>
