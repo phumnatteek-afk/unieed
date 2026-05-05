@@ -269,13 +269,14 @@ export async function verifyAndIssueCertificate(req, res, next) {
 
             // หา item ที่ usable เท่านั้น
             let usableItems = [];
+            const CERT_ELIGIBLE = ["usable", "damaged", "incomplete"];
             if (Array.isArray(items_received) && items_received.length > 0) {
                 const condMap = {};
                 for (const r of items_received) condMap[r.uniform_type_id] = r.item_condition ?? null;
-                usableItems = snapItems.filter(it => condMap[it.uniform_type_id] === "usable");
+                usableItems = snapItems.filter(it => CERT_ELIGIBLE.includes(condMap[it.uniform_type_id]));
             } else {
                 // backward compat — ไม่มี per-item → ใช้ overall
-                if (condition_status !== "wrong_item") usableItems = snapItems;
+                if (condition_status !== "wrong_item" && condition_status !== "not_sent") usableItems = snapItems;
             }
 
             if (usableItems.length > 0) {

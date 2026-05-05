@@ -330,14 +330,43 @@ export default function SchoolAppointmentPage() {
     return "usable";
   };
 
+  const buildThankMsg = (donation, conditions) => {
+    const items = parseItems(donation.items_snapshot);
+    const name  = donation.donor_name;
+
+    const wrongItems    = items.filter(it => conditions[it.uniform_type_id] === "wrong_item");
+    const usableItems   = items.filter(it => conditions[it.uniform_type_id] === "usable");
+    const notSentItems  = items.filter(it => conditions[it.uniform_type_id] === "not_sent");
+    const damagedItems  = items.filter(it => conditions[it.uniform_type_id] === "damaged");
+    const cleanName     = (n) => String(n || "").replace(/\s*\(.*?\)\s*/g, "").trim();
+
+    const allUsable  = wrongItems.length === 0 && notSentItems.length === 0 && damagedItems.length === 0;
+    const allWrong   = wrongItems.length === items.length;
+    const hasWrong   = wrongItems.length > 0;
+    const hasUsable  = usableItems.length > 0;
+
+    if (allUsable) {
+      return `ขอบคุณคุณ ${name} มากๆ ที่ได้บริจาคชุดนักเรียนให้กับทางโรงเรียน การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`;
+    }
+    if (allWrong) {
+      const list = wrongItems.map(it => cleanName(it.name)).join(", ");
+      return `ขอบคุณคุณ ${name} ที่มีน้ำใจบริจาค ขออภัยที่รายการบริจาคไม่ตรงกับความต้องการของโรงเรียนในขณะนี้ (${list}) ทางโรงเรียนจึงไม่สามารถรับของได้ในครั้งนี้ ขอบพระคุณอย่างสูงสำหรับความตั้งใจดีของท่าน`;
+    }
+    // mixed
+    const wrongList  = wrongItems.map(it => cleanName(it.name)).join(", ");
+    const usableList = usableItems.map(it => cleanName(it.name)).join(", ");
+    let msg = `ขอบคุณคุณ ${name} มากที่บริจาคชุดนักเรียนให้กับทางโรงเรียน`;
+    if (hasUsable)  msg += ` ทางโรงเรียนได้รับ ${usableList} เรียบร้อยแล้ว`;
+    if (hasWrong)   msg += ` อย่างไรก็ตามรายการ ${wrongList} ไม่ตรงกับความต้องการของโรงเรียนในขณะนี้ ขออภัยด้วยนะคะ`;
+    msg += ` ขอบพระคุณสำหรับน้ำใจของท่านอย่างสูง`;
+    return msg;
+  };
+
   const openVerifyPopup = (donation) => {
     setDetailPopup(null);
     setVerifyPopup(donation);
-    setItemConditions({});
-    setThankMsg(
-      `ขอบคุณคุณ ${donation.donor_name} มากๆ ที่ได้บริจาคชุดนักเรียนให้กับทางโรงเรียน ` +
-      `การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`
-    );
+    // ไม่ reset itemConditions — ใช้ค่าที่ตั้งจาก detail popup แล้ว
+    setThankMsg(buildThankMsg(donation, itemConditions));
   };
 
   const handleVerify = async () => {
@@ -614,37 +643,80 @@ export default function SchoolAppointmentPage() {
                     <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
                       ติ๊กถูกทุกรายการที่ได้รับครบแล้ว
                     </div>
-                    {items.map((item, i) => (
-                      <label
-                        key={i}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 10,
-                          background: "#f9fafb",
-                          border: "1.5px solid #e5e7eb",
-                          borderRadius: 10, padding: "10px 14px",
-                          marginBottom: 8, cursor: isOverdue ? "not-allowed" : "pointer",
-                          opacity: isOverdue ? 0.5 : 1,
-                          transition: "all 0.15s",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!!checkedItems[i]}
-                          disabled={isOverdue}
-                          onChange={isOverdue ? undefined : e => setCheckedItems(prev => ({ ...prev, [i]: e.target.checked }))}
-                          style={{ width: 18, height: 18, accentColor: "#16a34a", cursor: isOverdue ? "not-allowed" : "pointer" }}
-                        />
-                        <span style={{ flex: 1, fontSize: 14, color: "#1a1a2e" }}>{item.name}</span>
-                        <span style={{
-                          fontSize: 12, fontWeight: 600,
-                          color: checkedItems[i] ? "#16a34a" : "#378ADD",
-                          background: checkedItems[i] ? "#dcfce7" : "#eff6ff",
-                          padding: "2px 10px", borderRadius: 20,
-                        }}>
-                          {item.quantity} ตัว
-                        </span>
-                      </label>
-                    ))}
+                    {items.map((item, i) => {
+                      const isChecked = !!checkedItems[i];
+                      const COND_OPTS = [
+                        { value: "usable",     label: "ใช้งานได้",     color: "#16a34a", bg: "#dcfce7" },
+                        { value: "wrong_item", label: "รายการไม่ตรง",  color: "#d97706", bg: "#fef3c7" },
+                        { value: "damaged",    label: "เสียหาย",        color: "#dc2626", bg: "#fee2e2" },
+                        ...(item.quantity > 1 ? [{ value: "incomplete", label: "ได้รับไม่ครบ", color: "#1d4ed8", bg: "#eff6ff" }] : []),
+                        { value: "not_sent",   label: "ไม่ได้รับ",     color: "#7c3aed", bg: "#f5f3ff" },
+                      ];
+                      const cond = itemConditions[item.uniform_type_id];
+                      const condMeta = COND_OPTS.find(o => o.value === cond);
+                      return (
+                        <div key={i} style={{ marginBottom: 8 }}>
+                          <label style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            background: isChecked ? "#f0fdf4" : "#f9fafb",
+                            border: `1.5px solid ${isChecked ? "#86efac" : "#e5e7eb"}`,
+                            borderRadius: isChecked ? "10px 10px 0 0" : 10,
+                            padding: "10px 14px",
+                            cursor: isOverdue ? "not-allowed" : "pointer",
+                            opacity: isOverdue ? 0.5 : 1,
+                            transition: "all 0.15s",
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              disabled={isOverdue}
+                              onChange={isOverdue ? undefined : e => {
+                                const checked = e.target.checked;
+                                setCheckedItems(prev => ({ ...prev, [i]: checked }));
+                                setItemConditions(prev => {
+                                  const next = { ...prev };
+                                  if (checked) { next[item.uniform_type_id] = next[item.uniform_type_id] || "usable"; }
+                                  else { delete next[item.uniform_type_id]; }
+                                  return next;
+                                });
+                              }}
+                              style={{ width: 18, height: 18, accentColor: "#16a34a", cursor: isOverdue ? "not-allowed" : "pointer" }}
+                            />
+                            <span style={{ flex: 1, fontSize: 14, color: "#1a1a2e" }}>{item.name}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: isChecked ? "#16a34a" : "#378ADD", background: isChecked ? "#dcfce7" : "#eff6ff", padding: "2px 10px", borderRadius: 20 }}>
+                              {item.quantity} ตัว
+                            </span>
+                          </label>
+                          {isChecked && (
+                            <div style={{ background: "#fff", border: "1.5px solid #86efac", borderTop: "none", borderRadius: "0 0 10px 10px", padding: "10px 14px" }}>
+                              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>ประเมินสภาพ</div>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                {COND_OPTS.map(opt => (
+                                  <button key={opt.value}
+                                    onClick={() => setItemConditions(prev => ({ ...prev, [item.uniform_type_id]: opt.value }))}
+                                    style={{
+                                      fontSize: 12, padding: "4px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit",
+                                      border: cond === opt.value ? `1.5px solid ${opt.color}` : "1.5px solid #e5e7eb",
+                                      background: cond === opt.value ? opt.bg : "#f8fafc",
+                                      color: cond === opt.value ? opt.color : "#64748b",
+                                      fontWeight: cond === opt.value ? 700 : 400,
+                                    }}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                              {condMeta && cond !== "usable" && (
+                                <div style={{ marginTop: 6, fontSize: 11, color: condMeta.color, display: "flex", alignItems: "center", gap: 4 }}>
+                                  <Icon icon="mdi:alert-circle-outline" width={12} />
+                                  {cond === "wrong_item" ? "รายการนี้จะนับเป็น strike" : condMeta.label}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
 
                     {!allChecked && items.length > 0 && (
                       <div style={{
@@ -742,43 +814,34 @@ export default function SchoolAppointmentPage() {
               />
             </div>
 
+            {/* สรุปผลประเมินสภาพจาก detail popup */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                <Icon icon="mdi:tshirt-crew-outline" width="16" />
-                ประเมินสภาพชุดแต่ละรายการ <span style={{ color: "#ef4444" }}>*</span>
+                <Icon icon="mdi:clipboard-check-outline" width="16" />
+                ผลการประเมินสภาพชุด
               </div>
-              {parseItems(verifyPopup.items_snapshot).map(it => {
-                const OPTS = [
-                  { value: "usable",     label: "ใช้งานได้",    color: "#16a34a", bg: "#dcfce7" },
-                  { value: "wrong_item", label: "รายการไม่ตรง",  color: "#d97706", bg: "#fef3c7" },
-                  { value: "damaged",    label: "เสียหาย",       color: "#dc2626", bg: "#fee2e2" },
-                  { value: "incomplete", label: "ได้รับไม่ครบ",  color: "#1d4ed8", bg: "#eff6ff" },
-                  { value: "not_sent",   label: "ไม่ได้รับพัสดุ", color: "#7c3aed", bg: "#f5f3ff" },
-                ];
-                return (
-                  <div key={it.uniform_type_id} style={{ marginBottom: 10, padding: "10px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>
-                      {it.name} <span style={{ fontWeight: 400, color: "#64748b" }}>× {it.quantity} ตัว</span>
+              {(() => {
+                const COND_META = {
+                  usable:     { label: "ใช้งานได้",    color: "#16a34a", bg: "#dcfce7", icon: "mdi:check-circle-outline" },
+                  wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7", icon: "mdi:swap-horizontal" },
+                  damaged:    { label: "เสียหาย",       color: "#dc2626", bg: "#fee2e2", icon: "mdi:alert-circle-outline" },
+                  incomplete: { label: "ได้รับไม่ครบ", color: "#1d4ed8", bg: "#eff6ff", icon: "mdi:package-variant" },
+                  not_sent:   { label: "ไม่ได้รับ",    color: "#7c3aed", bg: "#f5f3ff", icon: "mdi:package-variant-remove" },
+                };
+                return parseItems(verifyPopup.items_snapshot).map(it => {
+                  const cond = itemConditions[it.uniform_type_id] || "usable";
+                  const meta = COND_META[cond] || COND_META.usable;
+                  return (
+                    <div key={it.uniform_type_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, color: "#1e293b" }}>{it.name} <span style={{ color: "#64748b" }}>× {it.quantity} ตัว</span></span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: meta.color, background: meta.bg, padding: "3px 10px", borderRadius: 20, display: "flex", alignItems: "center", gap: 4 }}>
+                        <Icon icon={meta.icon} width={13} />
+                        {meta.label}
+                      </span>
                     </div>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {OPTS.map(opt => (
-                        <button key={opt.value}
-                          onClick={() => setItemConditions(prev => ({ ...prev, [it.uniform_type_id]: opt.value }))}
-                          style={{
-                            padding: "6px 14px", borderRadius: 20, fontSize: 12, fontFamily: "inherit", cursor: "pointer",
-                            border: itemConditions[it.uniform_type_id] === opt.value ? `1.5px solid ${opt.color}` : "1.5px solid #e5e7eb",
-                            background: itemConditions[it.uniform_type_id] === opt.value ? opt.bg : "#fff",
-                            color: itemConditions[it.uniform_type_id] === opt.value ? opt.color : "#6b7280",
-                            fontWeight: itemConditions[it.uniform_type_id] === opt.value ? 600 : 400,
-                          }}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
 
             <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "#eff6ff", border: "0.5px solid #bfdbfe", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#1e40af", marginBottom: 20 }}>

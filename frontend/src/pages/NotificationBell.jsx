@@ -61,7 +61,7 @@ function AppealModal({ onClose, onSuccess, token }) {
     <div className="nb-cert-overlay" onClick={onClose}>
       <div className="nb-cert-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
         <div className="nb-cert-modal-top" style={{ background: "#1d4ed8" }}>
-          <div className="nb-cert-modal-emoji">📋</div>
+          <div className="nb-cert-modal-emoji"><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 56 56"><path fill="white" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg></div>
           <div className="nb-cert-modal-title">ยื่น Appeal</div>
           <div className="nb-cert-modal-sub">โต้แย้งการถูกระงับการบริจาค</div>
         </div>
@@ -108,35 +108,25 @@ function AppealModal({ onClose, onSuccess, token }) {
 }
 
 // ── Strike Appeal Popup (admin) ────────────────────────────────────
-function StrikeAppealPopup({ notif, onClose, token, onResolved }) {
+function StrikeAppealPopup({ notif, onClose }) {
   let body = {};
   try { body = JSON.parse(notif.body); } catch { /* noop */ }
-  const [resetting, setResetting] = useState(false);
+  const navigate = useNavigate();
 
   const suspendedUntil = body.suspended_until
     ? new Date(body.suspended_until).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })
     : null;
 
-  const handleReset = async () => {
-    if (!body.donor_id) return;
-    if (!window.confirm(`รีเซ็ต strike ของ "${body.donor_name}" ใช่มั้ย?`)) return;
-    try {
-      setResetting(true);
-      await fetch(`${BASE}/donations/users/${body.donor_id}/reset-strike`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      onResolved?.();
-      onClose();
-    } catch { /* silent */ }
-    finally { setResetting(false); }
+  const handleGoReview = () => {
+    onClose();
+    navigate("/admin/wrong-items");
   };
 
   return (
     <div className="nb-cert-overlay" onClick={onClose}>
       <div className="nb-cert-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
         <div className="nb-cert-modal-top" style={{ background: "#1d4ed8" }}>
-          <div className="nb-cert-modal-emoji">📋</div>
+          <div className="nb-cert-modal-emoji"><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 56 56"><path fill="white" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg></div>
           <div className="nb-cert-modal-title">คำร้อง Appeal จากผู้บริจาค</div>
           <div className="nb-cert-modal-sub">{body.donor_name || "ผู้บริจาค"}</div>
         </div>
@@ -151,15 +141,18 @@ function StrikeAppealPopup({ notif, onClose, token, onResolved }) {
               {body.reason}
             </div>
           )}
+          <div style={{ fontSize: 12, color: "#64748b", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "9px 12px", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon icon="mdi:information-outline" width={14} />
+            ตรวจสอบประวัติและรีเซ็ต strike ได้ที่หน้า "ตรวจสอบของไม่ตรง"
+          </div>
           <div className="nb-cert-actions">
             <button className="nb-cert-btn nb-cert-btn--close" onClick={onClose}>ปิด</button>
             <button
               className="nb-cert-btn"
-              onClick={handleReset}
-              disabled={resetting}
-              style={{ background: resetting ? "#94a3b8" : "#16a34a", color: "#fff", border: "none" }}
+              onClick={handleGoReview}
+              style={{ background: "#2563eb", color: "#fff", border: "none" }}
             >
-              {resetting ? "กำลังรีเซ็ต..." : "✓ รีเซ็ต Strike"}
+              ไปหน้าตรวจสอบ →
             </button>
           </div>
         </div>
@@ -207,9 +200,10 @@ function SuspensionPopup({ notif, onClose, isAdmin, onAppeal }) {
               <button
                 className="nb-cert-btn"
                 onClick={onAppeal}
-                style={{ background: "#2563eb", color: "#fff", border: "none" }}
+                style={{ background: "#2563eb", color: "#fff", border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
               >
-                📋 ยื่น Appeal
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 56 56" style={{ flexShrink: 0 }}><path fill="currentColor" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg>
+                ยื่น Appeal
               </button>
             )}
             <button className="nb-cert-btn nb-cert-btn--close" onClick={onClose}>รับทราบ</button>
@@ -236,7 +230,7 @@ function DonationIssuePopup({ notif, onClose, onNavigate }) {
         <div className="nb-cert-modal-top" style={{ background: isNotSent ? "#7c3aed" : "#f97316" }}>
           <div className="nb-cert-modal-emoji">{isNotSent ? "📦" : "⚠️"}</div>
           <div className="nb-cert-modal-title">
-            {isNotSent ? "ยังไม่ได้รับพัสดุ" : "รายการไม่ตรง"}
+            {isNotSent ? "ไม่มีสิ่งของในพัสดุ" : "รายการไม่ตรง"}
           </div>
           <div className="nb-cert-modal-sub">
             {body.school_name || "โรงเรียน"} แจ้งปัญหาเกี่ยวกับรายการบริจาคของคุณ
@@ -643,9 +637,7 @@ export default function NotificationBell() {
       {strikeAppealPopup && (
         <StrikeAppealPopup
           notif={strikeAppealPopup}
-          token={token}
           onClose={() => setStrikeAppealPopup(null)}
-          onResolved={fetchNotifs}
         />
       )}
     </>

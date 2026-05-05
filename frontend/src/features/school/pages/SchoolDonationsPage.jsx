@@ -44,7 +44,7 @@ const CONDITION_META = {
   wrong_item: { label: "รายการไม่ตรง",      color: "#d97706", bg: "#fef3c7" },
   damaged:    { label: "เสียหาย",            color: "#dc2626", bg: "#fee2e2" },
   incomplete: { label: "ได้รับไม่ครบ",      color: "#1d4ed8", bg: "#eff6ff" },
-  not_sent:   { label: "ยังไม่ได้รับพัสดุ", color: "#7c3aed", bg: "#f5f3ff" },
+  not_sent:   { label: "ไม่มีสิ่งของในพัสดุ", color: "#7c3aed", bg: "#f5f3ff" },
 };
  
 const TH_MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
@@ -389,7 +389,7 @@ export default function SchoolDonationPage() {
                 <Icon icon="mdi:package-variant-remove" color="#7c3aed" />
               </div>
             </div>
-            <span className="sdSummaryLabel">ยังไม่ได้รับพัสดุ</span>
+            <span className="sdSummaryLabel">ไม่มีสิ่งของในพัสดุ</span>
             <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
               <span className="sdSummaryVal" style={{ color:"#7c3aed" }}>{summary.not_sent}</span>
               <span style={{ fontSize:12, fontWeight:600, color:"#7c3aed" }}>รายการ</span>
@@ -513,7 +513,7 @@ export default function SchoolDonationPage() {
               <th>หลักฐาน</th>
               <th>รายการบริจาค</th>
               <th>สถานะ</th>
-              <th>การใช้งาน</th>
+              <th>ผลประเมิน</th>
               <th>จัดการ</th>
             </tr>
           </thead>
@@ -525,10 +525,10 @@ export default function SchoolDonationPage() {
             ) : paginated.map(d => {
               const isExpanded    = expandedRow === d.donation_id;
               const items         = parseItems(d.items_snapshot);
-              const statusMeta = (d.status === "approved" && (d.condition_status === "wrong_item" || d.condition_status === "not_sent"))
-                ? CONDITION_META[d.condition_status]
+              const statusMeta = (d.status === "approved" && d.condition_status === "not_sent")
+                ? CONDITION_META["not_sent"]
                 : STATUS_META[d.status] || STATUS_META.pending;
-              const conditionMeta = (d.condition_status && !["wrong_item", "not_sent"].includes(d.condition_status))
+              const conditionMeta = (d.status === "approved" && d.condition_status && d.condition_status !== "not_sent")
                 ? CONDITION_META[d.condition_status] : null;
               const overdue = isOverdue(d.created_at) && (
                 d.status === "pending" ||
@@ -690,10 +690,13 @@ export default function SchoolDonationPage() {
                               ? Object.fromEntries(condSnap.map(r => [r.uniform_type_id, r]))
                               : null;
                             const ITEM_COND = {
-                              usable:       { label: "ใช้งานได้",  color: "#16a34a", icon: "mdi:check-circle-outline" },
-                              damaged:      { label: "เสียหาย",    color: "#dc2626", icon: "mdi:close-circle-outline" },
-                              partial:      { label: "ได้รับบางส่วน", color: "#d97706", icon: "mdi:alert-circle-outline" },
-                              not_received: { label: "ไม่รับ",    color: "#7c3aed", icon: "mdi:minus-circle-outline" },
+                              usable:       { label: "ใช้งานได้",      color: "#16a34a", icon: "mdi:check-circle-outline" },
+                              damaged:      { label: "เสียหาย",         color: "#dc2626", icon: "mdi:close-circle-outline" },
+                              wrong_item:   { label: "รายการไม่ตรง",   color: "#d97706", icon: "mdi:swap-horizontal" },
+                              incomplete:   { label: "ได้รับไม่ครบ",   color: "#1d4ed8", icon: "mdi:package-variant" },
+                              not_sent:     { label: "ไม่มีสิ่งของในพัสดุ", color: "#7c3aed", icon: "mdi:package-variant-remove" },
+                              partial:      { label: "ได้รับบางส่วน",  color: "#d97706", icon: "mdi:alert-circle-outline" },
+                              not_received: { label: "ไม่รับ",          color: "#7c3aed", icon: "mdi:minus-circle-outline" },
                             };
                             return items.length === 0
                               ? <span style={{ color:"#94a3b8", fontSize:13 }}>ไม่มีข้อมูลรายการ</span>

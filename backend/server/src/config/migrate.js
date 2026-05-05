@@ -44,6 +44,7 @@ export async function runMigrations() {
     await addColumnIfMissing("users", "bank_account_name",     "VARCHAR(200) NULL DEFAULT NULL");
     await addColumnIfMissing("users", "strike_count",          "INT NOT NULL DEFAULT 0");
     await addColumnIfMissing("users", "suspended_until",       "DATETIME NULL DEFAULT NULL");
+    await addColumnIfMissing("users", "strike_reset_count",    "INT NOT NULL DEFAULT 0");
     // รองรับสถานะ suspended (ระงับชั่วคราว)
     try {
       await db.query(`

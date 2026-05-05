@@ -274,6 +274,19 @@ button{
   transform: none;
   background: rgba(255,255,255,.15);
 }
+.boShell .wi-filter-tab:hover,
+.boShell .wi-action-btn:hover {
+  transform: none;
+  background: revert;
+}
+.wi-search-input:focus {
+  border-color: transparent;
+  box-shadow: none;
+  background: transparent;
+}
+.wi-search-input::placeholder {
+  color: #94a3b8;
+}
 button:disabled{
   opacity: .55;
   cursor: not-allowed;

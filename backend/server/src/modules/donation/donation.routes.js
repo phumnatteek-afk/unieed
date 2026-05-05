@@ -130,10 +130,22 @@ r.get("/my-suspension", auth, async (req, res, next) => {
     );
     const now = new Date();
     const isSuspended = donor?.suspended_until && new Date(donor.suspended_until) > now;
+    const [[appealRow]] = await db.query(
+      `SELECT body FROM notifications
+       WHERE ref_id = ? AND type = 'strike_appeal'
+       ORDER BY created_at DESC LIMIT 1`,
+      [req.user.user_id]
+    );
+    let appealReason = null;
+    if (appealRow?.body) {
+      try { appealReason = JSON.parse(appealRow.body)?.reason || null; } catch (_) {}
+    }
     res.json({
-      strike_count: donor?.strike_count || 0,
-      suspended_until: donor?.suspended_until || null,
-      is_suspended: !!isSuspended,
+      strike_count:       donor?.strike_count || 0,
+      suspended_until:    donor?.suspended_until || null,
+      is_suspended:       !!isSuspended,
+      has_pending_appeal: !!appealRow,
+      appeal_reason:      appealReason,
     });
   } catch (err) { next(err); }
 });
@@ -174,7 +186,12 @@ r.patch("/users/:userId/reset-strike", auth, requireRole(["admin"]), async (req,
   try {
     const { userId } = req.params;
     await db.query(
-      `UPDATE users SET strike_count = 0, suspended_until = NULL WHERE user_id = ?`,
+      `UPDATE users SET strike_count = 0, suspended_until = NULL, strike_reset_count = strike_reset_count + 1 WHERE user_id = ?`,
+      [userId]
+    );
+    // mark appeal notification ว่าอ่านแล้ว
+    await db.query(
+      `UPDATE notifications SET is_read = 1 WHERE ref_id = ? AND type = 'strike_appeal' AND is_read = 0`,
       [userId]
     );
     // แจ้ง donor ว่าถูก reset แล้ว
@@ -196,23 +213,43 @@ r.get("/wrong-items", auth, requireRole(["admin"]), async (req, res, next) => {
          u.user_name AS donor_name,
          u.strike_count,
          u.suspended_until,
+         u.strike_reset_count,
+         EXISTS(
+           SELECT 1 FROM notifications n
+           WHERE n.ref_id = u.user_id
+             AND n.type = 'strike_appeal'
+             AND n.is_read = 0
+         ) AS has_pending_appeal,
+         (SELECT n.body FROM notifications n
+           WHERE n.ref_id = u.user_id
+             AND n.type = 'strike_appeal'
+           ORDER BY n.created_at DESC LIMIT 1
+         ) AS appeal_body,
          COUNT(dr.donation_id) AS total_cases,
-         JSON_ARRAYAGG(JSON_OBJECT(
-           'donation_id',              dr.donation_id,
-           'items_snapshot',           dr.items_snapshot,
-           'items_condition_snapshot', dr.items_condition_snapshot,
-           'updated_at',               dr.updated_at,
-           'request_title',            req.request_title,
-           'school_name',              s.school_name
-         ) ORDER BY dr.updated_at ASC) AS cases
+         JSON_ARRAYAGG(
+           CASE WHEN dr.donation_id IS NOT NULL
+           THEN JSON_OBJECT(
+             'donation_id',              dr.donation_id,
+             'items_snapshot',           dr.items_snapshot,
+             'items_condition_snapshot', dr.items_condition_snapshot,
+             'donation_pic',             dr.donation_pic,
+             'shipping_carrier',         dr.shipping_carrier,
+             'tracking_number',          dr.tracking_number,
+             'delivery_method',          dr.delivery_method,
+             'updated_at',               dr.updated_at,
+             'request_title',            req.request_title,
+             'school_name',              s.school_name
+           )
+           ELSE NULL END
+         ) AS cases
        FROM users u
-       JOIN donation_record dr
-         ON dr.donor_id = u.user_id AND dr.condition_status = 'wrong_item'
-       JOIN donation_request req ON req.request_id = dr.request_id
-       JOIN schools s ON s.school_id = req.school_id
+       LEFT JOIN donation_record dr
+         ON dr.donor_id = u.user_id AND dr.strike_issued = 1
+       LEFT JOIN donation_request req ON req.request_id = dr.request_id
+       LEFT JOIN schools s ON s.school_id = req.school_id
        WHERE u.strike_count > 0
-       GROUP BY u.user_id, u.user_name, u.strike_count, u.suspended_until
-       ORDER BY u.strike_count DESC, u.suspended_until DESC`
+       GROUP BY u.user_id, u.user_name, u.strike_count, u.suspended_until, u.strike_reset_count
+       ORDER BY has_pending_appeal DESC, u.strike_count DESC, u.suspended_until DESC`
     );
     res.json(rows);
   } catch (err) { next(err); }

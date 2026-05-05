@@ -570,9 +570,10 @@ export default function AdminDonationManagement() {
           >
             <Icon icon="mdi:magnify" width={18} color="#94a3b8" />
             <input
+              className="wi-search-input"
               style={{ border:"none", outline:"none", fontSize:13, flex:1, color:"#334155", background:"transparent" }}
               onFocus={e => { e.target.style.outline = "none"; e.target.style.boxShadow = "none"; }}
-              placeholder="ค้นหาชื่อโรงเรียน..."
+              placeholder="ค้นหาโรงเรียน..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />

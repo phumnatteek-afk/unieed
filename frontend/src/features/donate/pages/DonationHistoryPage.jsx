@@ -78,7 +78,7 @@ const STATUS_CONFIG = {
 
 const CONDITION_OVERRIDE = {
   wrong_item: { label: "รายการไม่ตรง",      bg: "#FEF3C7", color: "#d97706", icon: "mdi:swap-horizontal" },
-  not_sent:   { label: "ยังไม่ได้รับพัสดุ", bg: "#F5F3FF", color: "#7c3aed", icon: "mdi:package-variant-closed-remove" },
+  not_sent:   { label: "ไม่มีสิ่งของในพัสดุ", bg: "#F5F3FF", color: "#7c3aed", icon: "mdi:package-variant-closed-remove" },
 };
 
 function getStatusConfig(d) {
@@ -100,6 +100,7 @@ export default function DonationHistoryPage() {
   const [appealSubmitting, setAppealSubmitting] = useState(false);
   const [appealDone, setAppealDone] = useState(false);
   const [appealErr, setAppealErr] = useState("");
+  const [appealViewOpen, setAppealViewOpen] = useState(false);
   const [expanded, setExpanded] = useState(null);
   const [trackingInputs, setTrackingInputs] = useState({});
   const [courierInputs, setCourierInputs] = useState({});
@@ -288,12 +289,22 @@ export default function DonationHistoryPage() {
                 {" · "}strike {suspension.strike_count}/3
               </div>
             </div>
-            <button
-              onClick={() => { setAppealOpen(true); setAppealDone(false); setAppealReason(""); setAppealErr(""); }}
-              style={{ fontSize: 13, fontWeight: 600, color: "#fff", background: "#2563eb", border: "none", borderRadius: 10, padding: "9px 18px", cursor: "pointer", whiteSpace: "nowrap" }}
-            >
-              📋 ยื่น Appeal
-            </button>
+            {(suspension.has_pending_appeal || appealDone) ? (
+              <button
+                onClick={() => setAppealViewOpen(true)}
+                style={{ fontSize: 13, fontWeight: 600, color: "#92400e", background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 10, padding: "9px 18px", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+              >
+                <Icon icon="mdi:clock-outline" width={15} />รอการตรวจสอบ
+              </button>
+            ) : (
+              <button
+                onClick={() => { setAppealOpen(true); setAppealDone(false); setAppealReason(""); setAppealErr(""); }}
+                style={{ fontSize: 13, fontWeight: 600, color: "#fff", background: "#2563eb", border: "none", borderRadius: 10, padding: "9px 18px", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 56 56" style={{ flexShrink: 0 }}><path fill="currentColor" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg>
+                ยื่น Appeal
+              </button>
+            )}
           </div>
         )}
 
@@ -304,7 +315,7 @@ export default function DonationHistoryPage() {
             <div style={{ background: "#fff", borderRadius: 18, width: "100%", maxWidth: 420, overflow: "hidden" }}
               onClick={e => e.stopPropagation()}>
               <div style={{ background: "#1d4ed8", padding: "20px 24px", textAlign: "center" }}>
-                <div style={{ fontSize: 28 }}>📋</div>
+                <div style={{ display: "flex", justifyContent: "center" }}><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 56 56"><path fill="white" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg></div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginTop: 4 }}>ยื่น Appeal</div>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", marginTop: 2 }}>โต้แย้งการถูกระงับการบริจาค</div>
               </div>
@@ -342,6 +353,33 @@ export default function DonationHistoryPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Appeal View Modal */}
+        {appealViewOpen && createPortal(
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+            onClick={() => setAppealViewOpen(false)}>
+            <div style={{ background: "#fff", borderRadius: 18, width: "100%", maxWidth: 400, overflow: "hidden" }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ background: "#1d4ed8", padding: "20px 24px", textAlign: "center" }}>
+                <div style={{ display: "flex", justifyContent: "center" }}><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 56 56"><path fill="white" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg></div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginTop: 4 }}>คำร้องของคุณ</div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", marginTop: 2 }}>ข้อความที่ส่งให้ทีมงานตรวจสอบ</div>
+              </div>
+              <div style={{ padding: "20px 24px" }}>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", fontSize: 14, color: "#1e293b", lineHeight: 1.7, minHeight: 60, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {suspension?.appeal_reason || "(ไม่ได้ระบุเหตุผล)"}
+                </div>
+                <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 10 }}>
+                  ทีมงานกำลังตรวจสอบคำร้องของคุณ จะติดต่อผ่านทางแจ้งเตือน
+                </div>
+                <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+                  <button onClick={() => setAppealViewOpen(false)} style={{ fontSize: 13, padding: "9px 28px", borderRadius: 10, border: "1px solid #e2e8f0", cursor: "pointer", background: "#f8fafc" }}>ปิด</button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
 
         {/* Tab bar */}
