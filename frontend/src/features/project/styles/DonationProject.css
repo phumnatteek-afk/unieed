@@ -159,7 +159,7 @@
   font-family: 'Mitr';
   color: #053f5c;
   margin-bottom: 14px;
-  margin-left: 300px;
+  margin-left: 200px;
 }
 
 .dpFilterSubLabel {
@@ -167,7 +167,7 @@
   font-weight: 500;
   font-family: 'Mitr';
   color: #6b7280;
-  margin-left: 300px;
+  margin-left: 200px;
 }
 
 .dpFilterGrid {
@@ -189,7 +189,7 @@
 .dpFilterGroupLabel {
   font-size: 13px;
   font-weight: 500;
-  margin-left: 300px;
+  margin-left: 200px;
   color: #5285e8;
 }
 
@@ -197,7 +197,7 @@
 .dpTypeRow {
   display: flex;
   gap: 10px;
-  margin-left: 300px;
+  margin-left: 200px;
 }
 
 .dpTypeBtn {
@@ -334,7 +334,7 @@
 }
 .dpFilterGroupNarrow {
   align-self: flex-start;
-  margin-left: -300px;
+  margin-left: -200px;
 }
 .dpSelect:disabled {
   background-color: #f3f4f6;
@@ -345,7 +345,7 @@
 .dpResetBtn {
   margin-top: 8px;
   margin-left: auto;
-  margin-right: 280px;
+  margin-right: 180px;
   padding: 6px 18px;
   font-weight: 500;
   border-radius: 999px;

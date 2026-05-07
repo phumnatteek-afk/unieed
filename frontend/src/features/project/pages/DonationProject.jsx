@@ -66,6 +66,28 @@ const GENDERS = ["ชาย", "หญิง"];
 const LEVELS  = ["อนุบาล", "ประถมศึกษา", "มัธยมตอนต้น", "มัธยมตอนปลาย"];
 const CONDITIONS = ["90%", "80%", "70%", "60%", "50% ขึ้นไป"];
 
+const PROVINCES = [
+  "กระบี่","กรุงเทพมหานคร","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร",
+  "ขอนแก่น",
+  "จันทบุรี",
+  "ฉะเชิงเทรา",
+  "ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่",
+  "ตรัง","ตราด","ตาก",
+  "นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน",
+  "บึงกาฬ","บุรีรัมย์",
+  "ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี",
+  "พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่",
+  "ภูเก็ต",
+  "มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน",
+  "ยโสธร","ยะลา",
+  "ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี",
+  "ลพบุรี","ลำปาง","ลำพูน","เลย",
+  "ศรีสะเกษ",
+  "สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์",
+  "หนองคาย","หนองบัวลำภู",
+  "อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี",
+];
+
 const TYPE_COLORS = {
   "เสื้อนักเรียน": {bg: "#87c7eb", hover: "#5285E8"},
   "กางเกง": {bg:"#E6FFBB", hover: "#5285E8"},
@@ -346,6 +368,7 @@ export default function DonationProject() {
   const [selLevel, setSelLevel]     = useState("");
   const [selSize, setSelSize]       = useState("");
   const [selCond, setSelCond]       = useState("");
+  const [selProvince, setSelProvince] = useState("");
   const [searchQ, setSearchQ]       = useState("");
   const [hoveredType, setHoveredType] = useState("");
   const [selCollections, setSelCollections] = useState([]);
@@ -428,16 +451,17 @@ useEffect(() => {
   // ===== คำนวณ search query อัตโนมัติ =====
   const autoQuery = useMemo(() => {
     const parts = [];
-    if (selType)   parts.push(selType);
-    if (selGender) parts.push(selGender);
-    if (selLevel)  parts.push(selLevel);
+    if (selType)     parts.push(selType);
+    if (selGender)   parts.push(selGender);
+    if (selLevel)    parts.push(selLevel);
     if (selSize) {
       const sizeLabel = selType === "เสื้อนักเรียน" ? `รอบอก ${selSize}"` : `รอบเอว ${selSize}"`;
       parts.push(sizeLabel);
     }
-    if (selCond)   parts.push(`สภาพ ${selCond}`);
+    if (selCond)     parts.push(`สภาพ ${selCond}`);
+    if (selProvince) parts.push(selProvince);
     return parts.join(" ");
-  }, [selType, selGender, selLevel, selSize, selCond]);
+  }, [selType, selGender, selLevel, selSize, selCond, selProvince]);
 
   // ===== ไซส์ที่แสดงตามประเภท+ระดับชั้น =====
   const availableSizes = useMemo(() => {
@@ -457,6 +481,12 @@ useEffect(() => {
   }, [selType, selLevel]);
 
   const sizeLabel = selType === "เสื้อนักเรียน" ? "รอบอก (นิ้ว)" : selType ? "รอบเอว (นิ้ว)" : "ไซส์";
+
+  const availableProvinces = useMemo(() => {
+    const set = new Set();
+    projects.forEach(p => { if (p.school_province) set.add(p.school_province); });
+    return [...set].sort((a, b) => a.localeCompare(b, "th"));
+  }, [projects]);
 
   // ===== fairness score =====
   const fairProjects = useMemo(() => {
@@ -550,6 +580,11 @@ useEffect(() => {
     });
   }
 
+  // filter จังหวัด
+  if (selProvince) {
+    list = list.filter(p => p.school_province === selProvince);
+  }
+
  // ✅ filter แบบ AND — item เดียวต้องผ่านทุกเงื่อนไขพร้อมกัน
   if (selType || selGender || selLevel || selSize) {
     const genderMap = { "ชาย": "male", "หญิง": "female" };
@@ -639,7 +674,7 @@ useEffect(() => {
   }
 
   return list;
-}, [projects, closedProjects, projectDetails, searchQ, autoQuery, selType, selLevel, selSize, selCollections, fairProjects, sortBy]);
+}, [projects, closedProjects, projectDetails, searchQ, autoQuery, selType, selGender, selLevel, selSize, selProvince, selCollections, fairProjects, sortBy]);
 
   // ===== reset size เมื่อเปลี่ยนประเภท/ระดับ =====
   useEffect(() => { setSelSize(""); }, [selType, selLevel]);
@@ -716,13 +751,41 @@ useEffect(() => {
   return () => clearInterval(timer);
 }, [slideList.length]);
 
+// ── hero slides: ใกล้เวลาปิด x2, ใหม่ล่าสุด x1, แนะนำ x1 ──
+const heroSlides = useMemo(() => {
+  if (!projects.length) return [];
+  const today = new Date();
+
+  const closingPool = projects.filter(p => {
+    if (!p.end_date) return false;
+    const d = Math.ceil((new Date(p.end_date) - today) / 86400000);
+    return d >= 0 && d <= 7;
+  });
+  const closingSlides = shuffle(closingPool).slice(0, 2).map(p => ({ ...p, _heroTag: "closing" }));
+  const usedIds = new Set(closingSlides.map(p => p.request_id));
+
+  const newestPool = projects.filter(p => {
+    if (usedIds.has(p.request_id)) return false;
+    const ref = p.start_date || p.created_at;
+    if (!ref) return false;
+    return Math.ceil((today - new Date(ref)) / 86400000) <= 30;
+  });
+  const newestSlides = shuffle(newestPool).slice(0, 1).map(p => ({ ...p, _heroTag: "newest" }));
+  newestSlides.forEach(p => usedIds.add(p.request_id));
+
+  const fairPool = fairProjects.filter(p => !usedIds.has(p.request_id));
+  const fairSlides = shuffle(fairPool).slice(0, 1).map(p => ({ ...p, _heroTag: "recommended" }));
+
+  return [...closingSlides, ...newestSlides, ...fairSlides];
+}, [projects, fairProjects]);
+
 // ── hero auto-slide ──
 useEffect(() => {
-  const total = Math.min(fairProjects.length, 3);
+  const total = heroSlides.length;
   if (total <= 1) return;
   heroTimerRef.current = setInterval(() => setHeroIdx(i => (i + 1) % total), 4000);
   return () => clearInterval(heroTimerRef.current);
-}, [fairProjects.length]);
+}, [heroSlides.length]);
 
   const rightAccount = () => {
   if (!token) {
@@ -764,37 +827,45 @@ useEffect(() => {
       {/* ===== Hero Banner ===== */}
       <div className="dpHero">
         {/* Slide backgrounds */}
-        {fairProjects.slice(0, 3).map((p, i) => (
+        {heroSlides.map((p, i) => (
           <div key={p.request_id} style={{ position: "absolute", inset: 0, backgroundImage: `url(${p.request_image_url || "/src/unieed_pic/BannerDonation.png"})`, backgroundSize: "cover", backgroundPosition: "center", opacity: i === heroIdx ? 1 : 0, transition: "opacity 0.8s ease" }} />
         ))}
-        {(!fairProjects.length || loading) && (
+        {(!heroSlides.length || loading) && (
           <div style={{ position: "absolute", inset: 0, backgroundImage: "url(/src/unieed_pic/BannerDonation.png)", backgroundSize: "cover", backgroundPosition: "center top" }} />
         )}
         <div className="dpHeroOverlay" />
         {/* Content */}
-        {!loading && fairProjects.length > 0 ? (
-          <div className="dpHeroContent">
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#FFBE1B", color: "#fff", borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 600, marginBottom: 10 }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2l2.4 7.4H22l-6.2 4.5l2.4 7.4L12 17l-6.2 4.3l2.4-7.4L2 9.4h7.6z"/></svg>
-              โครงการแนะนำ
+        {!loading && heroSlides.length > 0 ? (() => {
+          const cur = heroSlides[heroIdx];
+          const tagMap = {
+            closing:     { label: "ใกล้เวลาปิด", bg: "#ef4444", icon: <Icon icon="mdi:clock-alert-outline" width={12} /> },
+            newest:      { label: "ใหม่ล่าสุด",   bg: "#2563eb", icon: <Icon icon="mdi:new-box" width={13} /> },
+            recommended: { label: "โครงการแนะนำ", bg: "#FFBE1B", icon: <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2l2.4 7.4H22l-6.2 4.5l2.4 7.4L12 17l-6.2 4.3l2.4-7.4L2 9.4h7.6z"/></svg> },
+          };
+          const tag = tagMap[cur?._heroTag] || tagMap.recommended;
+          return (
+            <div className="dpHeroContent">
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: tag.bg, color: "#fff", borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 600, marginBottom: 10 }}>
+                {tag.icon}{tag.label}
+              </div>
+              <h1 className="dpHeroTitle">{cur?.school_name}</h1>
+              <p className="dpHeroSub">{cur?.request_title}</p>
+              <button onClick={() => navigate(`/projects/${cur?.request_id}`)} className="dpHeroCTA">
+                ดูโครงการ →
+              </button>
             </div>
-            <h1 className="dpHeroTitle">{fairProjects[heroIdx]?.school_name}</h1>
-            <p className="dpHeroSub">{fairProjects[heroIdx]?.request_title}</p>
-            <button onClick={() => navigate(`/projects/${fairProjects[heroIdx]?.request_id}`)} className="dpHeroCTA">
-              ดูโครงการ →
-            </button>
-          </div>
-        ) : (
+          );
+        })() : (
           <div className="dpHeroContent">
             <h1 className="dpHeroTitle">เริ่มต้นการเปลี่ยนแปลง</h1>
             <p className="dpHeroSub">สร้างโอกาสทางการศึกษา ผ่านการส่งต่อชุดนักเรียน</p>
           </div>
         )}
         {/* Dots */}
-        {!loading && fairProjects.length > 1 && (
+        {!loading && heroSlides.length > 1 && (
           <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 6, zIndex: 2 }}>
-            {fairProjects.slice(0, 3).map((_, i) => (
-              <button key={i} onClick={() => { clearInterval(heroTimerRef.current); setHeroIdx(i); heroTimerRef.current = setInterval(() => setHeroIdx(j => (j + 1) % Math.min(fairProjects.length, 3)), 4000); }} style={{ width: i === heroIdx ? 20 : 8, height: 8, borderRadius: 99, background: i === heroIdx ? "#fff" : "rgba(255,255,255,0.5)", border: "none", cursor: "pointer", transition: "all 0.3s", padding: 0 }} />
+            {heroSlides.map((_, i) => (
+              <button key={i} onClick={() => { clearInterval(heroTimerRef.current); setHeroIdx(i); heroTimerRef.current = setInterval(() => setHeroIdx(j => (j + 1) % heroSlides.length), 4000); }} style={{ width: i === heroIdx ? 20 : 8, height: 8, borderRadius: 99, background: i === heroIdx ? "#fff" : "rgba(255,255,255,0.5)", border: "none", cursor: "pointer", transition: "all 0.3s", padding: 0 }} />
             ))}
           </div>
         )}
@@ -812,7 +883,7 @@ useEffect(() => {
                 setSearchQ(e.target.value);
                 if (!e.target.value) {
                   setSelType(""); setSelGender(""); setSelLevel("");
-                  setSelSize(""); setSelCond("");
+                  setSelSize(""); setSelCond(""); setSelProvince("");
                 }
               }}
               placeholder="ค้นหาโครงการ ระบุประเภท ขนาด ที่ต้องการส่งต่อ..."
@@ -913,6 +984,21 @@ useEffect(() => {
               </select>
             </div>
 
+            {/* จังหวัด */}
+            <div className="dpFilterGroup">
+              <div className="dpFilterGroup dpFilterGroupNarrow">
+                <div className="dpFilterGroupLabel">จังหวัด</div>
+              </div>
+              <select
+                className="dpSelect"
+                value={selProvince}
+                onChange={e => setSelProvince(e.target.value)}
+              >
+                <option value="">ทุกจังหวัด</option>
+                {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
             {/* สภาพ
             <div className="dpFilterGroup">
               <div className="dpFilterGroup dpFilterGroupNarrow">
@@ -932,7 +1018,7 @@ useEffect(() => {
 
           {/* ── เรียงตาม ── */}
           <div className="dpFilterSubLabel" style={{ marginBottom: 10, marginTop: 16 }}>เรียงตาม</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 300 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 200 }}>
             {[{ key: "newest", label: "ล่าสุด" }, { key: "most_needed", label: "ยังขาดมากที่สุด" }].map(({ key, label }) => (
               <label key={key} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: sortBy === key ? "#053f5c" : "#f3f4f6", color: sortBy === key ? "#fff" : "#374151", borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 500, userSelect: "none", transition: "all 0.2s" }}>
                 <input type="radio" name="sortBy" checked={sortBy === key} onChange={() => setSortBy(key)} style={{ display: "none" }} />
@@ -943,7 +1029,7 @@ useEffect(() => {
 
           {/* ── คอลเลคชัน ── */}
           <div className="dpFilterSubLabel" style={{ marginBottom: 10, marginTop: 16 }}>กรองโครงการ</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 300 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 200 }}>
             {["แนะนำ", "ใหม่ล่าสุด", "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย", "ปิดโครงการ"].map(col => (
               <label key={col} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: selCollections.includes(col) ? "#053f5c" : "#f3f4f6", color: selCollections.includes(col) ? "#fff" : "#374151", borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 500, userSelect: "none", transition: "all 0.2s" }}>
                 <input type="checkbox" checked={selCollections.includes(col)} onChange={() => toggleCollection(col)} style={{ display: "none" }} />
@@ -953,10 +1039,10 @@ useEffect(() => {
           </div>
 
           {/* reset */}
-          {(selType || selGender || selLevel || selSize || selCond || selCollections.length > 0 || sortBy !== "newest") && (
+          {(selType || selGender || selLevel || selSize || selCond || selProvince || selCollections.length > 0 || sortBy !== "newest") && (
             <button className="dpResetBtn" onClick={() => {
               setSelType(""); setSelGender(""); setSelLevel("");
-              setSelSize(""); setSelCond(""); setSearchQ("");
+              setSelSize(""); setSelCond(""); setSelProvince(""); setSearchQ("");
               setSelCollections([]); setSortBy("newest");
             }}>
               ล้างตัวกรอง
@@ -969,7 +1055,14 @@ useEffect(() => {
       {/* ===== Project List ===== */}
       <div className="dpMain">
         <div className="dpListHeader">
-          <h2 className="dpListTitle">โครงการโรงเรียนขอรับบริจาคทั้งหมด</h2>
+          <h2 className="dpListTitle">
+            โครงการโรงเรียนขอรับบริจาคทั้งหมด
+            {!loading && (searchQ || autoQuery || selCollections.length > 0) && (
+              <span style={{ fontSize: 16, fontWeight: 500, color: "#64748b", marginLeft: 12 }}>
+                (สิ่งที่คุณค้นหามี <strong style={{ color: "#1d4ed8" }}>{displayProjects.length}</strong> รายการ)
+              </span>
+            )}
+          </h2>
         </div>
 
         {loading ? (

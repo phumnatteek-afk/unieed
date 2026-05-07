@@ -76,6 +76,7 @@ export async function getHomeData() {
       dr.end_date,
       s.school_name,
       s.school_address,
+      s.province AS school_province,
 
       -- ยอดบริจาคที่บันทึกเข้ามา (ผู้บริจาคส่งแล้ว)
       COALESCE((
