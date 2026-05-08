@@ -41,10 +41,10 @@ function groupItems(items = []) {
 }
 
 const COLLECTION_BADGE_CONFIG = {
-  "แนะนำ":           { bg: "#FFBE1B", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2l2.4 7.4H22l-6.2 4.5l2.4 7.4L12 17l-6.2 4.3l2.4-7.4L2 9.4h7.6z"/></svg> },
-  "ใหม่ล่าสุด":      { bg: "#3b82f6", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M9 2h6v7h5l-8 9l-8-9h5zm-1 18h8v2H8z"/></svg> },
-  "ใกล้เวลาปิด":     { bg: "#f97316", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
-  "ใกล้ถึงเป้าหมาย": { bg: "#10b981", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8zm0-12a4 4 0 1 0 4 4a4 4 0 0 0-4-4zm0 6a2 2 0 1 1 2-2a2 2 0 0 1-2 2z"/></svg> },
+  "แนะนำ":           { bg: "#ef4444", label: "ต้องการด่วน", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M17.66 11.2c-.23-.3-.51-.56-.77-.82c-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32c-2.59 2.08-3.61 5.75-2.39 8.9c.04.1.08.2.08.33c0 .22-.15.42-.35.5c-.23.1-.47.04-.66-.12a.58.58 0 0 1-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5c.14.6.41 1.2.71 1.73c1.08 1.73 2.95 2.97 4.96 3.22c2.14.27 4.43-.12 6.07-1.6c1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26m-3.16 6.3c-.28.24-.74.5-1.1.6c-1.12.4-2.24-.16-2.9-.82c1.19-.28 1.9-1.16 2.11-2.05c.17-.8-.15-1.46-.28-2.23c-.12-.74-.1-1.37.17-2.06c.19.38.39.76.63 1.06c.77 1 1.98 1.44 2.24 2.8c.06.14.09.28.09.43c.03.82-.33 1.72-.96 2.27"/></svg> },
+  "ใหม่ล่าสุด":      { bg: "#3b82f6", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36"><path fill="currentColor" d="m34.11 24.49l-3.92-6.62l3.88-6.35a1 1 0 0 0-.85-1.52H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h31.25a1 1 0 0 0 .86-1.51m-23.6-3.31H9.39l-3.26-4.34v4.35H5V15h1.13l3.27 4.35V15h1.12ZM16.84 16h-3.53v1.49h3.2v1h-3.2v1.61h3.53v1h-4.66V15h4.65Zm8.29 5.16H24l-1.55-4.59l-1.55 4.61h-1.12l-2-6.18H19l1.32 4.43L21.84 15h1.22l1.46 4.43L25.85 15h1.23Z"/><path fill="none" d="M0 0h36v36H0z"/></svg> },
+  "ใกล้เวลาปิด":     { bg: "#f97316", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+  "ใกล้ถึงเป้าหมาย": { bg: "#10b981", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8zm0-12a4 4 0 1 0 4 4a4 4 0 0 0-4-4zm0 6a2 2 0 1 1 2-2a2 2 0 0 1-2 2z"/></svg> },
 };
 
 function ProjCard({ p, navigate, details, collectionLabel }) {
@@ -102,9 +102,9 @@ function ProjCard({ p, navigate, details, collectionLabel }) {
         )}
         {/* top-left: collection badge */}
         {collectionLabel && COLLECTION_BADGE_CONFIG[collectionLabel] && (
-          <div style={{ position: "absolute", top: 10, left: 10, background: COLLECTION_BADGE_CONFIG[collectionLabel].bg, color: "#fff", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ position: "absolute", top: 10, left: 10, background: COLLECTION_BADGE_CONFIG[collectionLabel].bg, color: "#fff", borderRadius: 20, padding: "4px 10px", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
             {COLLECTION_BADGE_CONFIG[collectionLabel].icon}
-            {collectionLabel}
+            {COLLECTION_BADGE_CONFIG[collectionLabel].label || collectionLabel}
           </div>
         )}
         {/* top-right: countdown badge */}
@@ -592,20 +592,7 @@ export default function HomePage() {
     {
       no: 2,
       icon: (
-        <svg
-          width="70"
-          height="70"
-          viewBox="0 0 70 70"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
-            d="M32.2668 7.2013C32.9844 6.62744 33.8645 6.29409 34.7822 6.24854C35.7 6.203 36.6088 6.44756 37.3797 6.94755L37.7326 7.2013L50.3093 17.2638C50.9229 17.7542 51.4311 18.3635 51.8035 19.0552C52.1759 19.7468 52.4047 20.5066 52.4764 21.2888L52.4997 21.8167V55.4167H55.4164V30.6251C55.4162 30.2837 55.5358 29.9532 55.7544 29.691C55.9729 29.4287 56.2764 29.2515 56.6122 29.1901L56.8747 29.1667H58.333C59.8047 29.1663 61.2222 29.7221 62.3013 30.7228C63.3804 31.7234 64.0414 33.095 64.1518 34.5626L64.1664 35.0001V58.0417C64.166 58.8318 63.8742 59.594 63.3468 60.1822C62.8193 60.7705 62.0934 61.1435 61.308 61.2296L60.958 61.2501H9.04134C8.25076 61.2505 7.48786 60.959 6.89899 60.4314C6.31012 59.9039 5.93675 59.1776 5.85051 58.3917L5.83301 58.0417V35.0001C5.83254 33.5284 6.38836 32.1109 7.38904 31.0318C8.38972 29.9527 9.76131 29.2917 11.2288 29.1813L11.6663 29.1667H13.1247C13.466 29.1666 13.7966 29.2862 14.0588 29.5047C14.321 29.7232 14.4982 30.0268 14.5597 30.3626L14.583 30.6251V55.4167H17.4997V21.8167C17.4996 21.0312 17.6582 20.2538 17.966 19.5311C18.2737 18.8084 18.7242 18.1552 19.2905 17.6109L19.6901 17.2609L32.2668 7.2013ZM34.9997 26.2471C33.4526 26.2471 31.9689 26.8617 30.8749 27.9557C29.7809 29.0496 29.1663 30.5334 29.1663 32.0805C29.1663 33.6276 29.7809 35.1113 30.8749 36.2053C31.9689 37.2992 33.4526 37.9138 34.9997 37.9138C36.5468 37.9138 38.0305 37.2992 39.1245 36.2053C40.2184 35.1113 40.833 33.6276 40.833 32.0805C40.833 30.5334 40.2184 29.0496 39.1245 27.9557C38.0305 26.8617 36.5468 26.2471 34.9997 26.2471Z"
-            fill="#F7AD19"
-          />
-        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" viewBox="0 0 48 48"><g fill="none" stroke="#F7AD19" strokeWidth="4"><path strokeLinejoin="round" d="M4 33a2 2 0 0 1 2-2h6v-7l12-8l12 8v7h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4z"/><path strokeLinecap="round" d="M24 6v10"/><path strokeLinecap="round" strokeLinejoin="round" d="M36 12V6s-1.5 3-6 0s-6 0-6 0v6s1.5-3 6 0s6 0 6 0m-8 32V31h-8v13m-2 0h12"/></g></svg>
       ),
       title: "เลือกโรงเรียนที่ต้องการส่งไปบริจาค",
     },
@@ -802,7 +789,7 @@ export default function HomePage() {
                   />
                 </svg>{" "}
                 <div className="text-ban">
-                  <a>บริจาคชุดนักเรียน</a>
+                  <a style={{ display: "flex", alignItems: "center", gap: 8 }}>ส่งต่อชุดให้น้อง <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 12l-6-6m6 6l-6 6m6-6H5"/></svg></a>
                 </div>
               </a>
               <a className="pill pillWhite" href="#market">
@@ -839,7 +826,7 @@ export default function HomePage() {
                   />
                 </svg>
                 <div className="text-ban">
-                  <a>เลือกซื้อชุดมือสอง</a>
+                  <a>เลือกซื้อเพื่อบริจาค</a>
                 </div>
               </a>
             </div>
@@ -990,14 +977,15 @@ export default function HomePage() {
           </h3>
           {/* Tab pills */}
           {(() => {
-            const TAB_COLORS = { "แนะนำ": "#FFBE1B", "ใหม่ล่าสุด": "#3b82f6", "ใกล้เวลาปิด": "#f97316", "ใกล้ถึงเป้าหมาย": "#10b981", "โครงการใกล้ฉัน": "#8b5cf6" };
-            const TAB_LABELS = { "แนะนำ": "โครงการแนะนำ", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย", "โครงการใกล้ฉัน": "📍 ใกล้ฉัน" };
+            const TAB_COLORS = { "แนะนำ": "#ef4444", "ใหม่ล่าสุด": "#3b82f6", "ใกล้เวลาปิด": "#f97316", "ใกล้ถึงเป้าหมาย": "#10b981", "โครงการใกล้ฉัน": "#8b5cf6" };
+            const TAB_LABELS = { "แนะนำ": "ต้องการด่วน", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย", "โครงการใกล้ฉัน": "ใกล้ฉัน" };
             return (
               <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
                 {Object.entries(TAB_LABELS).map(([key, label]) => {
                   const active = homeTab === key;
                   return (
-                    <button key={key} onClick={() => setHomeTab(key)} style={{ padding: "8px 20px", borderRadius: 99, border: active ? `1.5px solid ${TAB_COLORS[key]}` : "1.5px solid #d1d5db", background: active ? TAB_COLORS[key] : "#fff", color: active ? "#fff" : "#374151", fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif" }}>
+                    <button key={key} onClick={() => setHomeTab(key)} style={{ padding: "8px 20px", borderRadius: 99, border: active ? `1.5px solid ${TAB_COLORS[key]}` : "1.5px solid #d1d5db", background: active ? TAB_COLORS[key] : "#fff", color: active ? "#fff" : "#374151", fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
+                      {key === "โครงการใกล้ฉัน" && <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C7.589 2 4 5.589 4 9.995C3.971 16.44 11.696 21.784 12 22c0 0 8.029-5.56 8-12c0-4.411-3.589-8-8-8m0 12c-2.21 0-4-1.79-4-4s1.79-4 4-4s4 1.79 4 4s-1.79 4-4 4"/></svg>}
                       {label}
                     </button>
                   );
@@ -1011,20 +999,22 @@ export default function HomePage() {
         {homeTab === NEARBY_TAB && showProvincePicker && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ background: "#fff", borderRadius: 16, padding: "28px 28px 24px", width: "min(92vw,420px)", boxShadow: "0 8px 40px rgba(0,0,0,0.18)", fontFamily: "Mitr, sans-serif" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                <span style={{ fontSize: 22 }}>📍</span>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 17, color: "#1e293b" }}>เลือกจังหวัดของคุณ</div>
-                  {nearbyGpsError && <div style={{ fontSize: 12, color: "#ef4444", marginTop: 2 }}>{nearbyGpsError}</div>}
-                  {!nearbyGpsError && <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>เพื่อแสดงโครงการในจังหวัดของคุณ</div>}
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 17, color: "#1e293b" }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="#8b5cf6" d="M12 2C7.589 2 4 5.589 4 9.995C3.971 16.44 11.696 21.784 12 22c0 0 8.029-5.56 8-12c0-4.411-3.589-8-8-8m0 12c-2.21 0-4-1.79-4-4s1.79-4 4-4s4 1.79 4 4s-1.79 4-4 4"/></svg>
+                  เลือกจังหวัดของคุณ
                 </div>
+                {nearbyGpsError && <div style={{ fontSize: 12, color: "#ef4444", marginTop: 4, marginLeft: 30 }}>{nearbyGpsError}</div>}
+                {!nearbyGpsError && <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, marginLeft: 30 }}>เพื่อแสดงโครงการในจังหวัดของคุณ</div>}
               </div>
               <input
                 type="text"
                 placeholder="พิมพ์ชื่อจังหวัด…"
                 value={provinceInput}
                 onChange={e => setProvinceInput(e.target.value)}
-                style={{ width: "100%", padding: "9px 14px", border: "1.5px solid #d1d5db", borderRadius: 8, fontSize: 14, fontFamily: "Mitr, sans-serif", outline: "none", boxSizing: "border-box", marginBottom: 12 }}
+                style={{ width: "100%", padding: "9px 14px", border: "1.5px solid #d1d5db", borderRadius: 8, fontSize: 14, fontFamily: "Mitr, sans-serif", outline: "none", boxShadow: "none", boxSizing: "border-box", marginBottom: 12 }}
+                onFocus={e => e.currentTarget.style.borderColor = "#d1d5db"}
+                onBlur={e => e.currentTarget.style.borderColor = "#d1d5db"}
                 autoFocus
               />
               <div style={{ maxHeight: 260, overflowY: "auto", display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -1050,8 +1040,9 @@ export default function HomePage() {
         {/* ── Nearby tab: province label + change button ── */}
         {homeTab === NEARBY_TAB && nearbyProvince && !showProvincePicker && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
-            <span style={{ background: "#ede9fe", color: "#6d28d9", padding: "5px 16px", borderRadius: 99, fontWeight: 600, fontSize: 14 }}>
-              📍 โครงการในจังหวัด{nearbyProvince}
+            <span style={{ background: "#ede9fe", color: "#6d28d9", padding: "5px 16px", borderRadius: 99, fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 5 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C7.589 2 4 5.589 4 9.995C3.971 16.44 11.696 21.784 12 22c0 0 8.029-5.56 8-12c0-4.411-3.589-8-8-8m0 12c-2.21 0-4-1.79-4-4s1.79-4 4-4s4 1.79 4 4s-1.79 4-4 4"/></svg>
+              โครงการในจังหวัด{nearbyProvince}
             </span>
             <button onClick={handleChangeProvince} style={{ background: "none", border: "1.5px solid #c4b5fd", color: "#7c3aed", borderRadius: 99, padding: "5px 14px", fontSize: 13, cursor: "pointer", fontFamily: "Mitr, sans-serif", fontWeight: 500 }}>
               เปลี่ยนจังหวัด
@@ -1076,7 +1067,9 @@ export default function HomePage() {
                   <div style={{ padding: "48px 0", textAlign: "center" }}>
                     {homeTab === NEARBY_TAB ? (
                       <div style={{ color: "#94a3b8", fontFamily: "Mitr, sans-serif" }}>
-                        <div style={{ fontSize: 36, marginBottom: 10 }}>🏫</div>
+                        <div style={{ marginBottom: 10, color: "#8b5cf6" }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" strokeWidth="4"><path strokeLinejoin="round" d="M4 33a2 2 0 0 1 2-2h6v-7l12-8l12 8v7h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4z"/><path strokeLinecap="round" d="M24 6v10"/><path strokeLinecap="round" strokeLinejoin="round" d="M36 12V6s-1.5 3-6 0s-6 0-6 0v6s1.5-3 6 0s6 0 6 0m-8 32V31h-8v13m-2 0h12"/></g></svg>
+                        </div>
                         <div style={{ fontSize: 16, fontWeight: 500, color: "#475569", marginBottom: 6 }}>ยังไม่มีโครงการในจังหวัด{nearbyProvince}</div>
                         <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>ลองเลือกจังหวัดอื่นดูนะ</div>
                         <button onClick={handleChangeProvince} style={{ background: "#8b5cf6", color: "#fff", border: "none", borderRadius: 99, padding: "8px 22px", fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif", fontWeight: 500 }}>
@@ -1105,7 +1098,7 @@ export default function HomePage() {
             </div>
             {/* Navigate link */}
             {homeTab !== NEARBY_TAB && (() => {
-              const TAB_LABELS = { "แนะนำ": "โครงการแนะนำ", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย" };
+              const TAB_LABELS = { "แนะนำ": "ต้องการด่วน", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย" };
               return (
                 <div style={{ textAlign: "center", marginTop: 24 }}>
                   <Link to="/projects" state={{ collection: homeTab }} onMouseEnter={() => setNavHover(true)} onMouseLeave={() => setNavHover(false)} style={{ color: navHover ? "#5285E8" : "#053f5c", fontWeight: 600, fontSize: 15, textDecoration: "underline", textUnderlineOffset: 3, transition: "color 0.2s" }}>
@@ -1152,10 +1145,10 @@ export default function HomePage() {
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 512 512"><path fill="currentColor" fillRule="evenodd" d="M334.434 206.171c0 13.516-3.435 25.318-10.288 35.397c-5.65 8.47-15.12 17.649-28.436 27.534c-7.664 5.247-12.711 10.184-15.126 14.823c-3.04 5.648-4.54 14.113-4.54 25.409h-42.666c0-17.137 1.824-29.64 5.454-37.504c4.23-9.483 13.407-19.064 27.521-28.743c6.664-5.045 11.503-10.183 14.529-15.425c3.625-5.852 5.449-12.503 5.449-19.966c0-11.899-3.539-20.766-10.594-26.624c-5.636-4.228-12.502-6.345-20.569-6.345c-13.108 0-22.59 4.339-28.436 13.009c-4.236 6.45-6.36 14.719-6.36 24.8v.304h-45.361c0-26.422 8.36-46.382 25.09-59.898c14.12-11.283 31.574-16.94 52.34-16.94c18.16 0 34.092 3.533 47.798 10.588c22.803 11.703 34.195 31.572 34.195 59.581m134.9 49.83c0 117.82-95.513 213.333-213.334 213.333c-117.82 0-213.333-95.513-213.333-213.334S138.18 42.667 256 42.667S469.334 138.179 469.334 256m-42.667 0c0-94.107-76.561-170.667-170.667-170.667S85.334 161.894 85.334 256S161.894 426.667 256 426.667S426.667 350.106 426.667 256m-170.668 69.333c-14.728 0-26.667 11.938-26.667 26.666s11.94 26.667 26.667 26.667s26.667-11.939 26.667-26.667s-11.94-26.666-26.667-26.666"/></svg>
           </div>
           {[
-            { q: "ชุดมือสองส่งได้มั้ย หรือต้องเป็นชุดใหม่?", a: "ชุดมือสองได้เลย ขอแค่ซักสะอาดและอยู่ในสภาพที่ใส่ได้ ไม่ต้องเป็นชุดใหม่" },
-            { q: "รู้ได้ยังไงว่าโรงเรียนต้องการขนาดอะไร?", a: "แต่ละโครงการระบุขนาดและประเภทชุดที่ต้องการไว้ชัดเจน เลือกบริจาคได้ตรงเลย" },
+            { q: "ชุดมือสองส่งได้มั้ย หรือต้องเป็นชุดใหม่?", a: "ชุดมือสองส่งได้เลย ขอแค่ซักสะอาดและอยู่ในสภาพที่ใส่ได้ ไม่จำเป็นต้องเป็นชุดใหม่" },
+            { q: "รู้ได้ยังไงว่าโรงเรียนต้องการขนาดอะไร?", a: "แต่ละโครงการจะระบุขนาดและประเภทชุดที่ต้องการไว้ชัดเจน สามารถเลือกบริจาคได้โดยตรงกับชุดที่มีเลย" },
             { q: "ของที่ส่งไปถึงโรงเรียนจริงมั้ย?", a: "เมื่อโรงเรียนยืนยันรับของแล้ว ระบบจะแจ้งเตือนพร้อมส่งใบรับรองการบริจาคให้คุณโดยตรง" },
-            { q: "ถ้าไม่มีชุด แต่อยากช่วย ทำได้มั้ย?", a: "ซื้อชุดมือสองในราคาถูกจากร้านค้าของเราแล้วบริจาคต่อได้เลย ไม่ต้องมีชุดอยู่ก่อน" },
+            { q: "ถ้าไม่มีชุด แต่อยากช่วย ทำได้มั้ย?", a: "คุณสามารถซื้อชุดมือสองในราคาถูกจากร้านค้าของเราแล้วบริจาคต่อได้เลย ไม่จำเป็นต้องมีชุดอยู่ก่อน" },
           ].map((item, i) => (
             <div key={i} className={`faqItem${faqOpen === i ? " faqItemOpen" : ""}`}>
               <button className="faqQ" onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
@@ -1174,12 +1167,13 @@ export default function HomePage() {
       {/* ===== Market ===== */}
       <section id="market" className="section">
         <div className="sectionHead">
-          <h3>ตลาดชุดนักเรียนมือสอง</h3>
-        <div>
-  <Link className="btnGhost" to="/market">
-    ดูทั้งหมด
-  </Link>
-</div>
+          <div>
+            <h3 style={{ fontSize: 32, fontWeight: 500, color: "#5285E8", margin: 0 }}>ตลาดชุดนักเรียนมือสอง</h3>
+            <p style={{ fontSize: 14, color: "#64748b", marginTop: 4, marginBottom: 0 }}>ชุดมือสองคุณภาพดี • ราคาประหยัด • ส่งถึงมือน้องได้จริง</p>
+          </div>
+          <div>
+            <Link className="btnGhost" to="/market">ดูทั้งหมด</Link>
+          </div>
         </div>
 
         {loading ? (
@@ -1309,38 +1303,43 @@ export default function HomePage() {
       </section>
 
       {/* ===== Closed Projects ===== */}
-      {closedProjects.length > 0 && (
-        <section className="section closedSection">
-          <div className="closedSecHead">
-            <div className="closedSecTitle">ผลลัพธ์จากการร่วมส่งต่อของทุกคน</div>
-            <div className="closedSecSub">ทุกชุดที่ท่านร่วมส่งต่อ ทำให้เกิดสิ่งเหล่านี้...</div>
-          </div>
-          <div className="closedGrid">
-            {closedProjects.map(p => {
-              const pct = p.total_needed > 0 ? Math.min(Math.round((p.total_fulfilled / p.total_needed) * 100), 100) : 0;
-              return (
-                <div key={p.request_id} className="closedCard" onClick={() => navigate(`/projects/${p.request_id}`, { state: { tab: "review" } })}>
-                  <span className="closedCardArrow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h10m0 0v10m0-10L7 17"/></svg></span>
-                  <div className="closedCardImg">
-                    {p.request_image_url
-                      ? <img src={p.request_image_url} alt={p.school_name} />
-                      : <div className="closedCardImgEmpty">🎒</div>}
-                    <span className="closedBadge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 14 14"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M2.5.5v13m0-13l9 4.5l-9 4.5" strokeWidth="1"/></svg>ปิดโครงการ</span>
-                  </div>
-                  <div className="closedCardBody">
-                    <div className="closedCardSchool">{p.school_name}</div>
-                    <div className="closedCardTitle">{p.request_title}</div>
-                    <div className="closedCardBar">
-                      <div className="closedCardBarFill" style={{ width: `${pct}%` }} />
+      {closedProjects.length > 0 && (() => {
+        const totalFulfilled = closedProjects.reduce((sum, p) => sum + (p.total_fulfilled || 0), 0);
+        return (
+          <section className="section closedSection">
+            <div className="closedSecHead">
+              <div className="closedSecTitle">ผลลัพธ์จากการร่วมส่งต่อของทุกคน</div>
+              <div className="closedSecSub">ทุกชุดที่ท่านร่วมส่งต่อ ทำให้เกิดสิ่งเหล่านี้...</div>
+            </div>
+
+
+            <div className="closedScroll">
+              {closedProjects.map(p => {
+                const pct = p.total_needed > 0 ? Math.min(Math.round((p.total_fulfilled / p.total_needed) * 100), 100) : 0;
+                return (
+                  <div key={p.request_id} className="closedCard" onClick={() => navigate(`/projects/${p.request_id}`)}>
+                    <span className="closedCardArrow"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h10m0 0v10m0-10L7 17"/></svg></span>
+                    <div className="closedCardImg">
+                      {p.request_image_url
+                        ? <img src={p.request_image_url} alt={p.school_name} />
+                        : <div className="closedCardImgEmpty">🎒</div>}
+                      <span className="closedBadge"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 14 14"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M2.5.5v13m0-13l9 4.5l-9 4.5" strokeWidth="1"/></svg>ปิดโครงการ</span>
                     </div>
-                    <div className="closedCardPct">ส่งต่อแล้ว {p.total_fulfilled} / {p.total_needed} ชุด ({pct}%)</div>
+                    <div className="closedCardBody">
+                      <div className="closedCardSchool">{p.school_name}</div>
+                      <div className="closedCardTitle">{p.request_title}</div>
+                      <div className="closedCardBar">
+                        <div className="closedCardBarFill" style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="closedCardPct">ส่งต่อแล้ว {p.total_fulfilled} / {p.total_needed} ชุด ({pct}%)</div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ===== Testimonials ===== */}
       {lightboxImg && createPortal(
@@ -1455,11 +1454,11 @@ export default function HomePage() {
 
           <div className="footCol">
             <div className="footTitle">เมนูลัด</div>
-            <a href="#home">หน้าหลัก</a>
-            <a href="#projects">โครงการ</a>
-            <a href="#market">ร้านค้า</a>
-            <a href="#sell">ลงขาย</a>
-            <a href="#about">เกี่ยวกับเรา</a>
+            <Link to="/" onClick={() => window.scrollTo(0, 0)}>หน้าหลัก</Link>
+            <Link to="/projects">โครงการ</Link>
+            <Link to="/market">ร้านค้า</Link>
+            <Link to="/sell">ลงขาย</Link>
+            <a href="#about" onClick={e => { e.preventDefault(); document.getElementById("about")?.scrollIntoView({ behavior: "smooth" }); }}>เกี่ยวกับเรา</a>
           </div>
 
           <div className="footCol">

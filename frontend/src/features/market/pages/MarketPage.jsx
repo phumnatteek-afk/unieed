@@ -658,11 +658,11 @@ const handleMaxPriceChange = (e) => {
 
           <div className="footCol">
             <div className="footTitle">เมนูลัด</div>
-            <a href="#home">หน้าหลัก</a>
-            <a href="#projects">โครงการ</a>
-            <a href="#market">ร้านค้า</a>
-            <a href="#sell">ลงขาย</a>
-            <a href="#about">เกี่ยวกับเรา</a>
+            <Link to="/" onClick={() => window.scrollTo(0, 0)}>หน้าหลัก</Link>
+            <Link to="/projects">โครงการ</Link>
+            <Link to="/market">ร้านค้า</Link>
+            <Link to="/sell">ลงขาย</Link>
+            <Link to="/#about">เกี่ยวกับเรา</Link>
           </div>
 
           <div className="footCol">

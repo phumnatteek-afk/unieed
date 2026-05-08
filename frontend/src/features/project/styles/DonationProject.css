@@ -509,7 +509,7 @@ display: flex;
 }
 
 .dpCardBtn {
-  background: #FFBE1B;
+  background: #FC8D1F;
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -522,7 +522,7 @@ display: flex;
 }
 
 .dpCardBtn:hover {
-  background: #f0ad00;
+  background: #e07010;
 }
 
 @media (max-width: 640px) {

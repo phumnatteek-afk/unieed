@@ -300,7 +300,6 @@ body, html {
 }
 .heroSearchBtn:hover {
   background: #e07010;
-  border-color: #e07010;
   color: #fff;
 }
 .heroSearchArrow {
@@ -367,23 +366,23 @@ body, html {
 }
 
 .pill {
-  height: 60px;
-  padding: 0 20px;
+  height: 72px;
+  padding: 0 28px;
   border-radius: 999px;
   font-weight: 400;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, .12);
   text-shadow: none;
   position: relative;
   bottom: 20px;
+  transition: background 0.18s;
 }
 
 .text-ban a {
-  font-size: 20px;
-  font-weight: 400;
+  font-size: 22px;
+  font-weight: 600;
   margin-left: 10px;
 }
 
@@ -391,27 +390,24 @@ body, html {
   margin-right: 8px;
 }
 
-/* .pill .pillYellow{
-  margin-right: 5px;
-} */
 .pillYellow {
-  background: #FFBE1B;
+  background: #FC8D1F;
   color: #fff;
-  border: 2px solid#ffff;
+  border: 2.5px solid #fff;
 }
 
 .pillWhite {
-  background: #fff;
-  color: #FFBE1B;
-  border: 2px solid#FFBE1B;
+  background: #2563eb;
+  color: #fff;
+  border: 2.5px solid #fff;
 }
 
 .pillYellow:hover {
-  background: #ecaf14;
+  background: #e07010;
 }
 
 .pillWhite:hover {
-  background: #f0f0f0;
+  background: #1d4ed8;
 }
 
 /* ===== STATS ===== */
@@ -1518,8 +1514,27 @@ gap: 20px;
 }
 
 /* ===== Closed Projects Section ===== */
-.closedSection { background: #FFFBF0; padding: 60px 40px; margin-top: 100px; }
-.closedSecHead { display:flex; flex-direction:column; align-items:center; margin-bottom:36px; }
+.closedSection {
+  background: #FFFBF0; padding: 60px 40px; margin-top: 100px;
+  position: relative; overflow: hidden;
+}
+.closedSection::before {
+  content: "";
+  position: absolute; top: -160px; left: -160px;
+  width: 420px; height: 420px;
+  border-radius: 50%;
+  background: #F3D79B;
+  opacity: 0.5; pointer-events: none;
+}
+.closedSection::after {
+  content: "";
+  position: absolute; bottom: -160px; right: -160px;
+  width: 420px; height: 420px;
+  border-radius: 50%;
+  background: #F3D79B;
+  opacity: 0.5; pointer-events: none;
+}
+.closedSecHead { display:flex; flex-direction:column; align-items:center; margin-bottom:32px; position: relative; z-index: 1; }
 .closedSecTitle {
   font-size: 28px; font-weight: 800; color: #F59E0B;
   text-align: center; margin-bottom: 8px;
@@ -1527,11 +1542,31 @@ gap: 20px;
 .closedSecSub {
   font-size: 18px; color: #1f2937; text-align: center;
 }
-.closedGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 20px; max-width: 1200px; margin: 0 auto;
+
+/* Impact Numbers */
+.closedImpact { position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; margin-bottom: 40px;
+  background: #fff; border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(245,158,11,0.10);
+  border: 1.5px solid #fde68a;
+  max-width: 600px; margin-left: auto; margin-right: auto;
+  padding: 24px 0; margin-bottom: 40px;
 }
+.closedImpactItem { flex: 1; text-align: center; }
+.closedImpactNum { font-size: 36px; font-weight: 800; color: #F59E0B; line-height: 1; margin-bottom: 6px; }
+.closedImpactLabel { font-size: 13px; color: #6b7280; font-weight: 500; }
+.closedImpactDivider { width: 1px; height: 48px; background: #fde68a; flex-shrink: 0; }
+
+/* Horizontal Scroll */
+.closedScroll {
+  position: relative; z-index: 1;
+  display: flex; gap: 20px;
+  overflow-x: auto; padding-bottom: 12px;
+  max-width: 1200px; margin: 0 auto;
+  scrollbar-width: none;
+}
+.closedScroll::-webkit-scrollbar { display: none; }
 .closedCard {
   background: #fff; border-radius: 14px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.08);
@@ -1540,6 +1575,7 @@ gap: 20px;
   transition: background 0.15s;
   position: relative;
   display: flex; flex-direction: column;
+  min-width: 360px; width: 360px; flex-shrink: 0;
 }
 .closedCard:hover { background: #fafafa; }
 .closedCard:hover .closedCardArrow { color: #f97316; }

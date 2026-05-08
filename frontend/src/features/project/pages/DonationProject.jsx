@@ -147,11 +147,11 @@ function groupItems(items = []) {
 }
 
 const COLLECTION_BADGE_CONFIG = {
-  "แนะนำ":               { bg: "#FFBE1B", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2l2.4 7.4H22l-6.2 4.5l2.4 7.4L12 17l-6.2 4.3l2.4-7.4L2 9.4h7.6z"/></svg> },
-  "ใหม่ล่าสุด":          { bg: "#3b82f6", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M9 2h6v7h5l-8 9l-8-9h5zm-1 18h8v2H8z"/></svg> },
-  "ใกล้เวลาปิด":         { bg: "#f97316", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
-  "ใกล้ถึงเป้าหมาย":    { bg: "#10b981", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8zm0-12a4 4 0 1 0 4 4a4 4 0 0 0-4-4zm0 6a2 2 0 1 1 2-2a2 2 0 0 1-2 2z"/></svg> },
-  "ปิดโครงการ":          { bg: "#6b7280", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 14 14"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M2.5.5v13m0-13l9 4.5l-9 4.5" strokeWidth="1"/></svg> },
+  "แนะนำ":               { bg: "#ef4444", color: "#fff", label: "ต้องการด่วน", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M17.66 11.2c-.23-.3-.51-.56-.77-.82c-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32c-2.59 2.08-3.61 5.75-2.39 8.9c.04.1.08.2.08.33c0 .22-.15.42-.35.5c-.23.1-.47.04-.66-.12a.58.58 0 0 1-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5c.14.6.41 1.2.71 1.73c1.08 1.73 2.95 2.97 4.96 3.22c2.14.27 4.43-.12 6.07-1.6c1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26m-3.16 6.3c-.28.24-.74.5-1.1.6c-1.12.4-2.24-.16-2.9-.82c1.19-.28 1.9-1.16 2.11-2.05c.17-.8-.15-1.46-.28-2.23c-.12-.74-.1-1.37.17-2.06c.19.38.39.76.63 1.06c.77 1 1.98 1.44 2.24 2.8c.06.14.09.28.09.43c.03.82-.33 1.72-.96 2.27"/></svg> },
+  "ใหม่ล่าสุด":          { bg: "#3b82f6", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36"><path fill="currentColor" d="m34.11 24.49l-3.92-6.62l3.88-6.35a1 1 0 0 0-.85-1.52H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h31.25a1 1 0 0 0 .86-1.51m-23.6-3.31H9.39l-3.26-4.34v4.35H5V15h1.13l3.27 4.35V15h1.12ZM16.84 16h-3.53v1.49h3.2v1h-3.2v1.61h3.53v1h-4.66V15h4.65Zm8.29 5.16H24l-1.55-4.59l-1.55 4.61h-1.12l-2-6.18H19l1.32 4.43L21.84 15h1.22l1.46 4.43L25.85 15h1.23Z"/><path fill="none" d="M0 0h36v36H0z"/></svg> },
+  "ใกล้เวลาปิด":         { bg: "#f97316", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+  "ใกล้ถึงเป้าหมาย":    { bg: "#10b981", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8zm0-12a4 4 0 1 0 4 4a4 4 0 0 0-4-4zm0 6a2 2 0 1 1 2-2a2 2 0 0 1-2 2z"/></svg> },
+  "ปิดโครงการ":          { bg: "#6b7280", color: "#fff", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 14 14"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M2.5.5v13m0-13l9 4.5l-9 4.5" strokeWidth="1"/></svg> },
 };
 
 function ProjectCard({ p, navigate, details, style, collectionLabel }) {
@@ -206,9 +206,9 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
         )}
         {/* top-left: collection badge */}
         {collectionLabel && COLLECTION_BADGE_CONFIG[collectionLabel] && (
-          <div style={{ position: "absolute", top: 10, left: 10, background: COLLECTION_BADGE_CONFIG[collectionLabel].bg, color: COLLECTION_BADGE_CONFIG[collectionLabel].color, borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ position: "absolute", top: 10, left: 10, background: COLLECTION_BADGE_CONFIG[collectionLabel].bg, color: COLLECTION_BADGE_CONFIG[collectionLabel].color, borderRadius: 20, padding: "4px 10px", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
             {COLLECTION_BADGE_CONFIG[collectionLabel].icon}
-            {collectionLabel}
+            {COLLECTION_BADGE_CONFIG[collectionLabel].label || collectionLabel}
           </div>
         )}
         {/* top-right: countdown badge */}
@@ -838,14 +838,14 @@ useEffect(() => {
         {!loading && heroSlides.length > 0 ? (() => {
           const cur = heroSlides[heroIdx];
           const tagMap = {
-            closing:     { label: "ใกล้เวลาปิด", bg: "#ef4444", icon: <Icon icon="mdi:clock-alert-outline" width={12} /> },
-            newest:      { label: "ใหม่ล่าสุด",   bg: "#2563eb", icon: <Icon icon="mdi:new-box" width={13} /> },
-            recommended: { label: "โครงการแนะนำ", bg: "#FFBE1B", icon: <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2l2.4 7.4H22l-6.2 4.5l2.4 7.4L12 17l-6.2 4.3l2.4-7.4L2 9.4h7.6z"/></svg> },
+            closing:     { label: "ใกล้เวลาปิด", bg: "#ef4444", icon: <Icon icon="mdi:clock-alert-outline" width={24} /> },
+            newest:      { label: "ใหม่ล่าสุด",   bg: "#2563eb", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36"><path fill="currentColor" d="m34.11 24.49l-3.92-6.62l3.88-6.35a1 1 0 0 0-.85-1.52H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h31.25a1 1 0 0 0 .86-1.51m-23.6-3.31H9.39l-3.26-4.34v4.35H5V15h1.13l3.27 4.35V15h1.12ZM16.84 16h-3.53v1.49h3.2v1h-3.2v1.61h3.53v1h-4.66V15h4.65Zm8.29 5.16H24l-1.55-4.59l-1.55 4.61h-1.12l-2-6.18H19l1.32 4.43L21.84 15h1.22l1.46 4.43L25.85 15h1.23Z"/><path fill="none" d="M0 0h36v36H0z"/></svg> },
+            recommended: { label: "ต้องการด่วน", bg: "#ef4444", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M17.66 11.2c-.23-.3-.51-.56-.77-.82c-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32c-2.59 2.08-3.61 5.75-2.39 8.9c.04.1.08.2.08.33c0 .22-.15.42-.35.5c-.23.1-.47.04-.66-.12a.58.58 0 0 1-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5c.14.6.41 1.2.71 1.73c1.08 1.73 2.95 2.97 4.96 3.22c2.14.27 4.43-.12 6.07-1.6c1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26m-3.16 6.3c-.28.24-.74.5-1.1.6c-1.12.4-2.24-.16-2.9-.82c1.19-.28 1.9-1.16 2.11-2.05c.17-.8-.15-1.46-.28-2.23c-.12-.74-.1-1.37.17-2.06c.19.38.39.76.63 1.06c.77 1 1.98 1.44 2.24 2.8c.06.14.09.28.09.43c.03.82-.33 1.72-.96 2.27"/></svg> },
           };
           const tag = tagMap[cur?._heroTag] || tagMap.recommended;
           return (
             <div className="dpHeroContent">
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: tag.bg, color: "#fff", borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 600, marginBottom: 10 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: tag.bg, color: "#fff", borderRadius: 20, padding: "3px 12px", fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
                 {tag.icon}{tag.label}
               </div>
               <h1 className="dpHeroTitle">{cur?.school_name}</h1>
@@ -1030,10 +1030,16 @@ useEffect(() => {
           {/* ── คอลเลคชัน ── */}
           <div className="dpFilterSubLabel" style={{ marginBottom: 10, marginTop: 16 }}>กรองโครงการ</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 200 }}>
-            {["แนะนำ", "ใหม่ล่าสุด", "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย", "ปิดโครงการ"].map(col => (
-              <label key={col} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: selCollections.includes(col) ? "#053f5c" : "#f3f4f6", color: selCollections.includes(col) ? "#fff" : "#374151", borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 500, userSelect: "none", transition: "all 0.2s" }}>
-                <input type="checkbox" checked={selCollections.includes(col)} onChange={() => toggleCollection(col)} style={{ display: "none" }} />
-                {col}
+            {[
+              { key: "แนะนำ", label: "ต้องการด่วน" },
+              { key: "ใหม่ล่าสุด", label: "ใหม่ล่าสุด" },
+              { key: "ใกล้เวลาปิด", label: "ใกล้เวลาปิด" },
+              { key: "ใกล้ถึงเป้าหมาย", label: "ใกล้ถึงเป้าหมาย" },
+              { key: "ปิดโครงการ", label: "ปิดโครงการ" },
+            ].map(({ key, label }) => (
+              <label key={key} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: selCollections.includes(key) ? "#053f5c" : "#f3f4f6", color: selCollections.includes(key) ? "#fff" : "#374151", borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 500, userSelect: "none", transition: "all 0.2s" }}>
+                <input type="checkbox" checked={selCollections.includes(key)} onChange={() => toggleCollection(key)} style={{ display: "none" }} />
+                {label}
               </label>
             ))}
           </div>
@@ -1118,11 +1124,11 @@ useEffect(() => {
 
           <div className="footCol">
             <div className="footTitle">เมนูลัด</div>
-            <a href="#Homepage">หน้าหลัก</a>
-            <a href="#projects">โครงการ</a>
-            <a href="#market">ร้านค้า</a>
-            <a href="#sell">ลงขาย</a>
-            <a href="#about">เกี่ยวกับเรา</a>
+            <Link to="/" onClick={() => window.scrollTo(0, 0)}>หน้าหลัก</Link>
+            <Link to="/projects">โครงการ</Link>
+            <Link to="/market">ร้านค้า</Link>
+            <Link to="/sell">ลงขาย</Link>
+            <Link to="/#about">เกี่ยวกับเรา</Link>
           </div>
 
           <div className="footCol">

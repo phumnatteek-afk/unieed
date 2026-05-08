@@ -21,6 +21,7 @@ export default function ProjectDetailPage() {
   const [selectedMethod, setSelectedMethod] = useState("parcel");
   const [activeLevel, setActiveLevel] = useState(null);
   const [lightboxImg, setLightboxImg] = useState(null);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   // ── Uniform filter states ──
   const [activeGender, setActiveGender] = useState("male");   // "male" | "female"
@@ -33,6 +34,7 @@ export default function ProjectDetailPage() {
 
   const reviewRef = useRef(null);
   const shouldScrollRef = useRef(location.state?.tab === "review");
+  const summaryRef = useRef(null);
 
   useEffect(() => {
     if (location.state?.tab === "review") {
@@ -46,6 +48,14 @@ export default function ProjectDetailPage() {
       setTimeout(() => {
         reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 200);
+    }
+  }, [project]);
+
+  useEffect(() => {
+    if (project?.status === "archived") {
+      setTimeout(() => {
+        summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
     }
   }, [project]);
 
@@ -428,7 +438,7 @@ export default function ProjectDetailPage() {
                     <span className="pdProgressPct">{pct}%</span>
                   </div>
 
-                  {/* ── 3-segment bar ── */}
+                  {/* ── Bar ── */}
                   <div className="pdProgressTrack" style={{ display: "flex", overflow: "hidden" }}>
                     {pctGreen > 0 && <div style={{ width: `${pctGreen}%`, background: "#34d399", height: "100%", transition: "width .5s" }} />}
                     {pctBlue  > 0 && <div style={{ width: `${pctBlue}%`,  background: "#818cf8", height: "100%", transition: "width .5s" }} />}
@@ -462,7 +472,22 @@ export default function ProjectDetailPage() {
                   )}
                 </div>
                 {project.request_description && (
-                  <blockquote className="pdQuote">"{project.request_description}"</blockquote>
+                  <blockquote className="pdQuote">
+                    <span style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: descExpanded ? "unset" : 4,
+                      WebkitBoxOrient: "vertical",
+                      overflow: descExpanded ? "visible" : "hidden",
+                    }}>
+                      "{project.request_description}"
+                    </span>
+                    <span
+                      onClick={() => setDescExpanded(v => !v)}
+                      style={{ display: "block", marginTop: 6, fontSize: 13, color: "#F59E0B", cursor: "pointer", fontWeight: 600 }}
+                    >
+                      {descExpanded ? "ย่อลง" : "ดูเพิ่มเติม"}
+                    </span>
+                  </blockquote>
                 )}
               </div>
 
@@ -631,41 +656,6 @@ export default function ProjectDetailPage() {
                     </div>
                   </div>
 
-                  {/* ── Summary Cards ── */}
-                  <div ref={reviewRef} style={{ fontSize: 20, fontWeight: 600, color: "#053f5c", marginTop: 16, marginBottom: 8, display: "flex", alignItems: "center", gap: 13 }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" style={{ color: "#F5A623", flexShrink: 0 }}><path fill="currentColor" d="m16 11.78l4.24-7.33l1.73 1l-5.23 9.05l-6.51-3.75L5.46 19H22v2H2V3h2v14.54L9.5 8z"/></svg>
-                    สรุปรายงานการบริจาค
-                  </div>
-                  {(() => {
-                    const sc = (color, value, unit, label, icon) => (
-                      <div style={{ background: color, borderRadius: 12, padding: "12px 6px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, color: "#fff" }}>
-                        {icon}
-                        <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.1 }}>
-                          {value} <span style={{ fontSize: 14, fontWeight: 600 }}>{unit}</span>
-                        </div>
-                        <div style={{ fontSize: 12, fontWeight: 300, lineHeight: 1.2 }}>{label}</div>
-                      </div>
-                    );
-                    return (
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                          {sc("#87c7eb", needed, "ตัว", "ขอรับทั้งหมด",
-                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24"><g fill="none"><path d="m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z"/><path fill="currentColor" d="M8.024 3.001L15.847 3c.13 0 .258.002.384.029l.124.036a2 2 0 0 1 1.488 2.056l-.016.162l-.158 1.104l1.059.264a3 3 0 0 1 2.267 2.732l.005.179V18a3 3 0 0 1-2.824 2.995L18 21H6a3 3 0 0 1-2.995-2.824L3 18V9.562A3 3 0 0 1 5.1 6.7l.172-.049l1.059-.264l-.158-1.104A2 2 0 0 1 7.497 3.11l.148-.045c.123-.047.25-.06.379-.064m9.36 5.376l-.296 2.078a1.5 1.5 0 0 1-2.156 1.13L13 10.617V19h5a1 1 0 0 0 1-1V9.562a1 1 0 0 0-.758-.97l-.857-.215Zm-10.769 0l-.858.214a1 1 0 0 0-.75.857L5 9.562V18a1 1 0 0 0 .883.993L6 19h5v-8.382l-1.932.966a1.5 1.5 0 0 1-2.132-1l-.024-.13zM17 14a1 1 0 0 1 0 2h-1a1 1 0 1 1 0-2zm-1.29-8.036L13.553 8.66l1.652.826l.503-3.52Zm-7.42 0l.504 3.521l1.652-.826l-2.155-2.695ZM13.92 5h-3.84L12 7.4z"/></g></svg>
-                          )}
-                          {sc("#818cf8", project.donor_count || 0, "คน", "ผู้บริจาค",
-                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 256 256"><path fill="currentColor" d="M230.33 141.06a24.34 24.34 0 0 0-18.61-4.77C230.5 117.33 240 98.48 240 80c0-26.47-21.29-48-47.46-48A47.58 47.58 0 0 0 156 48.75A47.58 47.58 0 0 0 119.46 32C93.29 32 72 53.53 72 80c0 11 3.24 21.69 10.06 33a31.87 31.87 0 0 0-14.75 8.4L44.69 144H16a16 16 0 0 0-16 16v40a16 16 0 0 0 16 16h104a8 8 0 0 0 1.94-.24l64-16a7 7 0 0 0 1.19-.4L226 182.82l.44-.2a24.6 24.6 0 0 0 3.93-41.56ZM119.46 48a31.15 31.15 0 0 1 29.14 19a8 8 0 0 0 14.8 0a31.15 31.15 0 0 1 29.14-19C209.59 48 224 62.65 224 80c0 19.51-15.79 41.58-45.66 63.9l-11.09 2.55A28 28 0 0 0 140 112h-39.32C92.05 100.36 88 90.12 88 80c0-17.35 14.41-32 31.46-32M16 160h24v40H16Zm203.43 8.21l-38 16.18L119 200H56v-44.69l22.63-22.62A15.86 15.86 0 0 1 89.94 128H140a12 12 0 0 1 0 24h-28a8 8 0 0 0 0 16h32a8.3 8.3 0 0 0 1.79-.2l67-15.41l.31-.08a8.6 8.6 0 0 1 6.3 15.9Z"/></svg>
-                          )}
-                          {sc("#34d399", fulfilled, "ตัว", "ยืนยันรับแล้ว",
-                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24"><g fill="currentColor"><path d="M10.243 16.314L6 12.07l1.414-1.414l2.829 2.828l5.656-5.657l1.415 1.415z"/><path fillRule="evenodd" d="M1 12C1 5.925 5.925 1 12 1s11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12m11 9a9 9 0 1 1 0-18a9 9 0 0 1 0 18" clipRule="evenodd"/></g></svg>
-                          )}
-                          {sc("#FFBE1B", pending, "ตัว", "รอตรวจรับ",
-                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0-18 0"/><path d="M12 7v5l3 3"/></g></svg>
-                          )}
-                          {sc("#ef4444", remaining, "ตัว", "ยังต้องการ",
-                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 14 14"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M2.5.5v13m0-13l9 4.5l-9 4.5" strokeWidth="1"/></svg>
-                          )}
-                      </div>
-                    );
-                  })()}
                 </div>
 
                 <div className="pdDetailRight">
@@ -699,29 +689,41 @@ export default function ProjectDetailPage() {
               </div>
 
             <div className="pdReviews" style={{ marginTop: 50 }}>
-              {project.status === "archived" && (
-                <div className="pdSummaryCard">
-                  <div className="pdSummaryTitle">🎉 สรุปผลโครงการ</div>
+              <div className="pdSummaryCard" ref={summaryRef}>
+                  <div className="pdSummaryTitle">
+                    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M30 1H4C2.343 1 1 2.343 1 4V30C1 31.657 2.343 33 4 33H30C31.657 33 33 31.657 33 30V4C33 2.343 31.657 1 30 1Z" fill="#CCD6DD"/><path d="M30 0H4C1.791 0 0 1.791 0 4V30C0 32.209 1.791 34 4 34H30C32.209 34 34 32.209 34 30V4C34 1.791 32.209 0 30 0ZM30 2C31.103 2 32 2.897 32 4V8H26V2H30ZM26 18H32V24H26V18ZM26 16V10H32V16H26ZM24 2V8H18V2H24ZM18 10H24V16H18V10ZM18 18H24V24H18V18ZM16 2V8H10V2H16ZM10 10H16V16H10V10ZM10 18H16V24H10V18ZM2 4C2 2.897 2.897 2 4 2H8V8H2V4ZM2 10H8V16H2V10ZM2 18H8V24H2V18ZM4 32C2.897 32 2 31.103 2 30V26H8V32H4ZM10 32V26H16V32H10ZM18 32V26H24V32H18ZM30 32H26V26H32V30C32 31.103 31.103 32 30 32Z" fill="#E1E8ED"/><path d="M12 32H6V15C6 13.896 6.896 13 8 13H10C11.104 13 12 13.896 12 15V32Z" fill="#5C913B"/><path d="M28 32H22V8C22 6.896 22.896 6 24 6H26C27.104 6 28 6.896 28 8V32Z" fill="#3B94D9"/><path d="M20 32H14V22C14 20.896 14.896 20 16 20H18C19.104 20 20 20.896 20 22V32Z" fill="#DD2E44"/></svg>
+                    {project.status === "archived" ? "สรุปผลโครงการ" : "ความคืบหน้าโครงการ"}
+                  </div>
                   <div className="pdSummaryStats">
                     <div className="pdSummaryStat">
                       <div className="pdSummaryVal">{needed}</div>
                       <div className="pdSummaryLabel">ชุดที่ขอรับบริจาค</div>
                     </div>
                     <div className="pdSummaryStat">
+                      <div className="pdSummaryVal" style={{ color: "#818cf8" }}>{project.donor_count || 0}</div>
+                      <div className="pdSummaryLabel">ผู้บริจาค</div>
+                    </div>
+                    <div className="pdSummaryStat">
                       <div className="pdSummaryVal" style={{ color: "#16a34a" }}>{fulfilled}</div>
                       <div className="pdSummaryLabel">ใช้งานได้</div>
+                    </div>
+                    <div className="pdSummaryStat">
+                      <div className="pdSummaryVal" style={{ color: "#f59e0b" }}>{pending}</div>
+                      <div className="pdSummaryLabel">รอตรวจรับ</div>
+                    </div>
+                    <div className="pdSummaryStat">
+                      <div className="pdSummaryVal" style={{ color: "#ef4444" }}>{remaining}</div>
+                      <div className="pdSummaryLabel">ยังต้องการ</div>
                     </div>
                     <div className="pdSummaryStat">
                       <div className="pdSummaryVal" style={{ color: "#2563eb" }}>{pct}%</div>
                       <div className="pdSummaryLabel">บรรลุเป้าหมาย</div>
                     </div>
                   </div>
-                  <div className="pdSummaryBar">
-                    <div className="pdSummaryBarFill" style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="pdSummaryThanks">ขอบคุณทุกท่านที่มีส่วนร่วมในโครงการนี้</div>
+                  {project.status === "archived" && (
+                    <div className="pdSummaryThanks">ขอบคุณทุกท่านที่มีส่วนร่วมในโครงการนี้</div>
+                  )}
                 </div>
-              )}
               {project.testimonials?.length > 0 && (
                 <>
                   <div className="pdTestimonialsTitle">ความประทับใจจากโรงเรียน</div>
@@ -774,8 +776,11 @@ export default function ProjectDetailPage() {
           </div>
           <div className="footCol">
             <div className="footTitle">เมนูลัด</div>
-            <a href="#home">หน้าหลัก</a><a href="#projects">โครงการ</a>
-            <a href="#market">ร้านค้า</a><a href="#sell">ลงขาย</a><a href="#about">เกี่ยวกับเรา</a>
+            <Link to="/" onClick={() => window.scrollTo(0, 0)}>หน้าหลัก</Link>
+            <Link to="/projects">โครงการ</Link>
+            <Link to="/market">ร้านค้า</Link>
+            <Link to="/sell">ลงขาย</Link>
+            <Link to="/#about">เกี่ยวกับเรา</Link>
           </div>
           <div className="footCol">
             <div className="footTitle">ติดต่อเรา</div>
