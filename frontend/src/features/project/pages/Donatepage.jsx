@@ -1507,7 +1507,6 @@ export function QRLabelPage({
           wrong_item: { bg: "#fffbeb", color: "#d97706", icon: "⚠️", text: "โรงเรียนแจ้งว่ารายการไม่ตรง" },
           not_sent:   { bg: "#f5f3ff", color: "#7c3aed", icon: "📦", text: "โรงเรียนแจ้งว่ายังไม่ได้รับพัสดุ" },
           damaged:    { bg: "#fff1f2", color: "#dc2626", icon: "⚠️", text: "โรงเรียนยืนยันรับของแล้ว (ชำรุด)" },
-          incomplete: { bg: "#eff6ff", color: "#1d4ed8", icon: "📋", text: "โรงเรียนยืนยันรับของแล้ว (ไม่ครบ)" },
         };
         const b = banners[conditionStatus];
         if (b) return (

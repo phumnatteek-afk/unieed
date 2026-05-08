@@ -22,6 +22,7 @@ import {
   adminListPayouts,
   adminPaySeller,
   adminPayAll,
+  adminGetDonorSuspensionHistory,
 } from "./admin.controller.js";
 
 const r = Router();
@@ -48,6 +49,9 @@ r.get("/orders",              auth, requireRole(["admin"]), adminListOrders);   
 r.get("/orders/:id",          auth, requireRole(["admin"]), adminOrderDetail);
 r.patch("/orders/:id/ship",   auth, requireRole(["admin"]), adminShipOrder);
 r.patch("/orders/:id/cancel", auth, requireRole(["admin"]), adminCancelOrder);
+
+/* ─── Donor Suspension ─── */
+r.get("/donors/:userId/suspension-history", auth, requireRole(["admin"]), adminGetDonorSuspensionHistory);
 
 /* ─── Payouts ─── */
 r.get("/payouts",             auth, requireRole(["admin"]), adminListPayouts);   // ?period=&page=&limit=

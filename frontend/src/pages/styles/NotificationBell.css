@@ -381,13 +381,26 @@
 }
 
 .nb-cert-btn--close:hover {
-  background: #f8fafc;
-  transform: none;
+  background: #e9eef6;
+  color: #334155;
+  transform: none !important;
 }
 
-.nb-cert-btn--png:hover,
+.nb-cert-btn:hover {
+  filter: brightness(0.9);
+  transform: none !important;
+}
+
+.nb-cert-btn--png:hover {
+  background: #1ea8d8;
+  filter: none;
+  transform: none !important;
+}
+
 .nb-cert-btn--pdf:hover {
-  transform: none;
+  background: #4070d4;
+  filter: none;
+  transform: none !important;
 }
 
 /* ── Confetti ────────────────────────────────────────────────────── */

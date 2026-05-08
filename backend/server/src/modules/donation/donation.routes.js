@@ -185,22 +185,81 @@ r.post("/appeal-strike", auth, async (req, res, next) => {
 r.patch("/users/:userId/reset-strike", auth, requireRole(["admin"]), async (req, res, next) => {
   try {
     const { userId } = req.params;
+
+    // ดึงสถานะก่อน reset เพื่อเลือก message ที่เหมาะสม
+    const [[before]] = await db.query(
+      `SELECT strike_count, suspended_until FROM users WHERE user_id = ?`,
+      [userId]
+    );
+    const wasSuspended = before?.suspended_until && new Date(before.suspended_until) > new Date();
+
     await db.query(
       `UPDATE users SET strike_count = 0, suspended_until = NULL, strike_reset_count = strike_reset_count + 1 WHERE user_id = ?`,
       [userId]
     );
-    // mark appeal notification ว่าอ่านแล้ว
     await db.query(
       `UPDATE notifications SET is_read = 1 WHERE ref_id = ? AND type = 'strike_appeal' AND is_read = 0`,
       [userId]
     );
-    // แจ้ง donor ว่าถูก reset แล้ว
+
+    const title   = wasSuspended
+      ? "ทีมงานได้ตรวจสอบและปลดล็อคการบริจาคของท่านแล้ว"
+      : "ทีมงานได้ล้างประวัติคำเตือนของท่านแล้ว";
+    const message = wasSuspended
+      ? "ท่านสามารถบริจาคผ่านช่องทางจัดส่งพัสดุและ Drop-off ได้ตามปกติ"
+      : "ประวัติคำเตือนของท่านถูกรีเซ็ตเป็น 0 แล้ว ท่านสามารถบริจาคได้ตามปกติ";
+
     await db.query(
       `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
-       VALUES (?, 'strike_reset', 'ทีมงานได้ตรวจสอบและปลดล็อคการบริจาคของท่านแล้ว', ?, ?, 0, NOW())`,
-      [userId, JSON.stringify({ message: "ท่านสามารถบริจาคผ่านช่องทางจัดส่งพัสดุและ Drop-off ได้ตามปกติ" }), userId]
+       VALUES (?, 'strike_reset', ?, ?, ?, 0, NOW())`,
+      [userId, title, JSON.stringify({ message }), userId]
     );
-    res.json({ message: "reset strike เรียบร้อย" });
+    res.json({ message: "reset เรียบร้อย" });
+  } catch (err) { next(err); }
+});
+
+// ── Admin: ยกเว้น strike รายการเดียว ─────────────────────────────────────────
+r.patch("/:donationId/remove-strike", auth, requireRole(["admin"]), async (req, res, next) => {
+  try {
+    const { donationId } = req.params;
+
+    const [[dr]] = await db.query(
+      `SELECT dr.donation_id, dr.donor_id, dr.strike_issued,
+              req.request_title, s.school_name
+       FROM donation_record dr
+       LEFT JOIN donation_request req ON req.request_id = dr.request_id
+       LEFT JOIN schools s ON s.school_id = req.school_id
+       WHERE dr.donation_id = ? LIMIT 1`,
+      [donationId]
+    );
+    if (!dr)              return res.status(404).json({ message: "ไม่พบรายการ" });
+    if (!dr.strike_issued) return res.status(400).json({ message: "รายการนี้ยังไม่ได้ออก strike" });
+    if (!dr.donor_id)     return res.status(400).json({ message: "ไม่มีข้อมูลผู้บริจาค" });
+
+    await db.query(
+      `UPDATE donation_record SET strike_issued = 0 WHERE donation_id = ?`, [donationId]
+    );
+    await db.query(
+      `UPDATE users SET strike_count = GREATEST(strike_count - 1, 0) WHERE user_id = ?`, [dr.donor_id]
+    );
+    const [[donor]] = await db.query(
+      `SELECT strike_count FROM users WHERE user_id = ?`, [dr.donor_id]
+    );
+
+    await db.query(
+      `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
+       VALUES (?, 'strike_reset', ?, ?, ?, 0, NOW())`,
+      [
+        dr.donor_id,
+        "ทีมงานได้ยกเว้น Strike จากรายการบริจาคของท่าน",
+        JSON.stringify({
+          message: `ทีมงานตรวจสอบและยกเว้น Strike จากโครงการ "${dr.request_title}" ของ ${dr.school_name} คำเตือนปัจจุบันของท่านคือ ${donor.strike_count}/3`,
+        }),
+        donationId,
+      ]
+    );
+
+    res.json({ message: "ยกเว้น strike เรียบร้อย", strike_count: donor.strike_count });
   } catch (err) { next(err); }
 });
 
@@ -230,6 +289,7 @@ r.get("/wrong-items", auth, requireRole(["admin"]), async (req, res, next) => {
            CASE WHEN dr.donation_id IS NOT NULL
            THEN JSON_OBJECT(
              'donation_id',              dr.donation_id,
+             'condition_status',         dr.condition_status,
              'items_snapshot',           dr.items_snapshot,
              'items_condition_snapshot', dr.items_condition_snapshot,
              'donation_pic',             dr.donation_pic,

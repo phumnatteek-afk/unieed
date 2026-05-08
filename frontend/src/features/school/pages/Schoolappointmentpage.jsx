@@ -326,7 +326,6 @@ export default function SchoolAppointmentPage() {
     if (vals.includes("wrong_item")) return "wrong_item";
     if (vals.includes("not_sent"))   return "not_sent";
     if (vals.includes("damaged"))    return "damaged";
-    if (vals.includes("incomplete")) return "incomplete";
     return "usable";
   };
 
@@ -649,7 +648,6 @@ export default function SchoolAppointmentPage() {
                         { value: "usable",     label: "ใช้งานได้",     color: "#16a34a", bg: "#dcfce7" },
                         { value: "wrong_item", label: "รายการไม่ตรง",  color: "#d97706", bg: "#fef3c7" },
                         { value: "damaged",    label: "เสียหาย",        color: "#dc2626", bg: "#fee2e2" },
-                        ...(item.quantity > 1 ? [{ value: "incomplete", label: "ได้รับไม่ครบ", color: "#1d4ed8", bg: "#eff6ff" }] : []),
                         { value: "not_sent",   label: "ไม่ได้รับ",     color: "#7c3aed", bg: "#f5f3ff" },
                       ];
                       const cond = itemConditions[item.uniform_type_id];
@@ -825,7 +823,6 @@ export default function SchoolAppointmentPage() {
                   usable:     { label: "ใช้งานได้",    color: "#16a34a", bg: "#dcfce7", icon: "mdi:check-circle-outline" },
                   wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7", icon: "mdi:swap-horizontal" },
                   damaged:    { label: "เสียหาย",       color: "#dc2626", bg: "#fee2e2", icon: "mdi:alert-circle-outline" },
-                  incomplete: { label: "ได้รับไม่ครบ", color: "#1d4ed8", bg: "#eff6ff", icon: "mdi:package-variant" },
                   not_sent:   { label: "ไม่ได้รับ",    color: "#7c3aed", bg: "#f5f3ff", icon: "mdi:package-variant-remove" },
                 };
                 return parseItems(verifyPopup.items_snapshot).map(it => {
@@ -883,7 +880,6 @@ export default function SchoolAppointmentPage() {
 const CONDITION_BADGE = {
   wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" },
   damaged:    { label: "เสียหาย",      color: "#dc2626", bg: "#fee2e2" },
-  incomplete: { label: "ได้รับไม่ครบ", color: "#1d4ed8", bg: "#eff6ff" },
   not_sent:   { label: "ไม่ได้รับ",    color: "#7c3aed", bg: "#f5f3ff" },
 };
 

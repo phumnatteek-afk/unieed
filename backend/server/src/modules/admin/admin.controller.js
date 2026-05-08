@@ -144,3 +144,10 @@ export async function adminPayAll(req, res, next) {
     res.json(await svc.payAllSellers());
   } catch (e) { next(e); }
 }
+
+export async function adminGetDonorSuspensionHistory(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    res.json(await svc.getDonorSuspensionHistory(userId));
+  } catch (e) { next(e); }
+}

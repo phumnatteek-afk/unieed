@@ -82,12 +82,12 @@ export default function AdminSchoolsPage() {
         await svc.unsuspendSchool(confirmData.school_id);
         setToast({ type: "success", message: "ปลดระงับบัญชีสำเร็จ" });
       }
-      setConfirmData(null);
-      closeSchoolModal();
       await load();
     } catch (e) {
       setToast({ type: "error", message: e?.data?.message || e.message || "ทำรายการไม่สำเร็จ" });
     } finally {
+      setConfirmData(null);
+      closeSchoolModal();
       setActionLoading(false);
     }
   };

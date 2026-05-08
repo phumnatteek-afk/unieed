@@ -39,7 +39,6 @@ function EvidenceModal({ c, onClose }) {
     usable:     { label: "ใช้งานได้",    color: "#16a34a", bg: "#f0fdf4", border: "#86efac" },
     wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fff7ed", border: "#fed7aa" },
     damaged:    { label: "เสียหาย",      color: "#dc2626", bg: "#fff5f5", border: "#fca5a5" },
-    incomplete: { label: "ได้รับไม่ครบ", color: "#1d4ed8", bg: "#eff6ff", border: "#bfdbfe" },
     not_sent:   { label: "ไม่มีสิ่งของในพัสดุ", color: "#7c3aed", bg: "#faf5ff", border: "#ddd6fe" },
   };
 
@@ -149,21 +148,6 @@ function EvidenceModal({ c, onClose }) {
   );
 }
 
-// ── Stat Card ──────────────────────────────────────────────────────────────────
-function StatCard({ icon, label, value, color, bg }) {
-  return (
-    <div style={{ background: bg, border: `1.5px solid ${color}22`, borderRadius: 16, padding: "18px 20px", display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0 }}>
-      <div style={{ width: 48, height: 48, borderRadius: 14, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <Icon icon={icon} width={26} color={color} />
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 28, fontWeight: 800, color, lineHeight: 1.1 }}>{value}</div>
-        <div style={{ fontSize: 12, color: "#64748b", marginTop: 3, fontWeight: 500 }}>{label}</div>
-      </div>
-    </div>
-  );
-}
-
 // ── Filter Tab ─────────────────────────────────────────────────────────────────
 function FilterTab({ label, count, active, onClick }) {
   return (
@@ -199,15 +183,21 @@ export default function AdminWrongItemPage() {
   const [expanded, setExpanded]     = useState(null);
   const [evidenceCase, setEvidence] = useState(null);
   const [search, setSearch]       = useState("");
+  const [categoryTab, setCategoryTab] = useState("wrong_item"); // "wrong_item" | "not_sent"
   const [filterTab, setFilterTab] = useState("all");
   const [resetTarget, setResetTarget] = useState(null);
+  const [removeStrikeTarget, setRemoveStrikeTarget] = useState(null); // { case, donor_name }
+  const [removingStrike, setRemovingStrike] = useState(false);
+  const [historyTarget, setHistoryTarget] = useState(null);
+  const [historyLog, setHistoryLog] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   const load = async () => {
     try {
       setLoading(true);
-      const res  = await fetch(`${BASE}/donations/wrong-items`, { headers });
+      const res = await fetch(`${BASE}/donations/wrong-items`, { headers });
       const data = await res.json();
       setUsers(Array.isArray(data) ? data : []);
     } catch (e) { console.error(e); }
@@ -215,6 +205,18 @@ export default function AdminWrongItemPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const openHistory = async (user) => {
+    setHistoryTarget(user);
+    setHistoryLog([]);
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`${BASE}/admin/donors/${user.donor_id}/suspension-history`, { headers });
+      const data = await res.json();
+      setHistoryLog(Array.isArray(data) ? data : []);
+    } catch (e) { console.error(e); }
+    finally { setHistoryLoading(false); }
+  };
 
   const handleResetStrike = async () => {
     if (!resetTarget) return;
@@ -227,14 +229,30 @@ export default function AdminWrongItemPage() {
     finally { setResetting(null); }
   };
 
+  const handleRemoveStrike = async () => {
+    if (!removeStrikeTarget || removingStrike) return;
+    setRemovingStrike(true);
+    try {
+      await fetch(`${BASE}/donations/${removeStrikeTarget.case.donation_id}/remove-strike`, { method: "PATCH", headers });
+      setRemoveStrikeTarget(null);
+      load();
+    } catch (e) { console.error(e); }
+    finally { setRemovingStrike(false); }
+  };
+
   // ── Stats ──────────────────────────────────────────────────────────────────
   const now = new Date();
   const totalDonors    = users.length;
   const totalCases     = users.reduce((s, u) => s + Number(u.total_cases || 0), 0);
   const totalSuspended = users.filter(u => u.suspended_until && new Date(u.suspended_until) > now).length;
 
+  // ── Category tab counts ────────────────────────────────────────────────────
+  const wrongItemUsers = users.filter(u => parseJson(u.cases).filter(Boolean).some(c => c.condition_status === "wrong_item"));
+  const notSentUsers   = users.filter(u => parseJson(u.cases).filter(Boolean).some(c => c.condition_status === "not_sent"));
+
   // ── Filtered ───────────────────────────────────────────────────────────────
-  const bySearch = users.filter(u =>
+  const byCategory = (categoryTab === "wrong_item" ? wrongItemUsers : notSentUsers);
+  const bySearch = byCategory.filter(u =>
     !search || u.donor_name?.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -253,15 +271,17 @@ export default function AdminWrongItemPage() {
     return true;
   });
 
+  const switchCategory = (cat) => { setCategoryTab(cat); setFilterTab("all"); };
+
   return (
     <div style={{ padding: "28px 32px", maxWidth: 920 }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="boTop" style={{ marginBottom: 24 }}>
         <div>
-          <div className="boTitle">ตรวจสอบของไม่ตรง</div>
+          <div className="boTitle">ตรวจสอบของไม่ตรง / ไม่ได้รับพัสดุ</div>
           <p style={{ fontSize: 13, color: "#fff", margin: "4px 0 0" }}>
-            รายชื่อผู้บริจาคที่มีประวัติส่งของไม่ตรง
+            รายชื่อผู้บริจาคที่มีประวัติส่งของไม่ตรง หรือโรงเรียนไม่ได้รับพัสดุ
           </p>
         </div>
         <div className="boAdmin">
@@ -271,49 +291,80 @@ export default function AdminWrongItemPage() {
       </div>
 
       {/* ── Stat Cards ─────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
-        <StatCard
-          icon="mdi:account-alert-outline"
-          label="ผู้บริจาคที่มีคำเตือน"
-          value={totalDonors}
-          color="#dc2626"
-          bg="#fff5f5"
-        />
-        <StatCard
-          icon="mdi:swap-horizontal-circle-outline"
-          label="รายการไม่ตรงทั้งหมด"
-          value={totalCases}
-          color="#d97706"
-          bg="#fffbeb"
-        />
-        <StatCard
-          icon="mdi:account-cancel-outline"
-          label="ถูกระงับอยู่"
-          value={totalSuspended}
-          color="#7c3aed"
-          bg="#faf5ff"
-        />
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        {[
+          { icon: "mdi:account-alert-outline",          label: "ผู้บริจาคที่มีคำเตือน",  value: totalDonors,    color: "#dc2626", bg: "#fff5f5", border: "#fecaca" },
+          { icon: "mdi:swap-horizontal-circle-outline", label: "รายการทั้งหมด",           value: totalCases,     color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+          { icon: "mdi:account-lock-outline",           label: "ถูกระงับอยู่",            value: totalSuspended, color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
+        ].map(c => (
+          <div key={c.label} style={{ flex: "1 1 180px", background: c.bg, border: `1.5px solid ${c.border}`, borderRadius: 14, padding: "16px 18px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: `${c.color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icon icon={c.icon} width={24} color={c.color} />
+            </div>
+            <div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: c.color, lineHeight: 1 }}>{c.value}</div>
+              <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, fontWeight: 500 }}>{c.label}</div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* ── Search + Filter ─────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 14px", maxWidth: 320, flex: "1 1 200px" }}>
-          <Icon icon="mdi:magnify" width={18} color="#94a3b8" />
+      {/* ── Category Tab Bar ───────────────────────────────────────────────── */}
+      <div style={{ display: "flex", background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 14, marginBottom: 20, overflow: "hidden" }}>
+        {[
+          { key: "wrong_item", label: "รายการไม่ตรง",   icon: "mdi:swap-horizontal-circle-outline", count: wrongItemUsers.length },
+          { key: "not_sent",   label: "ไม่ได้รับพัสดุ", icon: "mdi:package-variant-remove",         count: notSentUsers.length   },
+        ].map((tab, idx) => {
+          const active = categoryTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => switchCategory(tab.key)}
+              className="wi-action-btn"
+              style={{
+                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                padding: "13px 20px", borderRadius: 0,
+                borderRight: idx === 0 ? "1.5px solid #e2e8f0" : "none",
+                border: "none", borderRight: idx === 0 ? "1.5px solid #e2e8f0" : "none",
+                background: active ? "#4f7ef7" : "#f8fafc",
+                color: active ? "#fff" : "#64748b",
+                fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer",
+                transition: "background .15s, color .15s",
+              }}
+            >
+              <Icon icon={tab.icon} width={18} />
+              {tab.label}
+              <span style={{
+                fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "2px 9px",
+                background: active ? "rgba(255,255,255,0.25)" : "#d1d9e6",
+                color: active ? "#fff" : "#64748b",
+              }}>{tab.count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Search + Filter (one row) ────────────────────────────────────────── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 9, padding: "7px 12px", flex: "1 1 0" }}>
+          <Icon icon="mdi:magnify" width={16} color="#94a3b8" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="ค้นหาผู้บริจาค..."
             className="wi-search-input"
-            style={{ border: "none", outline: "none", background: "transparent", fontSize: 13, flex: 1, color: "#1e293b" }}
+            style={{ border: "none", outline: "none", background: "transparent", fontSize: 13, width: "100%", color: "#1e293b" }}
           />
         </div>
-
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <FilterTab label="ทั้งหมด"   count={tabCounts.all}   active={filterTab === "all"}   onClick={() => setFilterTab("all")} />
-          <FilterTab label="คำเตือน 3/3" count={tabCounts.three} active={filterTab === "three"} onClick={() => setFilterTab("three")} />
-          <FilterTab label="คำเตือน 2/3" count={tabCounts.two}   active={filterTab === "two"}   onClick={() => setFilterTab("two")} />
-          <FilterTab label="คำเตือน 1/3" count={tabCounts.one}   active={filterTab === "one"}   onClick={() => setFilterTab("one")} />
-        </div>
+        <div style={{ width: 1, height: 24, background: "#e2e8f0", flexShrink: 0 }} />
+        {[
+          { key: "all",   label: "ทั้งหมด",      count: tabCounts.all   },
+          { key: "three", label: "คำเตือน 3/3",  count: tabCounts.three },
+          { key: "two",   label: "คำเตือน 2/3",  count: tabCounts.two   },
+          { key: "one",   label: "คำเตือน 1/3",  count: tabCounts.one   },
+        ].map(t => (
+          <FilterTab key={t.key} label={t.label} count={t.count} active={filterTab === t.key} onClick={() => setFilterTab(t.key)} />
+        ))}
       </div>
 
       {/* ── List ────────────────────────────────────────────────────────────── */}
@@ -332,76 +383,86 @@ export default function AdminWrongItemPage() {
             const strikeCount      = Number(user.strike_count);
             const resetCount       = Number(user.strike_reset_count || 0);
             const hasPendingAppeal = !!user.has_pending_appeal;
-            const cases            = parseJson(user.cases).filter(Boolean).sort((a, b) => new Date(a.updated_at) - new Date(b.updated_at));
+            const allCases         = parseJson(user.cases).filter(Boolean).sort((a, b) => new Date(a.updated_at) - new Date(b.updated_at));
+            const cases            = allCases.filter(c => c.condition_status === categoryTab);
 
             const strikeBadgeColor  = strikeCount >= 3 ? "#dc2626" : strikeCount === 2 ? "#d97706" : "#2563eb";
             const strikeBadgeBg     = strikeCount >= 3 ? "#fee2e2" : strikeCount === 2 ? "#fff7ed" : "#eff6ff";
             const strikeBadgeBorder = strikeCount >= 3 ? "#fca5a5" : strikeCount === 2 ? "#fed7aa" : "#bfdbfe";
 
             return (
-              <div key={user.donor_id} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+              <div key={user.donor_id} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
 
-                {/* ── Donor row ─────────────────────────────────────────── */}
-                <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", flexWrap: "wrap" }}>
+                {/* ── Donor row — single horizontal line ─────────────────── */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 18px" }}>
 
-                  {/* Avatar + name */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flex: "1 1 200px", minWidth: 0 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#3b82f6,#6366f1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Icon icon="mdi:account" width={22} style={{ color: "#fff" }} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>{user.donor_name}</div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
-                        {user.total_cases} รายการที่ไม่ตรง
-                      </div>
+                  {/* Avatar */}
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#3b82f6,#6366f1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon icon="mdi:account" width={20} style={{ color: "#fff" }} />
+                  </div>
+
+                  {/* Name + subtitle */}
+                  <div style={{ minWidth: 0, flex: "0 0 auto", marginRight: 4 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b", whiteSpace: "nowrap" }}>{user.donor_name}</div>
+                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1, whiteSpace: "nowrap" }}>
+                      {cases.length} {categoryTab === "not_sent" ? "รายการที่ไม่ได้รับ" : "รายการที่ไม่ตรง"}
                     </div>
                   </div>
 
                   {/* Badges */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    {hasPendingAppeal && (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#92400e", background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 20, padding: "4px 12px", display: "flex", alignItems: "center", gap: 5 }}>
-                        <Icon icon="mdi:clock-alert-outline" width={13} />
-                        รอ Appeal
-                      </span>
-                    )}
-                    <span style={{ fontSize: 12, fontWeight: 700, color: strikeBadgeColor, background: strikeBadgeBg, border: `1px solid ${strikeBadgeBorder}`, borderRadius: 20, padding: "4px 12px", display: "flex", alignItems: "center", gap: 5 }}>
-                      <Icon icon="mdi:alert-outline" width={13} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: strikeBadgeColor, background: strikeBadgeBg, border: `1px solid ${strikeBadgeBorder}`, borderRadius: 20, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+                      <Icon icon="mdi:alert-outline" width={12} />
                       คำเตือน {strikeCount}/3
                     </span>
                     {isSuspended && (
-                      <span style={{ fontSize: 11, color: "#7f1d1d", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 20, padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}>
-                        <Icon icon="mdi:cancel" width={12} />
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "#1d4ed8", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+                        <Icon icon="mdi:account-lock-outline" width={12} />
                         ระงับถึง {formatDate(user.suspended_until)}
                       </span>
                     )}
+                    {hasPendingAppeal && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#92400e", background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 20, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+                        <Icon icon="mdi:clock-alert-outline" width={12} />
+                        รอ Appeal
+                      </span>
+                    )}
                     {resetCount > 0 && (
-                      <span style={{ fontSize: 11, color: "#6b7280", background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 20, padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}>
-                        <Icon icon="mdi:refresh" width={12} />
-                        เคยปลดระงับ {resetCount} ครั้ง
+                      <span style={{ fontSize: 11, color: "#6b7280", background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 20, padding: "3px 9px", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+                        <Icon icon="mdi:refresh" width={11} />
+                        ปลดแล้ว {resetCount}×
                       </span>
                     )}
                   </div>
 
-                  {/* Actions */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-                    {/* Ghost danger — reset */}
+                  {/* Actions — right-aligned */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    {/* History — icon-only ghost */}
                     <button
-                      onClick={() => setResetTarget({ donor_id: user.donor_id, donor_name: user.donor_name, strike_count: strikeCount })}
+                      onClick={() => openHistory(user)}
+                      className="wi-action-btn"
+                      title="ประวัติการระงับ"
+                      style={{ width: 38, height: 38, borderRadius: 9, border: "1.5px solid #ddd6fe", background: "#fff", color: "#7c3aed", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Icon icon="mdi:clock-outline" width={35} />
+                    </button>
+                    {/* Ghost danger — ปลดระงับ */}
+                    <button
+                      onClick={() => setResetTarget({ donor_id: user.donor_id, donor_name: user.donor_name, strike_count: strikeCount, is_suspended: !!isSuspended })}
                       disabled={resetting === user.donor_id}
                       className="wi-action-btn"
-                      style={{ fontSize: 13, fontWeight: 600, color: "#dc2626", background: "#fff", border: "1.5px solid #fca5a5", borderRadius: 10, padding: "7px 14px", cursor: resetting === user.donor_id ? "not-allowed" : "pointer", opacity: resetting === user.donor_id ? 0.6 : 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}
+                      style={{ fontSize: 12, fontWeight: 600, color: "#dc2626", background: "#fff", border: "1.5px solid #fca5a5", borderRadius: 9, padding: "6px 13px", cursor: resetting === user.donor_id ? "not-allowed" : "pointer", opacity: resetting === user.donor_id ? 0.5 : 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}
                     >
-                      <Icon icon="mdi:refresh" width={15} />
-                      {resetting === user.donor_id ? "กำลังปลดระงับ..." : "ปลดระงับบัญชี"}
+                      <Icon icon="mdi:refresh" width={14} />
+                      {resetting === user.donor_id ? "กำลังดำเนินการ..." : isSuspended ? "ปลดระงับ" : "ล้างคำเตือน"}
                     </button>
-                    {/* Primary — view */}
+                    {/* Primary — ดูรายการ */}
                     <button
                       onClick={() => setExpanded(isExpanded ? null : user.donor_id)}
                       className="wi-action-btn"
-                      style={{ fontSize: 13, fontWeight: 600, color: "#fff", background: "#2563eb", border: "none", borderRadius: 10, padding: "7px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}
+                      style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "#2563eb", border: "1.5px solid #2563eb", borderRadius: 9, padding: "6px 13px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}
                     >
-                      <Icon icon={isExpanded ? "mdi:chevron-up" : "mdi:history"} width={15} />
+                      <Icon icon={isExpanded ? "mdi:chevron-up" : "mdi:format-list-bulleted"} width={14} />
                       ดูรายการ
                     </button>
                   </div>
@@ -444,13 +505,23 @@ export default function AdminWrongItemPage() {
                             <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>
                               {c.school_name}
                             </div>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 20, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
-                              <Icon icon="mdi:alert-circle-outline" width={11} />
-                              รายการที่ {i + 1}
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "2px 8px",
+                              display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+                              ...(c.condition_status === "not_sent"
+                                ? { color: "#5b21b6", background: "#f5f3ff", border: "1px solid #ddd6fe" }
+                                : { color: "#dc2626", background: "#fee2e2", border: "1px solid #fca5a5" }),
+                            }}>
+                              <Icon icon={c.condition_status === "not_sent" ? "mdi:package-variant-remove" : "mdi:alert-circle-outline"} width={11} />
+                              {c.condition_status === "not_sent" ? "ไม่ได้รับพัสดุ" : "รายการไม่ตรง"} · ครั้งที่ {i + 1}
                             </span>
                             <button onClick={() => setEvidence(c)} className="wi-action-btn"
                               style={{ fontSize: 11, fontWeight: 600, color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20, padding: "2px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
                               <Icon icon="mdi:image-search-outline" width={13} />ดูหลักฐาน
+                            </button>
+                            <button onClick={() => setRemoveStrikeTarget({ case: c, donor_name: user.donor_name })} className="wi-action-btn"
+                              style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "#d97706", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "6px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+                              <Icon icon="mdi:shield-remove-outline" width={13} />ยกเว้นคำเตือน
                             </button>
                           </div>
                           <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
@@ -458,20 +529,33 @@ export default function AdminWrongItemPage() {
                           </div>
 
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                            {wrongItems.map((it, j) => (
-                              <span key={j} style={{ fontSize: 12, background: "#fff7ed", border: "1px solid #fed7aa", color: "#92400e", borderRadius: 8, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4 }}>
-                                <Icon icon="mdi:close-circle" width={12} color="#f97316" />
-                                {String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}
-                              </span>
-                            ))}
-                            {usableItems.map((it, j) => (
-                              <span key={j} style={{ fontSize: 12, background: "#f0fdf4", border: "1px solid #86efac", color: "#166534", borderRadius: 8, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4 }}>
-                                <Icon icon="mdi:check-circle" width={12} color="#16a34a" />
-                                {String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}
-                              </span>
-                            ))}
-                            {snapItems.length === 0 && (
-                              <span style={{ fontSize: 12, color: "#94a3b8" }}>ไม่มีข้อมูลรายละเอียดชิ้น</span>
+                            {c.condition_status === "not_sent" ? (
+                              snapItems.length === 0
+                                ? <span style={{ fontSize: 12, color: "#94a3b8" }}>ไม่มีข้อมูลรายละเอียดชิ้น</span>
+                                : snapItems.map((it, j) => (
+                                  <span key={j} style={{ fontSize: 12, background: "#f5f3ff", border: "1px solid #ddd6fe", color: "#5b21b6", borderRadius: 8, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4 }}>
+                                    <Icon icon="mdi:package-variant-remove" width={12} color="#7c3aed" />
+                                    {String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}
+                                  </span>
+                                ))
+                            ) : (
+                              <>
+                                {wrongItems.map((it, j) => (
+                                  <span key={j} style={{ fontSize: 12, background: "#fff7ed", border: "1px solid #fed7aa", color: "#92400e", borderRadius: 8, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4 }}>
+                                    <Icon icon="mdi:close-circle" width={12} color="#f97316" />
+                                    {String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}
+                                  </span>
+                                ))}
+                                {usableItems.map((it, j) => (
+                                  <span key={j} style={{ fontSize: 12, background: "#f0fdf4", border: "1px solid #86efac", color: "#166534", borderRadius: 8, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4 }}>
+                                    <Icon icon="mdi:check-circle" width={12} color="#16a34a" />
+                                    {String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}
+                                  </span>
+                                ))}
+                                {snapItems.length === 0 && (
+                                  <span style={{ fontSize: 12, color: "#94a3b8" }}>ไม่มีข้อมูลรายละเอียดชิ้น</span>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -488,6 +572,114 @@ export default function AdminWrongItemPage() {
       {/* ── Evidence Modal ─────────────────────────────────────────────────── */}
       {evidenceCase && <EvidenceModal c={evidenceCase} onClose={() => setEvidence(null)} />}
 
+      {/* ── Suspension History Modal ───────────────────────────────────────── */}
+      {historyTarget && (
+        <div onClick={() => setHistoryTarget(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, width: "100%", maxWidth: 520, maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+            {/* Header */}
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>ประวัติการระงับบัญชี</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{historyTarget.donor_name}</div>
+              </div>
+              <button onClick={() => setHistoryTarget(null)} className="wi-action-btn" style={{ background: "#f1f5f9", border: "none", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon icon="mdi:close" width={16} />
+              </button>
+            </div>
+            {/* Body */}
+            <div style={{ overflowY: "auto", padding: "16px 20px", flex: 1 }}>
+              {historyLoading ? (
+                <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>กำลังโหลด...</div>
+              ) : historyLog.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>ไม่มีประวัติการระงับบัญชี</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                  {historyLog.map((item, i) => {
+                    const isSuspend = item.type === "suspension";
+                    const isReset   = item.type === "strike_reset";
+                    const isAppeal  = item.type === "strike_appeal";
+                    const color  = isSuspend ? "#dc2626" : isReset ? "#16a34a" : "#7c3aed";
+                    const bgColor = isSuspend ? "#fff5f5" : isReset ? "#f0fdf4" : "#faf5ff";
+                    const icon   = isSuspend ? "mdi:account-lock" : isReset ? "mdi:account-check" : "mdi:message-alert";
+                    const label  = isSuspend ? "ระงับบัญชี" : isReset ? "ปลดระงับบัญชี" : "ยื่นอุทธรณ์";
+                    return (
+                      <div key={i} style={{ display: "flex", gap: 12, paddingBottom: 16, position: "relative" }}>
+                        {/* line */}
+                        {i < historyLog.length - 1 && (
+                          <div style={{ position: "absolute", left: 15, top: 32, bottom: 0, width: 2, background: "#e2e8f0" }} />
+                        )}
+                        {/* icon */}
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: bgColor, border: `2px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, zIndex: 1 }}>
+                          <Icon icon={icon} width={16} color={color} />
+                        </div>
+                        {/* content */}
+                        <div style={{ flex: 1, paddingTop: 4 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, color }}>{ label }</div>
+                          <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{item.title}</div>
+                          {item.body?.reason && (
+                            <div style={{ fontSize: 12, color: "#475569", background: "#f8fafc", borderRadius: 8, padding: "6px 10px", marginTop: 6 }}>
+                              เหตุผล: {item.body.reason}
+                            </div>
+                          )}
+                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+                            {new Date(item.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Remove Single Strike Modal ────────────────────────────────────── */}
+      {removeStrikeTarget && (
+        <div onClick={() => setRemoveStrikeTarget(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "28px 28px 24px", maxWidth: 420, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: "#fffbeb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icon icon="mdi:shield-remove-outline" width={24} color="#d97706" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>ยกเว้นคำเตือนรายการนี้</div>
+                <div style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}>{removeStrikeTarget.donor_name}</div>
+              </div>
+            </div>
+
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13, color: "#475569", lineHeight: 1.6 }}>
+              <div style={{ fontWeight: 600, color: "#1e293b", marginBottom: 4 }}>{removeStrikeTarget.case.school_name}</div>
+              <div>{removeStrikeTarget.case.request_title}</div>
+            </div>
+
+            <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.7, marginBottom: 20 }}>
+              จะยกเว้นคำเตือน<strong>เฉพาะรายการบริจาคนี้</strong>เท่านั้น
+              <ul style={{ margin: "6px 0 0 0", paddingLeft: 20 }}>
+                <li>จำนวนคำเตือนรวมจะลดลง 1 คำเตือน</li>
+                <li>รายการบริจาคอื่นที่เคยโดนคำเตือนยังคงอยู่</li>
+                <li>ผู้บริจาคจะได้รับแจ้งเตือนทันที</li>
+              </ul>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setRemoveStrikeTarget(null)} disabled={removingStrike}
+                className="wi-action-btn"
+                style={{ padding: "9px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc", color: "#64748b", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                ยกเลิก
+              </button>
+              <button onClick={handleRemoveStrike} disabled={removingStrike}
+                className="wi-action-btn"
+                style={{ padding: "9px 20px", borderRadius: 10, border: "none", background: "#d97706", color: "#fff", fontSize: 14, fontWeight: 600, cursor: removingStrike ? "not-allowed" : "pointer", opacity: removingStrike ? 0.6 : 1 }}>
+                {removingStrike ? "กำลังดำเนินการ..." : "ยืนยันยกเว้นคำเตือน"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Reset Confirm Modal ────────────────────────────────────────────── */}
       {resetTarget && (
         <div onClick={() => setResetTarget(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -498,7 +690,9 @@ export default function AdminWrongItemPage() {
                 <Icon icon="mdi:refresh" width={24} color="#2563eb" />
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>ปลดระงับบัญชี</div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>
+                  {resetTarget.is_suspended ? "ปลดระงับบัญชี" : "ล้างคำเตือน"}
+                </div>
                 <div style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}>{resetTarget.donor_name}</div>
               </div>
             </div>
@@ -506,31 +700,46 @@ export default function AdminWrongItemPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
               <Icon icon="mdi:alert-circle-outline" width={18} color="#d97706" />
               <span style={{ fontSize: 13, color: "#92400e" }}>
-                ปัจจุบัน คำเตือน <strong>{resetTarget.strike_count}/3</strong> — หลังปลดระงับจะกลับเป็น <strong>0/3</strong>
+                ปัจจุบัน คำเตือน <strong>{resetTarget.strike_count}/3</strong> — หลังดำเนินการจะกลับเป็น <strong>0/3</strong>
               </span>
             </div>
 
             <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.7, marginBottom: 20 }}>
-              หลังจากปลดระงับ ผู้บริจาครายนี้จะสามารถ
-              <ul style={{ margin: "6px 0 0 0", paddingLeft: 20 }}>
-                <li>บริจาคผ่านระบบพัสดุได้ตามปกติ</li>
-                <li>นัด Drop-off กับโรงเรียนได้ตามปกติ</li>
-                <li>หากถูกระงับชั่วคราวอยู่ จะถูกปลดล็อคทันที</li>
-              </ul>
+              {resetTarget.is_suspended ? (
+                <>
+                  หลังจากปลดระงับ ผู้บริจาครายนี้จะสามารถ
+                  <ul style={{ margin: "6px 0 0 0", paddingLeft: 20 }}>
+                    <li>บริจาคผ่านระบบพัสดุได้ตามปกติ</li>
+                    <li>นัด Drop-off กับโรงเรียนได้ตามปกติ</li>
+                    <li>การระงับชั่วคราวจะถูกยกเลิกทันที</li>
+                  </ul>
+                </>
+              ) : (
+                <>
+                  ผู้บริจาครายนี้<strong>ยังไม่ถูกระงับ</strong> — ยังสามารถบริจาคได้ตามปกติ
+                  <br />การล้างคำเตือนจะรีเซ็ตจำนวนคำเตือนกลับเป็น 0/3
+                  <ul style={{ margin: "6px 0 0 0", paddingLeft: 20 }}>
+                    <li>ใช้เมื่อพิจารณาแล้วว่าคำเตือนที่ได้รับไม่เป็นธรรม</li>
+                    <li>หรือผู้บริจาคแก้ไขพฤติกรรมแล้ว</li>
+                  </ul>
+                </>
+              )}
             </div>
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
                 onClick={() => setResetTarget(null)}
+                className="wi-action-btn"
                 style={{ padding: "9px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc", color: "#64748b", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleResetStrike}
+                className="wi-action-btn"
                 style={{ padding: "9px 20px", borderRadius: 10, border: "none", background: "#2563eb", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
               >
-                ยืนยันปลดระงับ
+                {resetTarget.is_suspended ? "ยืนยันปลดระงับ" : "ยืนยันล้างคำเตือน"}
               </button>
             </div>
           </div>

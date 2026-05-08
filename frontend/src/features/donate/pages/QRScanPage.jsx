@@ -44,29 +44,26 @@ function buildThankMsg(donation, items, itemConditions, itemReasons) {
   const wrongItems    = checkedItems.filter(it => resolveItemCond(it.uniform_type_id ?? items.indexOf(it)) === "wrong_item");
   const notSentItems  = checkedItems.filter(it => resolveItemCond(it.uniform_type_id ?? items.indexOf(it)) === "not_sent");
   const damagedItems  = checkedItems.filter(it => resolveItemCond(it.uniform_type_id ?? items.indexOf(it)) === "damaged");
-  const incompleteItems = checkedItems.filter(it => resolveItemCond(it.uniform_type_id ?? items.indexOf(it)) === "incomplete");
-
   const nameList = (arr) => arr.map(it => cleanName(it.name)).join(", ");
 
   if (notSentItems.length > 0 && wrongItems.length === 0 && usableItems.length === 0) {
     return `ขอบคุณคุณ ${n} ที่มีน้ำใจบริจาค ทางโรงเรียนแจ้งว่าไม่มีสิ่งของในพัสดุที่ได้รับ กรุณาตรวจสอบการจัดส่ง`;
   }
 
-  if (wrongItems.length > 0 && usableItems.length === 0 && damagedItems.length === 0 && incompleteItems.length === 0) {
+  if (wrongItems.length > 0 && usableItems.length === 0 && damagedItems.length === 0) {
     const wrongNames = nameList(wrongItems);
-    return `ขอบคุณคุณ ${n} ที่มีน้ำใจบริจาค ขออภัยที่รายการบริจาค (${wrongNames}) ไม่ตรงกับความต้องการของโรงเรียนในขณะนี้`;
+    return `ขอบคุณคุณ ${n} ที่มีน้ำใจบริจาค ขออภัยที่รายการ (${wrongNames}) ที่ได้รับไม่ตรงตามรายการที่โรงเรียนขอรับบริจาคไว้ ขอบพระคุณในน้ำใจของท่านอย่างสูง`;
   }
 
-  if (wrongItems.length === 0 && damagedItems.length === 0 && incompleteItems.length === 0 && notSentItems.length === 0) {
+  if (wrongItems.length === 0 && damagedItems.length === 0 && notSentItems.length === 0) {
     return `ขอบคุณคุณ ${n} มากๆ ที่ได้บริจาคชุดนักเรียน การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`;
   }
 
   // mixed case
   const parts = [];
   if (usableItems.length > 0) parts.push(`ได้รับ${nameList(usableItems)}เรียบร้อย`);
-  if (wrongItems.length > 0) parts.push(`${nameList(wrongItems)} ไม่ตรงกับความต้องการของโรงเรียน`);
+  if (wrongItems.length > 0) parts.push(`${nameList(wrongItems)} ไม่ตรงตามรายการที่โรงเรียนขอรับบริจาคไว้`);
   if (damagedItems.length > 0) parts.push(`${nameList(damagedItems)} มีสภาพชำรุด`);
-  if (incompleteItems.length > 0) parts.push(`${nameList(incompleteItems)} ได้รับไม่ครบจำนวน`);
   if (notSentItems.length > 0) parts.push(`${nameList(notSentItems)} ไม่มีสิ่งของในพัสดุ`);
 
   return `ขอบคุณคุณ ${n} ที่มีน้ำใจบริจาค ทางโรงเรียนขอแจ้งให้ทราบว่า ${parts.join(" และ ")} ขอบพระคุณในน้ำใจของท่านอย่างสูง`;
@@ -82,7 +79,6 @@ const ITEM_STATES = [
 const CONDITION_SUMMARY = {
   usable:     { label: "ใช้งานได้",         icon: "mdi:check-circle-outline",  color: "#16a34a", bg: "#dcfce7", border: "#86efac", cert: true  },
   damaged:    { label: "เสียหาย",            icon: "mdi:alert-outline",          color: "#dc2626", bg: "#fee2e2", border: "#fca5a5", cert: true  },
-  incomplete: { label: "ได้รับไม่ครบ",       icon: "mdi:package-variant",        color: "#1d4ed8", bg: "#eff6ff", border: "#93c5fd", cert: true  },
   wrong_item: { label: "รายการไม่ตรง",       icon: "mdi:swap-horizontal",        color: "#d97706", bg: "#fef3c7", border: "#fcd34d", cert: false },
   not_sent:   { label: "ไม่มีสิ่งของในพัสดุ", icon: "mdi:package-variant-remove", color: "#7c3aed", bg: "#f5f3ff", border: "#c4b5fd", cert: false },
 };
@@ -300,8 +296,6 @@ function DonationDetailPanel({ donationId, token }) {
     if (conds.includes("wrong_item")) return "wrong_item";
     if (conds.includes("not_sent"))   return "not_sent";
     if (conds.includes("damaged"))    return "damaged";
-    if (checkedItems.length < items.length) return "incomplete";
-    if (conds.includes("incomplete")) return "incomplete";
     return "usable";
   })();
 
@@ -372,7 +366,7 @@ function DonationDetailPanel({ donationId, token }) {
 
   const isDropoff = donation?.delivery_method === "dropoff";
   const condMeta = CONDITION_SUMMARY[derivedCondition] || CONDITION_SUMMARY.usable;
-  const CERT_ELIGIBLE = ["usable", "damaged", "incomplete"];
+  const CERT_ELIGIBLE = ["usable", "damaged"];
   const hasSomeCertEligible = items.some(it => {
     const uid = it.uniform_type_id ?? items.indexOf(it);
     return checkedSet.has(uid) && CERT_ELIGIBLE.includes(resolveItemCond(uid));
@@ -483,7 +477,6 @@ function DonationDetailPanel({ donationId, token }) {
                   const COND_OPTS = [
                     { value: "usable",     label: "ใช้งานได้",   icon: "mdi:check-circle",   color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
                     { value: "damaged",    label: "เสียหาย",     icon: "mdi:alert-circle",   color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
-                    ...(item.quantity > 1 ? [{ value: "incomplete", label: "ได้รับไม่ครบ", icon: "mdi:package-variant", color: "#1d4ed8", bg: "#eff6ff", border: "#93c5fd" }] : []),
                     { value: "issue",      label: "มีปัญหา",     icon: "mdi:swap-horizontal", color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
                   ];
                   const activeMeta = COND_OPTS.find(o => o.value === cond) || COND_OPTS[0];

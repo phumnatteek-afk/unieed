@@ -269,7 +269,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
 
             // หา item ที่ usable เท่านั้น
             let usableItems = [];
-            const CERT_ELIGIBLE = ["usable", "damaged", "incomplete"];
+            const CERT_ELIGIBLE = ["usable", "damaged"];
             if (Array.isArray(items_received) && items_received.length > 0) {
                 const condMap = {};
                 for (const r of items_received) condMap[r.uniform_type_id] = r.item_condition ?? null;
@@ -338,10 +338,10 @@ export async function verifyAndIssueCertificate(req, res, next) {
             }
         }
 
-        // 4. Strike logic — เพิ่ม strike เฉพาะ wrong_item และยังไม่เคย issue ของ donation นี้
+        // 4. Strike logic — เพิ่ม strike เฉพาะ wrong_item / not_sent และยังไม่เคย issue ของ donation นี้
         let justSuspended = false;
         let suspendedUntilDate = null;
-        if (!isAdmin && donation.donor_id && condition_status === "wrong_item") {
+        if (!isAdmin && donation.donor_id && (condition_status === "wrong_item" || condition_status === "not_sent")) {
             const [[dr]] = await db.query(
                 `SELECT strike_issued FROM donation_record WHERE donation_id = ?`, [donation_id]
             );
@@ -384,7 +384,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
                             donation.donor_id,
                             "คุณถูกระงับการบริจาคชั่วคราว 30 วัน",
                             JSON.stringify({
-                                message: "เนื่องจากส่งรายการบริจาคไม่ตรงตามที่โครงการระบุ 3 ครั้ง คุณถูกระงับการบริจาคผ่านพัสดุและ drop-off เป็นเวลา 30 วัน",
+                                message: "เนื่องจากมีประวัติส่งรายการบริจาคไม่ตรงหรือโรงเรียนไม่ได้รับพัสดุ 3 ครั้ง คุณถูกระงับการบริจาคผ่านพัสดุและ drop-off เป็นเวลา 30 วัน",
                                 suspended_until: suspendedUntilDate,
                                 strike_count: donor.strike_count,
                                 donor_name: donor.user_name,
@@ -405,7 +405,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
                                 admin.user_id,
                                 `ผู้บริจาค ${donor.user_name || "ไม่ระบุชื่อ"} ถูกระงับอัตโนมัติ (strike 3/3)`,
                                 JSON.stringify({
-                                    message: `ผู้บริจาคถูกระงับการส่งพัสดุและ drop-off เป็นเวลา 30 วัน เนื่องจากส่งรายการไม่ตรง 3 ครั้ง`,
+                                    message: `ผู้บริจาคถูกระงับการส่งพัสดุและ drop-off เป็นเวลา 30 วัน เนื่องจากมีประวัติ 3 ครั้ง (ของไม่ตรง/ไม่ได้รับพัสดุ)`,
                                     suspended_until: suspendedUntilDate,
                                     donor_id: donation.donor_id,
                                     donor_name: donor.user_name,
@@ -446,7 +446,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
                 notifType  = "donation_issue";
                 notifTitle = `${donation.school_name} ยังไม่ได้รับพัสดุของท่าน`;
                 notifBody  = JSON.stringify({
-                    message: thank_message || `โรงเรียน ${donation.school_name} แจ้งว่ายังไม่ได้รับพัสดุจากท่าน กรุณาตรวจสอบสถานะการจัดส่ง`,
+                    message: thank_message || `โรงเรียน ${donation.school_name} แจ้งว่าไม่ได้รับพัสดุที่ท่านส่ง ท่านได้รับคำเตือนในระบบ กรุณาตรวจสอบสถานะพัสดุและติดต่อขนส่งหากมีปัญหา`,
                     condition_status: "not_sent",
                     project_title: donation.request_title,
                     school_name: donation.school_name,
@@ -478,20 +478,6 @@ export async function verifyAndIssueCertificate(req, res, next) {
                     certificate_code: cert?.certificate_code,
                     items_summary: cert?.items_summary,
                     condition_status: "damaged",
-                    project_title: donation.request_title,
-                    school_name: donation.school_name,
-                    issued_at: cert?.issued_at,
-                });
-            } else if (condition_status === "incomplete") {
-                notifType  = "certificate";
-                notifTitle = `${donation.school_name} ได้รับพัสดุไม่ครบจำนวน`;
-                notifBody  = JSON.stringify({
-                    message: thank_message || `โรงเรียน ${donation.school_name} แจ้งว่าได้รับของบริจาคไม่ครบจำนวน ขอบคุณสำหรับน้ำใจของคุณ`,
-                    certificate_url: cert?.certificate_url,
-                    pdf_url: cert?.pdf_url,
-                    certificate_code: cert?.certificate_code,
-                    items_summary: cert?.items_summary,
-                    condition_status: "incomplete",
                     project_title: donation.request_title,
                     school_name: donation.school_name,
                     issued_at: cert?.issued_at,
