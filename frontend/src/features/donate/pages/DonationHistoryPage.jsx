@@ -22,6 +22,13 @@ function formatThaiDate(dateStr) {
   return `${d.getDate()} ${TH_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
 }
 
+function isDropoffAppointmentPast(d) {
+  if (d.delivery_method !== "dropoff" || !d.donation_date) return false;
+  const dateStr = new Date(d.donation_date).toISOString().split("T")[0];
+  const timeStr = d.donation_time ? String(d.donation_time).slice(0, 5) : "23:59";
+  return new Date(`${dateStr}T${timeStr}:00`) < new Date();
+}
+
 function parseItems(snapshot) {
   if (!snapshot) return [];
   try { return typeof snapshot === "string" ? JSON.parse(snapshot) : snapshot; }
@@ -77,8 +84,8 @@ const STATUS_CONFIG = {
 };
 
 const CONDITION_OVERRIDE = {
-  wrong_item: { label: "รายการไม่ตรง",      bg: "#FEF3C7", color: "#d97706", icon: "mdi:swap-horizontal" },
-  not_sent:   { label: "ไม่มีสิ่งของในพัสดุ", bg: "#F5F3FF", color: "#7c3aed", icon: "mdi:package-variant-closed-remove" },
+  wrong_item: { label: "รายการไม่ตรง", bg: "#FEF3C7", color: "#d97706", icon: "mdi:swap-horizontal" },
+  damaged:    { label: "ชำรุด",        bg: "#FEE2E2", color: "#dc2626", icon: "mdi:alert-circle-outline" },
 };
 
 function getStatusConfig(d) {
@@ -549,7 +556,7 @@ export default function DonationHistoryPage() {
                     {status.label}
                   </div>
                   {/* Certificate badge */}
-                  {d.status === "approved" && !["wrong_item", "not_sent"].includes(d.condition_status) && (
+                  {d.status === "approved" && d.condition_status !== "wrong_item" && (
                     <div style={{
                       fontSize: 11, color: "#FFBE1B", fontWeight: 600,
                       display: "flex", alignItems: "center", gap: 4,
@@ -616,7 +623,7 @@ export default function DonationHistoryPage() {
                       ใบสรุป / QR
                     </button>
 
-                    {d.status === "pending" && !d.tracking_number && (
+                    {d.status === "pending" && !d.tracking_number && !isDropoffAppointmentPast(d) && (
                       <button
                         onClick={() => { setCancelConfirm(d.donation_id); setCancelErr(""); }}
                         className="dnCloseBtn"

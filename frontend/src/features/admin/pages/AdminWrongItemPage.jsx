@@ -39,7 +39,6 @@ function EvidenceModal({ c, onClose }) {
     usable:     { label: "ใช้งานได้",    color: "#16a34a", bg: "#f0fdf4", border: "#86efac" },
     wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fff7ed", border: "#fed7aa" },
     damaged:    { label: "เสียหาย",      color: "#dc2626", bg: "#fff5f5", border: "#fca5a5" },
-    not_sent:   { label: "ไม่มีสิ่งของในพัสดุ", color: "#7c3aed", bg: "#faf5ff", border: "#ddd6fe" },
   };
 
   const isMarket  = c.delivery_method === "market_purchase";
@@ -183,7 +182,6 @@ export default function AdminWrongItemPage() {
   const [expanded, setExpanded]     = useState(null);
   const [evidenceCase, setEvidence] = useState(null);
   const [search, setSearch]       = useState("");
-  const [categoryTab, setCategoryTab] = useState("wrong_item"); // "wrong_item" | "not_sent"
   const [filterTab, setFilterTab] = useState("all");
   const [resetTarget, setResetTarget] = useState(null);
   const [removeStrikeTarget, setRemoveStrikeTarget] = useState(null); // { case, donor_name }
@@ -246,13 +244,8 @@ export default function AdminWrongItemPage() {
   const totalCases     = users.reduce((s, u) => s + Number(u.total_cases || 0), 0);
   const totalSuspended = users.filter(u => u.suspended_until && new Date(u.suspended_until) > now).length;
 
-  // ── Category tab counts ────────────────────────────────────────────────────
-  const wrongItemUsers = users.filter(u => parseJson(u.cases).filter(Boolean).some(c => c.condition_status === "wrong_item"));
-  const notSentUsers   = users.filter(u => parseJson(u.cases).filter(Boolean).some(c => c.condition_status === "not_sent"));
-
   // ── Filtered ───────────────────────────────────────────────────────────────
-  const byCategory = (categoryTab === "wrong_item" ? wrongItemUsers : notSentUsers);
-  const bySearch = byCategory.filter(u =>
+  const bySearch = users.filter(u =>
     !search || u.donor_name?.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -271,17 +264,15 @@ export default function AdminWrongItemPage() {
     return true;
   });
 
-  const switchCategory = (cat) => { setCategoryTab(cat); setFilterTab("all"); };
-
   return (
     <div style={{ padding: "28px 32px", maxWidth: 920 }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="boTop" style={{ marginBottom: 24 }}>
         <div>
-          <div className="boTitle">ตรวจสอบของไม่ตรง / ไม่ได้รับพัสดุ</div>
+          <div className="boTitle">ตรวจสอบของไม่ตรง</div>
           <p style={{ fontSize: 13, color: "#fff", margin: "4px 0 0" }}>
-            รายชื่อผู้บริจาคที่มีประวัติส่งของไม่ตรง หรือโรงเรียนไม่ได้รับพัสดุ
+            รายชื่อผู้บริจาคที่มีประวัติส่งรายการไม่ตรงตามที่โครงการระบุ
           </p>
         </div>
         <div className="boAdmin">
@@ -307,41 +298,6 @@ export default function AdminWrongItemPage() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* ── Category Tab Bar ───────────────────────────────────────────────── */}
-      <div style={{ display: "flex", background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 14, marginBottom: 20, overflow: "hidden" }}>
-        {[
-          { key: "wrong_item", label: "รายการไม่ตรง",   icon: "mdi:swap-horizontal-circle-outline", count: wrongItemUsers.length },
-          { key: "not_sent",   label: "ไม่ได้รับพัสดุ", icon: "mdi:package-variant-remove",         count: notSentUsers.length   },
-        ].map((tab, idx) => {
-          const active = categoryTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => switchCategory(tab.key)}
-              className="wi-action-btn"
-              style={{
-                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                padding: "13px 20px", borderRadius: 0,
-                borderRight: idx === 0 ? "1.5px solid #e2e8f0" : "none",
-                border: "none", borderRight: idx === 0 ? "1.5px solid #e2e8f0" : "none",
-                background: active ? "#4f7ef7" : "#f8fafc",
-                color: active ? "#fff" : "#64748b",
-                fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer",
-                transition: "background .15s, color .15s",
-              }}
-            >
-              <Icon icon={tab.icon} width={18} />
-              {tab.label}
-              <span style={{
-                fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "2px 9px",
-                background: active ? "rgba(255,255,255,0.25)" : "#d1d9e6",
-                color: active ? "#fff" : "#64748b",
-              }}>{tab.count}</span>
-            </button>
-          );
-        })}
       </div>
 
       {/* ── Search + Filter (one row) ────────────────────────────────────────── */}
@@ -384,7 +340,7 @@ export default function AdminWrongItemPage() {
             const resetCount       = Number(user.strike_reset_count || 0);
             const hasPendingAppeal = !!user.has_pending_appeal;
             const allCases         = parseJson(user.cases).filter(Boolean).sort((a, b) => new Date(a.updated_at) - new Date(b.updated_at));
-            const cases            = allCases.filter(c => c.condition_status === categoryTab);
+            const cases            = allCases.filter(c => c.condition_status === "wrong_item");
 
             const strikeBadgeColor  = strikeCount >= 3 ? "#dc2626" : strikeCount === 2 ? "#d97706" : "#2563eb";
             const strikeBadgeBg     = strikeCount >= 3 ? "#fee2e2" : strikeCount === 2 ? "#fff7ed" : "#eff6ff";
@@ -405,7 +361,7 @@ export default function AdminWrongItemPage() {
                   <div style={{ minWidth: 0, flex: "0 0 auto", marginRight: 4 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b", whiteSpace: "nowrap" }}>{user.donor_name}</div>
                     <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1, whiteSpace: "nowrap" }}>
-                      {cases.length} {categoryTab === "not_sent" ? "รายการที่ไม่ได้รับ" : "รายการที่ไม่ตรง"}
+                      {cases.length} รายการที่ไม่ตรง
                     </div>
                   </div>
 
@@ -508,12 +464,10 @@ export default function AdminWrongItemPage() {
                             <span style={{
                               fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "2px 8px",
                               display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
-                              ...(c.condition_status === "not_sent"
-                                ? { color: "#5b21b6", background: "#f5f3ff", border: "1px solid #ddd6fe" }
-                                : { color: "#dc2626", background: "#fee2e2", border: "1px solid #fca5a5" }),
+                              color: "#dc2626", background: "#fee2e2", border: "1px solid #fca5a5",
                             }}>
-                              <Icon icon={c.condition_status === "not_sent" ? "mdi:package-variant-remove" : "mdi:alert-circle-outline"} width={11} />
-                              {c.condition_status === "not_sent" ? "ไม่ได้รับพัสดุ" : "รายการไม่ตรง"} · ครั้งที่ {i + 1}
+                              <Icon icon="mdi:alert-circle-outline" width={11} />
+                              รายการไม่ตรง · ครั้งที่ {i + 1}
                             </span>
                             <button onClick={() => setEvidence(c)} className="wi-action-btn"
                               style={{ fontSize: 11, fontWeight: 600, color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20, padding: "2px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
@@ -529,33 +483,20 @@ export default function AdminWrongItemPage() {
                           </div>
 
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                            {c.condition_status === "not_sent" ? (
-                              snapItems.length === 0
-                                ? <span style={{ fontSize: 12, color: "#94a3b8" }}>ไม่มีข้อมูลรายละเอียดชิ้น</span>
-                                : snapItems.map((it, j) => (
-                                  <span key={j} style={{ fontSize: 12, background: "#f5f3ff", border: "1px solid #ddd6fe", color: "#5b21b6", borderRadius: 8, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4 }}>
-                                    <Icon icon="mdi:package-variant-remove" width={12} color="#7c3aed" />
-                                    {String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}
-                                  </span>
-                                ))
-                            ) : (
-                              <>
-                                {wrongItems.map((it, j) => (
-                                  <span key={j} style={{ fontSize: 12, background: "#fff7ed", border: "1px solid #fed7aa", color: "#92400e", borderRadius: 8, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4 }}>
-                                    <Icon icon="mdi:close-circle" width={12} color="#f97316" />
-                                    {String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}
-                                  </span>
-                                ))}
-                                {usableItems.map((it, j) => (
-                                  <span key={j} style={{ fontSize: 12, background: "#f0fdf4", border: "1px solid #86efac", color: "#166534", borderRadius: 8, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4 }}>
-                                    <Icon icon="mdi:check-circle" width={12} color="#16a34a" />
-                                    {String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}
-                                  </span>
-                                ))}
-                                {snapItems.length === 0 && (
-                                  <span style={{ fontSize: 12, color: "#94a3b8" }}>ไม่มีข้อมูลรายละเอียดชิ้น</span>
-                                )}
-                              </>
+                            {wrongItems.map((it, j) => (
+                              <span key={j} style={{ fontSize: 12, background: "#fff7ed", border: "1px solid #fed7aa", color: "#92400e", borderRadius: 8, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4 }}>
+                                <Icon icon="mdi:close-circle" width={12} color="#f97316" />
+                                {String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}
+                              </span>
+                            ))}
+                            {usableItems.map((it, j) => (
+                              <span key={j} style={{ fontSize: 12, background: "#f0fdf4", border: "1px solid #86efac", color: "#166534", borderRadius: 8, padding: "3px 10px", display: "flex", alignItems: "center", gap: 4 }}>
+                                <Icon icon="mdi:check-circle" width={12} color="#16a34a" />
+                                {String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}
+                              </span>
+                            ))}
+                            {snapItems.length === 0 && (
+                              <span style={{ fontSize: 12, color: "#94a3b8" }}>ไม่มีข้อมูลรายละเอียดชิ้น</span>
                             )}
                           </div>
                         </div>

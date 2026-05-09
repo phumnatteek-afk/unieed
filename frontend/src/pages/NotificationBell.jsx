@@ -143,7 +143,7 @@ function StrikeAppealPopup({ notif, onClose }) {
           )}
           <div style={{ fontSize: 12, color: "#64748b", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "9px 12px", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
             <Icon icon="mdi:information-outline" width={14} />
-            ตรวจสอบประวัติและรีเซ็ต strike ได้ที่หน้า "ตรวจสอบของไม่ตรง"
+            ตรวจสอบประวัติและล้างคำเตือนได้ที่หน้า "ตรวจสอบของไม่ตรง"
           </div>
           <div className="nb-cert-actions">
             <button className="nb-cert-btn nb-cert-btn--close" onClick={onClose}>ปิด</button>
@@ -174,7 +174,7 @@ function SuspensionPopup({ notif, onClose, isAdmin, onAppeal }) {
     <div className="nb-cert-overlay" onClick={onClose}>
       <div className="nb-cert-modal" onClick={e => e.stopPropagation()}>
         <div className="nb-cert-modal-top" style={{ background: "#7f1d1d" }}>
-          <div className="nb-cert-modal-emoji">🚫</div>
+          <div className="nb-cert-modal-emoji"><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24"><path fill="currentColor" d="M12 20a8 8 0 1 0 0-16a8 8 0 0 0 0 16m0 2C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10s-4.477 10-10 10m-1-6h2v2h-2zm0-10h2v8h-2z"/></svg></div>
           <div className="nb-cert-modal-title">
             {isAdmin ? `ผู้บริจาคถูกระงับอัตโนมัติ` : "ถูกระงับการบริจาคชั่วคราว"}
           </div>
@@ -219,19 +219,14 @@ function DonationIssuePopup({ notif, onClose, onNavigate }) {
   let body = {};
   try { body = JSON.parse(notif.body); } catch { /* noop */ }
 
-  const isNotSent   = body.condition_status === "not_sent";
-  const isWrongItem = body.condition_status === "wrong_item";
-
   return (
     <div className="nb-cert-overlay" onClick={onClose}>
       <div className="nb-cert-modal" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="nb-cert-modal-top" style={{ background: isNotSent ? "#7c3aed" : "#f97316" }}>
-          <div className="nb-cert-modal-emoji">{isNotSent ? "📦" : "⚠️"}</div>
-          <div className="nb-cert-modal-title">
-            {isNotSent ? "ไม่มีสิ่งของในพัสดุ" : "รายการไม่ตรง"}
-          </div>
+        <div className="nb-cert-modal-top" style={{ background: "#f97316" }}>
+          <div className="nb-cert-modal-emoji">⚠️</div>
+          <div className="nb-cert-modal-title">รายการไม่ตรง</div>
           <div className="nb-cert-modal-sub">
             {body.school_name || "โรงเรียน"} แจ้งปัญหาเกี่ยวกับรายการบริจาคของคุณ
           </div>
@@ -240,17 +235,15 @@ function DonationIssuePopup({ notif, onClose, onNavigate }) {
         {/* Body */}
         <div className="nb-cert-modal-body">
 
-          {/* ประเภทปัญหา */}
           <div style={{
-            background: isNotSent ? "#f5f3ff" : "#fff7ed",
-            border: `1px solid ${isNotSent ? "#ddd6fe" : "#fed7aa"}`,
+            background: "#fff7ed", border: "1px solid #fed7aa",
             borderRadius: 10, padding: "10px 14px", marginBottom: 12,
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: isNotSent ? "#7c3aed" : "#c2410c", fontWeight: 600, marginBottom: (!isNotSent && body.wrong_items?.length) ? 8 : 0 }}>
-              <Icon icon={isNotSent ? "mdi:package-variant-closed-remove" : "mdi:swap-horizontal"} width="16" />
-              {isNotSent ? "พัสดุยังไม่ถึงโรงเรียน" : "รายการที่ไม่ตรงตามที่โครงการระบุ"}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#c2410c", fontWeight: 600, marginBottom: body.wrong_items?.length ? 8 : 0 }}>
+              <Icon icon="mdi:swap-horizontal" width="16" />
+              รายการที่ไม่ตรงตามที่โครงการระบุ
             </div>
-            {!isNotSent && body.wrong_items?.length > 0 && (
+            {body.wrong_items?.length > 0 && (
               <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#92400e", lineHeight: 1.8 }}>
                 {body.wrong_items.map((name, i) => (
                   <li key={i}>{name}</li>
@@ -274,7 +267,7 @@ function DonationIssuePopup({ notif, onClose, onNavigate }) {
           <div className="nb-cert-actions">
             <button
               className="nb-cert-btn"
-              style={{ background: isNotSent ? "#7c3aed" : "#f97316", color: "#fff", border: "none" }}
+              style={{ background: "#f97316", color: "#fff", border: "none" }}
               onClick={onNavigate}
             >
               ดูประวัติการบริจาค →

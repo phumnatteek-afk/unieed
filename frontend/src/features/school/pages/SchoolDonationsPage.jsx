@@ -40,10 +40,9 @@ const STATUS_META = {
 };
  
 const CONDITION_META = {
-  usable:     { label: "ใช้งานได้",         color: "#16a34a", bg: "#dcfce7" },
-  wrong_item: { label: "รายการไม่ตรง",      color: "#d97706", bg: "#fef3c7" },
-  damaged:    { label: "เสียหาย",            color: "#dc2626", bg: "#fee2e2" },
-  not_sent:   { label: "ไม่มีสิ่งของในพัสดุ", color: "#7c3aed", bg: "#f5f3ff" },
+  usable:     { label: "ใช้งานได้",    color: "#16a34a", bg: "#dcfce7" },
+  wrong_item: { label: "รายการไม่ตรง", color: "#d97706", bg: "#fef3c7" },
+  damaged:    { label: "เสียหาย",      color: "#dc2626", bg: "#fee2e2" },
 };
  
 const TH_MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
@@ -245,7 +244,6 @@ export default function SchoolDonationPage() {
   const summary = useMemo(() => ({
     usable_qty: donations.filter(d => d.condition_status === "usable").reduce((s, d) => s + Number(d.quantity || 0), 0),
     wrong_item: donations.filter(d => d.condition_status === "wrong_item").length,
-    not_sent:   donations.filter(d => d.condition_status === "not_sent").length,
     damaged:    donations.filter(d => d.condition_status === "damaged").length,
     approved:   donations.filter(d => d.status === "approved").length,
     pending:    donations.filter(d => d.status === "pending").length,
@@ -329,7 +327,6 @@ export default function SchoolDonationPage() {
   const deriveOverallCondition = (conditions) => {
     const vals = Object.values(conditions);
     if (vals.includes("wrong_item")) return "wrong_item";
-    if (vals.includes("not_sent"))   return "not_sent";
     if (vals.includes("damaged"))    return "damaged";
     return "usable";
   };
@@ -379,20 +376,6 @@ export default function SchoolDonationPage() {
             <span style={{ fontSize:12, fontWeight:600, color:"#d97706" }}>รายการ</span>
           </div>
         </div>
-        {summary.not_sent > 0 && (
-          <div className="sdSummaryCard" style={{ color:"#7c3aed" }}>
-            <div className="sdSummaryTop">
-              <div className="sdSummaryIcon" style={{ background:"#f5f3ff" }}>
-                <Icon icon="mdi:package-variant-remove" color="#7c3aed" />
-              </div>
-            </div>
-            <span className="sdSummaryLabel">ไม่มีสิ่งของในพัสดุ</span>
-            <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
-              <span className="sdSummaryVal" style={{ color:"#7c3aed" }}>{summary.not_sent}</span>
-              <span style={{ fontSize:12, fontWeight:600, color:"#7c3aed" }}>รายการ</span>
-            </div>
-          </div>
-        )}
         <div className="sdSummaryCard" style={{ color:"#dc2626" }}>
           <div className="sdSummaryTop">
             <div className="sdSummaryIcon" style={{ background:"#fee2e2" }}>
@@ -510,10 +493,8 @@ export default function SchoolDonationPage() {
             ) : paginated.map(d => {
               const isExpanded    = expandedRow === d.donation_id;
               const items         = parseItems(d.items_snapshot);
-              const statusMeta = (d.status === "approved" && d.condition_status === "not_sent")
-                ? CONDITION_META["not_sent"]
-                : STATUS_META[d.status] || STATUS_META.pending;
-              const conditionMeta = (d.status === "approved" && d.condition_status && d.condition_status !== "not_sent")
+              const statusMeta    = STATUS_META[d.status] || STATUS_META.pending;
+              const conditionMeta = (d.status === "approved" && d.condition_status)
                 ? CONDITION_META[d.condition_status] : null;
               const overdue = isOverdue(d.created_at) && (
                 d.status === "pending" ||
@@ -678,7 +659,6 @@ export default function SchoolDonationPage() {
                               usable:       { label: "ใช้งานได้",      color: "#16a34a", icon: "mdi:check-circle-outline" },
                               damaged:      { label: "เสียหาย",         color: "#dc2626", icon: "mdi:close-circle-outline" },
                               wrong_item:   { label: "รายการไม่ตรง",   color: "#d97706", icon: "mdi:swap-horizontal" },
-                              not_sent:     { label: "ไม่มีสิ่งของในพัสดุ", color: "#7c3aed", icon: "mdi:package-variant-remove" },
                               partial:      { label: "ได้รับบางส่วน",  color: "#d97706", icon: "mdi:alert-circle-outline" },
                               not_received: { label: "ไม่รับ",          color: "#7c3aed", icon: "mdi:minus-circle-outline" },
                             };
@@ -826,7 +806,7 @@ export default function SchoolDonationPage() {
                 </div>
               ))}
             </div>
- 
+
             <div className="sdVerifyNote" style={{ background:"#eff6ff", border:"0.5px solid #bfdbfe", borderRadius:"8px", padding:"10px 12px", fontSize:"12px", color:"#1e40af", display:"flex", alignItems:"flex-start", gap:"8px", marginBottom:"16px" }}>
               <Icon icon="mdi:certificate-outline" width="16" style={{ flexShrink:0, marginTop:"1px" }} />
               <span>

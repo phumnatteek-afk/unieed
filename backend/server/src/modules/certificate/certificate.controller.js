@@ -257,9 +257,9 @@ export async function verifyAndIssueCertificate(req, res, next) {
         const donation = rows[0];
         console.log("donor_id:", donation.donor_id);
 
-        // 3. ออก certificate — ออกถ้ามี item usable อย่างน้อย 1 อัน (ไม่ออกถ้า not_sent)
+        // 3. ออก certificate — ออกถ้ามี item usable อย่างน้อย 1 อัน
         let cert = null;
-        if (condition_status !== "not_sent") {
+        {
             let snapItems = [];
             try {
                 snapItems = typeof donation.items_snapshot === "string"
@@ -276,7 +276,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
                 usableItems = snapItems.filter(it => CERT_ELIGIBLE.includes(condMap[it.uniform_type_id]));
             } else {
                 // backward compat — ไม่มี per-item → ใช้ overall
-                if (condition_status !== "wrong_item" && condition_status !== "not_sent") usableItems = snapItems;
+                if (condition_status !== "wrong_item") usableItems = snapItems;
             }
 
             if (usableItems.length > 0) {
@@ -338,10 +338,10 @@ export async function verifyAndIssueCertificate(req, res, next) {
             }
         }
 
-        // 4. Strike logic — เพิ่ม strike เฉพาะ wrong_item / not_sent และยังไม่เคย issue ของ donation นี้
+        // 4. Strike logic — เพิ่ม strike เฉพาะ wrong_item และยังไม่เคย issue ของ donation นี้
         let justSuspended = false;
         let suspendedUntilDate = null;
-        if (!isAdmin && donation.donor_id && (condition_status === "wrong_item" || condition_status === "not_sent")) {
+        if (!isAdmin && donation.donor_id && condition_status === "wrong_item") {
             const [[dr]] = await db.query(
                 `SELECT strike_issued FROM donation_record WHERE donation_id = ?`, [donation_id]
             );
@@ -384,7 +384,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
                             donation.donor_id,
                             "คุณถูกระงับการบริจาคชั่วคราว 30 วัน",
                             JSON.stringify({
-                                message: "เนื่องจากมีประวัติส่งรายการบริจาคไม่ตรงหรือโรงเรียนไม่ได้รับพัสดุ 3 ครั้ง คุณถูกระงับการบริจาคผ่านพัสดุและ drop-off เป็นเวลา 30 วัน",
+                                message: "เนื่องจากมีประวัติส่งรายการบริจาคไม่ตรง 3 ครั้ง คุณถูกระงับการบริจาคผ่านพัสดุและ drop-off เป็นเวลา 30 วัน",
                                 suspended_until: suspendedUntilDate,
                                 strike_count: donor.strike_count,
                                 donor_name: donor.user_name,
@@ -405,7 +405,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
                                 admin.user_id,
                                 `ผู้บริจาค ${donor.user_name || "ไม่ระบุชื่อ"} ถูกระงับอัตโนมัติ (strike 3/3)`,
                                 JSON.stringify({
-                                    message: `ผู้บริจาคถูกระงับการส่งพัสดุและ drop-off เป็นเวลา 30 วัน เนื่องจากมีประวัติ 3 ครั้ง (ของไม่ตรง/ไม่ได้รับพัสดุ)`,
+                                    message: `ผู้บริจาคถูกระงับการส่งพัสดุและ drop-off เป็นเวลา 30 วัน เนื่องจากมีประวัติส่งรายการบริจาคไม่ตรง 3 ครั้ง`,
                                     suspended_until: suspendedUntilDate,
                                     donor_id: donation.donor_id,
                                     donor_name: donor.user_name,
@@ -442,16 +442,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
 
             let notifType, notifTitle, notifBody;
 
-            if (condition_status === "not_sent") {
-                notifType  = "donation_issue";
-                notifTitle = `${donation.school_name} ยังไม่ได้รับพัสดุของท่าน`;
-                notifBody  = JSON.stringify({
-                    message: thank_message || `โรงเรียน ${donation.school_name} แจ้งว่าไม่ได้รับพัสดุที่ท่านส่ง ท่านได้รับคำเตือนในระบบ กรุณาตรวจสอบสถานะพัสดุและติดต่อขนส่งหากมีปัญหา`,
-                    condition_status: "not_sent",
-                    project_title: donation.request_title,
-                    school_name: donation.school_name,
-                });
-            } else if (condition_status === "wrong_item") {
+            if (condition_status === "wrong_item") {
                 notifType  = cert ? "certificate" : "donation_issue";
                 notifTitle = cert
                     ? `${donation.school_name} รับของบริจาคบางส่วน (มีรายการไม่ตรง)`
