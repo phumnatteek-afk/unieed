@@ -535,10 +535,15 @@ export default function ProductDetailPage() {
                             </div>
                         </div>
 
-                        {/* ── Recommended Projects (แทนสินค้าแนะนำ) ── */}
-                        {recommendedProjects.length > 0 ? (
+                        {/* ── Recommended Projects ── */}
+                        {recommendedProjects.length > 0 && (
                             <section className="pdRelated">
-                                <h2 className="pdRelatedTitle">โครงการที่แนะนำสำหรับการซื้อส่งต่อ</h2>
+                                <h2 className="pdRelatedTitle">
+                                    <span className="pdRelatedTitleIcon">
+                                        <Icon icon="tabler:heart-handshake" />
+                                    </span>
+                                    โครงการที่แนะนำสำหรับการซื้อส่งต่อ
+                                </h2>
                                 <p className="pdProjSub">เลือกโครงการที่ท่านต้องการสนับสนุน ระบบจะจัดส่งสินค้าไปยังโรงเรียนปลายทางให้โดยอัตโนมัติ</p>
                                 <div className="pdProjGrid">
                                     {recommendedProjects.map((p) => (
@@ -551,9 +556,12 @@ export default function ProductDetailPage() {
                                     ))}
                                 </div>
                             </section>
-                        ) : related.length > 0 && (
-                            <section className="pdRelated">
-                                <h2 className="pdRelatedTitle">สินค้าอื่นๆ ที่อาจถูกใจ</h2>
+                        )}
+
+                        {/* ── Related Products ── */}
+                        {related.length > 0 && (
+                            <section className="pdRelated" style={{ marginTop: recommendedProjects.length > 0 ? 36 : 0 }}>
+                                <h2 className="pdRelatedTitle pdRelatedTitleAlt">สินค้าอื่นๆ ที่อาจถูกใจ</h2>
                                 <div className="pdRelGrid">
                                     {related.map(p => (
                                         <RelatedCard key={p.product_id} product={p} navigate={navigate} />

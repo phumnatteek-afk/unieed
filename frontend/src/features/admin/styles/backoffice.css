@@ -258,7 +258,7 @@
 }
 
 /* ── School table column widths (7 cols) ── */
-.admTable thead th:nth-child(1), .admTable tbody td:nth-child(1){ width: 18%; }
+.admTable thead th:nth-child(1), .admTable tbody td:nth-child(1){ width: 22%; overflow: visible; }
 .admTable thead th:nth-child(2), .admTable tbody td:nth-child(2){ width: 18%; }
 .admTable thead th:nth-child(3), .admTable tbody td:nth-child(3){ width: 12%; }
 .admTable thead th:nth-child(4), .admTable tbody td:nth-child(4){ width: 16%; }
@@ -507,18 +507,24 @@ width:100%;
 /* ===== Toast ===== */
 .admToast{
   position:fixed;
-  bottom:24px;
-  right:24px;
-  padding:12px 18px;
-  border-radius:12px;
+  bottom:28px;
+  right:28px;
+  padding:13px 20px;
+  border-radius:14px;
   color:#fff;
-  font-weight:600;
-  box-shadow:0 6px 18px rgba(0,0,0,.2);
+  font-weight:700;
+  font-size:14px;
+  box-shadow:0 8px 24px rgba(0,0,0,.22);
   animation:fadeIn .2s ease;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  z-index:9999;
+  max-width:360px;
 }
 
-.admToast.success{background:#2fb170;}
-.admToast.error{background:#e54848;}
+.admToast.success{background:linear-gradient(135deg,#059669 0%,#10b981 100%);}
+.admToast.error{background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);}
 
 /* Buttons (generic) */
 .admBtnPrimary{

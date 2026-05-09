@@ -64,6 +64,23 @@ function AddrDropdown({ items, onSelect }) {
   );
 }
 
+// ── Form Field helper (defined outside modal to prevent remount on re-render) ──
+function FormField({ id, label, required, errors, children }) {
+  return (
+    <div className={`coFormGroup${errors && errors[id] ? " coFormGroupErr" : ""}`}>
+      <label className="coFormLabel">
+        {label}{required && <span className="coFormRequired">*</span>}
+      </label>
+      {children}
+      {errors && errors[id] && (
+        <div className="coFormErrMsg">
+          <Icon icon="mdi:alert-circle-outline" fontSize={13}/> {errors[id]}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Address Modal ─────────────────────────────────────────
 function AddressModal({ address, onSave, onClose }) {
   const [form, setForm] = useState(() => ({
@@ -148,16 +165,6 @@ function AddressModal({ address, onSave, onClose }) {
     finally { setSaving(false); }
   };
 
-  const Field = ({ id, label, required, children }) => (
-    <div className={`coFormGroup${errors[id] ? " coFormGroupErr" : ""}`}>
-      <label className="coFormLabel">
-        {label}{required && <span className="coFormRequired">*</span>}
-      </label>
-      {children}
-      {errors[id] && <div className="coFormErrMsg"><Icon icon="mdi:alert-circle-outline" fontSize={13}/> {errors[id]}</div>}
-    </div>
-  );
-
   return (
     <div className="coModalOverlay" onClick={onClose}>
       <div className="coModal coModalLg" onClick={e => e.stopPropagation()}>
@@ -176,7 +183,7 @@ function AddressModal({ address, onSave, onClose }) {
           <div className="coModalSection">
             <div className="coModalSectionTitle"><Icon icon="mdi:account-outline" /> ข้อมูลผู้รับ</div>
             <div className="coFormGrid2">
-              <Field id="recipient_name" label="ชื่อ-นามสกุลผู้รับ" required>
+              <FormField id="recipient_name" label="ชื่อ-นามสกุลผู้รับ" required errors={errors}>
                 <div className="coInputWrap">
                   <Icon icon="mdi:account-outline" className="coInputIcon" />
                   <input
@@ -186,8 +193,8 @@ function AddressModal({ address, onSave, onClose }) {
                     placeholder="ชื่อ นามสกุล"
                   />
                 </div>
-              </Field>
-              <Field id="phone" label="เบอร์โทรศัพท์" required>
+              </FormField>
+              <FormField id="phone" label="เบอร์โทรศัพท์" required errors={errors}>
                 <div className="coInputWrap">
                   <Icon icon="mdi:phone-outline" className="coInputIcon" />
                   <input
@@ -203,7 +210,7 @@ function AddressModal({ address, onSave, onClose }) {
                     maxLength={13}
                   />
                 </div>
-              </Field>
+              </FormField>
             </div>
           </div>
 
@@ -211,7 +218,7 @@ function AddressModal({ address, onSave, onClose }) {
           <div className="coModalSection">
             <div className="coModalSectionTitle"><Icon icon="mdi:home-outline" /> ที่อยู่</div>
             <div className="coFormGridFull">
-              <Field id="address_line" label="บ้านเลขที่ / ถนน / ซอย" required>
+              <FormField id="address_line" label="บ้านเลขที่ / ถนน / ซอย" required errors={errors}>
                 <div className="coInputWrap">
                   <Icon icon="mdi:home-outline" className="coInputIcon" />
                   <input
@@ -221,7 +228,7 @@ function AddressModal({ address, onSave, onClose }) {
                     placeholder="เช่น 123/4 ถ.สุขุมวิท ซ.5"
                   />
                 </div>
-              </Field>
+              </FormField>
             </div>
 
             <div className="coAddrHint">
@@ -230,7 +237,7 @@ function AddressModal({ address, onSave, onClose }) {
             </div>
 
             <div className="coFormGrid3">
-              <Field id="district" label="ตำบล / แขวง" required>
+              <FormField id="district" label="ตำบล / แขวง" required errors={errors}>
                 <div className="coInputWrapRel">
                   <input
                     className={`coFormInput${errors.district ? " coInputErr" : ""}`}
@@ -242,9 +249,9 @@ function AddressModal({ address, onSave, onClose }) {
                   />
                   {activeField === "district" && <AddrDropdown items={addrSuggestions} onSelect={selectAddr} />}
                 </div>
-              </Field>
+              </FormField>
 
-              <Field id="amphoe" label="อำเภอ / เขต" required>
+              <FormField id="amphoe" label="อำเภอ / เขต" required errors={errors}>
                 <div className="coInputWrapRel">
                   <input
                     className={`coFormInput${errors.amphoe ? " coInputErr" : ""}`}
@@ -256,9 +263,9 @@ function AddressModal({ address, onSave, onClose }) {
                   />
                   {activeField === "amphoe" && <AddrDropdown items={addrSuggestions} onSelect={selectAddr} />}
                 </div>
-              </Field>
+              </FormField>
 
-              <Field id="province" label="จังหวัด" required>
+              <FormField id="province" label="จังหวัด" required errors={errors}>
                 <div className="coInputWrapRel">
                   <input
                     className={`coFormInput${errors.province ? " coInputErr" : ""}`}
@@ -279,9 +286,9 @@ function AddressModal({ address, onSave, onClose }) {
                     </div>
                   )}
                 </div>
-              </Field>
+              </FormField>
 
-              <Field id="postcode" label="รหัสไปรษณีย์" required>
+              <FormField id="postcode" label="รหัสไปรษณีย์" required errors={errors}>
                 <div className="coInputWrapRel">
                   <input
                     className={`coFormInput${errors.postcode ? " coInputErr" : ""}`}
@@ -295,7 +302,7 @@ function AddressModal({ address, onSave, onClose }) {
                   />
                   {activeField === "postcode" && <AddrDropdown items={addrSuggestions} onSelect={selectAddr} />}
                 </div>
-              </Field>
+              </FormField>
             </div>
           </div>
 

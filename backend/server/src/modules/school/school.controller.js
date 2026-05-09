@@ -1162,12 +1162,12 @@ export async function exportStudentsExcel(req, res, next) {
       { col: "E", label: "ความเร่งด่วน", bg: BLUE, fg: WHITE },
       { col: "F", label: "การรับ", bg: BLUE_DARK, fg: WHITE },
       { col: "G", label: "จำนวนปี", bg: BLUE_DARK, fg: WHITE },
-      { col: "H", label: "รอบอก (cm)\nเสื้อชาย", bg: MALE_BG, fg: MALE_HD },
-      { col: "I", label: "จำนวน (ตัว)\nเสื้อชาย", bg: MALE_BG, fg: MALE_HD },
+      { col: "H", label: "รอบอก (cm)\nเสื้อนักเรียนชาย", bg: MALE_BG, fg: MALE_HD },
+      { col: "I", label: "จำนวน (ตัว)\nเสื้อนักเรียนชาย", bg: MALE_BG, fg: MALE_HD },
       { col: "J", label: "รอบเอว (cm)\nกางเกงชาย", bg: MALE_BG, fg: MALE_HD },
       { col: "K", label: "จำนวน (ตัว)\nกางเกงชาย", bg: MALE_BG, fg: MALE_HD },
-      { col: "L", label: "รอบอก (cm)\nเสื้อหญิง", bg: FEM_BG, fg: FEM_HD },
-      { col: "M", label: "จำนวน (ตัว)\nเสื้อหญิง", bg: FEM_BG, fg: FEM_HD },
+      { col: "L", label: "รอบอก (cm)\nเสื้อนักเรียนหญิง", bg: FEM_BG, fg: FEM_HD },
+      { col: "M", label: "จำนวน (ตัว)\nเสื้อนักเรียนหญิง", bg: FEM_BG, fg: FEM_HD },
       { col: "N", label: "รอบเอว (cm)\nกระโปรงหญิง", bg: FEM_BG, fg: FEM_HD },
       { col: "O", label: "จำนวน (ตัว)\nกระโปรงหญิง", bg: FEM_BG, fg: FEM_HD },
     ];
@@ -1206,9 +1206,9 @@ export async function exportStudentsExcel(req, res, next) {
       const supportMode = firstNeed?.support_mode === "recurring" ? "รับต่อเนื่อง" : "รับครั้งเดียว";
       const supportYears = firstNeed?.support_mode === "recurring" ? (firstNeed.support_years || 1) : "";
  
-      const n1 = getNeed(1); // เสื้อชาย
+      const n1 = getNeed(1); // เสื้อนักเรียนชาย
       const n3 = getNeed(3); // กางเกงชาย
-      const n2 = getNeed(2); // เสื้อหญิง
+      const n2 = getNeed(2); // เสื้อนักเรียนหญิง
       const n4 = getNeed(4); // กระโปรงหญิง
  
       const rowData = [
@@ -1390,12 +1390,12 @@ export async function generateImportTemplate(req, res, next) {
       { label:"ความเร่งด่วน *\n▾ เลือก",    bg: C.BLUE,      fg: C.WHITE   },
       { label:"การรับ *\n▾ เลือก",           bg: C.BLUE_DARK, fg: C.WHITE   },
       { label:"จำนวนปี\n(ถ้ารับต่อเนื่อง)", bg: C.BLUE_DARK, fg: C.WHITE   },
-      { label:"รอบอก (cm)\nเสื้อชาย",       bg: C.MALE_BG,   fg: C.MALE_HD },
-      { label:"จำนวน (ตัว)\nเสื้อชาย",      bg: C.MALE_BG,   fg: C.MALE_HD },
+      { label:"รอบอก (cm)\nเสื้อนักเรียนชาย",       bg: C.MALE_BG,   fg: C.MALE_HD },
+      { label:"จำนวน (ตัว)\nเสื้อนักเรียนชาย",      bg: C.MALE_BG,   fg: C.MALE_HD },
       { label:"รอบเอว (cm)\nกางเกงชาย",     bg: C.MALE_BG,   fg: C.MALE_HD },
       { label:"จำนวน (ตัว)\nกางเกงชาย",     bg: C.MALE_BG,   fg: C.MALE_HD },
-      { label:"รอบอก (cm)\nเสื้อหญิง",      bg: C.FEM_BG,    fg: C.FEM_HD  },
-      { label:"จำนวน (ตัว)\nเสื้อหญิง",     bg: C.FEM_BG,    fg: C.FEM_HD  },
+      { label:"รอบอก (cm)\nเสื้อนักเรียนหญิง",      bg: C.FEM_BG,    fg: C.FEM_HD  },
+      { label:"จำนวน (ตัว)\nเสื้อนักเรียนหญิง",     bg: C.FEM_BG,    fg: C.FEM_HD  },
       { label:"รอบเอว (cm)\nกระโปรงหญิง",   bg: C.FEM_BG,    fg: C.FEM_HD  },
       { label:"จำนวน (ตัว)\nกระโปรงหญิง",   bg: C.FEM_BG,    fg: C.FEM_HD  },
     ];
@@ -1562,12 +1562,12 @@ export async function generateImportTemplate(req, res, next) {
       ["E", "ความเร่งด่วน *",         "ระดับความเร่งด่วนในการรับบริจาค",         "เร่งด่วนมาก / เร่งด่วน / รอได้",     ""],
       ["F", "การรับ *",               "รูปแบบการรับบริจาค",                       "รับครั้งเดียว  หรือ  รับต่อเนื่อง", ""],
       ["G", "จำนวนปี",                "จำนวนปีที่ต้องการรับต่อเนื่อง",            "ตัวเลข เช่น 1, 2, 3",               "ระบุเฉพาะเมื่อ การรับ = รับต่อเนื่อง"],
-      ["H", "รอบอก เสื้อชาย",         "ขนาดรอบอก (cm) สำหรับเสื้อนักเรียนชาย",  "ตัวเลข เช่น 30, 32, 34, 36",         "เว้นว่างถ้าไม่ต้องการเสื้อชาย"],
-      ["I", "จำนวน เสื้อชาย",         "จำนวนตัวที่ต้องการ (เสื้อชาย)",           "ตัวเลข เช่น 1, 2",                   "เว้นว่างหรือ 0 ถ้าไม่ต้องการ"],
+      ["H", "รอบอก เสื้อนักเรียนชาย",         "ขนาดรอบอก (cm) สำหรับเสื้อนักเรียนชาย",  "ตัวเลข เช่น 30, 32, 34, 36",         "เว้นว่างถ้าไม่ต้องการเสื้อนักเรียนชาย"],
+      ["I", "จำนวน เสื้อนักเรียนชาย",         "จำนวนตัวที่ต้องการ (เสื้อนักเรียนชาย)",           "ตัวเลข เช่น 1, 2",                   "เว้นว่างหรือ 0 ถ้าไม่ต้องการ"],
       ["J", "รอบเอว กางเกงชาย",       "ขนาดรอบเอว (cm) สำหรับกางเกงนักเรียนชาย","ตัวเลข เช่น 24, 26, 28",             "เว้นว่างถ้าไม่ต้องการกางเกงชาย"],
       ["K", "จำนวน กางเกงชาย",        "จำนวนตัวที่ต้องการ (กางเกงชาย)",          "ตัวเลข เช่น 1, 2",                   ""],
-      ["L", "รอบอก เสื้อหญิง",        "ขนาดรอบอก (cm) สำหรับเสื้อนักเรียนหญิง", "ตัวเลข เช่น 28, 30, 32",             "เว้นว่างถ้าไม่ต้องการเสื้อหญิง"],
-      ["M", "จำนวน เสื้อหญิง",        "จำนวนตัวที่ต้องการ (เสื้อหญิง)",          "ตัวเลข เช่น 1, 2",                   ""],
+      ["L", "รอบอก เสื้อนักเรียนหญิง",        "ขนาดรอบอก (cm) สำหรับเสื้อนักเรียนหญิง", "ตัวเลข เช่น 28, 30, 32",             "เว้นว่างถ้าไม่ต้องการเสื้อนักเรียนหญิง"],
+      ["M", "จำนวน เสื้อนักเรียนหญิง",        "จำนวนตัวที่ต้องการ (เสื้อนักเรียนหญิง)",          "ตัวเลข เช่น 1, 2",                   ""],
       ["N", "รอบเอว กระโปรงหญิง",     "ขนาดรอบเอว (cm) สำหรับกระโปรงนักเรียนหญิง","ตัวเลข เช่น 22, 24, 26",           "เว้นว่างถ้าไม่ต้องการกระโปรง"],
       ["O", "จำนวน กระโปรงหญิง",      "จำนวนตัวที่ต้องการ (กระโปรงหญิง)",        "ตัวเลข เช่น 1, 2",                   ""],
     ];
@@ -1630,12 +1630,12 @@ export async function generateImportTemplate(req, res, next) {
       { label:"ความเร่งด่วน",         bg: C.BLUE,      fg: C.WHITE   },
       { label:"การรับ",               bg: C.BLUE_DARK, fg: C.WHITE   },
       { label:"จำนวนปี",              bg: C.BLUE_DARK, fg: C.WHITE   },
-      { label:"รอบอก\nเสื้อชาย",     bg: C.MALE_BG,  fg: C.MALE_HD  },
-      { label:"จำนวน\nเสื้อชาย",     bg: C.MALE_BG,  fg: C.MALE_HD  },
+      { label:"รอบอก\nเสื้อนักเรียนชาย",     bg: C.MALE_BG,  fg: C.MALE_HD  },
+      { label:"จำนวน\nเสื้อนักเรียนชาย",     bg: C.MALE_BG,  fg: C.MALE_HD  },
       { label:"รอบเอว\nกางเกง",      bg: C.MALE_BG,  fg: C.MALE_HD  },
       { label:"จำนวน\nกางเกง",       bg: C.MALE_BG,  fg: C.MALE_HD  },
-      { label:"รอบอก\nเสื้อหญิง",    bg: C.FEM_BG,   fg: C.FEM_HD   },
-      { label:"จำนวน\nเสื้อหญิง",    bg: C.FEM_BG,   fg: C.FEM_HD   },
+      { label:"รอบอก\nเสื้อนักเรียนหญิง",    bg: C.FEM_BG,   fg: C.FEM_HD   },
+      { label:"จำนวน\nเสื้อนักเรียนหญิง",    bg: C.FEM_BG,   fg: C.FEM_HD   },
       { label:"รอบเอว\nกระโปรง",     bg: C.FEM_BG,   fg: C.FEM_HD   },
       { label:"จำนวน\nกระโปรง",      bg: C.FEM_BG,   fg: C.FEM_HD   },
     ];

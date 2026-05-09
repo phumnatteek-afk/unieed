@@ -243,7 +243,7 @@ export default function AdminSchoolsPage() {
                   <tbody>
                     {pagedRows.map((s) => (
                       <tr key={s.school_id}>
-                        <td className="admTdStrong">{s.school_name}</td>
+                        <td style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "normal", wordBreak: "break-word", overflow: "visible" }}>{s.school_name}</td>
 
                         <td>
                           <div className="admCol">

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
+import { getJson } from "../../../api/http.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass, faFilter } from "@fortawesome/free-solid-svg-icons";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
@@ -167,7 +168,7 @@ function SizeDisplay({ size, categoryId }) {
   }
 }
 
-function ProductCard({ product }) {
+function ProductCard({ product, donationNeededLabels }) {
   const navigate = useNavigate();
    const { addToCart, loadingId } = useAddToCart();
   const isLoading            = loadingId === product.product_id;
@@ -191,10 +192,17 @@ const displayTitle = typePart
   ? `${categoryLabel}: ${typePart}`
   : categoryLabel;
 
-  const cardColor = TYPE_COLORS[categoryLabel]?.bg || "#f0f0f0";
+  const isDonationMatch = donationNeededLabels?.size > 0 && donationNeededLabels.has(product.product_id);
 
   return (
-    <div className="mkCard">
+    <div className="mkCard" style={{ position: 'relative' }}>
+      {/* donation badge */}
+      {isDonationMatch && (
+        <div className="mkDonateBadge">
+          <Icon icon="tabler:heart-handshake" style={{ fontSize: '15px', flexShrink: 0 }} />
+          ซื้อเพื่อร่วมบริจาคได้
+        </div>
+      )}
       {/* carousel ไม่มี Link ห่อ → กดลูกศรไม่เด้ง */}
       <div className="mkCardThumb">
         <CardCarousel images={images} title={displayTitle} quantity={product.quantity} />
@@ -294,6 +302,7 @@ export default function MarketPage() {
   const [page,          setPage]          = useState(1);
   const [totalPages,    setTotalPages]    = useState(1);
   const [totalCount,    setTotalCount]    = useState(0);
+  const [donationNeededLabels, setDonationNeededLabels] = useState(new Set());
 
   const [displaySearch, setDisplaySearch] = useState("");
   const [typedKeyword,  setTypedKeyword]  = useState("");
@@ -409,6 +418,29 @@ const fetchProducts = useCallback((...args) => fetchProductsRef.current(...args)
 
 
   useEffect(() => { fetchProducts(1); }, []);
+
+  // ดึง product_id ทั้งหมดที่ backend match กับโครงการ (ใช้เกณฑ์เดียวกับ DonateMarketPage)
+  useEffect(() => {
+    const fetchMatchedIds = async () => {
+      try {
+        // ใช้ getJson เพื่อให้ request ไปที่ BASE_URL (localhost:3000) โดยตรง
+        // ไม่ใช้ fetch("/home") เพราะ Vite proxy ไม่ได้ map /home
+        const data = await getJson("/home", false);
+        const projectList = Array.isArray(data?.projects) ? data.projects : [];
+        if (!projectList.length) return;
+
+        const ids = new Set();
+        await Promise.all(projectList.map(async (p) => {
+          try {
+            const detail = await getJson(`/api/market/matched?project_id=${p.request_id}`, false);
+            (detail?.products || []).forEach(prod => ids.add(prod.product_id));
+          } catch (e) { /* ignore per-project errors */ }
+        }));
+        if (ids.size > 0) setDonationNeededLabels(ids);
+      } catch (e) { /* graceful degradation */ }
+    };
+    fetchMatchedIds();
+  }, []);
 
   const debounceRef = useRef(null);
   const normalizeStr = (s) => (s || '').replace(/\s+/g, '').toLowerCase();
@@ -621,7 +653,7 @@ const handleMaxPriceChange = (e) => {
           </div>
         ) : (
           <div className="mkGrid">
-            {products.map(p => <ProductCard key={p.product_id} product={p} />)}
+            {products.map(p => <ProductCard key={p.product_id} product={p} donationNeededLabels={donationNeededLabels} />)}
           </div>
         )}
 

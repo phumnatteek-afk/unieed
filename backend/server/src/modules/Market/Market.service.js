@@ -727,17 +727,18 @@ const getMatchedProducts = async (project_id) => {
     return lv.trim() || null;
   };
 
-  // ─── 5. helper: เปรียบขนาด (ยอม tolerance ±2 ถ้าระบุ size) ─────────────
-  const SIZE_TOLERANCE = 2;
+  // ─── 5. helper: เปรียบขนาด (ต้องตรงเป๊ะ ไม่มี tolerance) ──────────────
   const matchSize = (pSizeRaw, nSizeRaw) => {
     try {
       const p = typeof pSizeRaw === "string" ? JSON.parse(pSizeRaw) : (pSizeRaw || {});
       const n = typeof nSizeRaw === "string" ? JSON.parse(nSizeRaw) : (nSizeRaw || {});
-      if (!n || Object.keys(n).length === 0) return true; // need ไม่ระบุ → match ทุก size
+      if (!n || Object.keys(n).length === 0) return true; // need ไม่ระบุ size → match ทุก size
       for (const key of ["chest", "waist"]) {
         if (n[key] !== undefined && n[key] !== null && n[key] !== "") {
-          const diff = Math.abs(Number(p[key]) - Number(n[key]));
-          if (isNaN(diff) || diff > SIZE_TOLERANCE) return false;
+          // exact match เท่านั้น: ค่าต้องเท่ากัน (แปลงเป็น number เพื่อเทียบ)
+          const nVal = Number(n[key]);
+          const pVal = Number(p[key]);
+          if (isNaN(pVal) || pVal !== nVal) return false;
         }
       }
       return true;

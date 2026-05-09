@@ -262,6 +262,34 @@
 /* ── Grid ── */
 .mkGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 
+/* ── Donation Badge (shared) ── */
+.mkDonateBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #f7ad19;
+  color: #7a3e00;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  letter-spacing: 0.02em;
+  position: relative;
+  z-index: 2;
+}
+.mkDonateBadge svg,
+.mkDonateBadge [class*="iconify"] { flex-shrink: 0; font-size: 15px; }
+
+/* card that has a donation badge */
+.mkCard:has(.mkDonateBadge) {
+  border-color: #f7ad19;
+  box-shadow: 0 4px 14px rgba(247, 173, 25, 0.2);
+  overflow: hidden;
+}
+.mkCard:has(.mkDonateBadge):hover {
+  border-color: #e69b00;
+  box-shadow: 0 8px 24px rgba(247, 173, 25, 0.32);
+}
+
 /* ── Card ── */
 .mkCard {
   background: #fff; border-radius: 16px; overflow: hidden;

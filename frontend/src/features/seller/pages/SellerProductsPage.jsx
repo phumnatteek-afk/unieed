@@ -80,6 +80,9 @@ export default function SellerProductsPage() {
   const [page, setPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true); setErr("");
@@ -104,10 +107,30 @@ export default function SellerProductsPage() {
     if (!window.confirm("ยืนยันการลบสินค้านี้?")) return;
     try {
       await request(`/api/market/${productId}`, { method: "DELETE" });
+      setSelectedIds(prev => { const n = new Set(prev); n.delete(productId); return n; });
       fetchData();
     } catch (e) {
       window.alert(e?.data?.message || e.message || "ลบสินค้าไม่สำเร็จ");
     }
+  };
+
+  const toggleSelect = (id) => setSelectedIds(prev => {
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
+  });
+  const toggleAll = () => {
+    const allIds = (data?.rows || []).map(p => p.product_id);
+    setSelectedIds(prev => prev.size === allIds.length ? new Set() : new Set(allIds));
+  };
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    const ids = [...selectedIds];
+    for (const id of ids) {
+      await request(`/api/market/${id}`, { method: "DELETE" }).catch(() => {});
+    }
+    setSelectedIds(new Set());
+    setShowDeleteConfirm(false);
+    setBulkDeleting(false);
+    fetchData();
   };
 
   const handleSaveEdit = async (payload) => {
@@ -144,11 +167,11 @@ export default function SellerProductsPage() {
         ? <NotSellerView message={data?.message} />
         : (
           <>
-            {/* 3 stat cards */}
+            {/* Stat cards */}
             <div className="slProdGrid">
-              <StatCard label="สินค้าทั้งหมด" value={data?.counts?.total || 0} cls="slProdValue--blue" />
-              <StatCard label="วางขายอยู่"     value={data?.counts?.available || 0} cls="slProdValue--amber" />
-              <StatCard label="ปิดการขาย"      value={(data?.counts?.total || 0) - (data?.counts?.available || 0)} cls="slProdValue--green" />
+              <StatCard label="สินค้าทั้งหมด" value={data?.counts?.total || 0} cls="slProdValue--blue" icon="mdi:package-variant-closed" iconBg="#eff6ff" iconColor="#3b82f6" />
+              <StatCard label="วางขายอยู่"     value={data?.counts?.available || 0} cls="slProdValue--amber" icon="mdi:storefront-outline" iconBg="#fffbeb" iconColor="#f59e0b" />
+              <StatCard label="ปิดการขาย"      value={(data?.counts?.total || 0) - (data?.counts?.available || 0)} cls="slProdValue--green" icon="mdi:eye-off-outline" iconBg="#f0fdf4" iconColor="#22c55e" />
             </div>
 
             <div className="slCard">
@@ -156,7 +179,7 @@ export default function SellerProductsPage() {
               <div className="slToolbar">
                 <div className="slSearch">
                   <Icon icon="mdi:magnify" className="slSearch__icon" />
-                  <input placeholder="ค้นหาออเดอร์ทั้งหมด" value={q}
+                  <input placeholder="ค้นหาสินค้าทั้งหมด" value={q}
                          onChange={e => { setQ(e.target.value); setPage(1); }} />
                 </div>
                 <select className="slSelect" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
@@ -176,61 +199,134 @@ export default function SellerProductsPage() {
                 {CATEGORY_TABS.map(c => (
                   <div key={c.id}
                        className={`slTab ${tab === c.id ? "active" : ""}`}
-                       onClick={() => { setTab(c.id); setPage(1); }}>
+                       onClick={() => { setTab(c.id); setPage(1); setSelectedIds(new Set()); }}>
                     {c.label}
                   </div>
                 ))}
               </div>
 
-              {loading && <div style={{ padding:30 }}>กำลังโหลด...</div>}
-              {err && <div style={{ color:"#b91c1c", padding:14 }}>{err}</div>}
+              {/* Bulk action bar */}
+              {selectedIds.size > 0 && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                  padding: "10px 14px", marginBottom: 4,
+                  background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, fontSize: 14,
+                }}>
+                  <Icon icon="mdi:checkbox-marked-circle-outline" style={{ color: "#3b82f6", fontSize: 18, flexShrink: 0 }} />
+                  <span style={{ color: "#1e40af" }}>เลือกแล้ว <strong>{selectedIds.size}</strong> รายการ</span>
+                  <button
+                    style={{
+                      marginLeft: "auto", padding: "7px 18px", borderRadius: 8, border: "none",
+                      background: "#ef4444", color: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 13,
+                      display: "flex", alignItems: "center", gap: 6,
+                    }}
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    <Icon icon="mdi:trash-can-outline" /> ลบที่เลือก ({selectedIds.size})
+                  </button>
+                  <button
+                    style={{
+                      padding: "7px 14px", borderRadius: 8, border: "1px solid #cbd5e1",
+                      background: "#fff", cursor: "pointer", fontSize: 13, color: "#475569",
+                    }}
+                    onClick={() => setSelectedIds(new Set())}
+                  >
+                    ยกเลิก
+                  </button>
+                </div>
+              )}
+
+              {loading && (
+                <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <Icon icon="mdi:loading" style={{ animation: "spin 1s linear infinite" }} /> กำลังโหลด...
+                </div>
+              )}
+              {err && (
+                <div style={{ color: "#b91c1c", padding: "10px 14px", background: "#fef2f2", borderRadius: 8, margin: "8px 0", fontSize: 13 }}>
+                  <Icon icon="mdi:alert-circle-outline" style={{ marginRight: 6 }} />{err}
+                </div>
+              )}
 
               {!loading && data?.rows?.length === 0 && (
-                <div style={{ padding:40, textAlign:"center", color:"#94a3b8" }}>ไม่มีสินค้าในหมวดนี้</div>
+                <div style={{ padding: 50, textAlign: "center", color: "#94a3b8" }}>
+                  <Icon icon="mdi:package-variant-remove" style={{ fontSize: 48, display: "block", margin: "0 auto 10px" }} />
+                  ไม่มีสินค้าในหมวดนี้
+                </div>
               )}
 
               {!loading && data?.rows?.length > 0 && (
                 <table className="slTable">
                   <thead>
                     <tr>
-                      <th><input type="checkbox" /></th>
+                      <th style={{ width: 40 }}>
+                        <input
+                          type="checkbox"
+                          style={{ cursor: "pointer", accentColor: "#3b82f6", width: 15, height: 15 }}
+                          checked={data.rows.length > 0 && selectedIds.size === data.rows.length}
+                          onChange={toggleAll}
+                        />
+                      </th>
                       <th>สินค้า</th>
                       <th>ราคา</th>
                       <th>ไซส์</th>
                       <th>จำนวน</th>
                       <th>วันที่</th>
                       <th>สถานะ</th>
-                      <th>จัดการ</th>
+                      <th style={{ textAlign: "center" }}>จัดการ</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.rows.map(p => {
                       const pill = STATUS_PILL[p.status] || { label: p.status, cls: "" };
-                      const date = new Date(p.created_at).toLocaleDateString("th-TH", { day:"2-digit", month:"short", year:"numeric" });
+                      const date = new Date(p.created_at).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" });
+                      const isSelected = selectedIds.has(p.product_id);
                       return (
-                        <tr key={p.product_id}>
-                          <td><input type="checkbox" /></td>
-                          <td style={{ display:"flex", gap:10, alignItems:"center" }}>
-                            {p.cover_image
-                              ? <img src={p.cover_image} alt="" className="slTableThumb" />
-                              : <div className="slTableThumb" />}
-                            {p.product_title}
+                        <tr key={p.product_id}
+                            style={{ background: isSelected ? "#eff6ff" : undefined, transition: "background 0.15s" }}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelect(p.product_id)}
+                              style={{ cursor: "pointer", accentColor: "#3b82f6", width: 15, height: 15 }}
+                            />
                           </td>
-                          <td>{fmtBaht(p.price)}</td>
-                          <td>{getSizeText(p.size, p.category_id)}</td>
-                          <td>{p.quantity}</td>
-                          <td>{date}</td>
-                          <td><span className={`slStatusPill ${pill.cls}`}>{pill.label}</span></td>
-                          <td style={{ display:"flex", gap:6 }}>
-                            <button className="slBtn" title="ดู" onClick={() => setSelectedProduct(p)}>
-                              <Icon icon="mdi:eye-outline" />
-                            </button>
-                            <button className="slBtn" title="แก้ไข" onClick={() => setEditingProduct(p)}>
-                              <Icon icon="mdi:pencil-outline" />
-                            </button>
-                            <button className="slBtn" title="ลบ" onClick={() => handleDelete(p.product_id)}>
-                              <Icon icon="mdi:trash-can-outline" />
-                            </button>
+                          <td>
+                            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                              {p.cover_image
+                                ? <img src={p.cover_image} alt="" className="slTableThumb" style={{ objectFit: "cover", borderRadius: 6 }} />
+                                : <div className="slTableThumb" style={{ background: "#f1f5f9", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <Icon icon="mdi:hanger" style={{ color: "#cbd5e1", fontSize: 18 }} />
+                                  </div>}
+                              <span style={{ fontWeight: 500, color: "#0f172a", fontSize: 13 }}>{p.product_title}</span>
+                            </div>
+                          </td>
+                          <td style={{ fontWeight: 600, color: "#3b82f6" }}>{fmtBaht(p.price)}</td>
+                          <td style={{ color: "#475569", fontSize: 13 }}>{getSizeText(p.size, p.category_id)}</td>
+                          <td style={{ textAlign: "center" }}>
+                            <span style={{
+                              display: "inline-block", minWidth: 28, textAlign: "center",
+                              background: p.quantity === 0 ? "#fee2e2" : "#f1f5f9",
+                              color: p.quantity === 0 ? "#b91c1c" : "#374151",
+                              borderRadius: 6, padding: "2px 8px", fontSize: 13, fontWeight: 600,
+                            }}>{p.quantity}</span>
+                          </td>
+                          <td style={{ color: "#64748b", fontSize: 12 }}>{date}</td>
+                          <td>
+                            <span className={`slStatusPill ${pill.cls}`}>{pill.label}</span>
+                          </td>
+                          <td>
+                            <div style={{ display: "flex", gap: 5, justifyContent: "center" }}>
+                              <button className="slBtn" title="ดู" style={{ padding: "6px 10px" }} onClick={() => setSelectedProduct(p)}>
+                                <Icon icon="mdi:eye-outline" />
+                              </button>
+                              <button className="slBtn" title="แก้ไข" style={{ padding: "6px 10px" }} onClick={() => setEditingProduct(p)}>
+                                <Icon icon="mdi:pencil-outline" />
+                              </button>
+                              <button className="slBtn" title="ลบ" style={{ padding: "6px 10px", color: "#ef4444" }} onClick={() => handleDelete(p.product_id)}>
+                                <Icon icon="mdi:trash-can-outline" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -242,11 +338,23 @@ export default function SellerProductsPage() {
               {/* Pagination */}
               {data?.total_pages > 1 && (
                 <div className="slPaging">
-                  <span>{page} - {Math.min(page * 10, data.counts.total)} of {data.counts.total} Pages</span>
-                  <div style={{ display:"flex", gap:6 }}>
+                  <span style={{ color: "#64748b", fontSize: 13 }}>
+                    หน้า {page} / {data.total_pages} (ทั้งหมด {data.counts.total} รายการ)
+                  </span>
+                  <div style={{ display: "flex", gap: 6 }}>
                     <button className="slBtn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
                       <Icon icon="mdi:chevron-left" />
                     </button>
+                    <select
+                      className="slSelect"
+                      value={page}
+                      onChange={e => setPage(Number(e.target.value))}
+                      style={{ padding: "4px 10px", fontSize: 13 }}
+                    >
+                      {Array.from({ length: data.total_pages }, (_, i) => (
+                        <option key={i + 1} value={i + 1}>{i + 1}</option>
+                      ))}
+                    </select>
                     <button className="slBtn" disabled={page >= data.total_pages} onClick={() => setPage(p => p + 1)}>
                       <Icon icon="mdi:chevron-right" />
                     </button>
@@ -257,6 +365,47 @@ export default function SellerProductsPage() {
           </>
         )
       }
+
+      {/* Bulk delete confirmation popup */}
+      {showDeleteConfirm && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 18, padding: "36px 40px", maxWidth: 420, width: "90%",
+            boxShadow: "0 20px 60px rgba(15,23,42,0.20)", textAlign: "center",
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🗑️</div>
+            <h3 style={{ margin: "0 0 8px", color: "#0f172a", fontSize: 19 }}>ยืนยันการลบสินค้า</h3>
+            <p style={{ color: "#64748b", fontSize: 14, margin: "0 0 26px", lineHeight: 1.7 }}>
+              คุณต้องการลบสินค้า{" "}
+              <strong style={{ color: "#ef4444", fontSize: 16 }}>{selectedIds.size}</strong>{" "}
+              รายการที่เลือกใช่หรือไม่?<br />
+              <span style={{ fontSize: 12, color: "#94a3b8" }}>การกระทำนี้ไม่สามารถย้อนกลับได้</span>
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button
+                style={{ padding: "11px 30px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc", cursor: "pointer", fontSize: 14, fontWeight: 500 }}
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={bulkDeleting}
+              >
+                ยกเลิก
+              </button>
+              <button
+                style={{ padding: "11px 30px", borderRadius: 10, border: "none", background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 6, opacity: bulkDeleting ? 0.7 : 1 }}
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting
+                  ? <><Icon icon="mdi:loading" style={{ animation: "spin 1s linear infinite" }} /> กำลังลบ...</>
+                  : <><Icon icon="mdi:trash-can-outline" /> ยืนยันลบทั้งหมด</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       <EditProductModal product={editingProduct} onClose={() => setEditingProduct(null)} onSave={handleSaveEdit} />
     </>
@@ -878,12 +1027,19 @@ const modalStyle = {
   boxShadow: "0 12px 40px rgba(15,23,42,0.22)",
 };
 
-function StatCard({ label, value, cls }) {
+function StatCard({ label, value, cls, icon, iconBg, iconColor }) {
   return (
-    <div className="slCard slProdCard">
-      <div className="slIncomeCard__label">{label}</div>
-      <div className={`slProdValue ${cls}`}>{value}</div>
-      <div className="slStatSubtle">รายการ</div>
+    <div className="slCard slProdCard" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div className="slIncomeCard__label" style={{ fontSize: 13, color: "#64748b" }}>{label}</div>
+        {icon && (
+          <div style={{ width: 34, height: 34, borderRadius: 9, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon icon={icon} style={{ fontSize: 18, color: iconColor }} />
+          </div>
+        )}
+      </div>
+      <div className={`slProdValue ${cls}`} style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{value}</div>
+      <div className="slStatSubtle" style={{ fontSize: 12, color: "#94a3b8" }}>รายการ</div>
     </div>
   );
 }

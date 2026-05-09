@@ -235,6 +235,8 @@ export default function HomePage() {
 
   const [projectDetails, setProjectDetails] = useState({});
   const detailsFetchedRef = useRef(false);
+  const [donationMatchedIds, setDonationMatchedIds] = useState(new Set());
+  const matchedFetchedRef = useRef(false);
 
   const [autoPlay, setAutoPlay] = useState(true);
   const autoTimerRef = useRef(null);
@@ -294,26 +296,38 @@ export default function HomePage() {
       .catch(() => {});
   }, [token]);
 
+  // ── ดึง uniform_items สำหรับ ProjCard popup ──────────────────────────────
   useEffect(() => {
-  if (projects.length === 0 || detailsFetchedRef.current) return;
-  detailsFetchedRef.current = true;
-  
-  const fetchDetails = async () => {
-    const map = {};
-    for (const p of projects) {
-      try {
-        const d = await getJson(`/school/projects/public/${p.request_id}`, false);
-        if (d?.request_id) map[d.request_id] = d.uniform_items || [];
-        console.log("fetched:", p.request_id, map[d.request_id]); // ← เช็ค
-      } catch (e) {
-        console.error("fetch failed:", p.request_id, e);
+    if (projects.length === 0 || detailsFetchedRef.current) return;
+    detailsFetchedRef.current = true;
+    const fetchDetails = async () => {
+      const map = {};
+      for (const p of projects) {
+        try {
+          const d = await getJson(`/school/projects/public/${p.request_id}`, false);
+          if (d?.request_id) map[d.request_id] = d.uniform_items || [];
+        } catch (e) { /* ignore */ }
       }
-    }
-    setProjectDetails(map);
-    console.log("projectDetails set:", map); 
-  };
-  
-  fetchDetails();
+      setProjectDetails(map);
+    };
+    fetchDetails();
+  }, [projects]);
+
+  // ── ดึง product_id ทั้งหมดที่ตรงกับโครงการ (สำหรับ donation badge) ─────
+  useEffect(() => {
+    if (projects.length === 0 || matchedFetchedRef.current) return;
+    matchedFetchedRef.current = true;
+    const fetchMatchedIds = async () => {
+      const ids = new Set();
+      await Promise.all(projects.map(async (p) => {
+        try {
+          const d = await getJson(`/api/market/matched?project_id=${p.request_id}`, false);
+          (d?.products || []).forEach(prod => ids.add(prod.product_id));
+        } catch (e) { /* ignore */ }
+      }));
+      if (ids.size > 0) setDonationMatchedIds(ids);
+    };
+    fetchMatchedIds();
   }, [projects]);
 
   // ถ้า projects โหลดใหม่/เปลี่ยนจำนวน -> รีเซ็ตหน้า + สถานะ slide
@@ -454,6 +468,7 @@ export default function HomePage() {
     setProvinceInput("");
   };
   // ── end nearby ────────────────────────────────────────────
+
 
   const displayProjects = useMemo(() => {
     if (homeTab === NEARBY_TAB) return nearbyProjects;
@@ -1221,8 +1236,16 @@ export default function HomePage() {
         x.condition_label || null,
       ].filter(Boolean).join(' · ');
 
+      const isDonationMatch = donationMatchedIds.size > 0 && donationMatchedIds.has(x.product_id);
       return (
   <div key={x.product_id} className="mkCard" style={{ position: 'relative' }}>
+    {/* donation badge */}
+    {isDonationMatch && (
+      <div className="mkDonateBadge">
+        <Icon icon="tabler:heart-handshake" style={{ fontSize: '15px', flexShrink: 0 }} />
+        ซื้อเพื่อร่วมบริจาคได้
+      </div>
+    )}
     {/* stock badge */}
     {x.quantity > 0 && (
       <span className="mkStockBadge">{x.quantity} ชิ้น</span>

@@ -378,14 +378,6 @@
   margin-bottom: 22px;
 }
 
-.admPayoutStatCard {
-  background: #fff;
-  border-radius: 14px;
-  padding: 16px 20px;
-  border: 1px solid #e9ecf2;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
 .admPayoutStatCard--blue {
   background: #f0f9ff;
   border-color: #bae6fd;
@@ -445,6 +437,70 @@
   gap: 6px;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+/* ── Payout page action row (single line, no wrap) ── */
+.admPayoutActionRow {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+.admPayoutBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12.5px;
+  white-space: nowrap;
+  transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  line-height: 1;
+}
+
+.admPayoutBtn:hover {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+.admPayoutBtn:active {
+  transform: scale(0.97);
+}
+
+.admPayoutBtn--transfer {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.28);
+}
+
+.admPayoutBtn--detail {
+  background: #f0f4ff;
+  color: #3b5bdb;
+  border: 1px solid #c5d3f8;
+}
+
+.admPayoutBtn--detail:hover {
+  background: #e0e9ff;
+}
+
+/* ── Payout stat cards — icon row ── */
+.admPayoutStatCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  border: 1px solid #e9ecf2;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.admPayoutStatCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
 }
 
 /* ── Confirm Payout Modal ── */

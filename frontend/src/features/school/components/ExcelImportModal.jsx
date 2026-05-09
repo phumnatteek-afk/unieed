@@ -14,8 +14,8 @@ const URGENCY_TH = { very_urgent: "เร่งด่วนมาก", urgent: "
 const MALE_TYPES = [1, 3];
 const FEM_TYPES  = [2, 4];
 const U_META = {
-  1: { name: "เสื้อชาย",    sizeLabel: "รอบอก",  sizeKey: "chest" },
-  2: { name: "เสื้อหญิง",   sizeLabel: "รอบอก",  sizeKey: "chest" },
+  1: { name: "เสื้อนักเรียนชาย",    sizeLabel: "รอบอก",  sizeKey: "chest" },
+  2: { name: "เสื้อนักเรียนหญิง",   sizeLabel: "รอบอก",  sizeKey: "chest" },
   3: { name: "กางเกงชาย",   sizeLabel: "รอบเอว", sizeKey: "waist" },
   4: { name: "กระโปรงหญิง", sizeLabel: "รอบเอว", sizeKey: "waist" },
 };
@@ -336,7 +336,7 @@ function RowEditDrawer({ student, onSave, onCancel }) {
       <div className="eiEditSection">
         <div className="eiEditSectionTitle">รายการชุดนักเรียน</div>
         <div className="eiEditUniformGrid">
-          {[1, 3, 2, 4].map(tid => {
+          {(draft.gender === "male" ? [1, 3] : draft.gender === "female" ? [2, 4] : [1, 3, 2, 4]).map(tid => {
             const meta = U_META[tid];
             const u    = draft.uniforms[tid];
             const isMale = MALE_TYPES.includes(tid);

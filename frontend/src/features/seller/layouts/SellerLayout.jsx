@@ -6,7 +6,7 @@ import { useAuth } from "../../../context/AuthContext.jsx";
 import "../styles/seller.css";
 
 export default function SellerLayout() {
-  const { user, logout } = useAuth();
+  const { userName, logout } = useAuth();
   const navigate = useNavigate();
   const [productsBadge, setProductsBadge]  = useState(0);
   const [ordersBadge,   setOrdersBadge]    = useState(0);
@@ -37,11 +37,21 @@ export default function SellerLayout() {
   return (
     <div className="slShell">
       <aside className="slSide">
+        {/* Platform logo at the very top */}
+        <div className="slLogoTop">
+          <img src="/src/unieed_pic/logo2.png" alt="Unieed" className="slLogoImg" />
+        </div>
+
+        {/* Seller profile */}
         <div className="slBrand">
-          <img src="/src/unieed_pic/logo.png" alt="Unieed" />
-          <div>
-            <div className="slBrandTitle">ผู้ขาย</div>
-            <div className="slBrandSub">{user?.user_name || user?.name || ""}</div>
+          <div className="slAvatar">
+            {(userName || "U")[0]?.toUpperCase()}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div className="slBrandRole">ผู้ขาย</div>
+            <div className="slBrandSub" style={{ fontWeight: 600, color: "#1e293b", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {userName || ""}
+            </div>
           </div>
         </div>
 

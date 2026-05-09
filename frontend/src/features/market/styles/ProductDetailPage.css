@@ -47,21 +47,22 @@
 /* ── Main Layout ── */
 .pdMain {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
+  grid-template-columns: 380px 1fr;
+  gap: 28px;
   background: #fff;
   border-radius: 20px;
-  padding: 32px;
+  padding: 22px 28px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.06);
-  margin-bottom: 40px;
+  margin-bottom: 28px;
 }
 
 /* ── Images ── */
-.pdImages { display: flex; flex-direction: column; gap: 12px; }
+.pdImages { display: flex; flex-direction: column; gap: 10px; }
 
 .pdMainImg {
   position: relative;
   aspect-ratio: 1 / 1;
+  max-height: 340px;
   border-radius: 14px;
   overflow: hidden;
   background: #f1f5f9;
@@ -96,10 +97,10 @@
 .pdThumbActive { border-color: #5285E8; opacity: 1; }
 
 /* ── Info ── */
-.pdInfo { display: flex; flex-direction: column; gap: 16px; }
+.pdInfo { display: flex; flex-direction: column; gap: 12px; }
 
 .pdTitle {
-  font-size: 22px; font-weight: 600;
+  font-size: 20px; font-weight: 600;
   color: #111827; line-height: 1.4; margin: 0;
 }
 
@@ -107,23 +108,27 @@
   display: flex; align-items: center; gap: 6px;
   font-size: 14px; color: #666;
 }
+/* icon ใน pdSchool ใหญ่กว่าตัวอักษรนิดนึง */
+.pdSchool svg, .pdSchool [class*="iconify"] { font-size: 17px; }
 
 .pdPrice {
-  font-size: 36px; font-weight: 600; color: #5285E8;
+  font-size: 30px; font-weight: 600; color: #5285E8;
 }
-.pdPrice span { font-size: 16px; font-weight: 400; color: #888; }
+.pdPrice span { font-size: 15px; font-weight: 400; color: #888; }
 
 /* ── Details ── */
 .pdDetails {
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: 8px;
   border-top: 1px solid #f0f0f0;
   border-bottom: 1px solid #f0f0f0;
-  padding: 16px 0;
+  padding: 12px 0;
 }
 .pdDetailRow {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 10px;
   font-size: 14px;
 }
+/* icon ใน detail row ใหญ่กว่า text เล็กน้อย */
+.pdDetailRow svg, .pdDetailRow [class*="iconify"] { font-size: 17px; }
 .pdDetailLabel {
   color: #888; min-width: 80px; flex-shrink: 0;
 }
@@ -148,7 +153,7 @@
 .pdSeller {
   display: flex; align-items: center; gap: 12px;
   background: #f7f9fc; border-radius: 12px;
-  padding: 14px 16px;
+  padding: 10px 14px;
 }
 .pdSellerAvatar {
   width: 44px; height: 44px; border-radius: 50%;
@@ -223,11 +228,21 @@
 /* ── Related ── */
 .pdRelated { margin-top: 8px; }
 .pdRelatedTitle {
-  font-size: 20px; font-weight: 600; color: #1d4ed8;
-  margin-bottom: 20px;
+  font-size: 22px; font-weight: 700; color: #1d4ed8;
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 10px;
+}
+.pdRelatedTitleAlt {
+  color: #374151;
+}
+/* icon ใน title ใหญ่กว่า text นิดนึง */
+.pdRelatedTitleIcon {
+  font-size: 28px;
+  display: flex; align-items: center;
+  flex-shrink: 0;
 }
 .pdProjSub {
-  margin: -10px 0 16px;
+  margin: 0 0 14px;
   font-size: 13px;
   color: #64748b;
 }
@@ -239,8 +254,8 @@
 
 .pdProjGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
 /* ── Project Card (new design with cover image) ── */
@@ -270,7 +285,7 @@
 /* Cover image */
 .pdProjCover {
   position: relative;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   overflow: hidden;
 }
@@ -344,14 +359,14 @@
 
 /* Body */
 .pdProjBody {
-  padding: 14px 16px 16px;
+  padding: 10px 12px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
 }
 .pdProjTitle {
-  font-size: 15px;
+  font-size: 12.5px;
   font-weight: 600;
   color: #0f172a;
   line-height: 1.4;
@@ -366,8 +381,8 @@
 .pdProjMeta {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
+  gap: 5px;
+  font-size: 11px;
   color: #475569;
   line-height: 1.4;
 }
@@ -387,13 +402,13 @@
 .pdProjMeta {
   background: #eff6ff;
   color: #1e40af;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
   font-weight: 500;
   margin-top: 2px;
 }
-.pdProjMeta svg { color: #2563eb; font-size: 15px; }
+.pdProjMeta svg { color: #2563eb; font-size: 13px; }
 .pdProjMeta b { color: #1d4ed8; font-weight: 700; }
 
 /* Progress bar inside card */
@@ -432,15 +447,15 @@
 /* Actions */
 .pdProjActions {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-top: 6px;
 }
 .pdProjDetailBtn,
 .pdProjSelectBtn {
   flex: 1;
-  height: 38px;
-  border-radius: 10px;
-  font-size: 12.5px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 11px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
@@ -513,13 +528,17 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 1024px) {
+  .pdProjGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (max-width: 768px) {
   .pdMain { grid-template-columns: 1fr; gap: 24px; padding: 20px; }
   .pdRelGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pdProjGrid { grid-template-columns: 1fr; }
+  .pdProjGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 480px) {
   .pdRelGrid { grid-template-columns: 1fr; }
+  .pdProjGrid { grid-template-columns: 1fr; }
   .pdTitle { font-size: 18px; }
   .pdPrice { font-size: 28px; }
 }

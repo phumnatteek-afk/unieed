@@ -692,11 +692,14 @@ export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}
     LIMIT ? OFFSET ?
   `, [safeLimit, offset]).catch(() => [[]]);
 
-  // ประวัติการโอน
+  // ประวัติการโอน (JOIN bank info จาก users)
   const [historyRows] = await db.query(`
     SELECT p.payout_id, p.seller_id, p.net_amount, p.fee_amount, p.order_count,
            p.status, p.omise_transfer_id, p.created_at, p.completed_at,
-           u.user_name AS seller_name
+           u.user_name          AS seller_name,
+           u.bank_account_number AS bank_account_number_enc,
+           u.bank_account_name  AS bank_account_name,
+           u.bank_code          AS bank_code
     FROM payouts p
     LEFT JOIN users u ON u.user_id = p.seller_id
     ORDER BY p.created_at DESC
@@ -747,7 +750,21 @@ export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}
         order_count: Number(r.order_count || 0),
       };
     }),
-    history:     historyRows || [],
+    history: (historyRows || []).map(r => {
+      const rawNum = decryptBankAccountNumber(r.bank_account_number_enc);
+      return {
+        ...r,
+        bank_account_number:           rawNum,
+        bank_account_number_masked:    maskBankAccountNumber(rawNum),
+        bank_account_number_formatted: formatBankAccountNumber(rawNum),
+        bank_account_name:             r.bank_account_name || "",
+        bank_code:                     r.bank_code || "",
+        paid_at:                       r.completed_at,   // alias สำหรับ frontend
+        net_amount:  Math.round(Number(r.net_amount  || 0)),
+        fee_amount:  Math.round(Number(r.fee_amount  || 0)),
+        order_count: Number(r.order_count || 0),
+      };
+    }),
     total_pages: Math.max(1, Math.ceil(Number(countRow?.c || 0) / safeLimit)),
   };
 }
