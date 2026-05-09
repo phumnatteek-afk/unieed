@@ -126,6 +126,11 @@ export function paySeller(sellerId, netAmount) {
   });
 }
 
+/** GET /admin/demand-insight */
+export function getDemandInsight() {
+  return request("/admin/demand-insight", { method: "GET", auth: true });
+}
+
 /** POST /admin/payouts/pay-all */
 export function payAll() {
   return request(`/admin/payouts/pay-all`, { method: "POST", auth: true });

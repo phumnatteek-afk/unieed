@@ -145,6 +145,12 @@ export async function adminPayAll(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function adminDemandInsight(req, res, next) {
+  try {
+    res.json(await svc.getDemandInsight());
+  } catch (e) { next(e); }
+}
+
 export async function adminGetDonorSuspensionHistory(req, res, next) {
   try {
     const userId = Number(req.params.userId);

@@ -23,6 +23,7 @@ import {
   adminPaySeller,
   adminPayAll,
   adminGetDonorSuspensionHistory,
+  adminDemandInsight,
 } from "./admin.controller.js";
 
 const r = Router();
@@ -43,6 +44,7 @@ r.get("/overview",            auth, requireRole(["admin"]), adminOverview);
 r.get("/revenue",             auth, requireRole(["admin"]), adminRevenue);       // ?period=week|month|year
 r.get("/chart",               auth, requireRole(["admin"]), adminChart);         // ?months=6
 r.get("/pending-tasks",       auth, requireRole(["admin"]), adminPendingTasks);
+r.get("/demand-insight",      auth, requireRole(["admin"]), adminDemandInsight); // Demand Insight
 
 /* ─── Orders ─── */
 r.get("/orders",              auth, requireRole(["admin"]), adminListOrders);    // ?status=&q=&page=&limit=

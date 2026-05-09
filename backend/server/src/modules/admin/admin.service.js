@@ -828,6 +828,267 @@ export async function paySeller(seller_id, net_amount) {
   } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
 }
 
+/* ────── Demand Insight ────── */
+
+// แผนที่จังหวัด → ภาค (77 จังหวัด)
+const PROVINCE_REGION = {
+  // ภาคเหนือ
+  "เชียงใหม่":"เหนือ","เชียงราย":"เหนือ","ลำปาง":"เหนือ","ลำพูน":"เหนือ","แม่ฮ่องสอน":"เหนือ",
+  "น่าน":"เหนือ","พะเยา":"เหนือ","แพร่":"เหนือ","อุตรดิตถ์":"เหนือ","ตาก":"เหนือ",
+  "สุโขทัย":"เหนือ","พิษณุโลก":"เหนือ","พิจิตร":"เหนือ","กำแพงเพชร":"เหนือ","เพชรบูรณ์":"เหนือ",
+  "นครสวรรค์":"เหนือ","อุทัยธานี":"เหนือ",
+  // ภาคตะวันออกเฉียงเหนือ (อีสาน)
+  "นครราชสีมา":"อีสาน","บึงกาฬ":"อีสาน","บุรีรัมย์":"อีสาน","ชัยภูมิ":"อีสาน",
+  "อำนาจเจริญ":"อีสาน","อุดรธานี":"อีสาน","อุบลราชธานี":"อีสาน","ยโสธร":"อีสาน",
+  "ศรีสะเกษ":"อีสาน","สกลนคร":"อีสาน","สุรินทร์":"อีสาน","หนองบัวลำภู":"อีสาน",
+  "หนองคาย":"อีสาน","มหาสารคาม":"อีสาน","มุกดาหาร":"อีสาน","กาฬสินธุ์":"อีสาน",
+  "ขอนแก่น":"อีสาน","เลย":"อีสาน","ร้อยเอ็ด":"อีสาน","นครพนม":"อีสาน",
+  // ภาคกลาง
+  "กรุงเทพมหานคร":"กลาง","กรุงเทพฯ":"กลาง","นนทบุรี":"กลาง","ปทุมธานี":"กลาง",
+  "สมุทรปราการ":"กลาง","สมุทรสาคร":"กลาง","สมุทรสงคราม":"กลาง","นครปฐม":"กลาง",
+  "พระนครศรีอยุธยา":"กลาง","อ่างทอง":"กลาง","สิงห์บุรี":"กลาง","ชัยนาท":"กลาง",
+  "ลพบุรี":"กลาง","สระบุรี":"กลาง","นครนายก":"กลาง","สุพรรณบุรี":"กลาง",
+  // ภาคตะวันออก
+  "ชลบุรี":"ตะวันออก","ระยอง":"ตะวันออก","จันทบุรี":"ตะวันออก","ตราด":"ตะวันออก",
+  "ฉะเชิงเทรา":"ตะวันออก","ปราจีนบุรี":"ตะวันออก","สระแก้ว":"ตะวันออก",
+  // ภาคตะวันตก
+  "กาญจนบุรี":"ตะวันตก","ราชบุรี":"ตะวันตก","เพชรบุรี":"ตะวันตก","ประจวบคีรีขันธ์":"ตะวันตก",
+  // ภาคใต้
+  "สุราษฎร์ธานี":"ใต้","นครศรีธรรมราช":"ใต้","กระบี่":"ใต้","พังงา":"ใต้","ภูเก็ต":"ใต้",
+  "ตรัง":"ใต้","พัทลุง":"ใต้","ระนอง":"ใต้","ชุมพร":"ใต้","สงขลา":"ใต้",
+  "สตูล":"ใต้","ปัตตานี":"ใต้","ยะลา":"ใต้","นราธิวาส":"ใต้",
+};
+
+/**
+ * วิเคราะห์ความต้องการชุดนักเรียนจากโครงการที่ยังเปิดอยู่
+ * - top3_types     : 3 อันดับประเภทชุดที่ยังขาดมากสุด พร้อมไซส์และระดับชั้น
+ * - province_demand: จังหวัด/ภาคที่ต้องการมากที่สุด (top 10)
+ * - completed_stats: สถิติโครงการที่สำเร็จแล้ว
+ */
+export async function getDemandInsight() {
+  const CATEGORY_LABEL = { 1:"เสื้อนักเรียน", 2:"กางเกงนักเรียน", 3:"กระโปรงนักเรียน", 4:"อื่นๆ" };
+  const GENDER_LABEL   = { male:"ชาย", female:"หญิง" };
+
+  // ── 1) Top 3 ประเภทชุดที่ยังขาดมากสุด ──────────────────────────────────
+  const [typeRows] = await db.query(`
+    SELECT
+      ut.uniform_type_id,
+      ut.type_name,
+      ut.gender,
+      ut.uniform_category,
+      ci.category_id,
+      ci.category_name,
+      SUM(sn.quantity_needed)                                          AS total_needed,
+      COALESCE(SUM(sn.quantity_received), 0)                           AS total_received,
+      SUM(sn.quantity_needed) - COALESCE(SUM(sn.quantity_received), 0) AS still_needed
+    FROM student_need sn
+    JOIN students         st ON st.student_id      = sn.student_id
+    JOIN donation_request dr ON dr.request_id      = st.request_id
+    JOIN uniform_type     ut ON ut.uniform_type_id = sn.uniform_type_id
+    LEFT JOIN category_item ci ON ci.category_id   = ut.category_id
+    WHERE dr.status = 'open'
+      AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
+    GROUP BY ut.uniform_type_id, ut.type_name, ut.gender,
+             ut.uniform_category, ci.category_id, ci.category_name
+    HAVING still_needed > 0
+    ORDER BY still_needed DESC
+    LIMIT 3
+  `).catch(() => [[]]);
+
+  const top3 = (typeRows || []).map((r, idx) => ({
+    rank:            idx + 1,
+    uniform_type_id: r.uniform_type_id,
+    type_name:       r.type_name   || "ไม่ระบุ",
+    gender:          r.gender      || null,
+    gender_label:    GENDER_LABEL[r.gender] || "",
+    category_id:     r.category_id || null,
+    category_name:   r.category_name || CATEGORY_LABEL[r.uniform_category] || "อื่นๆ",
+    total_needed:    Number(r.total_needed   || 0),
+    total_received:  Number(r.total_received || 0),
+    still_needed:    Number(r.still_needed   || 0),
+  }));
+
+  if (!top3.length) {
+    // ยังคง query completed stats แม้ไม่มี top3
+    const [[cr]] = await db.query(
+      `SELECT COUNT(*) AS closed_projects, COUNT(DISTINCT school_id) AS school_count
+       FROM donation_request WHERE status IN ('closed','archived')`
+    ).catch(() => [[{ closed_projects: 0, school_count: 0 }]]);
+    const [[cu]] = await db.query(
+      `SELECT COALESCE(SUM(f.quantity_fulfilled),0) AS total_uniforms
+       FROM fulfillment f JOIN donation_request dr ON dr.request_id=f.request_id
+       WHERE dr.status IN ('closed','archived')`
+    ).catch(() => [[{ total_uniforms: 0 }]]);
+    const [[cs]] = await db.query(
+      `SELECT COUNT(DISTINCT sn.student_id) AS students_helped
+       FROM fulfillment f
+       JOIN student_need sn ON sn.student_need_id=f.request_item_id
+       JOIN donation_request dr ON dr.request_id=f.request_id
+       WHERE dr.status IN ('closed','archived') AND f.quantity_fulfilled>0`
+    ).catch(() => [[{ students_helped: 0 }]]);
+    return {
+      top3_types: [],
+      province_demand: [],
+      region_demand: [],
+      completed_stats: {
+        closed_projects: Number(cr?.closed_projects || 0),
+        school_count:    Number(cr?.school_count    || 0),
+        total_uniforms:  Number(cu?.total_uniforms  || 0),
+        students_helped: Number(cs?.students_helped || 0),
+      },
+      open_projects: 0,
+    };
+  }
+
+  const typeIds      = top3.map(t => t.uniform_type_id);
+  const placeholders = typeIds.map(() => "?").join(", ");
+
+  // ── 2) ไซส์ที่ขาดมากสุดของแต่ละ type ──────────────────────────────────
+  const [sizeRows] = await db.query(`
+    SELECT
+      sn.uniform_type_id,
+      JSON_UNQUOTE(JSON_EXTRACT(sn.size, '$.chest')) AS chest,
+      JSON_UNQUOTE(JSON_EXTRACT(sn.size, '$.waist')) AS waist,
+      SUM(sn.quantity_needed - COALESCE(sn.quantity_received, 0)) AS cnt
+    FROM student_need sn
+    JOIN students         st ON st.student_id  = sn.student_id
+    JOIN donation_request dr ON dr.request_id  = st.request_id
+    WHERE dr.status = 'open'
+      AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
+      AND sn.uniform_type_id IN (${placeholders})
+      AND sn.quantity_needed > COALESCE(sn.quantity_received, 0)
+    GROUP BY sn.uniform_type_id, chest, waist
+    ORDER BY sn.uniform_type_id, cnt DESC
+  `, typeIds).catch(() => [[]]);
+
+  const sizeMap = {};
+  for (const r of (sizeRows || [])) {
+    const tid = r.uniform_type_id;
+    if (!sizeMap[tid]) sizeMap[tid] = [];
+    if (sizeMap[tid].length < 3) {
+      sizeMap[tid].push({
+        chest: r.chest && r.chest !== "null" ? r.chest : null,
+        waist: r.waist && r.waist !== "null" ? r.waist : null,
+        count: Number(r.cnt || 0),
+      });
+    }
+  }
+
+  // ── 3) ระดับชั้นที่ขาดมากสุดของแต่ละ type ──────────────────────────────
+  const [levelRows] = await db.query(`
+    SELECT
+      sn.uniform_type_id,
+      st.education_level_group                                           AS level,
+      SUM(sn.quantity_needed - COALESCE(sn.quantity_received, 0))       AS cnt
+    FROM student_need sn
+    JOIN students         st ON st.student_id  = sn.student_id
+    JOIN donation_request dr ON dr.request_id  = st.request_id
+    WHERE dr.status = 'open'
+      AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
+      AND sn.uniform_type_id IN (${placeholders})
+      AND sn.quantity_needed > COALESCE(sn.quantity_received, 0)
+    GROUP BY sn.uniform_type_id, st.education_level_group
+    ORDER BY sn.uniform_type_id, cnt DESC
+  `, typeIds).catch(() => [[]]);
+
+  const levelMap = {};
+  for (const r of (levelRows || [])) {
+    const tid = r.uniform_type_id;
+    if (!levelMap[tid]) levelMap[tid] = [];
+    levelMap[tid].push({ level: r.level || "ไม่ระบุ", count: Number(r.cnt || 0) });
+  }
+
+  // ── 4) จังหวัด/ภาค ที่ต้องการมากที่สุด (top 10 จังหวัด) ─────────────────
+  const [provRows] = await db.query(`
+    SELECT
+      s.province,
+      SUM(sn.quantity_needed - COALESCE(sn.quantity_received, 0)) AS still_needed
+    FROM student_need sn
+    JOIN students         st ON st.student_id  = sn.student_id
+    JOIN donation_request dr ON dr.request_id  = st.request_id
+    JOIN schools           s ON s.school_id    = dr.school_id
+    WHERE dr.status = 'open'
+      AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
+      AND sn.quantity_needed > COALESCE(sn.quantity_received, 0)
+      AND s.province IS NOT NULL AND s.province != ''
+    GROUP BY s.province
+    ORDER BY still_needed DESC
+    LIMIT 10
+  `).catch(() => [[]]);
+
+  const maxProv = Number((provRows || [])[0]?.still_needed || 1);
+  const province_demand = (provRows || []).map(r => ({
+    province:     r.province,
+    region:       PROVINCE_REGION[r.province] || "อื่นๆ",
+    still_needed: Number(r.still_needed || 0),
+    pct:          Math.round((Number(r.still_needed || 0) / maxProv) * 100),
+  }));
+
+  // สรุปตามภาค
+  const regionTotals = {};
+  for (const p of province_demand) {
+    regionTotals[p.region] = (regionTotals[p.region] || 0) + p.still_needed;
+  }
+  const maxRegion = Math.max(1, ...Object.values(regionTotals));
+  const region_demand = Object.entries(regionTotals)
+    .sort((a, b) => b[1] - a[1])
+    .map(([region, total]) => ({
+      region,
+      still_needed: total,
+      pct: Math.round((total / maxRegion) * 100),
+    }));
+
+  // ── 5) โครงการที่เปิดอยู่ ───────────────────────────────────────────────
+  const [[openRow]] = await db.query(
+    `SELECT COUNT(*) AS c FROM donation_request
+     WHERE status = 'open' AND (start_date IS NULL OR start_date <= CURDATE())`
+  ).catch(() => [[{ c: 0 }]]);
+
+  // ── 6) สถิติโครงการที่สำเร็จแล้ว (closed + archived) ─────────────────
+  const [[closedRow]] = await db.query(`
+    SELECT
+      COUNT(*)                     AS closed_projects,
+      COUNT(DISTINCT dr.school_id) AS school_count
+    FROM donation_request dr
+    WHERE dr.status IN ('closed', 'archived')
+  `).catch(() => [[{ closed_projects: 0, school_count: 0 }]]);
+
+  // ยอดชุดที่ส่งมอบจริง — ใช้ตาราง fulfillment (quantity_fulfilled) ซึ่งบันทึกตอนโรงเรียนยืนยัน
+  const [[closedUniform]] = await db.query(`
+    SELECT COALESCE(SUM(f.quantity_fulfilled), 0) AS total_uniforms
+    FROM fulfillment f
+    JOIN donation_request dr ON dr.request_id = f.request_id
+    WHERE dr.status IN ('closed', 'archived')
+  `).catch(() => [[{ total_uniforms: 0 }]]);
+
+  // ยอดนักเรียนที่ได้รับชุดจริง — ดึงจาก fulfillment → student_need → students
+  const [[closedStudents]] = await db.query(`
+    SELECT COUNT(DISTINCT sn.student_id) AS students_helped
+    FROM fulfillment f
+    JOIN student_need     sn ON sn.student_need_id = f.request_item_id
+    JOIN donation_request dr ON dr.request_id      = f.request_id
+    WHERE dr.status IN ('closed', 'archived')
+      AND f.quantity_fulfilled > 0
+  `).catch(() => [[{ students_helped: 0 }]]);
+
+  return {
+    top3_types: top3.map(t => ({
+      ...t,
+      top_sizes:  sizeMap[t.uniform_type_id]  || [],
+      levels:     levelMap[t.uniform_type_id] || [],
+    })),
+    province_demand,
+    region_demand,
+    open_projects: Number(openRow?.c || 0),
+    completed_stats: {
+      closed_projects:  Number(closedRow?.closed_projects  || 0),
+      school_count:     Number(closedRow?.school_count     || 0),
+      total_uniforms:   Number(closedUniform?.total_uniforms || 0),
+      students_helped:  Number(closedStudents?.students_helped || 0),
+    },
+  };
+}
+
 export async function getDonorSuspensionHistory(userId) {
   const [rows] = await db.query(
     `SELECT type, title, body, created_at
