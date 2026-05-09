@@ -51,7 +51,11 @@ export async function listSchools({ status = "", q = "", sort = "latest" } = {})
       s.school_code, s.school_intent, s.verification_status, s.verification_note, s.created_at,
       u.user_name AS coordinator_name, u.user_email AS coordinator_email
     FROM schools s
-    LEFT JOIN users u ON u.school_id = s.school_id AND u.role = 'school_admin'
+    LEFT JOIN users u ON u.user_id = (
+      SELECT user_id FROM users
+      WHERE school_id = s.school_id AND role = 'school_admin'
+      ORDER BY user_id ASC LIMIT 1
+    )
     ${whereSql} ${orderSql}
   `, params);
 
@@ -822,6 +826,23 @@ export async function paySeller(seller_id, net_amount) {
     await conn.commit();
     return { message: "Paid", seller_id, payout_id: payoutId, net_amount: Math.round(Number(sum.net_total)) };
   } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
+}
+
+export async function getDonorSuspensionHistory(userId) {
+  const [rows] = await db.query(
+    `SELECT type, title, body, created_at
+     FROM notifications
+     WHERE user_id = ? AND type IN ('suspension', 'strike_reset', 'strike_appeal')
+     ORDER BY created_at DESC
+     LIMIT 50`,
+    [userId]
+  );
+  return rows.map(r => ({
+    type: r.type,
+    title: r.title,
+    body: (() => { try { return JSON.parse(r.body); } catch { return {}; } })(),
+    created_at: r.created_at,
+  }));
 }
 
 export async function payAllSellers() {

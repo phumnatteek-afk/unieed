@@ -71,7 +71,7 @@ export default function AdminLayout() {
                   className={({ isActive }) => (isActive ? "boItem boItem--sub active" : "boItem boItem--sub")}
                 >
                   <Icon icon="mdi:swap-horizontal-circle-outline" className="boItem--sub__icon" />
-                  ตรวจสอบของไม่ตรง
+                  ของไม่ตรง / ไม่ได้รับพัสดุ
                 </NavLink>
               </div>
             )}

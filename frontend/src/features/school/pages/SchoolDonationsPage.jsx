@@ -43,7 +43,6 @@ const CONDITION_META = {
   usable:     { label: "ใช้งานได้",         color: "#16a34a", bg: "#dcfce7" },
   wrong_item: { label: "รายการไม่ตรง",      color: "#d97706", bg: "#fef3c7" },
   damaged:    { label: "เสียหาย",            color: "#dc2626", bg: "#fee2e2" },
-  incomplete: { label: "ได้รับไม่ครบ",      color: "#1d4ed8", bg: "#eff6ff" },
   not_sent:   { label: "ไม่มีสิ่งของในพัสดุ", color: "#7c3aed", bg: "#f5f3ff" },
 };
  
@@ -248,7 +247,6 @@ export default function SchoolDonationPage() {
     wrong_item: donations.filter(d => d.condition_status === "wrong_item").length,
     not_sent:   donations.filter(d => d.condition_status === "not_sent").length,
     damaged:    donations.filter(d => d.condition_status === "damaged").length,
-    incomplete: donations.filter(d => d.condition_status === "incomplete").length,
     approved:   donations.filter(d => d.status === "approved").length,
     pending:    donations.filter(d => d.status === "pending").length,
     market:     donations.filter(d => d.delivery_method === "market_purchase").length,
@@ -333,7 +331,6 @@ export default function SchoolDonationPage() {
     if (vals.includes("wrong_item")) return "wrong_item";
     if (vals.includes("not_sent"))   return "not_sent";
     if (vals.includes("damaged"))    return "damaged";
-    if (vals.includes("incomplete")) return "incomplete";
     return "usable";
   };
  
@@ -406,18 +403,6 @@ export default function SchoolDonationPage() {
           <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
             <span className="sdSummaryVal" style={{ color:"#dc2626" }}>{summary.damaged}</span>
             <span style={{ fontSize:12, fontWeight:600, color:"#dc2626" }}>รายการ</span>
-          </div>
-        </div>
-        <div className="sdSummaryCard" style={{ color:"#1d4ed8" }}>
-          <div className="sdSummaryTop">
-            <div className="sdSummaryIcon" style={{ background:"#eff6ff" }}>
-              <Icon icon="mdi:package-variant" color="#1d4ed8" />
-            </div>
-          </div>
-          <span className="sdSummaryLabel">ได้รับไม่ครบ</span>
-          <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
-            <span className="sdSummaryVal" style={{ color:"#1d4ed8" }}>{summary.incomplete}</span>
-            <span style={{ fontSize:12, fontWeight:600, color:"#1d4ed8" }}>รายการ</span>
           </div>
         </div>
         <div className="sdSummaryCard" style={{ color:"#16a34a" }}>
@@ -693,7 +678,6 @@ export default function SchoolDonationPage() {
                               usable:       { label: "ใช้งานได้",      color: "#16a34a", icon: "mdi:check-circle-outline" },
                               damaged:      { label: "เสียหาย",         color: "#dc2626", icon: "mdi:close-circle-outline" },
                               wrong_item:   { label: "รายการไม่ตรง",   color: "#d97706", icon: "mdi:swap-horizontal" },
-                              incomplete:   { label: "ได้รับไม่ครบ",   color: "#1d4ed8", icon: "mdi:package-variant" },
                               not_sent:     { label: "ไม่มีสิ่งของในพัสดุ", color: "#7c3aed", icon: "mdi:package-variant-remove" },
                               partial:      { label: "ได้รับบางส่วน",  color: "#d97706", icon: "mdi:alert-circle-outline" },
                               not_received: { label: "ไม่รับ",          color: "#7c3aed", icon: "mdi:minus-circle-outline" },

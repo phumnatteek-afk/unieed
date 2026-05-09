@@ -54,6 +54,15 @@ export async function runMigrations() {
       `);
     } catch (_) { /* column อาจมี enum นี้อยู่แล้ว */ }
 
+    // ── schools.verification_status — รองรับ suspended ──────────────────
+    try {
+      await db.query(`
+        ALTER TABLE schools MODIFY COLUMN verification_status
+          ENUM('pending','approved','rejected','suspended')
+          NOT NULL DEFAULT 'pending'
+      `);
+    } catch (_) { /* enum อาจครบแล้ว */ }
+
     // ── orders.order_status — รองรับทุก status ที่ระบบใช้ ─────────────────
     try {
       await db.query(`
