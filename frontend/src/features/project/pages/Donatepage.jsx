@@ -1153,6 +1153,7 @@ export function ConfirmationSummaryPage({
               {donateMethod === "parcel" ? (
                 <>
                   <DetailRow label="วันที่ส่ง" value={formatThaiDate(new Date())} />
+                  {donorPhone && <DetailRow label="เบอร์ติดต่อ" value={donorPhone} />}
                 </>
               ) : (
                 <>
@@ -1436,6 +1437,9 @@ export function QRLabelPage({
           <div>
             <div style={{ fontSize: 9, color: C.sub, fontWeight: 600, textTransform: "uppercase", letterSpacing: .4, marginBottom: 2 }}>ข้อมูลผู้บริจาค (Sender)</div>
             <div style={{ fontSize: 11, color: C.text }}>ผู้บริจาค : <strong>{donorName}</strong></div>
+            {donorPhone && (
+              <div style={{ fontSize: 11, color: C.text }}>โทร : <strong>{donorPhone}</strong></div>
+            )}
           </div>
 
           {/* ข้อมูลการส่ง — ซ่อนถ้าเป็น parcel และยังไม่มีข้อมูล */}
@@ -1504,14 +1508,14 @@ export function QRLabelPage({
       {/* ── Approved banner ── */}
       {donationStatus === "approved" && (() => {
         const banners = {
-          wrong_item: { bg: "#fffbeb", color: "#d97706", icon: "⚠️", text: "โรงเรียนแจ้งว่ารายการไม่ตรง" },
+          wrong_item: { bg: "#fffbeb", color: "#d97706", icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M4.47 21h15.06c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L2.74 18c-.77 1.33.19 3 1.73 3M12 14c-.55 0-1-.45-1-1v-2c0-.55.45-1 1-1s1 .45 1 1v2c0 .55-.45 1-1 1m1 4h-2v-2h2z"/></svg>, text: "โรงเรียนแจ้งว่ารายการไม่ตรง" },
           not_sent:   { bg: "#f5f3ff", color: "#7c3aed", icon: "📦", text: "โรงเรียนแจ้งว่ายังไม่ได้รับพัสดุ" },
-          damaged:    { bg: "#fff1f2", color: "#dc2626", icon: "⚠️", text: "โรงเรียนยืนยันรับของแล้ว (ชำรุด)" },
+          damaged:    { bg: "#fff1f2", color: "#dc2626", icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M4.47 21h15.06c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L2.74 18c-.77 1.33.19 3 1.73 3M12 14c-.55 0-1-.45-1-1v-2c0-.55.45-1 1-1s1 .45 1 1v2c0 .55-.45 1-1 1m1 4h-2v-2h2z"/></svg>, text: "โรงเรียนยืนยันรับของแล้ว (ชำรุด)" },
         };
         const b = banners[conditionStatus];
         if (b) return (
           <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8, background: b.bg }}>
-            <span>{b.icon}</span>
+            <span style={{ color: b.color, display:"flex", alignItems:"center", flexShrink:0 }}>{b.icon}</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: b.color }}>{b.text}</span>
           </div>
         );

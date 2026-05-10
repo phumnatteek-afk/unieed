@@ -425,6 +425,9 @@ function DonationDetailPanel({ donationId, token }) {
                     <MetaRow label="ขนส่ง" value={donation?.shipping_carrier} />
                     <MetaRow label="Tracking" value={donation?.tracking_number} mono />
                     <MetaRow label="วันที่ส่ง" value={formatThaiDate(donation?.donation_date)} />
+                    {donation?.donor_phone && (
+                      <MetaRow label="เบอร์ติดต่อ" value={donation.donor_phone} />
+                    )}
                   </>
                 )}
               </div>

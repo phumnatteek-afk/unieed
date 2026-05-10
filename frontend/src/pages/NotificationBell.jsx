@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
@@ -40,7 +41,7 @@ function AppealModal({ onClose, onSuccess, token }) {
   const [err,         setErr]         = useState("");
 
   const handleSubmit = async () => {
-    if (!reason.trim()) return setErr("กรุณาระบุเหตุผลในการ appeal");
+    if (!reason.trim()) return setErr("กรุณาระบุเหตุผล");
     try {
       setSubmitting(true);
       setErr("");
@@ -52,7 +53,7 @@ function AppealModal({ onClose, onSuccess, token }) {
       const data = await res.json();
       if (!res.ok) return setErr(data?.message || "ส่งไม่สำเร็จ");
       setDone(true);
-      onSuccess?.();
+      onSuccess?.(reason.trim());
     } catch { setErr("เกิดข้อผิดพลาด กรุณาลองใหม่"); }
     finally { setSubmitting(false); }
   };
@@ -62,8 +63,8 @@ function AppealModal({ onClose, onSuccess, token }) {
       <div className="nb-cert-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
         <div className="nb-cert-modal-top" style={{ background: "#1d4ed8" }}>
           <div className="nb-cert-modal-emoji"><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 56 56"><path fill="white" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg></div>
-          <div className="nb-cert-modal-title">ยื่น Appeal</div>
-          <div className="nb-cert-modal-sub">โต้แย้งการถูกระงับการบริจาค</div>
+          <div className="nb-cert-modal-title">ขอให้ทีมงานตรวจสอบ</div>
+          <div className="nb-cert-modal-sub">ชี้แจงเหตุผลเพื่อขอปลดล็อคการบริจาค</div>
         </div>
         <div className="nb-cert-modal-body">
           {done ? (
@@ -101,6 +102,33 @@ function AppealModal({ onClose, onSuccess, token }) {
               </div>
             </>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Strike Reset Popup (donor) ────────────────────────────────────
+function StrikeResetPopup({ notif, onClose }) {
+  let body = {};
+  try { body = JSON.parse(notif.body); } catch { /* noop */ }
+
+  return (
+    <div className="nb-cert-overlay" onClick={onClose}>
+      <div className="nb-cert-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+        <div className="nb-cert-modal-top" style={{ background: "#15803d" }}>
+          <div className="nb-cert-modal-emoji">
+            <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24"><path fill="white" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10s10-4.477 10-10S17.523 2 12 2m-1.177 13.823L7 12l1.414-1.414l2.409 2.409l5.763-5.763L18 8.646z"/></svg>
+          </div>
+          <div className="nb-cert-modal-title">{notif.title}</div>
+        </div>
+        <div className="nb-cert-modal-body">
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 14, color: "#14532d", lineHeight: 1.7 }}>
+            {body.message}
+          </div>
+          <div className="nb-cert-actions">
+            <button className="nb-cert-btn nb-cert-btn--close" onClick={onClose} style={{ width: "100%" }}>รับทราบ</button>
+          </div>
         </div>
       </div>
     </div>
@@ -162,7 +190,7 @@ function StrikeAppealPopup({ notif, onClose }) {
 }
 
 // ── Suspension Popup ───────────────────────────────────────────────
-function SuspensionPopup({ notif, onClose, isAdmin, onAppeal }) {
+function SuspensionPopup({ notif, onClose, isAdmin, onAppeal, hasPendingAppeal, onViewAppeal }) {
   let body = {};
   try { body = JSON.parse(notif.body); } catch { /* noop */ }
 
@@ -174,12 +202,12 @@ function SuspensionPopup({ notif, onClose, isAdmin, onAppeal }) {
     <div className="nb-cert-overlay" onClick={onClose}>
       <div className="nb-cert-modal" onClick={e => e.stopPropagation()}>
         <div className="nb-cert-modal-top" style={{ background: "#7f1d1d" }}>
-          <div className="nb-cert-modal-emoji"><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24"><path fill="currentColor" d="M12 20a8 8 0 1 0 0-16a8 8 0 0 0 0 16m0 2C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10s-4.477 10-10 10m-1-6h2v2h-2zm0-10h2v8h-2z"/></svg></div>
+          <div className="nb-cert-modal-emoji"><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24" style={{ color: "#fff" }}><path fill="currentColor" d="M12 20a8 8 0 1 0 0-16a8 8 0 0 0 0 16m0 2C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10s-4.477 10-10 10m-1-6h2v2h-2zm0-10h2v8h-2z"/></svg></div>
           <div className="nb-cert-modal-title">
             {isAdmin ? `ผู้บริจาคถูกระงับอัตโนมัติ` : "ถูกระงับการบริจาคชั่วคราว"}
           </div>
           <div className="nb-cert-modal-sub">
-            {isAdmin ? `${body.donor_name || "ผู้บริจาค"} — strike 3/3` : "ระงับ 30 วัน"}
+            {isAdmin ? `${body.donor_name || "ผู้บริจาค"} — คำเตือน 3/3` : "ระงับ 30 วัน"}
           </div>
         </div>
         <div className="nb-cert-modal-body">
@@ -197,14 +225,24 @@ function SuspensionPopup({ notif, onClose, isAdmin, onAppeal }) {
           )}
           <div className="nb-cert-actions">
             {!isAdmin && (
-              <button
-                className="nb-cert-btn"
-                onClick={onAppeal}
-                style={{ background: "#2563eb", color: "#fff", border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 56 56" style={{ flexShrink: 0 }}><path fill="currentColor" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg>
-                ยื่น Appeal
-              </button>
+              hasPendingAppeal ? (
+                <button
+                  className="nb-cert-btn"
+                  onClick={onViewAppeal}
+                  style={{ background: "#fef9c3", color: "#92400e", border: "1px solid #fde68a", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                >
+                  <Icon icon="mdi:clock-outline" width={15} />รอการตรวจสอบ
+                </button>
+              ) : (
+                <button
+                  className="nb-cert-btn"
+                  onClick={onAppeal}
+                  style={{ background: "#2563eb", color: "#fff", border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 56 56" style={{ flexShrink: 0 }}><path fill="currentColor" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg>
+                  ขอให้ทีมงานตรวจสอบ
+                </button>
+              )
             )}
             <button className="nb-cert-btn nb-cert-btn--close" onClick={onClose}>รับทราบ</button>
           </div>
@@ -225,7 +263,7 @@ function DonationIssuePopup({ notif, onClose, onNavigate }) {
 
         {/* Header */}
         <div className="nb-cert-modal-top" style={{ background: "#f97316" }}>
-          <div className="nb-cert-modal-emoji">⚠️</div>
+          <div className="nb-cert-modal-emoji"><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24" style={{ color: "#fff" }}><path fill="currentColor" d="M4.47 21h15.06c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L2.74 18c-.77 1.33.19 3 1.73 3M12 14c-.55 0-1-.45-1-1v-2c0-.55.45-1 1-1s1 .45 1 1v2c0 .55-.45 1-1 1m1 4h-2v-2h2z"/></svg></div>
           <div className="nb-cert-modal-title">รายการไม่ตรง</div>
           <div className="nb-cert-modal-sub">
             {body.school_name || "โรงเรียน"} แจ้งปัญหาเกี่ยวกับรายการบริจาคของคุณ
@@ -412,6 +450,10 @@ export default function NotificationBell() {
   const [issuePopup,        setIssuePopup]        = useState(null);
   const [suspensionPopup,   setSuspensionPopup]   = useState(null);
   const [appealModal,       setAppealModal]       = useState(false);
+  const [hasPendingAppeal,  setHasPendingAppeal]  = useState(false);
+  const [appealViewModal,   setAppealViewModal]   = useState(false);
+  const [appealViewReason,  setAppealViewReason]  = useState("");
+  const [strikeResetPopup,  setStrikeResetPopup]  = useState(null);
   const [strikeAppealPopup, setStrikeAppealPopup] = useState(null);
   const [loading,   setLoading]   = useState(false);
   const dropRef = useRef(null);
@@ -475,6 +517,18 @@ export default function NotificationBell() {
     } else if (notif.type === "suspension") {
       setOpen(false);
       setSuspensionPopup(notif);
+      fetch(`${BASE}/donations/my-suspension`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (d) {
+            setHasPendingAppeal(!!d.has_pending_appeal);
+            if (d.appeal_reason) setAppealViewReason(d.appeal_reason);
+          }
+        })
+        .catch(() => {});
+    } else if (notif.type === "strike_reset") {
+      setOpen(false);
+      setStrikeResetPopup(notif);
     } else if (notif.type === "strike_appeal") {
       setOpen(false);
       setStrikeAppealPopup(notif);
@@ -613,7 +667,9 @@ export default function NotificationBell() {
           notif={suspensionPopup}
           onClose={() => setSuspensionPopup(null)}
           isAdmin={isAdmin}
+          hasPendingAppeal={hasPendingAppeal}
           onAppeal={() => { setSuspensionPopup(null); setAppealModal(true); }}
+          onViewAppeal={() => { setSuspensionPopup(null); setAppealViewModal(true); }}
         />
       )}
 
@@ -622,7 +678,42 @@ export default function NotificationBell() {
         <AppealModal
           token={token}
           onClose={() => setAppealModal(false)}
-          onSuccess={() => {}}
+          onSuccess={(reason) => { setHasPendingAppeal(true); setAppealViewReason(reason || ""); }}
+        />
+      )}
+
+      {/* Appeal View Modal (after submit from bell) */}
+      {appealViewModal && createPortal(
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => setAppealViewModal(false)}>
+          <div style={{ background: "#fff", borderRadius: 18, width: "100%", maxWidth: 400, overflow: "hidden" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ background: "#1d4ed8", padding: "20px 24px", textAlign: "center" }}>
+              <div style={{ display: "flex", justifyContent: "center" }}><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 56 56"><path fill="white" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg></div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginTop: 4 }}>คำร้องของคุณ</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", marginTop: 2 }}>ข้อความที่ส่งให้ทีมงานตรวจสอบ</div>
+            </div>
+            <div style={{ padding: "20px 24px" }}>
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", fontSize: 14, color: "#1e293b", lineHeight: 1.7, minHeight: 60, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                {appealViewReason || "(ไม่ได้ระบุเหตุผล)"}
+              </div>
+              <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 10 }}>
+                ทีมงานกำลังตรวจสอบคำร้องของคุณ จะติดต่อผ่านทางแจ้งเตือน
+              </div>
+              <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+                <button onClick={() => setAppealViewModal(false)} style={{ fontSize: 13, padding: "9px 28px", borderRadius: 10, border: "1px solid #e2e8f0", cursor: "pointer", background: "#f8fafc" }}>ปิด</button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Strike Reset Popup (donor) */}
+      {strikeResetPopup && (
+        <StrikeResetPopup
+          notif={strikeResetPopup}
+          onClose={() => setStrikeResetPopup(null)}
         />
       )}
 

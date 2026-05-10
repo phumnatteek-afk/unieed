@@ -309,7 +309,7 @@ export default function DonationHistoryPage() {
                 style={{ fontSize: 13, fontWeight: 600, color: "#fff", background: "#2563eb", border: "none", borderRadius: 10, padding: "9px 18px", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 56 56" style={{ flexShrink: 0 }}><path fill="currentColor" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg>
-                ยื่น Appeal
+                ขอให้ทีมงานตรวจสอบ
               </button>
             )}
           </div>
@@ -323,8 +323,8 @@ export default function DonationHistoryPage() {
               onClick={e => e.stopPropagation()}>
               <div style={{ background: "#1d4ed8", padding: "20px 24px", textAlign: "center" }}>
                 <div style={{ display: "flex", justifyContent: "center" }}><svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 56 56"><path fill="white" d="M15.555 53.125h24.89c4.852 0 7.266-2.461 7.266-7.336V24.508c0-3.024-.328-4.336-2.203-6.258L32.57 5.102c-1.78-1.829-3.234-2.227-5.882-2.227H15.555c-4.828 0-7.266 2.484-7.266 7.36v35.554c0 4.898 2.438 7.336 7.266 7.336m.187-3.773c-2.414 0-3.68-1.29-3.68-3.633V10.305c0-2.32 1.266-3.657 3.704-3.657h10.406v13.618c0 2.953 1.5 4.406 4.406 4.406h13.36v21.047c0 2.343-1.243 3.633-3.68 3.633ZM31 21.132c-.914 0-1.29-.374-1.29-1.312V7.375l13.5 13.758Zm5.625 9.985h-17.79c-.843 0-1.452.633-1.452 1.43c0 .82.61 1.453 1.453 1.453h17.789a1.43 1.43 0 0 0 1.453-1.453c0-.797-.633-1.43-1.453-1.43m0 8.18h-17.79c-.843 0-1.452.656-1.452 1.476c0 .797.61 1.407 1.453 1.407h17.789c.82 0 1.453-.61 1.453-1.407c0-.82-.633-1.476-1.453-1.476"/></svg></div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginTop: 4 }}>ยื่น Appeal</div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", marginTop: 2 }}>โต้แย้งการถูกระงับการบริจาค</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginTop: 4 }}>ขอให้ทีมงานตรวจสอบ</div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", marginTop: 2 }}>ชี้แจงเหตุผลเพื่อขอปลดล็อคการบริจาค</div>
               </div>
               <div style={{ padding: "20px 24px" }}>
                 {appealDone ? (

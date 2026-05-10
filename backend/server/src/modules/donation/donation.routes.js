@@ -129,7 +129,7 @@ r.get("/my-suspension", auth, async (req, res, next) => {
       [req.user.user_id]
     );
     const now = new Date();
-    const isSuspended = donor?.suspended_until && new Date(donor.suspended_until) > now;
+    const isSuspended = donor?.suspended_until && new Date(donor.suspended_until) > now && donor.strike_count >= 3;
     const [[appealRow]] = await db.query(
       `SELECT body FROM notifications
        WHERE ref_id = ? AND type = 'strike_appeal'
@@ -240,11 +240,15 @@ r.patch("/:donationId/remove-strike", auth, requireRole(["admin"]), async (req, 
       `UPDATE donation_record SET strike_issued = 0 WHERE donation_id = ?`, [donationId]
     );
     await db.query(
-      `UPDATE users SET strike_count = GREATEST(strike_count - 1, 0) WHERE user_id = ?`, [dr.donor_id]
+      `UPDATE users SET strike_count = GREATEST(strike_count - 1, 0) WHERE user_id = ?`,
+      [dr.donor_id]
     );
     const [[donor]] = await db.query(
-      `SELECT strike_count FROM users WHERE user_id = ?`, [dr.donor_id]
+      `SELECT strike_count, suspended_until FROM users WHERE user_id = ?`, [dr.donor_id]
     );
+    if (donor.strike_count < 3 && donor.suspended_until) {
+      await db.query(`UPDATE users SET suspended_until = NULL WHERE user_id = ?`, [dr.donor_id]);
+    }
 
     await db.query(
       `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
@@ -296,6 +300,7 @@ r.get("/wrong-items", auth, requireRole(["admin"]), async (req, res, next) => {
              'shipping_carrier',         dr.shipping_carrier,
              'tracking_number',          dr.tracking_number,
              'delivery_method',          dr.delivery_method,
+             'donor_phone',              dr.donor_phone,
              'updated_at',               dr.updated_at,
              'request_title',            req.request_title,
              'school_name',              s.school_name

@@ -70,6 +70,30 @@ const getDaysElapsed = (createdAt) => {
   if (!createdAt) return 0;
   return Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24));
 };
+
+const cleanName = (raw) => String(raw || "").replace(/\s*\(.*?\)\s*/g, "").trim();
+
+function buildVerifyThankMsg(donorName, items, itemConditions) {
+  const n = donorName || "ผู้บริจาค";
+  const nameList = (arr) => arr.map(it => cleanName(it.name)).join(", ");
+  const cond = (it) => itemConditions[it.uniform_type_id] ?? "usable";
+
+  const usableItems  = items.filter(it => cond(it) === "usable");
+  const wrongItems   = items.filter(it => cond(it) === "wrong_item");
+  const damagedItems = items.filter(it => cond(it) === "damaged");
+
+  if (wrongItems.length === 0 && damagedItems.length === 0) {
+    return `ขอบคุณคุณ ${n} มากๆ ที่ได้บริจาคชุดนักเรียนให้กับทางโรงเรียน การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`;
+  }
+  if (wrongItems.length > 0 && usableItems.length === 0 && damagedItems.length === 0) {
+    return `ขอบคุณคุณ ${n} ที่มีน้ำใจบริจาค ขออภัยที่รายการ (${nameList(wrongItems)}) ที่ได้รับไม่ตรงตามรายการที่โรงเรียนขอรับบริจาคไว้ ขอบพระคุณในน้ำใจของท่านอย่างสูง`;
+  }
+  const parts = [];
+  if (usableItems.length > 0)  parts.push(`ได้รับ${nameList(usableItems)}เรียบร้อย`);
+  if (wrongItems.length > 0)   parts.push(`${nameList(wrongItems)} ไม่ตรงตามรายการที่โรงเรียนขอรับบริจาคไว้`);
+  if (damagedItems.length > 0) parts.push(`${nameList(damagedItems)} มีสภาพชำรุด`);
+  return `ขอบคุณคุณ ${n} ที่มีน้ำใจบริจาค ทางโรงเรียนขอแจ้งให้ทราบว่า ${parts.join(" และ ")} ขอบพระคุณในน้ำใจของท่านอย่างสูง`;
+}
  
 // ── Delivery cell — แยกตาม delivery_method ───────────────────────────────
 function DeliveryCell({ d, onOpenTracking, onOpenAppt }) {
@@ -220,6 +244,8 @@ export default function SchoolDonationPage() {
   const [apptPopup,    setApptPopup]    = useState(null);
   const [thankMsg,       setThankMsg]       = useState("");
   const [itemConditions, setItemConditions] = useState({});
+  const [itemReasons,    setItemReasons]    = useState({});
+  const [checkedSet,     setCheckedSet]     = useState(new Set());
   const [verifying,      setVerifying]      = useState(false);
   const [currentPage,  setCurrentPage]  = useState(1);
   const PAGE_SIZE = 15;
@@ -289,19 +315,41 @@ export default function SchoolDonationPage() {
       loadDonations();
     } catch (e) { console.error(e); }
   };
+
  
+  const resolveItemCond = (uid) => {
+    const c = itemConditions[uid];
+    if (c === "issue") return "wrong_item";
+    return c || "usable";
+  };
+
   const handleVerify = async () => {
     const snapItems = parseItems(verifyPopup?.items_snapshot);
-    const allSet = snapItems.length === 0 || snapItems.every(it => itemConditions[it.uniform_type_id]);
-    if (!allSet) return alert("กรุณาเลือกสภาพชุดให้ครบทุกรายการ");
+    if (checkedSet.size === 0) return alert("กรุณาติ๊กรายการที่ได้รับอย่างน้อย 1 รายการ");
+    const issueNeedReason = snapItems.filter(it =>
+      checkedSet.has(it.uniform_type_id) &&
+      itemConditions[it.uniform_type_id] === "issue" &&
+      !itemReasons[it.uniform_type_id]
+    );
+    if (issueNeedReason.length > 0) return alert("กรุณาระบุสาเหตุของรายการที่มีปัญหาให้ครบ");
     try {
       setVerifying(true);
-      const overall = snapItems.length > 0 ? deriveOverallCondition(itemConditions) : "usable";
-      const items_received = snapItems.map(it => ({
-        uniform_type_id: it.uniform_type_id,
-        qty_received: it.quantity,
-        item_condition: itemConditions[it.uniform_type_id] ?? "usable",
-      }));
+      const items_received = snapItems.map(it => {
+        const uid = it.uniform_type_id;
+        const isChecked = checkedSet.has(uid);
+        const resolved = isChecked ? resolveItemCond(uid) : "not_received";
+        return {
+          uniform_type_id: uid,
+          qty_received: isChecked ? it.quantity : 0,
+          item_condition: resolved,
+          ...(resolved === "wrong_item" && itemReasons[uid] ? { reason: itemReasons[uid] } : {}),
+        };
+      });
+      const resolvedConditions = Object.fromEntries(
+        snapItems.filter(it => checkedSet.has(it.uniform_type_id))
+          .map(it => [it.uniform_type_id, resolveItemCond(it.uniform_type_id)])
+      );
+      const overall = snapItems.length > 0 ? deriveOverallCondition(resolvedConditions) : "usable";
       await fetch(`${BASE}/donations/${verifyPopup.donation_id}/verify`, {
         method: "PATCH",
         headers: { ...headers, "Content-Type": "application/json" },
@@ -309,6 +357,8 @@ export default function SchoolDonationPage() {
       });
       setVerifyPopup(null);
       setItemConditions({});
+      setItemReasons({});
+      setCheckedSet(new Set());
       setThankMsg("");
       loadDonations();
     } catch (e) { console.error(e); }
@@ -317,19 +367,30 @@ export default function SchoolDonationPage() {
  
   const openVerifyPopup = (donation) => {
     setVerifyPopup(donation);
-    setItemConditions({});
-    setThankMsg(
-      `ขอบคุณคุณ ${donation.donor_name} มากๆ ที่ได้บริจาคชุดนักเรียนให้กับทางโรงเรียน ` +
-      `การมีส่วนร่วมของท่านช่วยให้เด็กๆ ได้มีโอกาสทางการศึกษาที่ดีขึ้น ขอบพระคุณอย่างสูง`
-    );
+    const snapItems = parseItems(donation.items_snapshot);
+    const allUids = snapItems.map(it => it.uniform_type_id);
+    setCheckedSet(new Set(allUids));
+    setItemConditions(Object.fromEntries(allUids.map(uid => [uid, "usable"])));
+    setItemReasons({});
+    setThankMsg(buildVerifyThankMsg(donation.donor_name, parseItems(donation.items_snapshot), {}));
   };
 
-  const deriveOverallCondition = (conditions) => {
-    const vals = Object.values(conditions);
+  const deriveOverallCondition = (resolvedConditions) => {
+    const vals = Object.values(resolvedConditions);
     if (vals.includes("wrong_item")) return "wrong_item";
     if (vals.includes("damaged"))    return "damaged";
     return "usable";
   };
+
+  useEffect(() => {
+    if (!verifyPopup) return;
+    const items = parseItems(verifyPopup.items_snapshot);
+    if (items.length === 0) return;
+    const resolved = Object.fromEntries(
+      items.map(it => [it.uniform_type_id, checkedSet.has(it.uniform_type_id) ? resolveItemCond(it.uniform_type_id) : "not_received"])
+    );
+    setThankMsg(buildVerifyThankMsg(verifyPopup.donor_name, items.filter(it => checkedSet.has(it.uniform_type_id)), resolved));
+  }, [itemConditions, checkedSet, verifyPopup]);
  
   return (
     <div className="sdPage">
@@ -496,16 +557,17 @@ export default function SchoolDonationPage() {
               const statusMeta    = STATUS_META[d.status] || STATUS_META.pending;
               const conditionMeta = (d.status === "approved" && d.condition_status)
                 ? CONDITION_META[d.condition_status] : null;
-              const overdue = isOverdue(d.created_at) && (
+              const overdueStatuses = (
                 d.status === "pending" ||
                 (d.status === "approved" && Number(d.auto_approved) === 1) ||
                 (d.status === "rejected" && Number(d.auto_approved) === 1)
               );
+              const isParcelOverdue  = d.delivery_method !== "dropoff" && isOverdue(d.created_at) && overdueStatuses;
+              const isDropoffOverdue = d.delivery_method === "dropoff"  && !!d.is_overdue          && overdueStatuses;
+              const overdue = isParcelOverdue || isDropoffOverdue;
                             
               // market_purchase rows: ไฮไลต์สีฟ้าอ่อน
               const isMarket = d.delivery_method === "market_purchase";
-              console.log("donation_id:", d.donation_id, "status:", d.status, "auto_approved:", d.auto_approved, "overdue:", overdue);
-              console.log("donation_id:", d.donation_id, "status:", d.status, "auto_approved:", d.auto_approved);
  
               return (
                 <>
@@ -521,7 +583,12 @@ export default function SchoolDonationPage() {
                     <td style={{ whiteSpace:"nowrap", fontSize:13 }}>
                       {formatDate(d.created_at)}
                       {overdue && (
-                        <div style={{ fontSize:10, color:"#d97706", marginTop:2, fontWeight:600 }}>เกิน {d.delivery_method === "dropoff" ? 3 : 7} วัน</div>
+                        <div style={{ marginTop:4 }}>
+                          <span style={{ display:"inline-flex", alignItems:"center", gap:3, fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background:"#fef3c7", color:"#b45309", border:"1px solid #fcd34d", whiteSpace:"nowrap" }}>
+                            <Icon icon="mdi:clock-alert-outline" width={12} />
+                            เกิน {isDropoffOverdue ? "3" : "7"} วัน
+                          </span>
+                        </div>
                       )}
                       {isMarket && (
                         <div style={{ fontSize:10, color:"#5285E8", marginTop:2, fontWeight:600 }}>ซื้อบริจาค</div>
@@ -529,7 +596,15 @@ export default function SchoolDonationPage() {
                     </td>
  
                     {/* ผู้บริจาค */}
-                    <td className="sdDonorName">{d.donor_name}</td>
+                    <td className="sdDonorName">
+                      {d.donor_name}
+                      {d.donor_phone && (
+                        <div style={{ fontSize:11, color:"#94a3b8", marginTop:2, display:"flex", alignItems:"center", gap:3 }}>
+                          <Icon icon="mdi:phone-outline" width={11} />
+                          {d.donor_phone}
+                        </div>
+                      )}
+                    </td>
  
                     {/* การจัดส่ง */}
                     <td>
@@ -582,16 +657,13 @@ export default function SchoolDonationPage() {
                 <td onClick={e => e.stopPropagation()}>
                 <div className="sdActions">
 
-                  {/* pending + ยังไม่เกิน 7 วัน → แสดงปุ่ม */}
-                  {d.status === "pending" && !isOverdue(d.created_at) && (
-                    <>
-                      <button className="sdBtnConfirm" onClick={() => openVerifyPopup(d)}>ยืนยัน</button>
-                      <button className="sdBtnVerify"  onClick={() => openVerifyPopup(d)}>ตรวจสอบ</button>
-                    </>
+                  {/* pending + ยังไม่เกิน limit → แสดงปุ่ม */}
+                  {d.status === "pending" && !overdue && (
+                    <button className="sdBtnVerify" onClick={() => openVerifyPopup(d)}>ตรวจสอบ</button>
                   )}
 
-                  {/* pending + เกิน 7 วันแล้ว → รอแอดมิน */}
-                  {d.status === "pending" && isOverdue(d.created_at) && (
+                  {/* pending + เกินกำหนดแล้ว → รอแอดมิน */}
+                  {d.status === "pending" && overdue && (
                     <span style={{ fontSize:11, color:"#d97706", background:"#fef3c7", padding:"3px 9px", borderRadius:20, fontWeight:600, display:"inline-flex", alignItems:"center", gap:4 , whiteSpace:"nowrap"}}>
                       <Icon icon="mdi:clock-outline" width={13} />
                       รอแอดมินตรวจสอบ
@@ -774,53 +846,159 @@ export default function SchoolDonationPage() {
               </div>
             )}
  
-            <div className="sdVerifySection">
-              <label className="sdVerifyLabel">
-                <Icon icon="mdi:message-text-outline" width="16" />
-                ข้อความขอบคุณ (ส่งให้ผู้บริจาคพร้อมใบประกาศ)
-              </label>
-              <textarea className="sdVerifyTextarea" rows={4} value={thankMsg} onChange={e => setThankMsg(e.target.value)} />
-            </div>
- 
-            <div className="sdVerifySection">
-              <label className="sdVerifyLabel">
-                <Icon icon="mdi:tshirt-crew-outline" width="16" />
-                ประเมินสภาพชุดแต่ละรายการ<span style={{ color:"#ef4444" }}> *</span>
-              </label>
-              {parseItems(verifyPopup.items_snapshot).map(it => (
-                <div key={it.uniform_type_id} style={{ marginBottom: 12, padding: "10px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>
-                    {it.name} <span style={{ fontWeight: 400, color: "#64748b" }}>× {it.quantity} ตัว</span>
+            {(() => {
+              const snapItems = parseItems(verifyPopup.items_snapshot);
+              const allChecked = snapItems.length > 0 && snapItems.every(it => checkedSet.has(it.uniform_type_id));
+              const resolvedConditions = Object.fromEntries(
+                snapItems.filter(it => checkedSet.has(it.uniform_type_id))
+                  .map(it => [it.uniform_type_id, resolveItemCond(it.uniform_type_id)])
+              );
+              const overallCond = checkedSet.size > 0 ? deriveOverallCondition(resolvedConditions) : null;
+              const COND_OPTS = [
+                { value: "usable",  label: "ใช้งานได้", icon: "mdi:check-circle",    color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+                { value: "damaged", label: "เสียหาย",   icon: "mdi:alert-circle",    color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
+                { value: "issue",   label: "มีปัญหา",   icon: "mdi:swap-horizontal", color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
+              ];
+              const RESULT_META = {
+                usable:     { label: "ใช้งานได้",    icon: "mdi:check-circle-outline",  color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+                wrong_item: { label: "รายการไม่ตรง", icon: "mdi:swap-horizontal-circle", color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+                damaged:    { label: "เสียหาย",      icon: "mdi:close-circle-outline",  color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+              };
+              const resultMeta = overallCond ? RESULT_META[overallCond] : null;
+              return (
+                <>
+                  {/* รายการชุดนักเรียน */}
+                  <div className="sdVerifySection">
+                    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10 }}>
+                      <Icon icon="mdi:tshirt-crew-outline" width="16" color="#2563eb" />
+                      <span className="sdVerifyLabel" style={{ margin:0 }}>รายการชุดนักเรียน</span>
+                      <span style={{ fontSize:12, fontWeight:600, color:"#2563eb", background:"#eff6ff", padding:"1px 8px", borderRadius:20 }}>{snapItems.reduce((s,it)=>s+it.quantity,0)} ชิ้น</span>
+                      <label style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:6, cursor:"pointer", userSelect:"none", padding:"3px 10px", borderRadius:20, background: allChecked ? "#dcfce7" : "#f3f4f6", border:`1.5px solid ${allChecked ? "#86efac" : "#d1d5db"}` }}>
+                        <input type="checkbox" checked={allChecked}
+                          onChange={() => {
+                            const allKeys = snapItems.map(it => it.uniform_type_id);
+                            if (allChecked) {
+                              setCheckedSet(new Set());
+                              setItemConditions({});
+                              setItemReasons({});
+                            } else {
+                              setCheckedSet(new Set(allKeys));
+                              setItemConditions(prev => Object.fromEntries(allKeys.map(k => [k, prev[k] || "usable"])));
+                            }
+                          }}
+                          style={{ width:14, height:14, accentColor:"#16a34a", cursor:"pointer" }}
+                        />
+                        <span style={{ fontSize:11, fontWeight:600, color: allChecked ? "#16a34a" : "#6b7280", whiteSpace:"nowrap" }}>รับครบทุกรายการ</span>
+                      </label>
+                    </div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                      {snapItems.map(it => {
+                        const uid = it.uniform_type_id;
+                        const isChecked = checkedSet.has(uid);
+                        const cond = itemConditions[uid] || "usable";
+                        const activeMeta = COND_OPTS.find(o => o.value === cond) || COND_OPTS[0];
+                        return (
+                          <div key={uid}>
+                            <label style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background: isChecked ? "#f0fdf4" : "#f8fafc", borderRadius: isChecked ? "10px 10px 0 0" : 10, padding:"8px 12px", border:`1.5px solid ${isChecked ? "#86efac" : "#e2e8f0"}`, cursor:"pointer" }}>
+                              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                                <input type="checkbox" checked={isChecked}
+                                  onChange={() => {
+                                    setCheckedSet(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(uid)) {
+                                        next.delete(uid);
+                                        setItemConditions(p => { const n={...p}; delete n[uid]; return n; });
+                                        setItemReasons(p => { const n={...p}; delete n[uid]; return n; });
+                                      } else {
+                                        next.add(uid);
+                                        setItemConditions(p => ({ ...p, [uid]: p[uid] || "usable" }));
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                  style={{ width:15, height:15, accentColor:"#16a34a", cursor:"pointer", flexShrink:0 }}
+                                />
+                                <span style={{ fontSize:13, color:"#1e293b" }}>{it.name}</span>
+                              </div>
+                              <span style={{ fontSize:11, fontWeight:600, color:"#1d4ed8", background:"#dbeafe", padding:"2px 8px", borderRadius:20 }}>{it.quantity} ชิ้น</span>
+                            </label>
+                            {isChecked && (
+                              <div style={{ background:"#fff", border:`1.5px solid ${activeMeta.border}`, borderTop:"none", borderRadius:"0 0 10px 10px", padding:"10px 12px" }}>
+                                <div style={{ fontSize:11, color:"#6b7280", marginBottom:6 }}>ประเมินสภาพ</div>
+                                <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:5 }}>
+                                  {COND_OPTS.map(opt => (
+                                    <button key={opt.value} type="button"
+                                      onClick={() => {
+                                        setItemConditions(p => ({ ...p, [uid]: opt.value }));
+                                        if (opt.value !== "issue") setItemReasons(p => { const n={...p}; delete n[uid]; return n; });
+                                      }}
+                                      style={{ padding:"6px 4px", borderRadius:8, textAlign:"center", cursor:"pointer", border:`1.5px solid ${cond===opt.value ? opt.border : "#e5e7eb"}`, background: cond===opt.value ? opt.bg : "#f9fafb", color: cond===opt.value ? opt.color : "#9ca3af", fontSize:10, fontWeight: cond===opt.value ? 700 : 500, display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
+                                      <Icon icon={opt.icon} width="15" />
+                                      {opt.label}
+                                    </button>
+                                  ))}
+                                </div>
+                                {cond === "issue" && (
+                                  <div style={{ marginTop:8, padding:"8px 10px", background:"#fffbeb", border:"1px dashed #fcd34d", borderRadius:8 }}>
+                                    <div style={{ fontSize:10, color:"#92400e", fontWeight:600, marginBottom:6 }}>สาเหตุ <span style={{ color:"#dc2626" }}>*</span></div>
+                                    <div style={{ display:"flex", gap:5 }}>
+                                      {["ผิดไซส์", "ผิดประเภท"].map(r => (
+                                        <button key={r} type="button"
+                                          onClick={() => setItemReasons(p => ({ ...p, [uid]: r }))}
+                                          style={{ padding:"4px 10px", borderRadius:20, fontSize:11, fontWeight:600, cursor:"pointer", border:`1.5px solid ${itemReasons[uid]===r ? "#d97706" : "#e5e7eb"}`, background: itemReasons[uid]===r ? "#fef3c7" : "#fff", color: itemReasons[uid]===r ? "#92400e" : "#9ca3af" }}
+                                        >{r}</button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {CONDITION_OPTIONS.map(opt => (
-                      <button key={opt.value}
-                        className={`sdConditionBtn ${itemConditions[it.uniform_type_id] === opt.value ? "sdConditionActive" : ""}`}
-                        style={itemConditions[it.uniform_type_id] === opt.value ? { background: opt.bg, borderColor: opt.color, color: opt.color } : {}}
-                        onClick={() => setItemConditions(prev => ({ ...prev, [it.uniform_type_id]: opt.value }))}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
 
-            <div className="sdVerifyNote" style={{ background:"#eff6ff", border:"0.5px solid #bfdbfe", borderRadius:"8px", padding:"10px 12px", fontSize:"12px", color:"#1e40af", display:"flex", alignItems:"flex-start", gap:"8px", marginBottom:"16px" }}>
-              <Icon icon="mdi:certificate-outline" width="16" style={{ flexShrink:0, marginTop:"1px" }} />
-              <span>
-                เมื่อยืนยัน ระบบจะ<strong> ออกใบประกาศนียบัตรอัตโนมัติ</strong>{" "}
-                และส่ง notification พร้อมข้อความขอบคุณให้ผู้บริจาคทันที
-              </span>
-            </div>
- 
-            <div className="sdPopupActions">
-              <button className="sdPopupBtnGhost" onClick={() => setVerifyPopup(null)}>ยกเลิก</button>
-              <button className="sdPopupBtnPrimary" onClick={handleVerify} disabled={verifying}>
-                {verifying ? "กำลังบันทึก..." : "ยืนยัน + ออกใบประกาศ"}
-              </button>
-            </div>
+                  {/* ผลการประเมิน */}
+                  {resultMeta && (
+                    <div className="sdVerifySection">
+                      <label className="sdVerifyLabel"><Icon icon="mdi:clipboard-check-outline" width="16" />ผลการประเมิน</label>
+                      <div style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderRadius:10, background:resultMeta.bg, border:`1px solid ${resultMeta.border}` }}>
+                        <Icon icon={resultMeta.icon} width="22" color={resultMeta.color} style={{ flexShrink:0 }} />
+                        <div>
+                          <div style={{ fontSize:14, fontWeight:700, color:resultMeta.color }}>{resultMeta.label}</div>
+                          <div style={{ fontSize:11, color:resultMeta.color, opacity:.8, marginTop:2, display:"flex", alignItems:"center", gap:4 }}>
+                            <Icon icon={overallCond==="wrong_item" ? "mdi:close-circle-outline" : "mdi:certificate-outline"} width="13" />
+                            {overallCond==="wrong_item" ? "ไม่ออกใบเกียรติบัตร" : "ผู้บริจาคจะได้รับใบเกียรติบัตร"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ข้อความขอบคุณ */}
+                  <div className="sdVerifySection">
+                    <label className="sdVerifyLabel">
+                      <Icon icon="mdi:message-text-outline" width="16" />
+                      {overallCond === "wrong_item" ? "ข้อความแจ้งผู้บริจาค" : "ข้อความขอบคุณ (ส่งให้ผู้บริจาคพร้อมใบประกาศ)"}
+                    </label>
+                    <textarea className="sdVerifyTextarea" rows={4} value={thankMsg} onChange={e => setThankMsg(e.target.value)} />
+                  </div>
+
+                  <div className="sdVerifyNote" style={{ background:"#eff6ff", border:"0.5px solid #bfdbfe", borderRadius:"8px", padding:"10px 12px", fontSize:"12px", color:"#1e40af", display:"flex", alignItems:"flex-start", gap:"8px", marginBottom:"16px" }}>
+                    <Icon icon="mdi:certificate-outline" width="16" style={{ flexShrink:0, marginTop:"1px" }} />
+                    <span>เมื่อยืนยัน ระบบจะ<strong> ออกใบประกาศนียบัตรอัตโนมัติ</strong> และส่ง notification พร้อมข้อความขอบคุณให้ผู้บริจาคทันที</span>
+                  </div>
+
+                  <div className="sdPopupActions">
+                    <button className="sdPopupBtnGhost" onClick={() => setVerifyPopup(null)}>ยกเลิก</button>
+                    <button className="sdPopupBtnPrimary" onClick={handleVerify} disabled={verifying}>
+                      {verifying ? "กำลังบันทึก..." : "ยืนยัน"}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

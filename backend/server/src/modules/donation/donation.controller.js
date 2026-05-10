@@ -151,12 +151,13 @@ export async function updateDonationStatus(req, res, next) {
     // ✅ ถ้า Admin ให้ set admin_approved = 1 ด้วย
     if (role === "admin") {
   await db.query(
-    `UPDATE donation_record 
+    `UPDATE donation_record
      SET status = ?, admin_approved = 1, admin_approved_at = NOW(),
          auto_approved = 1, auto_approved_at = NOW(),
-         reject_reason = ?
+         reject_reason = ?,
+         condition_status = IF(? = 'approved' AND (condition_status IS NULL OR condition_status = ''), 'usable', condition_status)
      WHERE donation_id = ?`,
-    [status, reject_reason ?? null, donation_id]
+    [status, reject_reason ?? null, status, donation_id]
   );
 
   // ส่ง notification ไปหา school_admin ถ้า reject

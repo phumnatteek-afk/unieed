@@ -33,7 +33,11 @@ function EvidenceModal({ c, onClose }) {
   const snapItems = parseJson(c.items_snapshot);
   const condSnap  = parseJson(c.items_condition_snapshot);
   const condMap   = {};
-  for (const x of condSnap) condMap[x.uniform_type_id] = x.item_condition;
+  const reasonMap = {};
+  for (const x of condSnap) {
+    condMap[x.uniform_type_id]   = x.item_condition;
+    if (x.reason) reasonMap[x.uniform_type_id] = x.reason;
+  }
 
   const COND_LABEL = {
     usable:     { label: "ใช้งานได้",    color: "#16a34a", bg: "#f0fdf4", border: "#86efac" },
@@ -90,6 +94,17 @@ function EvidenceModal({ c, onClose }) {
                 </div>
               )}
 
+              {/* เบอร์ติดต่อ */}
+              {c.donor_phone && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: .5 }}>เบอร์ติดต่อผู้บริจาค</div>
+                  <div style={{ fontSize: 13, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+                    <Icon icon="mdi:phone-outline" width={14} color="#64748b" />
+                    <a href={`tel:${c.donor_phone}`} style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>{c.donor_phone}</a>
+                  </div>
+                </div>
+              )}
+
               {/* Items + condition */}
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: .5 }}>รายการของที่บริจาค</div>
@@ -104,9 +119,16 @@ function EvidenceModal({ c, onClose }) {
                         <div key={i} style={{ fontSize: 12, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                           <span style={{ color: "#1e293b" }}>{String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}</span>
                           {meta && (
-                            <span style={{ fontSize: 11, fontWeight: 600, color: meta.color, background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: 20, padding: "2px 8px", whiteSpace: "nowrap" }}>
-                              {meta.label}
-                            </span>
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: meta.color, background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: 20, padding: "2px 8px", whiteSpace: "nowrap" }}>
+                                {meta.label}
+                              </span>
+                              {reasonMap[it.uniform_type_id] && (
+                                <span style={{ fontSize: 10, fontWeight: 600, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "1px 7px", whiteSpace: "nowrap" }}>
+                                  {reasonMap[it.uniform_type_id]}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                       );
