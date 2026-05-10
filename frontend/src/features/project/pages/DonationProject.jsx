@@ -8,9 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass, faFilter } from "@fortawesome/free-solid-svg-icons";
 import "../../../pages/styles/Homepage.css";
 import "../styles/DonationProject.css";
-import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
-import NotificationBell from "../../../pages/NotificationBell.jsx";
-import CartIcon from "../../market/components/CartIcon.jsx";
+import Navbar from "../../../pages/Navbar.jsx";
 
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
@@ -787,42 +785,10 @@ useEffect(() => {
   return () => clearInterval(heroTimerRef.current);
 }, [heroSlides.length]);
 
-  const rightAccount = () => {
-  if (!token) {
-    return (
-      <div className="navAuth">
-        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
-      </div>
-    );
-  }
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-      <NotificationBell />
-      <ProfileDropdown />
-      <CartIcon />
-    </div>
-  );
-  };
-
   return (
     <div className="homePage">
       {/* ===== Header ===== */}
-      <header className="topBar">
-        <div className="topRow">
-                  <Link to="/" className="brand">
-                    <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-                  </Link>
-                  <nav className="navLinks">
-                    <Link to="/">หน้าหลัก</Link>
-                    <Link to="/projects" className="active">โครงการ</Link>
-                    <Link to="/market">ร้านค้า</Link>
-                    <a href="#about">เกี่ยวกับเรา</a>
-                    <button><Link to="/sell" className="sell">ลงขาย</Link></button>
-                  </nav>
-                  {rightAccount()}
-                </div>
-      </header>
+      <Navbar activeLink="projects" />
 
       {/* ===== Hero Banner ===== */}
       <div className="dpHero">

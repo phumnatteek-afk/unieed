@@ -2,9 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
-import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
-import NotificationBell from "../../../pages/NotificationBell.jsx";
-import CartIcon from "../../market/components/CartIcon.jsx";
+import Navbar from "../../../pages/Navbar.jsx";
 import "../../../pages/styles/Homepage.css";
 import "../../market/styles/MarketPage.css";
 import "../styles/DonateMarketPage.css";
@@ -277,22 +275,6 @@ export default function DonateMarketPage() {
   const [needsSummary, setNeedsSummary] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
 
-  const rightAccount = () => {
-    if (!token) return (
-      <div className="navAuth">
-        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
-      </div>
-    );
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-        <NotificationBell />
-        <ProfileDropdown />
-        <CartIcon />
-      </div>
-    );
-  };
-
   // ── ดึง project ──
   useEffect(() => {
     if (!projectId || project) return;
@@ -390,21 +372,7 @@ export default function DonateMarketPage() {
   return (
     <div className="homePage">
       {/* ── Navbar ── */}
-      <header className="topBar">
-        <div className="topRow">
-          <Link to="/" className="brand">
-            <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-          </Link>
-          <nav className="navLinks">
-            <Link to="/">หน้าหลัก</Link>
-            <Link to="/projects" className="active">โครงการ</Link>
-            <Link to="/market">ร้านค้า</Link>
-            <a href="#about">เกี่ยวกับเรา</a>
-            <button><Link to="/sell">ลงขาย</Link></button>
-          </nav>
-          {rightAccount()}
-        </div>
-      </header>
+      <Navbar activeLink="projects" />
 
       {/* ── Hero Banner ── */}
       <section

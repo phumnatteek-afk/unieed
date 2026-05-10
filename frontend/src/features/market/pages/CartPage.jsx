@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
-import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import Navbar from "../../../pages/Navbar.jsx";
 import "../styles/CartPage.css";
 
 // ── helpers ──────────────────────────────────────────────
@@ -158,21 +158,7 @@ const buyableCount  = (cart?.items || []).filter(isItemBuyable).length;
   return (
     <div className="cpPage">
       {/* Navbar */}
-      <header className="topBar">
-        <div className="topRow">
-          <Link to="/" className="brand">
-            <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-          </Link>
-          <nav className="navLinks">
-            <Link to="/">หน้าหลัก</Link>
-            <Link to="/projects">โครงการ</Link>
-            <Link to="/market">ร้านค้า</Link>
-            <a href="#about">เกี่ยวกับเรา</a>
-            <button><Link to="/sell">ลงขาย</Link></button>
-          </nav>
-          <ProfileDropdown />
-        </div>
-      </header>
+      <Navbar activeLink="market" />
 
       <div className="cpContainer">
         <div className="cpHeader">

@@ -5,9 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { getJson } from "../api/http.js";
 import "./styles/Homepage.css";
 import "../features/market/styles/MarketPage.css"
-import ProfileDropdown from "../features/auth/pages/ProfileDropdown.jsx";
-import NotificationBell from "./NotificationBell.jsx";
-import CartIcon from "../features/market/components/CartIcon.jsx";
+import Navbar from "./Navbar.jsx";
 import { useAddToCart } from "../features/market/hooks/useAddToCart.js";
 
 
@@ -221,7 +219,6 @@ export default function HomePage() {
   const [tsIdx, setTsIdx] = useState(0);
   const [lightboxImg, setLightboxImg] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [hasPendingTracking, setHasPendingTracking] = useState(false);
 
   const [q, setQ] = useState("");
 
@@ -284,17 +281,6 @@ export default function HomePage() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (!token) return;
-    const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
-    fetch(`${BASE}/donations/my/history`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
-        const pending = data.some(d => d.delivery_method === "parcel" && d.status === "pending" && !d.tracking_number);
-        setHasPendingTracking(pending);
-      })
-      .catch(() => {});
-  }, [token]);
 
   // ── ดึง uniform_items สำหรับ ProjCard popup ──────────────────────────────
   useEffect(() => {
@@ -336,37 +322,6 @@ export default function HomePage() {
     setIsSliding(false);
   }, [projects.length]);
 
-  const rightAccount = () => {
-  if (!token) {
-    return (
-      <div className="navAuth">
-        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
-      </div>
-    );
-  }
-  const isDonor = token && role !== "admin" && role !== "school_admin";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-      {isDonor && hasPendingTracking && (
-        <Link
-          to="/donations/history"
-          style={{
-            fontSize: 16, color: "#ffffff",
-            textDecoration: "underline", marginRight: 6,
-            whiteSpace: "nowrap", lineHeight: 1,
-          }}
-          onClick={e => e.stopPropagation()}
-        >
-          รอกรอกเลขพัสดุ
-        </Link>
-      )}
-      <NotificationBell />
-      <ProfileDropdown />
-      <CartIcon />
-    </div>
-  );
-};
 
   const [homeTab, setHomeTab] = useState("แนะนำ");
   const [navHover, setNavHover] = useState(false);
@@ -705,42 +660,8 @@ export default function HomePage() {
           <Icon icon="mdi:check-circle" /> {toastMsg}
         </div>
       )}
-      {/* ===== Top Header + Search ===== */}
-      <header className="topBar">
-        <div className="topRow">
-          <Link to="/" className="brand">
-            <img
-              className="brandLogo"
-              src="/src/unieed_pic/logo.png"
-              alt="Unieed"
-            />
-          </Link>
-
-          <nav className="navLinks">
-            <Link to="/" className="active">หน้าหลัก</Link>
-            <Link to="/projects">โครงการ</Link>
-            <Link to="/market">ร้านค้า</Link>
-            <a href="#about">เกี่ยวกับเรา</a>
-            <button><Link to="/sell" className="sell">ลงขาย</Link></button>
-
-          </nav>
-
-          {rightAccount()}
-        </div>
-
-        {/* <div className="searchRow">
-          <div className="searchBox">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="ค้นหาโครงการหรือสิ่งของที่ต้องการบริจาค..."
-            />
-            <button className="searchBtn" type="button" aria-label="search">
-              <FontAwesomeIcon icon={faMagnifyingGlass} />
-            </button>
-          </div>
-        </div> */}
-      </header>
+      {/* ===== Top Header ===== */}
+      <Navbar activeLink="home" />
 
       {/* ===== Hero ===== */}
       <section id="home" className="hero">
@@ -987,7 +908,7 @@ export default function HomePage() {
       <section id="projects" className="section sectionBlue">
         {/* Title */}
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <h3 style={{ fontSize: 32, fontWeight: 500, color: "#5285E8", margin: "0 0 18px" }}>
+          <h3 className="projSectionTitle">
             โครงการที่กำลังเปิดรับบริจาค
           </h3>
           {/* Tab pills */}
@@ -1181,10 +1102,10 @@ export default function HomePage() {
 
       {/* ===== Market ===== */}
       <section id="market" className="section">
-        <div className="sectionHead">
+        <div className="sectionHead marketSectionHead">
           <div>
-            <h3 style={{ fontSize: 32, fontWeight: 500, color: "#5285E8", margin: 0 }}>ตลาดชุดนักเรียนมือสอง</h3>
-            <p style={{ fontSize: 14, color: "#64748b", marginTop: 4, marginBottom: 0 }}>ชุดมือสองคุณภาพดี • ราคาประหยัด • ส่งถึงมือน้องได้จริง</p>
+            <h3 className="marketTitle">ตลาดชุดนักเรียนมือสอง</h3>
+            <p className="marketSub">ชุดมือสองคุณภาพดี • ราคาประหยัด • ส่งถึงมือน้องได้จริง</p>
           </div>
           <div>
             <Link className="btnGhost" to="/market">ดูทั้งหมด</Link>

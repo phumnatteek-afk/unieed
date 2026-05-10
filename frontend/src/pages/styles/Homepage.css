@@ -966,6 +966,19 @@ gap: 20px;
 
 
 
+.marketTitle {
+  font-size: 32px;
+  font-weight: 500;
+  color: #5285E8;
+  margin: 0;
+}
+.marketSub {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
 /* ===== MARKET ===== */
 /* ===== MARKET ===== */
 #market {
@@ -1133,8 +1146,7 @@ gap: 20px;
   .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 480px) {
-  .grid3 { grid-template-columns: 1fr; }
-  #market { padding: 0 20px 40px; }
+  #market { padding: 0 12px 30px; }
 }
 /* ===== TESTIMONIALS (match Figma) ===== */
 /* ==================== */
@@ -1469,42 +1481,347 @@ gap: 20px;
 
 /* ===== Responsive ===== */
 @media (max-width: 980px) {
-  .navLinks {
-    display: none;
-  }
+  .navLinks { display: none; }
+  .statGrid { grid-template-columns: 1fr; }
+  .stepsWrap { flex-direction: column; }
+  .stepsSide { width: auto; text-align: center; }
+  .stepsCards { grid-template-columns: 1fr; }
+  .carouselCards { grid-template-columns: 1fr; }
+  .grid3 { grid-template-columns: 1fr; }
+  .tsCard { grid-template-columns: 1fr; }
+  .heroLeft h1 { font-size: 34px; }
+}
 
+.projSectionTitle {
+  font-size: 32px;
+  font-weight: 500;
+  color: #5285E8;
+  margin: 0 0 18px;
+}
+
+/* ===== HAMBURGER MENU ===== */
+.hamburgerBtn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  margin-left: 8px;
+}
+.hamburgerLine {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+.hamburgerLine.open:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburgerLine.open:nth-child(2) { opacity: 0; }
+.hamburgerLine.open:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.mobileMenuOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 998;
+  animation: fadeInOverlay 0.25s ease;
+}
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.mobileMenu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 72vw;
+  max-width: 300px;
+  background: #87C7EB;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+  animation: slideInDrawer 0.28s cubic-bezier(.22,.61,.36,1);
+  overflow-y: auto;
+}
+@keyframes slideInDrawer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+.mobileMenuHeader {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  gap: 10px;
+}
+.mobileMenuLogo {
+  height: 40px;
+  object-fit: contain;
+}
+
+.mobileMenuLinks {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 8px 0;
+}
+.mobileMenuLinks a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 15px 22px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s;
+}
+.mobileMenuLinks a:last-child { border-bottom: none; }
+.mobileMenuLinks a:active { background: rgba(255,255,255,0.12); }
+
+.mobileMenuActive {
+  background: rgba(255,255,255,0.22) !important;
+  font-weight: 700 !important;
+  border-left: 4px solid #fff !important;
+  padding-left: 18px !important;
+}
+
+.mobileMenuSell {
+  margin: 16px 18px;
+  background: #FFBE1B;
+  border-radius: 99px;
+  text-align: center;
+  padding: 13px 24px !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  padding-left: 24px !important;
+  font-weight: 700 !important;
+  justify-content: center !important;
+  font-size: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+/* ===== MOBILE (≤768px) ===== */
+@media (max-width: 768px) {
+  /* — Navbar — */
+  .topBar { padding: 10px 12px; }
+  .topRow { padding: 0; }
+  .brandLogo { width: 130px; height: 55px; }
+  .navBtn { font-size: 12px; padding: 4px 10px; height: 28px; }
+  .userNameText { font-size: 16px; }
+  .hello { gap: 6px; margin-right: 6px; }
+  .iconBorder { width: 28px; height: 28px; }
+  .hamburgerBtn { display: flex; }
+  .topBar { position: relative; }
+  /* Profile */
+  .pd-avatar { width: 26px !important; height: 26px !important; }
+  .pd-name { font-size: 12px !important; }
+  .pd-role { font-size: 10px !important; }
+  .pd-trigger { gap: 5px !important; }
+  /* Notification bell */
+  .nb-wrap { position: relative; }
+  .nb-btn { width: 28px !important; height: 28px !important; font-size: 16px !important; padding: 0 !important; }
+  /* Cart */
+  .cartIconWrap { font-size: 20px !important; padding: 2px !important; }
+  .cartIconBadge { font-size: 9px !important; width: 14px !important; height: 14px !important; }
+  /* รอกรอกพัสดุ link */
+  .navPendingLink { display: none !important; }
+
+  /* — Search — */
+  .searchRow { padding: 0 12px; }
+  .searchBox { width: 100%; max-width: 100%; height: 42px; }
+
+  /* — Hero — */
+  .hero { min-height: 180px; }
+  .heroInner { min-height: 180px; }
+  .heroLeft { margin: 20px 16px; line-height: 1.4; }
+  .heroLeft h1 { font-size: 22px; margin-top: 8px; }
+  .heroLeft p { font-size: 14px; }
+  .heroSub span { font-size: 22px; }
+  .heroSearchBtn { font-size: 13px; padding: 8px 14px; margin-top: 10px; }
+  .heroActions { margin-top: 100px; padding-right: 24px; gap: 6px; }
+  .pill { height: 34px; padding: 6px 16px; font-size: 12px; bottom: 6px; }
+  .text-ban a { font-size: 13px; margin-left: 6px; }
+  .pill svg { width: 16px; height: 16px; }
+  .heroSearchBtn { font-size: 12px; padding: 6px 12px; margin-top: 6px; }
+  .heroSearchArrow { width: 18px; height: 18px; font-size: 14px; }
+  .heroLeft h1 { margin-top: 8px; margin-bottom: 2px; }
+  .heroLeft p { margin: 0; }
+
+  /* — Stats — */
+  .stats { padding: 24px 16px 10px; margin-top: 0; }
+  .stats h2 { font-size: 22px; }
+  .stats .sub { font-size: 15px; }
   .statGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+    gap: 10px;
+    justify-items: stretch;
   }
-
-  .stepsWrap {
-    flex-direction: column;
+  .statCard { width: 100%; height: 170px; }
+  .statCard:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    max-width: calc(50% - 5px);
+    justify-self: center;
   }
+  .statValue1, .statValue { font-size: 36px; }
+  .statLabel { font-size: 13px; }
+  .statIcon1 svg, .statIcon2 svg { width: 54px !important; height: 54px !important; }
+  .statIcon1 img, .statIcon2 img { width: 54px !important; height: 54px !important; }
 
-  .stepsSide {
-    width: auto;
-    text-align: center;
-  }
-
+  /* — Steps — */
+  .steps { padding: 20px 16px; margin-top: 40px; }
+  .stepsWrap { flex-direction: column; gap: 10px; }
+  .stepsSide { width: 100%; height: auto; }
+  .stepsBig { font-size: 22px; }
   .stepsCards {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    height: auto;
+    gap: 10px;
   }
+  .stepCard { padding: 10px; }
+  .stepTitle { font-size: 11px; }
+  .stepDesc { font-size: 9px; padding: 14px 0 0; }
 
-  .carouselCards {
-    grid-template-columns: 1fr;
-  }
+  /* — Section headings — */
+  #projects { margin-top: 40px; }
+  .section { padding: 16px; }
+  .sectionHead { padding: 0 4px; margin-bottom: 14px; }
+  .sectionHead h3 { font-size: 22px !important; font-weight: 400; }
+  .projSectionTitle { font-size: 22px !important; font-weight: 400 !important; }
+  .btnGhost { font-size: 14px; height: 32px; padding: 0 12px; }
 
-  .grid3 {
-    grid-template-columns: 1fr;
+  /* — Carousel: เปลี่ยนเป็น horizontal scroll บนมือถือ — */
+  .carouselRow { gap: 0; }
+  .navArrow { display: none; }
+  .carouselViewport {
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-radius: 12px;
   }
+  .carouselViewport::-webkit-scrollbar { display: none; }
+  .carouselTrack {
+    transform: none !important;
+    transition: none !important;
+    width: auto;
+  }
+  .carouselPage {
+    flex: none;
+    width: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 4px 0;
+  }
+  .projCard {
+    flex: 0 0 72vw;
+    width: 72vw;
+    min-width: 72vw;
+    max-width: 72vw;
+    height: auto;
+    scroll-snap-align: start;
+  }
+  .thumb { height: 130px; }
+  .projTitle { font-size: 15px; }
+  .projMeta { font-size: 13px; }
+  .adr { font-size: 11px; }
+  .projBody { padding: 10px 12px; }
+  .projBottom button { font-size: 15px; padding: 4px 14px; }
 
-  .tsCard {
-    grid-template-columns: 1fr;
-  }
+  /* — Market — */
+  #market { padding: 0 16px 30px; margin-top: 30px; margin-bottom: 30px; }
+  .marketSectionHead { align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .marketTitle { font-size: 20px; }
+  .marketSub { font-size: 12px; margin-top: 2px; }
+  .grid3 { grid-template-columns: 1fr; gap: 12px; }
 
-  .heroLeft h1 {
-    font-size: 34px;
+  /* — Testimonials — */
+  .sectionSoftBlue { padding: 40px 0; }
+  .tsHead { padding: 0 16px; flex-wrap: wrap; gap: 10px; }
+  .tsTitle { font-size: 22px; }
+  .tsQuoteMark { font-size: 48px; }
+  .tsStage { padding: 0 16px; grid-template-columns: 1fr; }
+  .tsCardSide { display: none; }
+  .tsCardMain { transform: scale(1); }
+
+  /* — Closed Projects — */
+  .closedSection { padding: 36px 16px; margin-top: 40px; }
+  .closedSecTitle { font-size: 22px; }
+  .closedSecSub { font-size: 15px; }
+  .closedCard { min-width: 260px; width: 260px; }
+  .closedImpact { flex-direction: row; padding: 16px 0; }
+  .closedImpactNum { font-size: 28px; }
+
+  /* — School CTA — */
+  .schoolCta { margin-top: 40px; margin-bottom: 40px; }
+  .schoolCtaInner { flex-direction: column; min-height: unset; }
+  .schoolCtaLeft { padding: 28px 20px; gap: 12px; }
+  .schoolCtaTitle { font-size: 24px; }
+  .schoolCtaSub { font-size: 14px; max-width: 100%; }
+  .schoolCtaRight { flex: 0 0 180px; }
+
+  /* — FAQ — */
+  .faqSection { padding: 36px 16px; }
+
+  /* — Footer — */
+  .footer { margin-top: 20px; }
+  .footerInner {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 14px 10px;
+    padding: 20px 16px;
+    margin: 0;
   }
+  .footBrand { grid-column: 1 / -1; }
+  .footLogo { width: 120px; padding: 8px 0; }
+  .footTitle { font-size: 16px; margin-bottom: 4px; }
+  .footDesc { font-size: 13px; }
+  .footCol { gap: 5px; }
+  .footCol a { font-size: 13px; }
+  .footCol > div > svg { width: 24px !important; height: 24px !important; flex-shrink: 0; }
+  #contactfooter { font-size: 13px; }
+  .connect { font-size: 16px; gap: 8px; }
+  .connect svg { width: 32px !important; height: 32px !important; }
+}
+
+/* ===== SMALL MOBILE (≤480px) ===== */
+@media (max-width: 480px) {
+  .brandLogo { width: 100px; height: 44px; }
+  .navBtn { font-size: 11px; padding: 3px 8px; }
+
+  .heroLeft h1 { font-size: 18px; }
+  .heroSub span { font-size: 18px; }
+  .heroActions { margin-top: 80px; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .pill { height: 30px; padding: 0 10px; font-size: 11px; }
+
+  .statGrid { grid-template-columns: repeat(2, 1fr); }
+  .statCard { height: 160px; }
+  .statValue1, .statValue { font-size: 34px; }
+
+  .stepsCards { grid-template-columns: repeat(2, 1fr); }
+
+  .grid3 { grid-template-columns: 1fr; gap: 12px; }
+
+  .projCard { flex: 0 0 78vw; width: 78vw; min-width: 78vw; max-width: 78vw; }
+
+  .closedCard { min-width: 240px; width: 240px; }
+  .closedImpact { flex-direction: column; gap: 12px; }
+  .closedImpactDivider { width: 60px; height: 1px; }
 }
 
 /* ── projCard: ไม่ยกตอน hover ── */

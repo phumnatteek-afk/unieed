@@ -5,9 +5,7 @@ import { getJson } from "../../../api/http.js";
 import { Icon } from "@iconify/react";
 import "../../../pages/styles/Homepage.css";
 import "../styles/ProjectDetail.css";
-import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
-import NotificationBell from "../../../pages/NotificationBell.jsx";
-import CartIcon from "../../market/components/CartIcon.jsx";
+import Navbar from "../../../pages/Navbar.jsx";
 
 
 export default function ProjectDetailPage() {
@@ -134,24 +132,6 @@ export default function ProjectDetailPage() {
   };
 
   const totalSelected = Object.values(donateQty).reduce((a, b) => a + b, 0);
-
-  const rightAccount = () => {
-    if (!token) {
-      return (
-        <div className="navAuth">
-          <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-          <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
-        </div>
-      );
-    }
-    return (
-    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-      <NotificationBell />
-      <ProfileDropdown />
-      <CartIcon />
-    </div>
-    );
-  };
 
   const needed    = project?.total_needed    || 0;
   const fulfilled = project?.total_received  || 0;  // ชุดที่โรงเรียนยืนยันรับแล้ว (primary metric)
@@ -396,21 +376,7 @@ export default function ProjectDetailPage() {
   return (
     <div className="homePage">
       {/* Header */}
-      <header className="topBar">
-        <div className="topRow">
-          <Link to="/" className="brand">
-            <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-          </Link>
-          <nav className="navLinks">
-            <Link to="/">หน้าหลัก</Link>
-            <Link to="/projects" className="active">โครงการ</Link>
-            <Link to="/market">ร้านค้า</Link>
-            <a href="#about">เกี่ยวกับเรา</a>
-            <button><a href="#" className="sell">ลงขาย</a></button>
-          </nav>
-          {rightAccount()}
-        </div>
-      </header>
+      <Navbar activeLink="projects" />
 
       <div className="pdTopStrip" />
 
