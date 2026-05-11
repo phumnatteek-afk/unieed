@@ -422,12 +422,20 @@ html, body, #root {
 @media (max-width: 680px) {
   .lgCard {
     grid-template-columns: 1fr;
-    border-radius: 0;
+    grid-auto-rows: auto;
+    border-radius: 24px;
+    overflow: hidden;
+    height: auto;
+    min-height: unset;
   }
+  .lgPage { align-items: flex-start; padding: 16px; }
+  .lgLeftPanel { order: -1; }
+  .lgRightPanel { order: 0; }
 
   .lgLeftPanel {
-    padding: 36px 24px;
-    min-height: 260px;
+    padding: 24px 24px;
+    min-height: unset;
+    max-height: 320px;
   }
 
   .lgLeftPanel::before,
@@ -439,9 +447,7 @@ html, body, #root {
     display: none;
   }
 
-  .lgRightPanel {
-    padding: 32px 24px;
-  }
+  .lgRightPanel { padding: 32px 28px 52px; justify-content: flex-start !important; }
 }
 
 /* ========== Register School (rs) ========== */
@@ -696,7 +702,7 @@ html, body, #root {
 }
 
 .authPanel {
-  margin: -30px 22px 22px;
+  margin: -30px 8px 22px;
   background: #8cc9ea;
   border-radius: 16px;
   padding: 50px 22px 28px;

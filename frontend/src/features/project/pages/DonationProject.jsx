@@ -174,11 +174,10 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
   const handleMouseEnter = () => {
     if (cardRef.current) {
       const rect = cardRef.current.getBoundingClientRect();
-      setPopupPos({
-        top:  rect.top,
-        left: rect.left + rect.width / 2,
-        width: rect.width - 20,
-      });
+      const popupW = Math.min(360, Math.max(260, rect.width - 20));
+      const rawLeft = rect.left + rect.width / 2;
+      const clampedLeft = Math.max(popupW / 2 + 8, Math.min(window.innerWidth - popupW / 2 - 8, rawLeft));
+      setPopupPos({ top: rect.top, left: clampedLeft, width: popupW });
     }
     setHovered(true);
   };
@@ -229,8 +228,9 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
         <div className="dpCardTitle">{p.request_title}</div>
         <div className="dpCardSchool">{p.school_name}</div>
         <div className="dpCardAddr">
-          <Icon icon="fluent:location-20-filled" width="14"
-            style={{ flexShrink: 0, marginTop: "2px" }} />
+          <span className="dpCardAddrIcon">
+            <Icon icon="fluent:location-20-filled" width="14" height="14" style={{ display: "block" }} />
+          </span>
           {p.school_address}
         </div>
         <div className="dpCardBottom">
@@ -260,7 +260,7 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
             top:  popupPos.top,
             left: popupPos.left,
             transform: "translate(-50%, -100%)",
-            width: "360px",
+            width: `${popupPos.width || 360}px`,
             background: "#fff",
             borderRadius: "16px",
             boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
@@ -983,8 +983,8 @@ useEffect(() => {
           </div>
 
           {/* ── เรียงตาม ── */}
-          <div className="dpFilterSubLabel" style={{ marginBottom: 10, marginTop: 16 }}>เรียงตาม</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 200 }}>
+          <div className="dpFilterSubLabel dpFilterSectionLabel" style={{ marginBottom: 10, marginTop: 16 }}>เรียงตาม</div>
+          <div className="dpFilterBtnRow" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 200 }}>
             {[{ key: "newest", label: "ล่าสุด" }, { key: "most_needed", label: "ยังขาดมากที่สุด" }].map(({ key, label }) => (
               <label key={key} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: sortBy === key ? "#053f5c" : "#f3f4f6", color: sortBy === key ? "#fff" : "#374151", borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 500, userSelect: "none", transition: "all 0.2s" }}>
                 <input type="radio" name="sortBy" checked={sortBy === key} onChange={() => setSortBy(key)} style={{ display: "none" }} />
@@ -994,8 +994,8 @@ useEffect(() => {
           </div>
 
           {/* ── คอลเลคชัน ── */}
-          <div className="dpFilterSubLabel" style={{ marginBottom: 10, marginTop: 16 }}>กรองโครงการ</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 200 }}>
+          <div className="dpFilterSubLabel dpFilterSectionLabel" style={{ marginBottom: 10, marginTop: 16 }}>กรองโครงการ</div>
+          <div className="dpFilterBtnRow" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 200 }}>
             {[
               { key: "แนะนำ", label: "ต้องการด่วน" },
               { key: "ใหม่ล่าสุด", label: "ใหม่ล่าสุด" },
@@ -1030,7 +1030,7 @@ useEffect(() => {
           <h2 className="dpListTitle">
             โครงการโรงเรียนขอรับบริจาคทั้งหมด
             {!loading && (searchQ || autoQuery || selCollections.length > 0) && (
-              <span style={{ fontSize: 16, fontWeight: 500, color: "#64748b", marginLeft: 12 }}>
+              <span className="dpListCount" style={{ fontSize: 16, fontWeight: 500, color: "#64748b", marginLeft: 12 }}>
                 (สิ่งที่คุณค้นหามี <strong style={{ color: "#1d4ed8" }}>{displayProjects.length}</strong> รายการ)
               </span>
             )}

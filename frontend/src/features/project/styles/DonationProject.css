@@ -486,10 +486,18 @@ display: flex;
 .dpCardAddr {
   font-size: 13px;
   color: #888;
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  column-gap: 4px;
+  align-items: start;
   margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.dpCardAddrIcon {
+  margin-top: 3px;
+  line-height: 0;
+  display: flex;
 }
 
 .dpCardBottom {
@@ -530,10 +538,57 @@ display: flex;
     grid-template-columns: 1fr;
   }
 
-  .dpHeroContent {
-    left: 20px;
-    right: 20px;
+  .dpMain {
+    width: 100% !important;
+    min-width: unset !important;
+    padding: 0 12px !important;
+    margin: 24px auto 40px !important;
+    box-sizing: border-box;
   }
+
+  .dpListTitle {
+    font-size: 22px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px;
+  }
+
+  .dpListCount {
+    margin-left: 0 !important;
+  }
+
+  .dpCard {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+
+  .dpHero { height: 360px; }
+  .dpHeroContent {
+    left: 0;
+    right: 0;
+    padding: 14px 16px 14px 16px;
+    bottom: 24px;
+    max-width: 100%;
+  }
+  .dpHeroTitle { font-size: 20px; }
+  .dpHeroSub { font-size: 13px; }
+  .dpHeroCTA { font-size: 13px; padding: 6px 16px; margin-top: 10px; }
+
+  /* — Filter Panel — */
+  .dpFilterLabel { margin-left: 0; font-size: 15px; margin-bottom: 10px; }
+  .dpFilterSubLabel { margin-left: 0; font-size: 12px; }
+  .dpFilterGroupLabel { margin-left: 0 !important; font-size: 12px; }
+  .dpFilterGroupNarrow { margin-left: 0 !important; align-self: auto; }
+  .dpTypeRow { margin-left: 0 !important; flex-wrap: wrap; gap: 8px; }
+  .dpTypeBtn { width: 64px; height: 64px; }
+  .dpFilterGrid { flex-direction: column; gap: 14px; align-items: flex-start; }
+  .dpFilterGroup { font-size: 14px; flex-direction: column; gap: 4px; width: 100%; }
+  .dpSelect { width: 100% !important; font-size: 13px !important; }
+  .dpFilterSectionLabel { margin-left: 0 !important; }
+  .dpFilterBtnRow { margin-left: 0 !important; flex-wrap: wrap; }
+  .dpResetBtn { margin-left: auto; margin-right: 0 !important; display: block; }
+  .dpFilterPanelOpen { max-height: 900px; }
 
   .dpFilterGrid {
     flex-direction: column;

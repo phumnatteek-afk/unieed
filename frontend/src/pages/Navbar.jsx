@@ -86,6 +86,13 @@ export default function Navbar({ activeLink = "" }) {
               <img className="mobileMenuLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
             </div>
             <div className="mobileMenuLinks">
+              {isDonor && hasPendingTracking && (
+                <Link to="/donations/history" onClick={close} className="mobileMenuPending">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m1 15h-2v-6h2zm0-8h-2V7h2z"/></svg>
+                  รอกรอกเลขพัสดุ
+                </Link>
+              )}
+              <div className="mobileMenuLabel">เมนู</div>
               <Link to="/" onClick={close} className={activeLink === "home" ? "mobileMenuActive" : ""}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3L2 12h3v8z"/></svg>
                 หน้าหลัก

@@ -198,6 +198,49 @@
   .pdDetailRight { border-left:none; padding-left:0; border-top:1px solid #e5e7eb; padding-top:24px; }
 }
 
+@media (max-width:640px) {
+  .pdWrapper { padding: 0 12px; margin: 20px auto 40px; }
+
+  .pdHeroCard { padding: 18px 16px; border-radius: 16px; gap: 20px; }
+
+  .pdSchoolName { font-size: 20px; }
+  .pdTitle { font-size: 15px; }
+
+  /* Channel buttons — full width */
+  .pdChannels { flex-direction: column; gap: 8px; }
+  .pdChannel { width: 100%; justify-content: flex-start; padding: 10px 16px; font-size: 15px; }
+
+  /* Gender tabs — stretch equally, capped at half-width so 1 button = same size as 2 */
+  .pdGenderTabs { gap: 8px; }
+  .pdGenderTab { flex: 1; max-width: calc(50% - 4px); justify-content: center; font-size: 13px; padding: 6px 10px; }
+
+  /* Level tabs — smaller text */
+  .pdLevelTab { font-size: 13px; padding: 6px 12px 8px; }
+
+  /* Donate button */
+  .pdDonateBtn { font-size: 18px; height: 50px; }
+
+  /* Summary / Progress card */
+  .pdSummaryCard { padding: 18px 16px; }
+  .pdSummaryTitle { font-size: 16px; margin-bottom: 14px; }
+  .pdSummaryStats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px 8px;
+    margin-bottom: 14px;
+  }
+  .pdSummaryStat { text-align: center; }
+  .pdSummaryVal { font-size: 24px; }
+  .pdSummaryLabel { font-size: 11px; }
+
+  /* Tabs */
+  .pdTab { font-size: 15px; padding: 10px 16px 8px; }
+
+  /* Review card — vertical on mobile */
+  .pdReviewCard { flex-direction: column; }
+  .pdReviewImgWrap { width: 100%; height: 180px; }
+}
+
 
 /* ===== Progress Bar ===== */
 .pdProgressBlock { display:flex; flex-direction:column; gap:8px; margin-top:4px; }

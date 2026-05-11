@@ -69,10 +69,13 @@ function ProjCard({ p, navigate, details, collectionLabel }) {
   const handleMouseEnter = () => {
     if (cardRef.current) {
       const rect = cardRef.current.getBoundingClientRect();
+      const popupW = Math.min(360, rect.width, window.innerWidth - 16);
+      const rawLeft = rect.left + rect.width / 2;
+      const clampedLeft = Math.max(popupW / 2 + 8, Math.min(window.innerWidth - popupW / 2 - 8, rawLeft));
       setPopupPos({
-        top:  rect.top,                      // ← บนสุดของการ์ด
-        left: rect.left + rect.width / 2,   // ← กึ่งกลางแนวนอน
-        width: rect.width - 20,
+        top:  rect.top,
+        left: clampedLeft,
+        width: popupW,
       });
     }
     setHovered(true);
@@ -156,7 +159,7 @@ function ProjCard({ p, navigate, details, collectionLabel }) {
             top:  popupPos.top,
             left: popupPos.left,
             transform: "translate(-50%, -100%)",
-            width: "360px",
+            width: popupPos.width || 360,
             background: "#fff",
             borderRadius: "16px",
             boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
