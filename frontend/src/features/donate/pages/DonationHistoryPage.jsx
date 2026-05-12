@@ -3,9 +3,7 @@ import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
-import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
-import NotificationBell from "../../../pages/NotificationBell.jsx";
-import CartIcon from "../../market/components/CartIcon.jsx";
+import Navbar from "../../../pages/Navbar.jsx";
 import { QRLabelPage } from "../../project/pages/Donatepage.jsx";
 import "../../../pages/styles/Homepage.css";
 import "../../project/styles/Donatepage.css";
@@ -251,23 +249,7 @@ export default function DonationHistoryPage() {
   return (
     <div className="homePage">
       {/* Navbar */}
-      <header className="topBar">
-        <div className="topRow">
-          <Link to="/" className="brand">
-            <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-          </Link>
-          <nav className="navLinks">
-            <Link to="/">หน้าหลัก</Link>
-            <Link to="/projects">โครงการ</Link>
-            <Link to="/market">ร้านค้า</Link>
-          </nav>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <NotificationBell />
-            <ProfileDropdown />
-            <CartIcon />
-          </div>
-        </div>
-      </header>
+      <Navbar activeLink="" />
 
       <div style={{ background: "#87C7EB", height: 8, width: "100vw", marginLeft: "calc(-50vw + 50%)" }} />
 

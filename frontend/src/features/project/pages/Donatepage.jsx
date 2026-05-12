@@ -4,10 +4,8 @@ import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
 import { Icon } from "@iconify/react";
-import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import QRCode from "https://esm.sh/qrcode@1.5.3";
-import NotificationBell from "../../../pages/NotificationBell.jsx";
-import CartIcon from "../../market/components/CartIcon.jsx";
+import Navbar from "../../../pages/Navbar.jsx";
 import kidsImg  from "../../../unieed_pic/kids.png";
 import logo3Img from "../../../unieed_pic/logo3.png";
 
@@ -433,22 +431,6 @@ export default function DonatePage() {
     }
   };
 
-  const rightAccount = () => {
-    if (!token) return (
-      <div className="navAuth">
-        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
-      </div>
-    );
-    return (
-    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-      <NotificationBell />
-      <ProfileDropdown />
-      <CartIcon />
-    </div>
-  );
-  };
-
   // format วันที่เลือกเป็นภาษาไทย
   const formatSelectedDate = (dateStr) => {
     if (!dateStr) return null;
@@ -472,21 +454,7 @@ export default function DonatePage() {
 
   return (
     <div className="homePage">
-      <header className="topBar">
-        <div className="topRow">
-          <Link to="/" className="brand">
-            <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-          </Link>
-          <nav className="navLinks">
-            <Link to="/">หน้าหลัก</Link>
-            <Link to="/projects" className="active">โครงการ</Link>
-            <Link to="/market">ร้านค้า</Link>
-            <a href="#about">เกี่ยวกับเรา</a>
-            <button><a href="#" className="sell">ลงขาย</a></button>
-          </nav>
-          {rightAccount()}
-        </div>
-      </header>
+      <Navbar activeLink="projects" />
 
       <div style={{ background: "#87C7EB", height: "8px", width: "100vw", marginLeft: "calc(-50vw + 50%)" }} />
 

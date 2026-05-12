@@ -4,9 +4,7 @@ import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
-import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
-import NotificationBell from "../../../pages/NotificationBell.jsx";
-import CartIcon from "../components/CartIcon.jsx";
+import Navbar from "../../../pages/Navbar.jsx";
 import { useCart } from "../context/CartContext.jsx";  // ✅ เพิ่ม
 import "../styles/ProductDetailPage.css";
 
@@ -188,23 +186,6 @@ export default function ProductDetailPage() {
 
     const { token, role, userName } = useAuth();
     const { refreshCart } = useCart();
-    const rightAccount = () => {
-        if (!token) {
-            return (
-                <div className="navAuth">
-                    <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-                    <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
-                </div>
-            );
-        }
-        return (
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <NotificationBell />
-                <ProfileDropdown />
-                <CartIcon />
-            </div>
-        );
-    };
     const [product, setProduct] = useState(null);
     const [related, setRelated] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -349,21 +330,7 @@ export default function ProductDetailPage() {
     return (
         <div className="pdPage">
             {/* ── Navbar ── */}
-            <header className="topBar">
-                <div className="topRow">
-                    <Link to="/" className="brand">
-                        <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-                    </Link>
-                    <nav className="navLinks">
-                        <Link to="/">หน้าหลัก</Link>
-                        <Link to="/projects">โครงการ</Link>
-                        <Link to="/market" className="active">ร้านค้า</Link>
-                        <a href="#about">เกี่ยวกับเรา</a>
-                        <button><Link to="/sell">ลงขาย</Link></button>
-                    </nav>
-                    {rightAccount()}
-                </div>
-            </header>
+            <Navbar activeLink="market" />
 
             <div className="pdContainer">
                 {/* ── Breadcrumb ── */}

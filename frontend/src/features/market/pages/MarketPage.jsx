@@ -5,9 +5,7 @@ import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass, faFilter } from "@fortawesome/free-solid-svg-icons";
-import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
-import NotificationBell from "../../../pages/NotificationBell.jsx";
-import CartIcon from "../components/CartIcon.jsx";
+import Navbar from "../../../pages/Navbar.jsx";
 import "../../../pages/styles/Homepage.css";
 import "../styles/MarketPage.css";
 import { useAddToCart } from "../hooks/useAddToCart.js";
@@ -271,23 +269,6 @@ const displayTitle = typePart
 export default function MarketPage() {
   const { token, role, userName } = useAuth();
   const location   = useLocation();
-  const rightAccount = () => {
-  if (!token) {
-    return (
-      <div className="navAuth">
-        <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-        <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
-      </div>
-    );
-  }
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-      <NotificationBell />
-      <ProfileDropdown />
-      <CartIcon />
-    </div>
-  );
-};
 
   const [toast,         setToast]         = useState(location.state?.successMsg || "");
   const [search,        setSearch]        = useState("");
@@ -504,21 +485,7 @@ const handleMaxPriceChange = (e) => {
         </div>
       )}
 
-      <header className="topBar">
-        <div className="topRow">
-          <Link to="/" className="brand">
-            <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-          </Link>
-          <nav className="navLinks">
-            <Link to="/">หน้าหลัก</Link>
-            <Link to="/projects">โครงการ</Link>
-            <Link to="/market" className="active">ร้านค้า</Link>
-            <a href="#about">เกี่ยวกับเรา</a>
-            <button><Link to="/sell">ลงขาย</Link></button>
-          </nav>
-          {rightAccount()}
-        </div>
-      </header>
+      <Navbar activeLink="market" />
 
       <section className="mkHero">
         <img className="mkHeroBgLeft"  src={marketHeroBgLeft}  alt="" />

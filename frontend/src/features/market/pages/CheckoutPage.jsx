@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
-import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import Navbar from "../../../pages/Navbar.jsx";
 import "../styles/CheckoutPage.css";
 import { searchAddress, suggestProvinces } from "../../../utils/thaiAddress.js";
 
@@ -898,19 +898,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="coPage">
-      <header className="topBar">
-        <div className="topRow">
-          <Link to="/" className="brand">
-            <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-          </Link>
-          <nav className="navLinks">
-            <Link to="/">หน้าหลัก</Link>
-            <Link to="/market">ร้านค้า</Link>
-            {!isDonation && <Link to="/cart">ตะกร้า</Link>}
-          </nav>
-          <ProfileDropdown />
-        </div>
-      </header>
+      <Navbar activeLink="market" />
 
       {isDonation && (
         <div className="coDonationBanner">

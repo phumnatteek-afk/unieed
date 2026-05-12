@@ -5,7 +5,7 @@ import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import "../../../pages/styles/Homepage.css";
 import "../styles/PostProductPage.css";
-import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import Navbar from "../../../pages/Navbar.jsx";
  
 const SIZE_LABELS = { chest: "อก", waist: "เอว", length: "ยาว" };
  
@@ -230,35 +230,10 @@ export default function PostProductPage() {
     }
   };
  
-  const getRightAccount = () => {
-    if (!token)
-      return (
-        <div className="navAuth">
-          <Link className="navBtn navBtnOutline" to="/register">ลงทะเบียน</Link>
-          <Link className="navBtn navBtnWhite"   to="/login">เข้าสู่ระบบ</Link>
-        </div>
-      );
-    return <ProfileDropdown />;
-  };
- 
   return (
     <div className="homePage">
       {/* Header */}
-      <header className="topBar">
-        <div className="topRow">
-          <Link to="/" className="brand">
-            <img className="brandLogo" src="/src/unieed_pic/logo.png" alt="Unieed" />
-          </Link>
-          <nav className="navLinks">
-            <Link to="/">หน้าหลัก</Link>
-            <Link to="/projects">โครงการ</Link>
-            <Link to="/market">ร้านค้า</Link>
-            <a href="#about">เกี่ยวกับเรา</a>
-            <button><Link to="/sell" className="active">ลงขาย</Link></button>
-          </nav>
-          {getRightAccount()}
-        </div>
-      </header>
+      <Navbar activeLink="sell" />
  
       <div className="ppAccentBar" />
  
