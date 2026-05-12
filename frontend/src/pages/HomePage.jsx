@@ -364,53 +364,49 @@ export default function HomePage() {
     finally { setNearbyLoading(false); }
   };
 
-  // เมื่อเปลี่ยนแท็บมา "ใกล้ฉัน"
+  // เมื่อเปลี่ยนแท็บมา "ใกล้ฉัน" → ขอ GPS ทุกครั้ง
   useEffect(() => {
     if (homeTab !== NEARBY_TAB) return;
-    if (nearbyProvince) {
-      // มีใน cache → โหลดตรง
-      loadNearbyProjects(nearbyProvince);
-    } else {
-      // ไม่มีใน cache → ขอ GPS
-      setNearbyLoading(true);
-      setNearbyGpsError("");
-      if (!navigator.geolocation) {
-        setNearbyLoading(false);
-        setShowProvincePicker(true);
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          try {
-            const { latitude: lat, longitude: lon } = pos.coords;
-            const r = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=th`
-            );
-            const geoData = await r.json();
-            const raw = geoData?.address?.state || geoData?.address?.province || "";
-            // normalize "จังหวัดเชียงใหม่" → "เชียงใหม่"
-            const prov = raw.replace(/^จังหวัด/, "").trim();
-            if (prov) {
-              localStorage.setItem("unieed_province", prov);
-              setNearbyProvince(prov);
-              loadNearbyProjects(prov);
-            } else {
-              setShowProvincePicker(true);
-            }
-          } catch {
-            setShowProvincePicker(true);
-          } finally {
-            setNearbyLoading(false);
-          }
-        },
-        () => {
-          setNearbyLoading(false);
-          setNearbyGpsError("ไม่ได้รับสิทธิ์เข้าถึงตำแหน่ง");
-          setShowProvincePicker(true);
-        },
-        { timeout: 8000 }
-      );
+    // ขอ GPS ทุกครั้งที่เปิดแท็บนี้ (ไม่ใช้ cache ข้ามขั้นตอน)
+    setNearbyLoading(true);
+    setNearbyGpsError("");
+    setShowProvincePicker(false);
+    if (!navigator.geolocation) {
+      setNearbyLoading(false);
+      setShowProvincePicker(true);
+      return;
     }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude: lat, longitude: lon } = pos.coords;
+          const r = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=th`
+          );
+          const geoData = await r.json();
+          const raw = geoData?.address?.state || geoData?.address?.province || "";
+          // normalize "จังหวัดเชียงใหม่" → "เชียงใหม่"
+          const prov = raw.replace(/^จังหวัด/, "").trim();
+          if (prov) {
+            localStorage.setItem("unieed_province", prov);
+            setNearbyProvince(prov);
+            loadNearbyProjects(prov);
+          } else {
+            setShowProvincePicker(true);
+          }
+        } catch {
+          setShowProvincePicker(true);
+        } finally {
+          setNearbyLoading(false);
+        }
+      },
+      () => {
+        setNearbyLoading(false);
+        setNearbyGpsError("ไม่ได้รับสิทธิ์เข้าถึงตำแหน่ง");
+        setShowProvincePicker(true);
+      },
+      { timeout: 8000 }
+    );
   }, [homeTab]); // eslint-disable-line
 
   const handleSelectProvince = (prov) => {
