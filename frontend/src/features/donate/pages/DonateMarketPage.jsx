@@ -338,9 +338,9 @@ export default function DonateMarketPage() {
       .finally(() => setLoading(false));
   }, [projectId]);
 
-  // ── คำนวณ dashboard ──
-  const totalNeeded    = needsSummary.reduce((s, n) => s + Number(n.quantity_needed || 0), 0);
-  const totalFulfilled = Number(project?.total_fulfilled || 0);
+  // ── คำนวณ dashboard (ใช้ field เดียวกับ ProjectDetailPage) ──
+  const totalNeeded    = Number(project?.total_needed    || 0);
+  const totalFulfilled = Number(project?.total_received  || 0);
   const totalRemaining = Math.max(totalNeeded - totalFulfilled, 0);
   const pct = totalNeeded > 0 ? Math.min(Math.round((totalFulfilled / totalNeeded) * 100), 100) : 0;
 

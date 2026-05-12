@@ -444,6 +444,27 @@
 }
 @media (max-width: 480px) {
   .mkGrid, .mkLoadingGrid { grid-template-columns: 1fr; }
+
+  /* ── Hero ── */
+  .mkHero { height: auto; min-height: 260px; padding: 24px 16px 60px; align-items: flex-start; }
+  .mkHeroContent { padding: 0 12px; }
+  .mkHeroTitle { font-size: 22px; margin-bottom: 6px; }
+  .mkHeroSub { font-size: 12px; margin-bottom: 16px; }
+  .mkHeroBtn { height: 40px; padding: 0 16px; font-size: 13px; gap: 6px; }
+  .mkHeroBtns { flex-direction: column; align-items: center; gap: 8px; }
+  .mkHeroBgLeft  { height: 55%; }
+  .mkHeroBgRight { height: 60%; }
+
+  /* ── Filter ── */
+  .mkFilterLabel { margin-left: 0; font-size: 15px; }
+  .mkFilterGroupLabel { margin-left: 0; font-size: 13px; }
+  .mkTypeContainer { margin-left: 0; flex-direction: row; flex-wrap: wrap; gap: 10px; }
+  .mkTypeRow { flex-wrap: wrap; gap: 10px; }
+  .mkTypeBtn { width: 68px; height: 68px; }
+  .mkTypeLabel { font-size: 11px; }
+  .mkFilterRowContent { margin-left: 0; flex-wrap: wrap; gap: 16px; }
+  .mkFilterPanel { margin-left: 0; }
+  .mkFilterGrid { flex-wrap: wrap; gap: 12px; }
 }
 
 /* Carousel wrapper */

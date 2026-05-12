@@ -57,8 +57,17 @@ export default function CertificatePage() {
           <div style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e" }}>
             ประกาศนียบัตรของฉัน
           </div>
-          <div style={{ fontSize: 14, color: "#6b7280", marginTop: 4 }}>
+          <div style={{ fontSize: 14, color: "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
             ใบเกียรติบัตรที่ได้รับจากการบริจาคทั้งหมด
+            {certs.length > 0 && (
+              <span style={{
+                background: "#FC8D1F", color: "#fff",
+                fontWeight: 700, fontSize: 15,
+                borderRadius: 999, padding: "3px 14px",
+              }}>
+                {certs.length} ใบ
+              </span>
+            )}
           </div>
         </div>
 

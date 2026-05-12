@@ -248,7 +248,7 @@
   text-decoration: none;
   transition: opacity 0.15s, transform 0.12s;
 }
-.moShopBtn:hover { opacity: 0.88; transform: translateY(-1px); }
+.moShopBtn:hover { opacity: 0.88; }
 
 /* ════════════════════════════════════════════════════════
    Order Card
