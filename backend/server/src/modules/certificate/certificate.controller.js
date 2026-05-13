@@ -403,7 +403,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
                              VALUES (?, 'suspension', ?, ?, ?, 0, NOW())`,
                             [
                                 admin.user_id,
-                                `ผู้บริจาค ${donor.user_name || "ไม่ระบุชื่อ"} ถูกระงับอัตโนมัติ (strike 3/3)`,
+                                `ผู้บริจาค ${donor.user_name || "ไม่ระบุชื่อ"} ถูกระงับอัตโนมัติ (คำเตือน 3/3)`,
                                 JSON.stringify({
                                     message: `ผู้บริจาคถูกระงับการส่งพัสดุและ drop-off เป็นเวลา 30 วัน เนื่องจากมีประวัติส่งรายการบริจาคไม่ตรง 3 ครั้ง`,
                                     suspended_until: suspendedUntilDate,

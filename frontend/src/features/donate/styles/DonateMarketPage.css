@@ -156,7 +156,6 @@
 }
 .dmDashboard:hover {
   background: rgba(0,0,0,0.32);
-  transform: translateY(-2px);
 }
 .dmDashboard > div:not(.dmDashHint) {
   display: grid;
@@ -488,4 +487,6 @@
   .dmHeroTitle { font-size: 1.1rem; }
   .dmFilterTabs { gap: 6px; }
   .dmFilterTab { padding: 6px 12px; font-size: 0.8rem; }
+  .mkListHeader { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .dmNoMatchNote { width: 100%; box-sizing: border-box; }
 }

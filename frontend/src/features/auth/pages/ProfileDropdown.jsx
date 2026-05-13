@@ -5,6 +5,36 @@ import { Icon } from "@iconify/react";
 import { request } from "../../../api/http.js";
 import "../styles/ProfileDropdown.css";
 
+const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
+const TH_MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+
+function localDateParts(dateStr) {
+  const d = new Date(dateStr);
+  return { y: d.getFullYear(), m: d.getMonth(), day: d.getDate() };
+}
+
+function localDateISO(dateStr) {
+  const { y, m, day } = localDateParts(dateStr);
+  return `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function fmtApptDate(dateStr, timeStr) {
+  if (!dateStr) return null;
+  const { y, m, day } = localDateParts(dateStr);
+  const date = `${day} ${TH_MONTHS[m]} ${y + 543}`;
+  const time = timeStr ? String(timeStr).slice(0, 5) + " น." : "";
+  return time ? `${date}, ${time}` : date;
+}
+
+function apptDaysLeft(dateStr, timeStr) {
+  if (!dateStr) return null;
+  const t = timeStr ? String(timeStr).slice(0, 5) : "23:59";
+  const diff = new Date(`${localDateISO(dateStr)}T${t}:00`) - new Date();
+  if (diff <= 0) return null;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  return days === 0 ? "วันนี้" : `อีก ${days} วัน`;
+}
+
 const ROLE_LABEL = {
   admin: "ผู้ดูแลระบบ",
   school_admin: "ผู้ดูแลโรงเรียน",
@@ -570,6 +600,9 @@ export default function ProfileDropdown() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [avatarKey, setAvatarKey] = useState(0);
+  const [noListingMsg, setNoListingMsg] = useState("");
+  const [appointments, setAppointments] = useState([]);
+  const [apptLoading, setApptLoading] = useState(false);
   const ref = useRef(null);
 
   const userId = getUserId(token);
@@ -582,8 +615,28 @@ export default function ProfileDropdown() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  useEffect(() => {
+    if (!openDonate || !token) return;
+    setApptLoading(true);
+    fetch(`${BASE}/donations/my/history`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        const upcoming = (Array.isArray(data) ? data : [])
+          .filter(d => d.delivery_method === "dropoff" && d.status === "pending")
+          .filter(d => {
+            if (!d.donation_date) return true;
+            const t = d.donation_time ? String(d.donation_time).slice(0, 5) : "23:59";
+            return new Date(`${localDateISO(d.donation_date)}T${t}:00`) > new Date();
+          })
+          .sort((a, b) => new Date(a.donation_date) - new Date(b.donation_date));
+        setAppointments(upcoming);
+      })
+      .catch(() => {})
+      .finally(() => setApptLoading(false));
+  }, [openDonate, token]);
+
   const handleLogout = () => { setOpen(false); logout(); navigate("/"); };
-  const handleNavigate = (path) => { setOpen(false); navigate(path); };
+  const handleNavigate = (path, state) => { setOpen(false); navigate(path, state ? { state } : undefined); };
   const handleModalClose = () => { setShowEditModal(false); setAvatarKey(k => k + 1); };
   const handleManageListings = async () => {
     setOpen(false);
@@ -593,9 +646,9 @@ export default function ProfileDropdown() {
         navigate("/seller");
         return;
       }
-      window.alert(sellerData?.message || "ยังไม่มีรายการขายของท่าน");
+      setNoListingMsg(sellerData?.message || "ยังไม่มีรายการขายของท่าน");
     } catch (e) {
-      window.alert(e?.data?.message || "ยังไม่มีรายการขายของท่าน");
+      setNoListingMsg(e?.data?.message || "ยังไม่มีรายการขายของท่าน");
     }
   };
 
@@ -603,6 +656,47 @@ export default function ProfileDropdown() {
     <>
       {showEditModal && <EditProfileModal onClose={handleModalClose} userId={userId} email={userEmail}/>}
       {showAdminModal && <ManageAdminsModal onClose={() => setShowAdminModal(false)} currentUserId={userId}/>}
+
+      {noListingMsg && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(0,0,0,0.45)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }} onClick={() => setNoListingMsg("")}>
+          <div style={{
+            background: "#fff", borderRadius: 20, padding: "32px 28px 24px",
+            maxWidth: 360, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
+            textAlign: "center",
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              width: 60, height: 60, borderRadius: "50%",
+              background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <Icon icon="mdi:store-off-outline" width={32} color="#f97316" />
+            </div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "#1f2937", marginBottom: 6 }}>
+                ยังไม่มีรายการขาย
+              </div>
+              <div style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.6 }}>
+                {noListingMsg}
+              </div>
+            </div>
+            <button
+              onClick={() => setNoListingMsg("")}
+              style={{
+                width: "100%", height: 44, borderRadius: 12,
+                background: "#1d4ed8",
+                color: "#fff", border: "none", fontSize: 15, fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              ตกลง
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="pd-outer" ref={ref}>
         <div className="pd-wrap">
@@ -701,9 +795,44 @@ export default function ProfileDropdown() {
                       <div className="pd-sub-item" onClick={() => handleNavigate("/donations/history")}>
                         <span className="pd-sub-dot"/>ประวัติการบริจาค
                       </div>
-                      <div className="pd-sub-item" onClick={() => handleNavigate("/donations/tracking")}>
-                        <span className="pd-sub-dot"/>ติดตามสถานะการนัดหมาย
+
+                      {/* ── นัดหมาย Drop-off ── */}
+                      <div className="pd-appt-section">
+                        <div className="pd-appt-label">
+                          <Icon icon="mdi:walk" width={13} />
+                          นัดหมาย Drop-off
+                        </div>
+                        {apptLoading && (
+                          <div className="pd-appt-loading">
+                            <Icon icon="mdi:loading" width={14} className="pd-appt-spin" />
+                            กำลังโหลด...
+                          </div>
+                        )}
+                        {!apptLoading && appointments.length === 0 && (
+                          <div className="pd-appt-empty">ไม่มีนัดหมายที่รอดำเนินการ</div>
+                        )}
+                        {!apptLoading && appointments.map(d => {
+                          const days = apptDaysLeft(d.donation_date, d.donation_time);
+                          const dateLabel = fmtApptDate(d.donation_date, d.donation_time);
+                          return (
+                            <div
+                              key={d.donation_id}
+                              className="pd-appt-card"
+                              onClick={() => handleNavigate("/donations/history", { tab: "dropoff", scrollTo: d.donation_id })}
+                            >
+                              <div className="pd-appt-school">{d.school_name}</div>
+                              <div className="pd-appt-meta">
+                                <Icon icon="mdi:calendar-outline" width={12} />
+                                <span>{dateLabel || "ยังไม่ระบุวัน"}</span>
+                                {days !== null && (
+                                  <span className="pd-appt-days">{days}</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
+
                     </div>
                   )}
 

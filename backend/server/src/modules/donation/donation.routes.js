@@ -255,15 +255,15 @@ r.patch("/:donationId/remove-strike", auth, requireRole(["admin"]), async (req, 
        VALUES (?, 'strike_reset', ?, ?, ?, 0, NOW())`,
       [
         dr.donor_id,
-        "ทีมงานได้ยกเว้น Strike จากรายการบริจาคของท่าน",
+        "ทีมงานได้ยกเว้นคำเตือนจากรายการบริจาคของท่าน",
         JSON.stringify({
-          message: `ทีมงานตรวจสอบและยกเว้น Strike จากโครงการ "${dr.request_title}" ของ ${dr.school_name} คำเตือนปัจจุบันของท่านคือ ${donor.strike_count}/3`,
+          message: `ทีมงานตรวจสอบและยกเว้นคำเตือนจากโครงการ "${dr.request_title}" ของ ${dr.school_name} คำเตือนปัจจุบันของท่านคือ ${donor.strike_count}/3`,
         }),
         donationId,
       ]
     );
 
-    res.json({ message: "ยกเว้น strike เรียบร้อย", strike_count: donor.strike_count });
+    res.json({ message: "ยกเว้นคำเตือนเรียบร้อย", strike_count: donor.strike_count });
   } catch (err) { next(err); }
 });
 

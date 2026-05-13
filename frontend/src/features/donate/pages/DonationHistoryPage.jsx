@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import Navbar from "../../../pages/Navbar.jsx";
@@ -96,6 +96,7 @@ function getStatusConfig(d) {
 export default function DonationHistoryPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -118,7 +119,7 @@ export default function DonationHistoryPage() {
   const [cancelErr, setCancelErr] = useState("");
   const [previewImg, setPreviewImg] = useState(null); // { url, donationId, status }
   const [uploadingPic, setUploadingPic] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState(location.state?.tab || "all");
 
   const handlePicChange = async (donationId, file) => {
     if (!file) return;
@@ -223,6 +224,14 @@ export default function DonationHistoryPage() {
         if (!histRes.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
         const data = await histRes.json();
         setDonations(data);
+        if (location.state?.scrollTo) {
+          const targetId = location.state.scrollTo;
+          setExpanded(targetId);
+          setTimeout(() => {
+            document.getElementById(`donation-${targetId}`)
+              ?.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 150);
+        }
         if (suspRes.ok) {
           const suspData = await suspRes.json();
           if (suspData.is_suspended) setSuspension(suspData);
@@ -461,7 +470,7 @@ export default function DonationHistoryPage() {
           const isOpen = expanded === d.donation_id;
 
           return (
-            <div key={d.donation_id} style={{
+            <div key={d.donation_id} id={`donation-${d.donation_id}`} style={{
               background: "#fff", borderRadius: 16,
               boxShadow: "0 2px 16px rgba(0,0,0,.06)",
               marginBottom: 16, overflow: "hidden",
