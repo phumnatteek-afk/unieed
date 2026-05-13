@@ -135,8 +135,8 @@ export async function getHomeData() {
     JOIN schools s ON s.school_id = dr.school_id
     WHERE dr.status = 'open'
       AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
-    ORDER BY dr.created_at DESC
-    LIMIT 10
+      AND s.verification_status = 'approved'
+    LIMIT 80
   `);
 
   // 3) Closed/Archived projects

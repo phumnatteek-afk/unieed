@@ -2,10 +2,14 @@
 import OpenAI from "openai";
 import { db } from "../../config/db.js";
 
-const client = new OpenAI({
-  baseURL: "https://models.inference.ai.azure.com",
-  apiKey:  process.env.GITHUB_TOKEN || "",
-});
+function getClient() {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) throw new Error("GITHUB_TOKEN is not set in environment variables");
+  return new OpenAI({
+    baseURL: "https://models.inference.ai.azure.com",
+    apiKey:  token,
+  });
+}
 
 // ── Standard Thai school uniform sizes (inches) ──────────────────────────────
 const CHEST_SIZES  = [20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52];
@@ -86,7 +90,7 @@ export async function analyzeUniform(imageBase64, mimeType = "image/jpeg") {
 - กางเกง/กระโปรง: waist = ปากเอว × 2
 - ถ้าไม่สามารถประมาณได้จากรูป → ใส่ null และ confidence 0`;
 
-  const response = await client.chat.completions.create({
+  const response = await getClient().chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {
