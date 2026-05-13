@@ -295,10 +295,6 @@ for (const cat of MAIN_CATEGORIES) {
   // eslint-disable-next-line
   }, [id]);
 
-  // useEffect(() => {
-  //   if (activeLevel) loadTypeOptions(activeLevel);
-  // // eslint-disable-next-line
-  // }, [activeLevel]);
 
   // upload รูปโครงการหลัก
   const uploadProjectImage = async (file) => {

@@ -49,6 +49,10 @@ export default function SchoolWelcomePage() {
 
         // ยังไม่มีโครงการเลย (ครั้งแรก) → แสดงหน้า welcome
       } catch (e) {
+        // 401 = token invalid/expired → http.js already cleared localStorage
+        // and fired auth:logout, so AuthContext will clear state and
+        // ProtectedRoute will redirect to /login automatically.
+        if (e.status === 401) return;
         setErr(e?.data?.message || e.message || "โหลดข้อมูลไม่สำเร็จ");
       } finally {
         setLoading(false);

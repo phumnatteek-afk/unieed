@@ -14,16 +14,18 @@ import "../styles/DonatePage.css";
 
 // ─── palette (match existing Unieed brand) ───────────────
 const C = {
-  blue: "#87c7eb",
-  yellow: "#FFBE1B",
-  navy: "#5285e8",
-  green: "#16a34a",
-  red: "#DD2E44",
-  bg: "#F7F8FA",
-  white: "#FFFFFF",
-  text: "#1a1a2e",
-  sub: "#6b7280",
-  border: "#E5E7EB",
+  blue:       "#87c7eb",
+  yellow:     "#FFBE1B",
+  navy:       "#5285e8",
+  green:      "#0F6E56",   // → Unieed primary teal (was #16a34a)
+  greenLight: "#E1F5EE",   // → Unieed teal-light
+  greenMid:   "#1D9E75",   // → Unieed teal-mid
+  red:        "#DD2E44",
+  bg:         "#F7F8FA",
+  white:      "#FFFFFF",
+  text:       "#1a1a2e",
+  sub:        "#6b7280",
+  border:     "#E5E7EB",
 };
 
 const COURIERS = ["ไปรษณีย์ไทย", "Flash Express", "J&T Express", "Kerry Express"];
@@ -115,7 +117,7 @@ function buildTimeSlots(timeStart, timeEnd) {
 
 // ── Confetti effect ───────────────────────────────────────────────
 function ConfettiEffect() {
-  const colors = ["#29B6E8", "#FFBE1B", "#f97316", "#16a34a", "#7c3aed", "#ec4899"];
+  const colors = ["#29B6E8", "#FFBE1B", "#f97316", "#0F6E56", "#7c3aed", "#ec4899"];
   return (
     <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999, overflow: "hidden" }}>
       {Array.from({ length: 80 }).map((_, i) => (
@@ -271,7 +273,7 @@ export default function DonatePage() {
   const [trackingNo, setTrackingNo] = useState("");
   const [proofImage, setProofImage] = useState(null);
   const [proofPreview, setProofPreview] = useState(null);
-  const [donorName, setDonorName] = useState(userName || "");
+  const [donorName, setDonorName] = useState(localStorage.getItem("savedDonorName") || "");
 
   // Drop-off
   const [appointDate, setAppointDate] = useState(""); // "YYYY-MM-DD"
@@ -378,6 +380,8 @@ export default function DonatePage() {
   // validate แล้วไปหน้า confirm (ยังไม่ call API)
   const handleSubmit = () => {
     setErr("");
+    if (!donorName.trim()) return setErr("กรุณากรอกชื่อ-นามสกุลผู้บริจาค");
+    if (!donorName.trim().includes(" ")) return setErr("กรุณากรอกชื่อและนามสกุลจริง (คั่นด้วยเว้นวรรค)");
     if (donateMethod === "dropoff") {
       if (!appointDate) return setErr("กรุณาเลือกวันนัดหมาย");
       if (!appointTime) return setErr("กรุณาเลือกเวลานัดหมาย");
@@ -421,7 +425,9 @@ export default function DonatePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "เกิดข้อผิดพลาด");
 
-      // ✨ ไม่ออก cert ที่นี่อีกต่อไป — แสดง success 
+      // ✨ ไม่ออก cert ที่นี่อีกต่อไป — แสดง success
+      // จำชื่อผู้บริจาคสำหรับครั้งต่อไป
+      if (donorName.trim()) localStorage.setItem("savedDonorName", donorName.trim());
       setRealDonationId(data.donation_id);
       setStep("qr_label");
     } catch (e) {
@@ -738,10 +744,18 @@ export default function DonatePage() {
                 </button>
               </div>
               <div className="dnFormGroup">
-                <label className="dnLabel">ชื่อ - นามสกุลผู้บริจาค</label>
-                <input className="dnInput" value={donorName} readOnly
-                  style={{ background: "#F3F4F6", color: "#6B7280", cursor: "not-allowed", outline: "none", borderColor: "#E2E8F0" }}
-                  onFocus={e => e.target.blur()} />
+                <label className="dnLabel">ชื่อ - นามสกุลผู้บริจาค <span style={{ color: "#ef4444", fontWeight: 600 }}>*</span></label>
+                <input
+                  className="dnInput"
+                  value={donorName}
+                  onChange={e => setDonorName(e.target.value)}
+                  placeholder="กรอกชื่อจริงและนามสกุลจริง เช่น สมชาย ใจดี"
+                  maxLength={80}
+                />
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ color: "#f59e0b" }}>⚠</span>
+                  กรุณากรอกชื่อ-นามสกุลจริงเพื่อใช้บนใบประกาศนียบัตร
+                </div>
               </div>
               <div className="dnFormGroup">
                 <label className="dnLabel">เบอร์โทรติดต่อ <span style={{ color: "#9ca3af", fontWeight: 400 }}>(ไม่บังคับ)</span></label>
@@ -790,7 +804,7 @@ export default function DonatePage() {
               {/* Banner ตารางโรงเรียน */}
               {schedule ? (
                 <div className="dnScheduleBanner">
-                  <Icon icon="mdi:calendar-check" width="16" color="#16a34a" style={{ flexShrink: 0, marginTop: "1px" }} />
+                  <Icon icon="mdi:calendar-check" width="16" color={C.green} style={{ flexShrink: 0, marginTop: "1px" }} />
                   <div style={{ fontSize: "13px", color: "#14532d", lineHeight: 1.5 }}>
                     <strong>โรงเรียนรับของ:</strong>{" "}
                     {(schedule.open_days || [])
@@ -800,7 +814,7 @@ export default function DonatePage() {
                       })[k])
                       .join(", ")}
                     {" · "}{schedule.time_start?.slice(0, 5)}–{schedule.time_end?.slice(0, 5)} น.
-                    {schedule.note && <><br /><span style={{ color: "#16a34a" }}>{schedule.note}</span></>}
+                    {schedule.note && <><br /><span style={{ color: C.green }}>{schedule.note}</span></>}
                   </div>
                 </div>
               ) : (
@@ -917,10 +931,18 @@ export default function DonatePage() {
                 />
               </div>
               <div className="dnFormGroup">
-                <label className="dnLabel">ชื่อ - นามสกุลผู้บริจาค</label>
-                <input className="dnInput" value={donorName} readOnly
-                  style={{ background: "#F3F4F6", color: "#6B7280", cursor: "not-allowed", outline: "none", borderColor: "#E2E8F0" }}
-                  onFocus={e => e.target.blur()} />
+                <label className="dnLabel">ชื่อ - นามสกุลผู้บริจาค <span style={{ color: "#ef4444", fontWeight: 600 }}>*</span></label>
+                <input
+                  className="dnInput"
+                  value={donorName}
+                  onChange={e => setDonorName(e.target.value)}
+                  placeholder="กรอกชื่อจริงและนามสกุลจริง เช่น สมชาย ใจดี"
+                  maxLength={80}
+                />
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ color: "#f59e0b" }}>⚠</span>
+                  กรุณากรอกชื่อ-นามสกุลจริงเพื่อใช้บนใบประกาศนียบัตร
+                </div>
               </div>
 
               {err && <div className="dnErr">{err}</div>}
@@ -1353,7 +1375,7 @@ export function QRLabelPage({
           <div style={{ fontSize: 11, color: C.sub, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>โครงการ: {projectTitle}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
             <span style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>ช่องทางการจัดส่ง :</span>
-            <span style={{ background: isDropoff ? "#dcfce7" : "#eff6ff", color: isDropoff ? C.green : C.navy, fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 20, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ background: isDropoff ? "#E1F5EE" : "#eff6ff", color: isDropoff ? C.green : C.navy, fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 20, display: "inline-flex", alignItems: "center", gap: 4 }}>
               <Icon icon={isDropoff ? "mdi:walk" : "mdi:truck-outline"} width="12" />
               {isDropoff ? "นัดหมาย" : "จัดส่งพัสดุ"}
             </span>
@@ -1489,10 +1511,10 @@ export function QRLabelPage({
         );
         return (
           <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8, background: "#f0fdf4" }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0, color: "#16a34a" }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0, color: C.green }}>
               <path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/>
             </svg>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#16a34a" }}>โรงเรียนยืนยันรับของเรียบร้อยแล้ว</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: C.green }}>โรงเรียนยืนยันรับของเรียบร้อยแล้ว</span>
           </div>
         );
       })()}
@@ -1986,7 +2008,7 @@ const S = {
     borderRadius: 12, fontSize: 14, fontWeight: 700
   },
   btnViewProject: {
-    flex: 1, padding: "12px", background: "#F0FDF4", color: C.green,
+    flex: 1, padding: "12px", background: "#E8F7F2", color: C.green,
     border: `1.5px solid ${C.green}`, borderRadius: 12, fontSize: 14, fontWeight: 600
   },
 
@@ -2049,7 +2071,7 @@ const S = {
   },
 
   badgeGreen: {
-    background: "#D1FAE5", color: C.green, padding: "2px 10px",
+    background: "#C5EEE0", color: C.green, padding: "2px 10px",
     borderRadius: 20, fontSize: 12, fontWeight: 600
   },
   badgeOrange: {
@@ -2059,7 +2081,7 @@ const S = {
 
   scanSuccess: {
     display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-    padding: "24px", background: "#F0FDF4", borderRadius: 12, marginTop: 16, textAlign: "center"
+    padding: "24px", background: "#E8F7F2", borderRadius: 12, marginTop: 16, textAlign: "center"
   },
 
   // ── Notification item ──────────────────────────────────

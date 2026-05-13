@@ -29,14 +29,11 @@ export default function PaymentSuccessPage() {
   // ── Donor name ────────────────────────────────────────────────────────────
   const defaultDonorName =
     stateDonorName ||
-    user?.display_name ||
-    user?.user_name ||
-    user?.name ||
-    user?.username ||
+    localStorage.getItem("savedDonorName") ||
     "";
- 
+
   const [donorName,   setDonorName]   = useState(defaultDonorName);
-  const [editingName, setEditingName] = useState(false);
+  const [editingName, setEditingName] = useState(!defaultDonorName); // auto-open ถ้ายังไม่มีชื่อ
   const [tempName,    setTempName]    = useState(defaultDonorName);
  
   // ── Donation record state ─────────────────────────────────────────────────
@@ -134,8 +131,11 @@ export default function PaymentSuccessPage() {
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSaveName = async () => {
     const saved = tempName.trim() || defaultDonorName;
+    if (!saved) return; // ไม่ให้บันทึกชื่อว่าง
     setDonorName(saved);
     setEditingName(false);
+    // จำชื่อผู้บริจาคสำหรับครั้งต่อไป
+    localStorage.setItem("savedDonorName", saved);
     await updateDonorName(saved);
   };
  
@@ -248,24 +248,26 @@ export default function PaymentSuccessPage() {
                       className="psDonorInput"
                       value={tempName}
                       onChange={e => setTempName(e.target.value)}
-                      placeholder="ชื่อ-นามสกุล หรือ นามแฝง"
-                      maxLength={60}
+                      placeholder="กรอกชื่อจริงและนามสกุลจริง เช่น สมชาย ใจดี"
+                      maxLength={80}
                       onKeyDown={e => {
                         if (e.key === "Enter")  handleSaveName();
-                        if (e.key === "Escape") handleCancelEdit();
+                        if (e.key === "Escape" && donorName) handleCancelEdit();
                       }}
                     />
-                    <button className="psDonorSaveBtn" onClick={handleSaveName}>
+                    <button className="psDonorSaveBtn" onClick={handleSaveName} disabled={!tempName.trim()}>
                       <Icon icon="mdi:check" /> บันทึก
                     </button>
-                    <button className="psDonorCancelBtn" onClick={handleCancelEdit}>
-                      <Icon icon="mdi:close" />
-                    </button>
+                    {donorName && (
+                      <button className="psDonorCancelBtn" onClick={handleCancelEdit}>
+                        <Icon icon="mdi:close" />
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="psDonorNameRow">
                     <span className={`psDonorName${!donorName ? " psDonorNameEmpty" : ""}`}>
-                      {donorName || "ไม่ระบุชื่อ"}
+                      {donorName || "ยังไม่ได้กรอกชื่อ"}
                     </span>
                     <button
                       className="psDonorEditBtn"
@@ -275,8 +277,11 @@ export default function PaymentSuccessPage() {
                     </button>
                   </div>
                 )}
- 
-                <p className="psDonorHint">ชื่อนี้จะปรากฏบนใบประกาศนียบัตรของคุณ</p>
+
+                <p className="psDonorHint">
+                  <span style={{ color: "#f59e0b" }}>⚠</span>{" "}
+                  กรุณากรอก<strong>ชื่อ-นามสกุลจริง</strong> — ชื่อนี้จะปรากฏบนใบประกาศนียบัตรของคุณ
+                </p>
               </div>
  
               {/* Steps */}

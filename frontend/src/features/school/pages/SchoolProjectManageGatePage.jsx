@@ -30,7 +30,7 @@ export default function SchoolProjectManageGatePage() {
     })();
 
     return () => { alive = false; };
-  }, [loc.key]); // ✅ สำคัญ: เข้า route เดิมซ้ำก็ re-run ได้
+  }, [loc.key]); 
 
   if (loading) return <div>กำลังโหลด…</div>;
   if (err) return <div style={{color:"crimson"}}>{err}</div>;

@@ -880,7 +880,7 @@ export default function CheckoutPage() {
           schoolName:     useSchoolAddr ? (donationAddr?.name || "") : (selectedAddr?.address_line || ""),
           totalAmount:    total,
           paymentMethod:  "card",
-          donorName:      user?.display_name || user?.name || user?.username || "",
+          donorName:      localStorage.getItem("savedDonorName") || "",
           shippingCarrier: Object.values(selectedShipping)[0]?.name || null,
           // รายการสินค้าสำหรับสร้าง donation_record
           orderItems: items.map(i => ({

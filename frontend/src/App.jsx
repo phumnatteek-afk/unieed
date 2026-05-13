@@ -27,6 +27,7 @@ import SchoolRequestCreatePage from "./features/school/pages/SchoolRequestCreate
 import SchoolRequestManagePage from "./features/school/pages/SchoolRequestManagePage.jsx";
 import SchoolDonationsPage from "./features/school/pages/SchoolDonationsPage.jsx";
 import EditProjectPage from "./features/school/components/EditProjectPage.jsx";
+import SchoolUniformManagePage from "./features/school/pages/SchoolUniformManagePage.jsx";
 import SchoolAppointmentPage from "./features/school/pages/SchoolAppointmentPage.jsx";
 import SchoolTestimonialPage from "./features/school/pages/SchoolTestimonialPage.jsx";
 
@@ -70,6 +71,9 @@ import SellerOrdersPage from "./features/seller/pages/SellerOrdersPage.jsx";
 import SellerPayoutsPage from "./features/seller/pages/SellerPayoutsPage.jsx";
 import SellerProductsPage from "./features/seller/pages/SellerProductsPage.jsx";
 
+// AI Assessment
+import AIAssessPage from "./features/ai/pages/AIAssessPage.jsx";
+
 export default function App() {
   return (
     <div className="page-container">
@@ -80,6 +84,7 @@ export default function App() {
               {/* Public */}
               <Route path="/" element={<RoleRedirect><HomePage /></RoleRedirect>} />
               <Route path="/projects" element={<RoleRedirect><DonationProject /></RoleRedirect>} />
+              <Route path="/ai-assess" element={<AIAssessPage />} />
               <Route path="/login" element={<RoleRedirect><LoginPage /></RoleRedirect>} />
               <Route path="/register" element={<RoleRedirect><RegisterChoicePage /></RoleRedirect>} />
               <Route path="/register/general" element={<RoleRedirect><RegisterGeneralPage /></RoleRedirect>} />
@@ -134,6 +139,7 @@ export default function App() {
                 <Route path="projects/:requestId" element={<SchoolRequestManagePage />} />
                 <Route path="donations" element={<SchoolDonationsPage />} />
                 <Route path="/school/projects/:id/edit" element={<EditProjectPage />} />
+                <Route path="uniform-manage" element={<SchoolUniformManagePage />} />
                 <Route path="appointments" element={<SchoolAppointmentPage />} />
                 <Route path="testimonials" element={<SchoolTestimonialPage />} />
               </Route>

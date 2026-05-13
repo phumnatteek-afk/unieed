@@ -466,3 +466,188 @@
   background: none; border: none;
   color: #94A3B8; cursor: pointer; font-size: 13px;
 }
+/* ================================================================
+   Uniform Image Zoom Overlay
+   ================================================================ */
+.pdUniformImgBtn {
+  position: relative;
+}
+.pdUniformImgZoomOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  opacity: 0;
+  transition: background 0.18s, opacity 0.18s;
+  pointer-events: none;
+}
+.pdUniformImgBtn:hover .pdUniformImgZoomOverlay {
+  background: rgba(0, 0, 0, 0.42);
+  opacity: 1;
+}
+
+/* ================================================================
+   Uniform Lightbox
+   ================================================================ */
+.pdUniLb {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 18, 36, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+  animation: pdUniLbIn 0.2s ease;
+}
+@keyframes pdUniLbIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.pdUniLbBox {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 480px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.36);
+  display: flex;
+  flex-direction: column;
+  animation: pdUniLbBoxIn 0.22s ease;
+}
+@keyframes pdUniLbBoxIn {
+  from { transform: scale(0.93) translateY(12px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.pdUniLbClose {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s;
+  z-index: 10000;
+}
+.pdUniLbClose:hover { background: rgba(255,255,255,0.32); }
+
+/* Image area with arrows */
+.pdUniLbImgArea {
+  position: relative;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  max-height: 56vh;
+  overflow: hidden;
+}
+
+.pdUniLbImg {
+  display: block;
+  max-width: 100%;
+  max-height: 56vh;
+  object-fit: contain;
+  padding: 16px;
+}
+
+/* Arrows */
+.pdUniLbArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.9);
+  color: #334155;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  transition: background 0.15s, transform 0.15s;
+  z-index: 2;
+}
+.pdUniLbArrow:hover:not(:disabled) {
+  background: #fff;
+  transform: translateY(-50%) scale(1.08);
+}
+.pdUniLbArrow:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+.pdUniLbArrowLeft  { left: 10px; }
+.pdUniLbArrowRight { right: 10px; }
+
+/* Caption */
+.pdUniLbCaption {
+  padding: 16px 20px 12px;
+  text-align: center;
+  border-top: 1px solid #f1f5f9;
+}
+.pdUniLbCaptionName {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.pdUniLbCaptionTags {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Tags */
+.pdUniLbTag {
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pdUniLbTagCat    { background: #EFF6FF; color: #1D4ED8; }
+.pdUniLbTagMale   { background: #DBEAFE; color: #1D4ED8; }
+.pdUniLbTagFemale { background: #FCE7F3; color: #BE185D; }
+.pdUniLbTagLevel  { background: #F0FDF4; color: #15803D; }
+
+/* Dots */
+.pdUniLbDots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px 16px;
+}
+.pdUniLbDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: #d1d5db;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, transform 0.15s;
+}
+.pdUniLbDot:hover { background: #94a3b8; }
+.pdUniLbDotActive {
+  background: #29B6E8;
+  transform: scale(1.3);
+}

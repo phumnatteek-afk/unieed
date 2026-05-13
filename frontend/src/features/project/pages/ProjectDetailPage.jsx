@@ -5,6 +5,7 @@ import { getJson } from "../../../api/http.js";
 import { Icon } from "@iconify/react";
 import "../../../pages/styles/Homepage.css";
 import "../styles/ProjectDetail.css";
+import "../../ai/styles/AIAssess.css";
 import Navbar from "../../../pages/Navbar.jsx";
 
 
@@ -29,6 +30,13 @@ export default function ProjectDetailPage() {
   const [donateQty, setDonateQty] = useState({});
   const [suspension, setSuspension] = useState({ is_suspended: false, suspended_until: null, strike_count: 0 });
   const [appealSent, setAppealSent] = useState(false);
+
+  // ── AI match state (passed from AIAssessPage) ──
+  const aiMatch = location.state?.aiMatch || null;
+
+  // ── Uniform lightbox ──
+  const [uniformLbIdx,   setUniformLbIdx]   = useState(null);
+  const [uniformLbItems, setUniformLbItems] = useState([]);
 
   const reviewRef = useRef(null);
   const shouldScrollRef = useRef(location.state?.tab === "review");
@@ -68,6 +76,40 @@ export default function ProjectDetailPage() {
     }
   }, [project]);
 
+  // ── Auto-select AI-matched items and scroll to delivery ───────────────────
+  useEffect(() => {
+    if (!aiMatch?.auto_select || !project?.uniform_items?.length) return;
+
+    const aiUniforms = aiMatch.uniforms || [];
+    const newQty = {};
+
+    for (const aiU of aiUniforms) {
+      // Match by type_name + gender
+      const matched = project.uniform_items.find(item => {
+        const typeOk = item.uniform_category === aiU.type_name ||
+                       item.name?.includes(aiU.type_name);
+        const genderOk = !aiU.gender ||
+                         item.gender === aiU.gender ||
+                         item.gender === null;
+        const hasQty = (item.quantity_remaining ?? item.quantity) > 0;
+        return typeOk && genderOk && hasQty;
+      });
+
+      if (matched) {
+        const k = itemKey(matched);
+        newQty[k] = 1;
+      }
+    }
+
+    if (Object.keys(newQty).length > 0) {
+      setDonateQty(newQty);
+      // Scroll to delivery/summary section
+      setTimeout(() => {
+        summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 400);
+    }
+  }, [project, aiMatch]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -81,6 +123,18 @@ export default function ProjectDetailPage() {
       }
     })();
   }, [requestId]);
+
+  // keyboard nav สำหรับ uniform lightbox
+  useEffect(() => {
+    if (uniformLbIdx === null) return;
+    const handler = (e) => {
+      if (e.key === "ArrowLeft")  setUniformLbIdx(i => Math.max(0, i - 1));
+      if (e.key === "ArrowRight") setUniformLbIdx(i => Math.min(uniformLbItems.length - 1, i + 1));
+      if (e.key === "Escape")     setUniformLbIdx(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [uniformLbIdx, uniformLbItems.length]);
 
   useEffect(() => {
     if (!token) return;
@@ -274,16 +328,28 @@ export default function ProjectDetailPage() {
 
         {/* ── รูปชุด ── */}
         <div className="pdUniformImgs">
-          {thumbItems.map(item => (
+          {thumbItems.map((item, idx) => (
             <div
               key={`${item.uniform_type_id}_${item.education_level}`}
               className="pdUniformImgWrap"
             >
               <div
                 className={`pdUniformImgBtn ${currentType === item.uniform_category ? "pdUniformImgBtnActive" : ""}`}
-                onClick={() => setActiveCategory(prev => prev === item.uniform_category ? null : item.uniform_category)}
+                onClick={() => {
+                  setUniformLbItems(thumbItems);
+                  setUniformLbIdx(idx);
+                  setActiveCategory(prev => prev === item.uniform_category ? null : item.uniform_category);
+                }}
               >
                 <img src={item.image_url} alt={item.name} className="pdUniformImg" />
+                {/* zoom overlay */}
+                <div className="pdUniformImgZoomOverlay">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <circle cx="11" cy="11" r="7" stroke="#fff" strokeWidth="2"/>
+                    <path d="M16.5 16.5L21 21" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M11 8v6M8 11h6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                </div>
               </div>
               {/* ✅ label ใต้รูป: ชื่อที่โรงเรียนตั้ง หรือ type name default */}
               <span className="pdUniformImgLabel">
@@ -299,8 +365,17 @@ export default function ProjectDetailPage() {
             const key = itemKey(item);
             const qty = donateQty[key] || 0;
             const remaining = item.quantity_remaining ?? item.quantity;
+            // Check if this item was AI-matched
+            const isAIMatched = aiMatch?.auto_select && qty > 0;
             return (
-              <div className="pdUniformRow" key={`${item.uniform_type_id}-${i}`}>
+              <div
+                className={`pdUniformRow${isAIMatched ? " aiMatchHighlight" : ""}`}
+                key={`${item.uniform_type_id}-${i}`}
+                style={{ position: "relative" }}
+              >
+                {isAIMatched && (
+                  <span className="aiMatchBadge">🤖 AI แนะนำ</span>
+                )}
                 <span className="pdUniformName">
                   {item.uniform_subtype_name?.trim() || item.name}
                   {item.size && (
@@ -387,6 +462,28 @@ export default function ProjectDetailPage() {
           <div className="muted" style={{ padding: "60px", textAlign: "center" }}>ไม่พบโครงการนี้</div>
         ) : (
           <>
+            {/* AI Match Banner */}
+            {aiMatch?.auto_select && (
+              <div style={{
+                background: "linear-gradient(135deg, #064663 0%, #0a7ea4 100%)",
+                borderRadius: 14,
+                padding: "14px 20px",
+                marginBottom: 20,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                color: "#fff",
+              }}>
+                <span style={{ fontSize: 28 }}>🤖</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>AI แนะนำโครงการนี้สำหรับชุดของคุณ</div>
+                  <div style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>
+                    รายการชุดที่ตรงกันถูกเลือกไว้แล้ว — เลื่อนลงเพื่อเลือกวิธีจัดส่งและกดส่งต่อ
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Hero Card */}
             <div className="pdHeroCard">
               {/* Left */}
@@ -718,13 +815,86 @@ export default function ProjectDetailPage() {
                 </>
               )}
 
-              {/* Lightbox */}
+              {/* Lightbox testimonial */}
               {lightboxImg && (
                 <div className="pdLightbox" onClick={() => setLightboxImg(null)}>
                   <button className="pdLightboxClose" onClick={() => setLightboxImg(null)}>×</button>
                   <img src={lightboxImg} alt="ขยาย" className="pdLightboxImg" onClick={e => e.stopPropagation()} />
                 </div>
               )}
+
+              {/* ── Uniform Lightbox ── */}
+              {uniformLbIdx !== null && uniformLbItems.length > 0 && (() => {
+                const item = uniformLbItems[uniformLbIdx];
+                const total = uniformLbItems.length;
+                const genderLabel = item.gender === "male" ? "ชาย" : item.gender === "female" ? "หญิง" : "";
+                const typeName = item.uniform_subtype_name?.trim() || item.name || "";
+                const category = item.uniform_category || "";
+                const level = item.education_level || "";
+                return (
+                  <div className="pdUniLb" onClick={() => setUniformLbIdx(null)}>
+                    <div className="pdUniLbBox" onClick={e => e.stopPropagation()}>
+
+                      {/* Close */}
+                      <button className="pdUniLbClose" onClick={() => setUniformLbIdx(null)}>×</button>
+
+                      {/* Image area */}
+                      <div className="pdUniLbImgArea">
+                        {/* Prev */}
+                        <button
+                          className="pdUniLbArrow pdUniLbArrowLeft"
+                          disabled={uniformLbIdx === 0}
+                          onClick={() => setUniformLbIdx(i => i - 1)}
+                        >
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+
+                        <img src={item.image_url} alt={typeName} className="pdUniLbImg" />
+
+                        {/* Next */}
+                        <button
+                          className="pdUniLbArrow pdUniLbArrowRight"
+                          disabled={uniformLbIdx === total - 1}
+                          onClick={() => setUniformLbIdx(i => i + 1)}
+                        >
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* Caption */}
+                      <div className="pdUniLbCaption">
+                        <div className="pdUniLbCaptionName">{typeName}</div>
+                        <div className="pdUniLbCaptionTags">
+                          {category && <span className="pdUniLbTag pdUniLbTagCat">{category}</span>}
+                          {genderLabel && (
+                            <span className={`pdUniLbTag ${item.gender === "male" ? "pdUniLbTagMale" : "pdUniLbTagFemale"}`}>
+                              {genderLabel}
+                            </span>
+                          )}
+                          {level && <span className="pdUniLbTag pdUniLbTagLevel">{level}</span>}
+                        </div>
+                      </div>
+
+                      {/* Dots */}
+                      {total > 1 && (
+                        <div className="pdUniLbDots">
+                          {uniformLbItems.map((_, i) => (
+                            <button
+                              key={i}
+                              className={`pdUniLbDot ${i === uniformLbIdx ? "pdUniLbDotActive" : ""}`}
+                              onClick={() => setUniformLbIdx(i)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </>
         )}

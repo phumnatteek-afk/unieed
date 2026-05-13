@@ -10,6 +10,7 @@ export default function SchoolLayout() {
   const nav = useNavigate();
   const { pathname } = useLocation();
   const isProjectsSection = pathname.startsWith("/school/projects");
+  const isUniformSection  = pathname.startsWith("/school/uniform-manage");
   const [schoolName, setSchoolName] = useState("");
   const [schoolLogo, setSchoolLogo] = useState("");
 
@@ -42,6 +43,12 @@ export default function SchoolLayout() {
             className={({ isActive }) => (isActive || isProjectsSection ? "scItem active" : "scItem")}>
             <span className="scMenuIcon"><Icon icon="fa6-regular:pen-to-square" /></span>
             จัดการโครงการ
+          </NavLink>
+
+          <NavLink to="uniform-manage"
+            className={({ isActive }) => (isActive || isUniformSection ? "scItem active" : "scItem")}>
+            <span className="scMenuIcon"><Icon icon="mdi:tshirt-crew-outline" /></span>
+            จัดการเครื่องแบบ
           </NavLink>
 
           <NavLink to="donations"
