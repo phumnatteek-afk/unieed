@@ -1,4 +1,5 @@
 import { db } from "../../config/db.js";
+import { sendNotification } from "../../lib/notify.js";
 
 /* ────────────────────────────────────────────────────────
  * Auto-complete: ออเดอร์ที่สถานะ "shipping" มากกว่า 7 วัน
@@ -58,6 +59,22 @@ export const confirmReceipt = async (orderId, userId) => {
       [orderId]
     );
     await conn.commit();
+
+    // Notify seller that buyer confirmed receipt
+    try {
+      const [[ord]] = await db.query(
+        `SELECT seller_id FROM orders WHERE order_id = ?`, [orderId]
+      );
+      if (ord?.seller_id) {
+        await sendNotification(ord.seller_id, {
+          type:   "order_delivered",
+          title:  "ผู้ซื้อยืนยันรับสินค้าแล้ว",
+          body:   `ออเดอร์ #${orderId} ได้รับการยืนยันเรียบร้อย`,
+          ref_id: orderId,
+        });
+      }
+    } catch (e) { console.warn("[notify] order_delivered:", e.message); }
+
     return { message: "ยืนยันรับสินค้าเรียบร้อย", order_id: orderId };
   } catch (e) { await conn.rollback(); throw e; }
   finally { conn.release(); }

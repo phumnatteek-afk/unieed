@@ -16,6 +16,7 @@
     "google-auth-library": "^10.6.2",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.2",
+    "meilisearch": "^0.58.0",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.11.0",
     "node-cron": "^4.2.1",
@@ -24,6 +25,7 @@
     "pdfkit": "^0.18.0",
     "puppeteer": "^24.40.0",
     "resend": "^6.9.2",
+    "socket.io": "^4.8.3",
     "uuid": "^13.0.0",
     "validator": "^13.15.26"
   }

@@ -5,6 +5,7 @@
 //   - orders.platform_fee, orders.seller_payout_amount, orders.payout_status, orders.payout_id
 //   - users.bank_account_number, users.bank_account_name, users.bank_code
 //   - payouts (net_amount, fee_amount, order_count, status, completed_at)
+import { sendNotification } from "../../lib/notify.js";
 
 import { db } from "../../config/db.js";
 import {
@@ -410,6 +411,22 @@ export async function confirmShipOrder(sellerId, orderId, { tracking_number, pro
       ).catch(() => {});
     }
     await conn.commit();
+
+    // Notify buyer that their order has shipped
+    try {
+      const [[ord]] = await db.query(
+        `SELECT buyer_id, tracking_number FROM orders WHERE order_id = ?`, [orderId]
+      );
+      if (ord?.buyer_id) {
+        await sendNotification(ord.buyer_id, {
+          type:   "order_shipped",
+          title:  "สินค้าของคุณถูกจัดส่งแล้ว",
+          body:   `เลขพัสดุ: ${String(tracking_number).trim()}`,
+          ref_id: orderId,
+        });
+      }
+    } catch (e) { console.warn("[notify] order_shipped:", e.message); }
+
     return { message: "Shipped", order_id: orderId };
   } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
 }

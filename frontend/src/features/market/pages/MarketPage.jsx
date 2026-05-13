@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
@@ -287,6 +287,26 @@ export default function MarketPage() {
 
   const [displaySearch, setDisplaySearch] = useState("");
   const [typedKeyword,  setTypedKeyword]  = useState("");
+  const [meiliHits,     setMeiliHits]     = useState(null); // null = offline/empty
+  const [meiliLoading,  setMeiliLoading]  = useState(false);
+
+  // ── Meilisearch product search ─────────────────────────────────────────────
+  const runMeiliSearch = useCallback(async (q, filter, lvl) => {
+    if (!q.trim()) { setMeiliHits(null); return; }
+    setMeiliLoading(true);
+    try {
+      const params = new URLSearchParams({ q: q.trim(), limit: 60 });
+      if (filter?.category_id) params.set("uniform_type_id", filter.category_id);
+      if (filter?.gender)      params.set("gender", filter.gender);
+      const res  = await fetch(`/api/search/products?${params}`);
+      const data = await res.json();
+      setMeiliHits((data.hits || []).map(h => h.product_id));
+    } catch {
+      setMeiliHits(null); // graceful fallback to /api/market results
+    } finally {
+      setMeiliLoading(false);
+    }
+  }, []);
 
   const buildDisplayText = useCallback((filter, lvl, typed) => {
   const parts = [];
@@ -312,34 +332,36 @@ export default function MarketPage() {
   const isSame = activeFilter?.key === typeObj.key;
   const newFilter = isSame ? null : typeObj;
   setActiveFilter(newFilter);
-  
-  // สร้างข้อความที่จะแสดงในช่อง Search โดยเอาสิ่งที่เคยพิมพ์ค้างไว้ (typedKeyword) มาต่อท้าย
+
   const newDisplay = buildDisplayText(newFilter, level, typedKeyword);
   setDisplaySearch(newDisplay);
-  
+
   fetchProducts(1, { activeFilter: newFilter });
+  if (typedKeyword.trim()) runMeiliSearch(typedKeyword, newFilter, level);
 };
 
 const handleLevelChange = (e) => {
   const newLevel = e.target.value;
   setLevel(newLevel);
-  
+
   const newDisplay = buildDisplayText(activeFilter, newLevel, typedKeyword);
   setDisplaySearch(newDisplay);
-  
+
   fetchProducts(1, { level: newLevel });
+  if (typedKeyword.trim()) runMeiliSearch(typedKeyword, activeFilter, newLevel);
 };
 const handleSearchInput = (e) => {
   const val = e.target.value;
-  setDisplaySearch(val); // แสดงค่าที่พิมพ์ในกล่อง
-  setTypedKeyword(val);  // เก็บค่าที่พิมพ์จริง
-  setSearch(val);        // ค่านี้จะถูกส่งไป API
+  setDisplaySearch(val);
+  setTypedKeyword(val);
+  setSearch(val);
+  if (!val.trim()) setMeiliHits(null);
 
-  // Debounce การค้นหา
   clearTimeout(debounceRef.current);
   debounceRef.current = setTimeout(() => {
-    fetchProducts(1, { search: val }); // ส่งค่าที่พิมพ์ไป API ทันที
-  }, 400);
+    fetchProducts(1, { search: val });
+    runMeiliSearch(val, activeFilter, level);
+  }, 300);
 };
 
   const LIMIT = 12;
@@ -441,9 +463,9 @@ const fuzzyMatch = (text, query) => {
   setMinPrice("");
   setMaxPrice("");
   setSearch("");
-  setDisplaySearch("");   // ← เพิ่ม
-  setTypedKeyword("");    // ← เพิ่ม
-  // ✅ เพิ่ม fetchProducts พร้อม override ทุก field
+  setDisplaySearch("");
+  setTypedKeyword("");
+  setMeiliHits(null);
   fetchProducts(1, {
     activeFilter: null,
     level: "",
@@ -466,6 +488,17 @@ const handleMaxPriceChange = (e) => {
   clearTimeout(debounceRef.current);
   debounceRef.current = setTimeout(() => fetchProducts(1, { maxPrice: val }), 400);
 };
+
+// ── Reorder products by Meilisearch ranking when active ────────────────────
+const displayedProducts = useMemo(() => {
+  if (search.trim() && meiliHits !== null) {
+    const hitSet = new Set(meiliHits);
+    const ranked = meiliHits.map(id => products.find(p => p.product_id === id)).filter(Boolean);
+    const rest   = products.filter(p => !hitSet.has(p.product_id));
+    return [...ranked, ...rest];
+  }
+  return products;
+}, [products, search, meiliHits]);
 
 
   return (
@@ -507,12 +540,16 @@ const handleMaxPriceChange = (e) => {
       <div className="mkSearchSection">
         <div className="mkSearchRow">
           <div className="mkSearchBox">
-            <Icon icon="mdi:magnify" className="mkSearchIcon" />
-<input 
-  placeholder="ค้นหาสินค้า โรงเรียน..." 
-  value={displaySearch} 
-  onChange={handleSearchInput} 
-/>          </div>
+            {meiliLoading
+              ? <Icon icon="mdi:loading" className="mkSearchIcon" style={{ animation: "spin 0.8s linear infinite" }} />
+              : <Icon icon="mdi:magnify" className="mkSearchIcon" />
+            }
+            <input
+              placeholder="ค้นหาสินค้า โรงเรียน..."
+              value={displaySearch}
+              onChange={handleSearchInput}
+            />
+          </div>
           <button 
   className={`mkFilterBtn ${filterOpen ? "mkFilterBtnActive" : ""}`}
   onClick={() => setFilterOpen(o => !o)}
@@ -612,7 +649,7 @@ const handleMaxPriceChange = (e) => {
           <div className="mkLoadingGrid">
             {Array.from({ length: 6 }).map((_, i) => <div key={i} className="mkCardSkeleton" />)}
           </div>
-        ) : products.length === 0 ? (
+        ) : displayedProducts.length === 0 ? (
           <div className="mkEmpty">
             <Icon icon="mdi:package-variant-remove" fontSize={56} />
             <p>ไม่พบสินค้าที่ตรงกับเงื่อนไข</p>
@@ -620,7 +657,7 @@ const handleMaxPriceChange = (e) => {
           </div>
         ) : (
           <div className="mkGrid">
-            {products.map(p => <ProductCard key={p.product_id} product={p} donationNeededLabels={donationNeededLabels} />)}
+            {displayedProducts.map(p => <ProductCard key={p.product_id} product={p} donationNeededLabels={donationNeededLabels} />)}
           </div>
         )}
 

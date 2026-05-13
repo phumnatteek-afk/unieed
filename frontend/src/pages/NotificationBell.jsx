@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
+import { getSocket } from "../lib/socket.js";
 import "./styles/NotificationBell.css";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
@@ -476,12 +477,31 @@ export default function NotificationBell() {
     finally { setLoading(false); }
   }, [token]);
 
-  // โหลดครั้งแรก + poll ทุก 30 วิ
+  // โหลดครั้งแรก + poll ทุก 60 วิ (fallback)
   useEffect(() => {
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 30000);
+    const interval = setInterval(fetchNotifs, 60000);
     return () => clearInterval(interval);
   }, [fetchNotifs]);
+
+  // ── Socket.io: รับ notification แบบ real-time ────────────────────
+  useEffect(() => {
+    if (!token) return;
+    const socket = getSocket(token);
+    if (!socket) return;
+
+    const onNotification = (notif) => {
+      // Prepend the incoming notification to the list (newest first)
+      setNotifs(prev => {
+        // Avoid duplicates if poll already fetched it
+        if (prev.some(n => n.notification_id === notif.notification_id)) return prev;
+        return [notif, ...prev];
+      });
+    };
+
+    socket.on("notification", onNotification);
+    return () => { socket.off("notification", onNotification); };
+  }, [token]);
 
   // ปิด dropdown เมื่อคลิกข้างนอก
   useEffect(() => {

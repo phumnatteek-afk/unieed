@@ -8,6 +8,7 @@ import {
   isDonationOwnedBySchool,
 } from "./donation.service.js";
 import { db } from "../../config/db.js";
+import { sendNotification, sendNotificationMany } from "../../lib/notify.js";
 
 export async function createDonation(req, res, next) {
   try {
@@ -285,20 +286,13 @@ export async function createDonationFromOrder(req, res, next) {
            WHERE school_id = ? AND role = 'school_admin'`,
           [school_id]
         );
-        for (const admin of admins) {
-          await db.query(
-            `INSERT INTO notifications
-               (user_id, type, title, message, ref_id, ref_type, created_at)
-             VALUES (?, 'donation_received',
-               'มีการบริจาคผ่านการซื้อสินค้า',
-               ?, ?, 'donation', NOW())`,
-            [
-              admin.user_id,
-              `${donor_name.trim()} ได้ซื้อสินค้าเพื่อบริจาคให้โรงเรียน (คำสั่งซื้อ #${order_id})`,
-              donation_id,
-            ]
-          );
-        }
+        const adminIds = admins.map(a => a.user_id);
+        await sendNotificationMany(adminIds, {
+          type:   "donation_received",
+          title:  "มีการบริจาคผ่านการซื้อสินค้า",
+          body:   `${donor_name.trim()} ได้ซื้อสินค้าเพื่อบริจาคให้โรงเรียน (คำสั่งซื้อ #${order_id})`,
+          ref_id: donation_id,
+        });
       }
     } catch (notifErr) {
       // ไม่ให้ notification error ทำให้ response พัง
@@ -341,18 +335,12 @@ export async function updateDonationTracking(req, res, next) {
         [donation_id]
       );
       if (donRows[0]?.donor_id) {
-        await db.query(
-          `INSERT INTO notifications
-             (user_id, type, title, message, ref_id, ref_type, created_at)
-           VALUES (?, 'donation_shipped',
-             'สินค้าที่คุณบริจาคถูกจัดส่งแล้ว',
-             ?, ?, 'donation', NOW())`,
-          [
-            donRows[0].donor_id,
-            `${shipping_carrier || "บริษัทขนส่ง"} · เลขพัสดุ ${tracking_number.trim()}`,
-            donation_id,
-          ]
-        );
+        await sendNotification(donRows[0].donor_id, {
+          type:   "donation_shipped",
+          title:  "สินค้าที่คุณบริจาคถูกจัดส่งแล้ว",
+          body:   `${shipping_carrier || "บริษัทขนส่ง"} · เลขพัสดุ ${tracking_number.trim()}`,
+          ref_id: donation_id,
+        });
       }
     } catch (notifErr) {
       console.error("[updateDonationTracking] notification error:", notifErr.message);

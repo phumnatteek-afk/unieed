@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef} from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
@@ -368,7 +368,9 @@ export default function DonationProject() {
   const [selSize, setSelSize]       = useState("");
   const [selCond, setSelCond]       = useState("");
   const [selProvince, setSelProvince] = useState("");
-  const [searchQ, setSearchQ]       = useState("");
+  const [searchQ, setSearchQ]         = useState("");
+  const [meiliHits, setMeiliHits]     = useState(null); // null = offline/not searched
+  const [meiliLoading, setMeiliLoading] = useState(false);
   const [hoveredType, setHoveredType] = useState("");
   const [selCollections, setSelCollections] = useState([]);
 
@@ -461,6 +463,37 @@ useEffect(() => {
     if (selProvince) parts.push(selProvince);
     return parts.join(" ");
   }, [selType, selGender, selLevel, selSize, selCond, selProvince]);
+
+  // ===== Meilisearch: debounced full-text search =====
+  const MEILI_BASE = (import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000");
+
+  const runMeiliSearch = useCallback(async (q, province) => {
+    if (!q.trim()) { setMeiliHits(null); return; }
+    setMeiliLoading(true);
+    try {
+      const params = new URLSearchParams({ q, limit: "100" });
+      if (province) params.set("province", province);
+      const res = await fetch(`${MEILI_BASE}/api/search/projects?${params}`);
+      if (!res.ok) throw new Error("search unavailable");
+      const data = await res.json();
+      // hits may be empty if Meilisearch is offline (routes return { hits: [] })
+      if (Array.isArray(data.hits)) {
+        setMeiliHits(data.hits.map(h => h.request_id));
+      } else {
+        setMeiliHits(null); // offline fallback
+      }
+    } catch {
+      setMeiliHits(null); // graceful fallback to client-side filter
+    } finally {
+      setMeiliLoading(false);
+    }
+  }, [MEILI_BASE]);
+
+  useEffect(() => {
+    if (!searchQ.trim()) { setMeiliHits(null); return; }
+    const t = setTimeout(() => runMeiliSearch(searchQ, selProvince), 300); // 300ms debounce
+    return () => clearTimeout(t);
+  }, [searchQ, selProvince, runMeiliSearch]);
 
   // ===== ไซส์ที่แสดงตามประเภท+ระดับชั้น =====
   const availableSizes = useMemo(() => {
@@ -556,27 +589,39 @@ useEffect(() => {
   // filter ด้วย search/autoQuery
   const rawQ = (searchQ || autoQuery).trim();
   if (rawQ) {
-    const tokens = searchQ
-      ? normalizeAndTokenize(searchQ)
-      : autoQuery.toLowerCase().split(" ").filter(w => w.length > 0);
+    if (searchQ.trim() && meiliHits !== null) {
+      // ── Meilisearch ranked results ─────────────────────────────────
+      const hitSet = new Set(meiliHits);
+      // Preserve Meilisearch ranking order
+      const ranked = meiliHits
+        .map(id => list.find(p => p.request_id === id))
+        .filter(Boolean);
+      const rest = list.filter(p => !hitSet.has(p.request_id));
+      list = [...ranked, ...rest.filter(() => false)]; // only show Meilisearch hits
+    } else {
+      // ── Client-side fallback (Meilisearch offline or autoQuery) ────
+      const tokens = searchQ
+        ? normalizeAndTokenize(searchQ)
+        : autoQuery.toLowerCase().split(" ").filter(w => w.length > 0);
 
-    list = list.filter(p => {
-      const basicMatch = tokens.some(token =>
-        (p.school_name || "").toLowerCase().includes(token) ||
-        (p.request_title || "").toLowerCase().includes(token) ||
-        (p.school_address || "").toLowerCase().includes(token)
-      );
-      const items = projectDetails[p.request_id] || [];
-      const uniformMatch = tokens.some(token =>
-        items.some(item =>
-          (item.name || "").toLowerCase().includes(token) ||
-          (item.education_level || "").toLowerCase().includes(token) ||
-          (item.gender || "").toLowerCase().includes(token) ||
-          getSizeValues(item).some(v => v.includes(token))
-        )
-      );
-      return basicMatch || uniformMatch;
-    });
+      list = list.filter(p => {
+        const basicMatch = tokens.some(token =>
+          (p.school_name || "").toLowerCase().includes(token) ||
+          (p.request_title || "").toLowerCase().includes(token) ||
+          (p.school_address || "").toLowerCase().includes(token)
+        );
+        const items = projectDetails[p.request_id] || [];
+        const uniformMatch = tokens.some(token =>
+          items.some(item =>
+            (item.name || "").toLowerCase().includes(token) ||
+            (item.education_level || "").toLowerCase().includes(token) ||
+            (item.gender || "").toLowerCase().includes(token) ||
+            getSizeValues(item).some(v => v.includes(token))
+          )
+        );
+        return basicMatch || uniformMatch;
+      });
+    }
   }
 
   // filter จังหวัด
@@ -673,7 +718,7 @@ useEffect(() => {
   }
 
   return list;
-}, [projects, closedProjects, projectDetails, searchQ, autoQuery, selType, selGender, selLevel, selSize, selProvince, selCollections, fairProjects, sortBy]);
+}, [projects, closedProjects, projectDetails, searchQ, autoQuery, meiliHits, selType, selGender, selLevel, selSize, selProvince, selCollections, fairProjects, sortBy]);
 
   // ===== reset size เมื่อเปลี่ยนประเภท/ระดับ =====
   useEffect(() => { setSelSize(""); }, [selType, selLevel]);
@@ -855,6 +900,11 @@ useEffect(() => {
               }}
               placeholder="ค้นหาโครงการ ระบุประเภท ขนาด ที่ต้องการส่งต่อ..."
             />
+            {meiliLoading && (
+              <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }}>
+                <Icon icon="ph:circle-notch" width={16} style={{ color: "#0F6E56", animation: "spin 0.8s linear infinite" }} />
+              </span>
+            )}
           </div>
           <button
             className={`dpFilterBtn ${showFilter ? "dpFilterBtnActive" : ""}`}
