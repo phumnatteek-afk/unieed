@@ -73,6 +73,7 @@ import SellerProductsPage from "./features/seller/pages/SellerProductsPage.jsx";
 
 // AI Assessment
 import AIAssessPage from "./features/ai/pages/AIAssessPage.jsx";
+import AboutPage from "./pages/AboutPage.jsx";
 
 export default function App() {
   return (
@@ -84,6 +85,7 @@ export default function App() {
               {/* Public */}
               <Route path="/" element={<RoleRedirect><HomePage /></RoleRedirect>} />
               <Route path="/projects" element={<RoleRedirect><DonationProject /></RoleRedirect>} />
+              <Route path="/about" element={<AboutPage />} />
               <Route path="/ai-assess" element={<AIAssessPage />} />
               <Route path="/login" element={<RoleRedirect><LoginPage /></RoleRedirect>} />
               <Route path="/register" element={<RoleRedirect><RegisterChoicePage /></RoleRedirect>} />

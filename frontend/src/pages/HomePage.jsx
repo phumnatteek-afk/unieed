@@ -1446,7 +1446,7 @@ export default function HomePage() {
             <Link to="/projects">โครงการ</Link>
             <Link to="/market">ร้านค้า</Link>
             <Link to="/sell">ลงขาย</Link>
-            <a href="#about" onClick={e => { e.preventDefault(); document.getElementById("about")?.scrollIntoView({ behavior: "smooth" }); }}>เกี่ยวกับเรา</a>
+            <Link to="/about">เกี่ยวกับเรา</Link>
           </div>
 
           <div className="footCol">

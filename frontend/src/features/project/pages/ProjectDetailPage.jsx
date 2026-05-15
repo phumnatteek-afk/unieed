@@ -916,7 +916,7 @@ export default function ProjectDetailPage() {
             <Link to="/projects">โครงการ</Link>
             <Link to="/market">ร้านค้า</Link>
             <Link to="/sell">ลงขาย</Link>
-            <Link to="/#about">เกี่ยวกับเรา</Link>
+            <Link to="/about">เกี่ยวกับเรา</Link>
           </div>
           <div className="footCol">
             <div className="footTitle">ติดต่อเรา</div>

@@ -71,7 +71,7 @@ export default function Navbar({ activeLink = "" }) {
           <Link to="/" className={activeLink === "home" ? "active" : ""}>หน้าหลัก</Link>
           <Link to="/projects" className={activeLink === "projects" ? "active" : ""}>โครงการ</Link>
           <Link to="/market" className={activeLink === "market" ? "active" : ""}>ร้านค้า</Link>
-          <a href="#about">เกี่ยวกับเรา</a>
+          <Link to="/about" className={activeLink === "about" ? "active" : ""}>เกี่ยวกับเรา</Link>
           <button><Link to="/sell" className={activeLink === "sell" ? "active" : ""}>ลงขาย</Link></button>
         </nav>
 
@@ -105,10 +105,10 @@ export default function Navbar({ activeLink = "" }) {
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6H17c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2m-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3m7 17H5V8h14z"/></svg>
                 ร้านค้า
               </Link>
-              <a href="#about" onClick={close}>
+              <Link to="/about" onClick={close}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m1 15h-2v-6h2zm0-8h-2V7h2z"/></svg>
                 เกี่ยวกับเรา
-              </a>
+              </Link>
               <Link to="/sell" className={`mobileMenuSell${activeLink === "sell" ? " mobileMenuActive" : ""}`} onClick={close}>
                 ลงขาย
               </Link>
