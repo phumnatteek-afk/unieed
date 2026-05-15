@@ -1089,6 +1089,45 @@ export async function getDemandInsight() {
   };
 }
 
+export async function getDonorProfile(userId) {
+  const [[user]] = await db.query(
+    `SELECT user_id, user_name, user_email, created_at, strike_count, suspended_until
+     FROM users WHERE user_id = ?`,
+    [userId]
+  );
+  if (!user) return null;
+
+  const [donations] = await db.query(
+    `SELECT
+       dr.donation_id, dr.status, dr.condition_status,
+       dr.delivery_method, dr.quantity, dr.created_at, dr.updated_at,
+       req.request_title, s.school_name
+     FROM donation_record dr
+     JOIN donation_request req ON req.request_id = dr.request_id
+     JOIN schools s ON s.school_id = req.school_id
+     WHERE dr.donor_id = ?
+     ORDER BY dr.created_at DESC`,
+    [userId]
+  );
+
+  const total      = donations.length;
+  const approved   = donations.filter(d => d.status === "approved" && d.condition_status === "usable").length;
+  const wrongItem  = donations.filter(d => d.condition_status === "wrong_item").length;
+  const pending    = donations.filter(d => d.status === "pending").length;
+  const rejected   = donations.filter(d => d.status === "rejected").length;
+
+  return {
+    user_id:        user.user_id,
+    user_name:      user.user_name,
+    email:          user.user_email,
+    joined_at:      user.created_at,
+    strike_count:   user.strike_count,
+    suspended_until: user.suspended_until,
+    stats: { total, approved, wrongItem, pending, rejected },
+    donations,
+  };
+}
+
 export async function getDonorSuspensionHistory(userId) {
   const [rows] = await db.query(
     `SELECT type, title, body, created_at

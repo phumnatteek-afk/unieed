@@ -157,3 +157,12 @@ export async function adminGetDonorSuspensionHistory(req, res, next) {
     res.json(await svc.getDonorSuspensionHistory(userId));
   } catch (e) { next(e); }
 }
+
+export async function adminGetDonorProfile(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    const data = await svc.getDonorProfile(userId);
+    if (!data) return res.status(404).json({ message: "ไม่พบผู้บริจาค" });
+    res.json(data);
+  } catch (e) { next(e); }
+}

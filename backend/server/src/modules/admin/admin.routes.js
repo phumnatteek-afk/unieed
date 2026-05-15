@@ -23,6 +23,7 @@ import {
   adminPaySeller,
   adminPayAll,
   adminGetDonorSuspensionHistory,
+  adminGetDonorProfile,
   adminDemandInsight,
 } from "./admin.controller.js";
 
@@ -54,6 +55,7 @@ r.patch("/orders/:id/cancel", auth, requireRole(["admin"]), adminCancelOrder);
 
 /* ─── Donor Suspension ─── */
 r.get("/donors/:userId/suspension-history", auth, requireRole(["admin"]), adminGetDonorSuspensionHistory);
+r.get("/donors/:userId/profile",            auth, requireRole(["admin"]), adminGetDonorProfile);
 
 /* ─── Payouts ─── */
 r.get("/payouts",             auth, requireRole(["admin"]), adminListPayouts);   // ?period=&page=&limit=

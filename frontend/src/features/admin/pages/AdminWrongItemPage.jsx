@@ -211,6 +211,8 @@ export default function AdminWrongItemPage() {
   const [historyTarget, setHistoryTarget] = useState(null);
   const [historyLog, setHistoryLog] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [donorProfile, setDonorProfile] = useState(null);
+  const [donorProfileLoading, setDonorProfileLoading] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -225,6 +227,17 @@ export default function AdminWrongItemPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const openDonorProfile = async (user) => {
+    setDonorProfile({ loading: true, user_name: user.donor_name });
+    setDonorProfileLoading(true);
+    try {
+      const res = await fetch(`${BASE}/admin/donors/${user.donor_id}/profile`, { headers });
+      const data = await res.json();
+      setDonorProfile(data);
+    } catch (e) { console.error(e); setDonorProfile(null); }
+    finally { setDonorProfileLoading(false); }
+  };
 
   const openHistory = async (user) => {
     setHistoryTarget(user);
@@ -415,6 +428,15 @@ export default function AdminWrongItemPage() {
 
                   {/* Actions — right-aligned */}
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    {/* Profile overview */}
+                    <button
+                      onClick={() => openDonorProfile(user)}
+                      className="wi-action-btn"
+                      title="ดูประวัติบริจาคทั้งหมด"
+                      style={{ width: 38, height: 38, borderRadius: 9, border: "1.5px solid #bbf7d0", background: "#fff", color: "#16a34a", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Icon icon="mdi:account-details-outline" width={20} />
+                    </button>
                     {/* History — icon-only ghost */}
                     <button
                       onClick={() => openHistory(user)}
@@ -705,6 +727,89 @@ export default function AdminWrongItemPage() {
                 {resetTarget.is_suspended ? "ยืนยันปลดระงับ" : "ยืนยันล้างคำเตือน"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Donor Profile Modal ─────────────────────────────────────────────── */}
+      {donorProfile && (
+        <div onClick={() => setDonorProfile(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, width: "100%", maxWidth: 640, maxHeight: "88vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+
+            {/* Header */}
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: "#fff", zIndex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#3b82f6,#6366f1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon icon="mdi:account" width={20} color="#fff" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>{donorProfile.user_name}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8" }}>{donorProfile.email} · สมัครเมื่อ {formatDate(donorProfile.joined_at)}</div>
+                </div>
+              </div>
+              <button onClick={() => setDonorProfile(null)} className="wi-action-btn" style={{ width: 30, height: 30, borderRadius: "50%", background: "#f1f5f9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon icon="mdi:close" width={16} color="#64748b" />
+              </button>
+            </div>
+
+            {donorProfileLoading ? (
+              <div style={{ padding: 40, textAlign: "center", color: "#94a3b8" }}>
+                <Icon icon="mdi:loading" width={32} style={{ animation: "spin 1s linear infinite" }} />
+                <div style={{ marginTop: 8 }}>กำลังโหลด...</div>
+              </div>
+            ) : (
+              <div style={{ padding: "20px" }}>
+
+                {/* Stats */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
+                  {[
+                    { label: "บริจาคทั้งหมด", value: donorProfile.stats?.total || 0, color: "#2563eb", bg: "#eff6ff" },
+                    { label: "สำเร็จ", value: donorProfile.stats?.approved || 0, color: "#16a34a", bg: "#f0fdf4" },
+                    { label: "ของไม่ตรง", value: donorProfile.stats?.wrongItem || 0, color: "#d97706", bg: "#fff7ed" },
+                    { label: "รอดำเนินการ", value: donorProfile.stats?.pending || 0, color: "#7c3aed", bg: "#faf5ff" },
+                  ].map(s => (
+                    <div key={s.label} style={{ background: s.bg, borderRadius: 12, padding: "12px 14px", textAlign: "center" }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Donation list */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", marginBottom: 8, textTransform: "uppercase", letterSpacing: .5 }}>ประวัติการบริจาคทั้งหมด</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {(donorProfile.donations || []).length === 0 && (
+                    <div style={{ textAlign: "center", color: "#94a3b8", padding: 20 }}>ยังไม่มีประวัติ</div>
+                  )}
+                  {(donorProfile.donations || []).map(d => {
+                    const statusMap = {
+                      approved:  { label: "อนุมัติแล้ว", color: "#16a34a", bg: "#f0fdf4" },
+                      pending:   { label: "รอดำเนินการ", color: "#7c3aed", bg: "#faf5ff" },
+                      rejected:  { label: "ปฏิเสธ",      color: "#dc2626", bg: "#fff5f5" },
+                    };
+                    const condMap = {
+                      usable:     { label: "ใช้งานได้",    color: "#16a34a" },
+                      wrong_item: { label: "ของไม่ตรง",   color: "#d97706" },
+                      damaged:    { label: "เสียหาย",     color: "#dc2626" },
+                    };
+                    const st = statusMap[d.status] || { label: d.status, color: "#6b7280", bg: "#f3f4f6" };
+                    const cd = d.condition_status ? condMap[d.condition_status] : null;
+                    return (
+                      <div key={d.donation_id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.request_title}</div>
+                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{d.school_name} · {formatDate(d.created_at)}</div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                          {cd && <span style={{ fontSize: 11, fontWeight: 600, color: cd.color }}>{cd.label}</span>}
+                          <span style={{ fontSize: 11, fontWeight: 600, color: st.color, background: st.bg, borderRadius: 20, padding: "2px 8px" }}>{st.label}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
