@@ -30,6 +30,17 @@ const MEAS_FIELDS = [
   { key: "length", label: "ความยาว",   icon: "ph:arrows-vertical"   },
 ];
 
+// ── Type map (frontend mirror of backend TYPE_MAP) ────────────────────────────
+const UNIFORM_TYPES  = ["เสื้อนักเรียนหญิง", "เสื้อนักเรียนชาย", "กางเกงนักเรียน", "กระโปรงนักเรียน"];
+const LEVELS         = ["อนุบาล", "ประถมศึกษา", "มัธยมตอนต้น", "มัธยมตอนปลาย", "ไม่ทราบ"];
+const CONDITIONS     = ["ดีมาก", "ดี", "พอใช้", "ต้องซ่อม"];
+const FRONTEND_TYPE_MAP = {
+  "เสื้อนักเรียนหญิง": { category: 1, gender: "female" },
+  "เสื้อนักเรียนชาย":  { category: 1, gender: "male"   },
+  "กางเกงนักเรียน":    { category: 2, gender: null      },
+  "กระโปรงนักเรียน":   { category: 3, gender: "female"  },
+};
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 function condStyle(cond) {
   if (cond === "ดีมาก") return { bg: "var(--teal-light)",  color: "var(--teal)"  };
@@ -101,6 +112,9 @@ export default function AIAssessPage() {
   // analysis state
   const [uniforms, setUniforms]                     = useState([]);
   const [editedMeasurements, setEditedMeasurements] = useState({});
+  const [editedMeta, setEditedMeta]                 = useState({}); // { idx: { uniform_type, level, condition } }
+  const [editOpen, setEditOpen]                     = useState(false);
+  const [reMatching, setReMatching]                 = useState(false);
   const [analyzeErr, setAnalyzeErr]                 = useState("");
   const [matchData, setMatchData]                   = useState(null);
 
@@ -230,6 +244,42 @@ export default function AIAssessPage() {
 
   function getEffectiveMeasurements(idx) {
     return editedMeasurements[idx] || uniforms[idx]?.measurements || {};
+  }
+
+  // Merge AI output + user edits → final uniform object for re-matching
+  function getEffectiveUniform(idx) {
+    const base = uniforms[idx] || {};
+    const meta = editedMeta[idx] || {};
+    const meas = { ...base.measurements, ...editedMeasurements[idx] };
+    const uniform_type = meta.uniform_type || base.uniform_type;
+    const typeInfo = FRONTEND_TYPE_MAP[uniform_type] || { category: 1, gender: null };
+    return {
+      ...base,
+      uniform_type,
+      level:       meta.level     || base.level,
+      condition:   meta.condition || base.condition,
+      category:    typeInfo.category,
+      gender:      typeInfo.gender,
+      measurements: meas,
+    };
+  }
+
+  function updateMeta(idx, field, value) {
+    setEditedMeta(prev => ({ ...prev, [idx]: { ...prev[idx], [field]: value } }));
+  }
+
+  // Re-run matching with current edited values
+  async function handleReMatch() {
+    setReMatching(true);
+    try {
+      const effective = uniforms.map((_, i) => getEffectiveUniform(i));
+      const matchRes = await matchProjects(effective);
+      setMatchData(matchRes);
+    } catch (err) {
+      console.error("re-match error:", err);
+    } finally {
+      setReMatching(false);
+    }
   }
 
   // ── go to project ──────────────────────────────────────────────────────────
@@ -704,6 +754,57 @@ export default function AIAssessPage() {
                     ))}
                   </div>
 
+                  {/* ── Edit panel toggle ──────────────────────────────── */}
+                  <button
+                    className="aiEditToggleBtn"
+                    onClick={() => setEditOpen(o => !o)}
+                  >
+                    <Icon icon={editOpen ? "ph:caret-up" : "ph:pencil-simple"} width={14} />
+                    {editOpen ? "ซ่อนการแก้ไข" : "แก้ไขข้อมูลที่ AI วิเคราะห์ผิด"}
+                  </button>
+
+                  {editOpen && (
+                    <div className="aiEditPanel">
+                      <div className="aiEditRow">
+                        <label>ประเภทชุด</label>
+                        <select
+                          value={editedMeta[activeUniform]?.uniform_type || currentUniform.uniform_type || ""}
+                          onChange={e => updateMeta(activeUniform, "uniform_type", e.target.value)}
+                        >
+                          {UNIFORM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                      <div className="aiEditRow">
+                        <label>ระดับชั้น</label>
+                        <select
+                          value={editedMeta[activeUniform]?.level || currentUniform.level || "ไม่ทราบ"}
+                          onChange={e => updateMeta(activeUniform, "level", e.target.value)}
+                        >
+                          {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                      </div>
+                      <div className="aiEditRow">
+                        <label>สภาพชุด</label>
+                        <select
+                          value={editedMeta[activeUniform]?.condition || currentUniform.condition || ""}
+                          onChange={e => updateMeta(activeUniform, "condition", e.target.value)}
+                        >
+                          {CONDITIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <button
+                        className="aiBtn primary"
+                        style={{ marginTop: 8, width: "100%" }}
+                        onClick={handleReMatch}
+                        disabled={reMatching}
+                      >
+                        {reMatching
+                          ? <><Icon icon="ph:spinner" width={15} className="spin" /> กำลังค้นหา...</>
+                          : <><Icon icon="ph:magnifying-glass" width={15} /> ค้นหาโครงการใหม่</>}
+                      </button>
+                    </div>
+                  )}
+
                   {/* big measurement numbers */}
                   <div className="aiSectionLabel">ขนาดที่ AI วัดได้</div>
                   <div className="aiMeasResultBox">
@@ -731,9 +832,22 @@ export default function AIAssessPage() {
 
                   {/* editable measurement inputs */}
                   <div className="aiMeasInputGroup">
-                    <div className="aiMeasInputTitle">
-                      <Icon icon="ph:pencil-simple" width={13} />
-                      ปรับขนาดเอง (ถ้า AI วัดไม่ถูกต้อง)
+                    <div className="aiMeasInputTitle" style={{ justifyContent: "space-between" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <Icon icon="ph:pencil-simple" width={13} />
+                        ปรับขนาดเอง (ถ้า AI วัดไม่ถูกต้อง)
+                      </span>
+                      <button
+                        className="aiRematchSmall"
+                        onClick={handleReMatch}
+                        disabled={reMatching}
+                        title="ค้นหาโครงการใหม่ด้วยขนาดที่แก้ไข"
+                      >
+                        {reMatching
+                          ? <Icon icon="ph:spinner" width={12} className="spin" />
+                          : <Icon icon="ph:magnifying-glass" width={12} />}
+                        ค้นหาใหม่
+                      </button>
                     </div>
                     <div className="aiMeasFields">
                       {MEAS_FIELDS.map((m) => {

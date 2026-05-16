@@ -215,6 +215,9 @@ export async function matchProjects(uniforms) {
 
   const results = [];
 
+  console.log(`[match] uniforms:`, uniforms.map(u => ({ cat: u.category, gender: u.gender, condition: u.condition, meas: u.measurements })));
+  console.log(`[match] projects:`, projects.length, `| needs sample:`, needs.slice(0,3).map(n => ({ req: n.request_id, cat: n.uniform_category, gender: n.gender, chest: n.chest, waist: n.waist })));
+
   for (let ui = 0; ui < uniforms.length; ui++) {
     const u = uniforms[ui];
     const condMult = CONDITION_MULT[u.condition] ?? 0.8;
@@ -230,23 +233,15 @@ export async function matchProjects(uniforms) {
       let bestScore = 0;
 
       for (const need of projNeeds) {
-        // Type match — DB uniform_category is numeric (1/2/3/4)
-        // Compare against AI-derived numeric category
         const typeOk = Number(need.uniform_category) === u.category;
-        if (!typeOk) continue;
-
-        // Gender match
-        const genderOk =
-          u.gender === null ||
-          need.gender === null ||
-          need.gender === u.gender;
-        if (!genderOk) continue;
-
-        // Size score
-        const sizeScore = calcSizeScore(u, need);
-        if (sizeScore === 0) continue;
-
+        const genderOk = u.gender === null || need.gender === null || need.gender === u.gender;
+        const sizeScore = typeOk && genderOk ? calcSizeScore(u, need) : 0;
         const score = Math.round(sizeScore * condMult * 100);
+        console.log(`[match]   u[${ui}] cat=${u.category} vs need cat=${need.uniform_category} typeOk=${typeOk} genderOk=${genderOk} sizeScore=${sizeScore.toFixed(2)} score=${score}`);
+
+        if (!typeOk) continue;
+        if (!genderOk) continue;
+        if (sizeScore === 0) continue;
 
         if (score > bestScore) {
           bestScore = score;
@@ -254,7 +249,7 @@ export async function matchProjects(uniforms) {
         }
       }
 
-      if (!bestNeed || bestScore < 25) continue;
+      if (!bestNeed || bestScore < 10) continue;
 
       // Collect all matching needs for display
       const matchingNeeds = projNeeds

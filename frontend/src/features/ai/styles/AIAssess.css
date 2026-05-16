@@ -1057,3 +1057,79 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* ── Edit panel ────────────────────────────────────────────────────────────── */
+.aiEditToggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--teal);
+  background: var(--teal-light);
+  border: 1.5px solid rgba(15,110,86,0.2);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.15s;
+  width: 100%;
+  justify-content: center;
+}
+.aiEditToggleBtn:hover { background: #c5eee0; }
+
+.aiEditPanel {
+  background: #f8fffe;
+  border: 1.5px solid rgba(15,110,86,0.18);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: fadeIn 0.15s ease;
+}
+.aiEditRow {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.aiEditRow label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+}
+.aiEditRow select {
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1.5px solid #d0e8e0;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  outline: none;
+}
+.aiEditRow select:focus { border-color: var(--teal-mid); }
+
+/* Small re-match button inside measurement section */
+.aiRematchSmall {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--teal);
+  background: var(--teal-light);
+  border: 1.5px solid rgba(15,110,86,0.2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.aiRematchSmall:hover:not(:disabled) { background: #c5eee0; }
+.aiRematchSmall:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Spin animation for loading icon */
+.spin { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
