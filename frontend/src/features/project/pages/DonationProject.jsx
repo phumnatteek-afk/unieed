@@ -1109,8 +1109,8 @@ useEffect(() => {
       </div>
 
 
-      {/* ===== AI Banner ===== */}
-      <div className="dpAIBanner">
+      {/* ===== AI Banner — hidden temporarily ===== */}
+      {/* <div className="dpAIBanner">
         <div className="dpAIBannerInner" onClick={() => navigate("/ai-assess")}>
           <div className="dpAIBannerIconWrap">
             <Icon icon="ph:sparkle" width={28} />
@@ -1124,7 +1124,7 @@ useEffect(() => {
             เริ่มประเมิน
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* ===== Project List ===== */}
       <div className="dpMain">
