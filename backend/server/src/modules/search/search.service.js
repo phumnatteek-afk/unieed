@@ -7,7 +7,6 @@ const IDX_PROJECTS = "projects";
 const IDX_PRODUCTS = "products";
 
 // ── Size JSON → human-readable label ─────────────────────────────────────────
-// size stored as JSON e.g. {"chest":"30","length":"27"} or {"waist":"28","length":"24"}
 function buildSizeLabel(sizeRaw) {
   try {
     const s = typeof sizeRaw === "string" ? JSON.parse(sizeRaw) : (sizeRaw || {});
@@ -16,11 +15,30 @@ function buildSizeLabel(sizeRaw) {
     if (s.waist)  parts.push(`เอว ${s.waist}`);
     if (s.length) parts.push(`ยาว ${s.length}`);
     if (s.hip)    parts.push(`สะโพก ${s.hip}`);
-    // also include raw numbers so "30" alone matches
     const nums = [...new Set(Object.values(s).map(String))].join(" ");
     return parts.length ? `${parts.join(" ")} ${nums}` : nums;
   } catch {
     return typeof sizeRaw === "string" ? sizeRaw : "";
+  }
+}
+
+// ── Get product IDs matched to active donation projects (type+gender match) ──
+async function getDonationMatchedProductIds() {
+  try {
+    const [rows] = await db.query(`
+      SELECT DISTINCT p.product_id
+      FROM products p
+      JOIN uniform_type ut_p ON ut_p.uniform_type_id = p.uniform_type_id
+      JOIN student_need sn   ON sn.uniform_type_id   = p.uniform_type_id
+      JOIN students st        ON st.student_id        = sn.student_id
+      JOIN donation_request dr ON dr.request_id      = st.request_id
+      WHERE dr.status   = 'open'
+        AND p.status    = 'available'
+        AND (p.gender   = ut_p.gender OR p.gender IS NULL OR ut_p.gender IS NULL)
+    `);
+    return new Set(rows.map(r => r.product_id));
+  } catch {
+    return new Set();
   }
 }
 
@@ -47,10 +65,11 @@ async function configureIndexes() {
       "product_title", "school_name",
       "type_name", "custom_type_name",
       "condition_label", "level",
-      "size_label",   // human-readable size e.g. "อก 30 ยาว 27"
+      "size_label",   // "อก 30 ยาว 27" etc.
+      "tags",         // ["ซื้อเพื่อบริจาค","บริจาค","ส่งต่อ"] for donation-matched products
     ],
-    filterableAttributes: ["status", "gender", "uniform_type_id", "condition_label"],
-    sortableAttributes:   ["created_at", "price"],
+    filterableAttributes: ["status", "gender", "uniform_type_id", "condition_label", "is_donation"],
+    sortableAttributes:   ["created_at", "price", "is_donation"],
   });
 }
 
@@ -109,12 +128,20 @@ async function loadProducts() {
     ORDER BY p.created_at DESC
     LIMIT 2000
   `);
-  return rows.map(r => ({
-    ...r,
-    created_at: r.created_at ? new Date(r.created_at).getTime() : 0,
-    price:      Number(r.price || 0),
-    size_label: buildSizeLabel(r.size),
-  }));
+
+  const donationIds = await getDonationMatchedProductIds();
+
+  return rows.map(r => {
+    const isDonation = donationIds.has(r.product_id);
+    return {
+      ...r,
+      created_at:  r.created_at ? new Date(r.created_at).getTime() : 0,
+      price:       Number(r.price || 0),
+      size_label:  buildSizeLabel(r.size),
+      is_donation: isDonation ? 1 : 0,
+      tags:        isDonation ? ["ซื้อเพื่อบริจาค", "บริจาค", "ส่งต่อ", "โรงเรียน"] : [],
+    };
+  });
 }
 
 // ── Public: seed all indexes (called on server start) ─────────────────────────
@@ -207,11 +234,15 @@ export async function syncProduct(productId) {
     `, [productId]);
     if (rows[0]) {
       const r = rows[0];
+      const donationIds = await getDonationMatchedProductIds();
+      const isDonation  = donationIds.has(r.product_id);
       await meili.index(IDX_PRODUCTS).addDocuments([{
         ...r,
-        created_at: new Date(r.created_at).getTime(),
-        price:      Number(r.price || 0),
-        size_label: buildSizeLabel(r.size),
+        created_at:  new Date(r.created_at).getTime(),
+        price:       Number(r.price || 0),
+        size_label:  buildSizeLabel(r.size),
+        is_donation: isDonation ? 1 : 0,
+        tags:        isDonation ? ["ซื้อเพื่อบริจาค", "บริจาค", "ส่งต่อ", "โรงเรียน"] : [],
       }]);
     }
   } catch (e) { console.warn("[meilisearch] syncProduct:", e.message); }

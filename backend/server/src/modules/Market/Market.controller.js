@@ -57,13 +57,19 @@ const batchCreateProducts = async (req, res) => {
 const getProducts = async (req, res) => {
   try {
     const {
-  search = '', uniform_type_id, category_id, gender, level,
+  search = '', ids: idsRaw, uniform_type_id, category_id, gender, level,
   min_price, max_price, school_id,
   sort = 'newest', page = 1, limit = 12,
 } = req.query;
 
+// ids=1,2,3 — from Meilisearch hits; skip MySQL text search when provided
+const ids = idsRaw
+  ? idsRaw.split(',').map(Number).filter(n => n > 0)
+  : undefined;
+
 const data = await svcGetProducts({
-  search, category_id, gender, uniform_type_id, level, min_price, max_price, school_id, sort, page, limit,
+  search: ids?.length ? '' : search,
+  ids, category_id, gender, uniform_type_id, level, min_price, max_price, school_id, sort, page, limit,
 });
     res.json(data);
   } catch (err) {

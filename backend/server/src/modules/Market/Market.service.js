@@ -139,7 +139,7 @@ if (item.shipping_provider_ids?.length) {
   }
 };
 
-const getProducts = async ({ search, category_id, gender, uniform_type_id, level, min_price, max_price, school_id, sort, page, limit }) => {
+const getProducts = async ({ search, ids, category_id, gender, uniform_type_id, level, min_price, max_price, school_id, sort, page, limit }) => {
   const pageNum = parseInt(page) || 1;
   const limitNum = parseInt(limit) || 12;
   const offset = (pageNum - 1) * limitNum;
@@ -147,7 +147,13 @@ const getProducts = async ({ search, category_id, gender, uniform_type_id, level
   const where = [`p.status = 'available'`];
   const params = [];
 
-  console.log('query params:', { search, category_id, gender, level, sort, page });
+  console.log('query params:', { search, ids: ids?.length, category_id, gender, level, sort, page });
+
+  // Meilisearch hit IDs — filter directly by product_id (skip LIKE search)
+  if (ids && ids.length) {
+    where.push(`p.product_id IN (${ids.map(() => '?').join(',')})`);
+    params.push(...ids);
+  }
 
   if (search) {
     const keywords = search.trim().split(/\s+/).filter(Boolean);

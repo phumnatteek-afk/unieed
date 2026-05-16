@@ -300,9 +300,19 @@ export default function MarketPage() {
       if (filter?.gender)      params.set("gender", filter.gender);
       const res  = await fetch(`/api/search/products?${params}`);
       const data = await res.json();
-      setMeiliHits((data.hits || []).map(h => h.product_id));
+      const hits = (data.hits || []).map(h => h.product_id);
+      setMeiliHits(hits);
+      // Fetch those exact products from /api/market by ID (preserves images etc.)
+      if (hits.length) {
+        fetchProductsRef.current(1, { ids: hits, search: "" });
+      } else {
+        // Meili returned no hits — show empty
+        setProducts([]);
+        setTotalCount(0);
+        setTotalPages(1);
+      }
     } catch {
-      setMeiliHits(null); // graceful fallback to /api/market results
+      setMeiliHits(null); // offline — fallback to MySQL search already running
     } finally {
       setMeiliLoading(false);
     }
@@ -355,12 +365,19 @@ const handleSearchInput = (e) => {
   setDisplaySearch(val);
   setTypedKeyword(val);
   setSearch(val);
-  if (!val.trim()) setMeiliHits(null);
+
+  if (!val.trim()) {
+    setMeiliHits(null);
+    fetchProducts(1, { search: "" }); // reset to full list
+    return;
+  }
 
   clearTimeout(debounceRef.current);
   debounceRef.current = setTimeout(() => {
-    fetchProducts(1, { search: val });
+    // runMeiliSearch will call fetchProducts(ids=...) internally if online
+    // fetchProducts(search=val) runs as fallback if meili is offline
     runMeiliSearch(val, activeFilter, level);
+    fetchProducts(1, { search: val }); // MySQL fallback (overridden if meili responds)
   }, 300);
 };
 
@@ -379,24 +396,24 @@ const fetchProductsRef = useRef(null);
 fetchProductsRef.current = async (p = 1, overrides = {}) => {
   setLoading(true);
   try {
-    // ดึงค่าจาก overrides ถ้ามี ถ้าไม่มีให้ใช้จาก state
-    const currentFilter = overrides.activeFilter !== undefined ? overrides.activeFilter : activeFilter;
-    const currentLevel  = overrides.level  !== undefined ? overrides.level  : level;
-    const currentSearch = overrides.search !== undefined ? overrides.search : search;
+    const currentFilter   = overrides.activeFilter !== undefined ? overrides.activeFilter : activeFilter;
+    const currentLevel    = overrides.level    !== undefined ? overrides.level    : level;
+    const currentSearch   = overrides.search   !== undefined ? overrides.search   : search;
     const currentMinPrice = overrides.minPrice !== undefined ? overrides.minPrice : minPrice;
     const currentMaxPrice = overrides.maxPrice !== undefined ? overrides.maxPrice : maxPrice;
-    
-    // เพิ่มบรรทัดนี้: รองรับการเปลี่ยน Sort ทันที
-    const currentSort = overrides.sort !== undefined ? overrides.sort : sort;
+    const currentSort     = overrides.sort     !== undefined ? overrides.sort     : sort;
+    const currentIds      = overrides.ids; // product_id[] from Meilisearch
 
     const params = new URLSearchParams({
-      page: p, 
-      limit: LIMIT, 
-      sort: currentSort, // ใช้ค่า currentSort ที่ผ่านการเช็คแล้ว
-      ...(currentSearch && { search: currentSearch }),
+      page: p,
+      limit: currentIds?.length ? Math.min(currentIds.length, 60) : LIMIT,
+      sort: currentSort,
+      ...(currentIds?.length
+        ? { ids: currentIds.join(',') }                  // meili mode: filter by IDs
+        : currentSearch && { search: currentSearch }),   // fallback: MySQL LIKE
       ...(currentFilter?.category_id && { category_id: currentFilter.category_id }),
       ...(currentFilter && currentFilter.gender !== null && { gender: currentFilter.gender }),
-      ...(currentLevel && { level: currentLevel }),
+      ...(currentLevel    && { level:     currentLevel }),
       ...(currentMinPrice && { min_price: currentMinPrice }),
       ...(currentMaxPrice && { max_price: currentMaxPrice }),
     });
@@ -489,16 +506,23 @@ const handleMaxPriceChange = (e) => {
   debounceRef.current = setTimeout(() => fetchProducts(1, { maxPrice: val }), 400);
 };
 
-// ── Reorder products by Meilisearch ranking when active ────────────────────
+// ── Reorder products: Meilisearch ranking + donation products first ─────────
 const displayedProducts = useMemo(() => {
+  let list = products;
+
+  // When Meilisearch is active, reorder by meili ranking
   if (search.trim() && meiliHits !== null) {
     const hitSet = new Set(meiliHits);
     const ranked = meiliHits.map(id => products.find(p => p.product_id === id)).filter(Boolean);
     const rest   = products.filter(p => !hitSet.has(p.product_id));
-    return [...ranked, ...rest];
+    list = [...ranked, ...rest];
   }
-  return products;
-}, [products, search, meiliHits]);
+
+  // Donation-matched products (from meili is_donation OR from donationNeededLabels) always first
+  const donationFirst = list.filter(p => donationNeededLabels.has(p.product_id));
+  const others        = list.filter(p => !donationNeededLabels.has(p.product_id));
+  return [...donationFirst, ...others];
+}, [products, search, meiliHits, donationNeededLabels]);
 
 
   return (
