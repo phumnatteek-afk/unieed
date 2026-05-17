@@ -248,6 +248,7 @@ export default function SchoolDonationPage() {
   const [thankMsg,       setThankMsg]       = useState("");
   const [itemConditions, setItemConditions] = useState({});
   const [itemReasons,    setItemReasons]    = useState({});
+  const [itemNotes,      setItemNotes]      = useState({});
   const [checkedSet,     setCheckedSet]     = useState(new Set());
   const [verifying,      setVerifying]      = useState(false);
   const [currentPage,  setCurrentPage]  = useState(1);
@@ -347,7 +348,7 @@ export default function SchoolDonationPage() {
       itemConditions[it.uniform_type_id] === "issue" &&
       !itemReasons[it.uniform_type_id]
     );
-    if (issueNeedReason.length > 0) return alert("กรุณาระบุสาเหตุของรายการที่มีปัญหาให้ครบ");
+    if (issueNeedReason.length > 0) return alert("กรุณาระบุสาเหตุของรายการที่ไม่ตรงให้ครบ");
     try {
       setVerifying(true);
       const items_received = snapItems.map(it => {
@@ -358,7 +359,7 @@ export default function SchoolDonationPage() {
           uniform_type_id: uid,
           qty_received: isChecked ? it.quantity : 0,
           item_condition: resolved,
-          ...(resolved === "wrong_item" && itemReasons[uid] ? { reason: itemReasons[uid] } : {}),
+          ...(resolved === "wrong_item" && itemReasons[uid] ? { reason: itemReasons[uid], note: itemNotes[uid] || "" } : {}),
         };
       });
       const resolvedConditions = Object.fromEntries(
@@ -374,6 +375,7 @@ export default function SchoolDonationPage() {
       setVerifyPopup(null);
       setItemConditions({});
       setItemReasons({});
+      setItemNotes({});
       setCheckedSet(new Set());
       setThankMsg("");
       loadDonations({ checkCleared: true });
@@ -763,14 +765,26 @@ export default function SchoolDonationPage() {
                                     {item.education_level && <span className="sdExpandLevel">{item.education_level}</span>}
                                     <span className="sdExpandQty">{item.quantity} ตัว</span>
                                     {meta && (
-                                      <span style={{
-                                        display: "inline-flex", alignItems: "center", gap: 4,
-                                        fontSize: 11, fontWeight: 600, color: meta.color,
-                                        marginLeft: 8,
-                                      }}>
-                                        <Icon icon={meta.icon} width={13} />
-                                        {meta.label}
-                                      </span>
+                                      <>
+                                        <span style={{
+                                          display: "inline-flex", alignItems: "center", gap: 4,
+                                          fontSize: 11, fontWeight: 600, color: meta.color,
+                                          marginLeft: 8,
+                                        }}>
+                                          <Icon icon={meta.icon} width={13} />
+                                          {meta.label}
+                                        </span>
+                                        {cond.reason && (
+                                          <span style={{ fontSize: 10, fontWeight: 600, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "1px 7px", marginLeft: 4, whiteSpace: "nowrap" }}>
+                                            {cond.reason}
+                                          </span>
+                                        )}
+                                        {cond.note && (
+                                          <span style={{ fontSize: 10, color: "#78350f", background: "#fffbeb", borderRadius: 6, padding: "1px 7px", marginLeft: 4 }}>
+                                            {cond.note}
+                                          </span>
+                                        )}
+                                      </>
                                     )}
                                   </div>
                                 );
@@ -874,7 +888,7 @@ export default function SchoolDonationPage() {
               const COND_OPTS = [
                 { value: "usable",  label: "ใช้งานได้", icon: "mdi:check-circle",    color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
                 { value: "damaged", label: "เสียหาย",   icon: "mdi:alert-circle",    color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
-                { value: "issue",   label: "มีปัญหา",   icon: "mdi:swap-horizontal", color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
+                { value: "issue",   label: "รายการไม่ตรง", icon: "mdi:swap-horizontal", color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
               ];
               const RESULT_META = {
                 usable:     { label: "ใช้งานได้",    icon: "mdi:check-circle-outline",  color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
@@ -926,6 +940,7 @@ export default function SchoolDonationPage() {
                                         next.delete(uid);
                                         setItemConditions(p => { const n={...p}; delete n[uid]; return n; });
                                         setItemReasons(p => { const n={...p}; delete n[uid]; return n; });
+                                        setItemNotes(p => { const n={...p}; delete n[uid]; return n; });
                                       } else {
                                         next.add(uid);
                                         setItemConditions(p => ({ ...p, [uid]: p[uid] || "usable" }));
@@ -958,7 +973,7 @@ export default function SchoolDonationPage() {
                                 {cond === "issue" && (
                                   <div style={{ marginTop:8, padding:"8px 10px", background:"#fffbeb", border:"1px dashed #fcd34d", borderRadius:8 }}>
                                     <div style={{ fontSize:10, color:"#92400e", fontWeight:600, marginBottom:6 }}>สาเหตุ <span style={{ color:"#dc2626" }}>*</span></div>
-                                    <div style={{ display:"flex", gap:5 }}>
+                                    <div style={{ display:"flex", gap:5, marginBottom:8 }}>
                                       {["ผิดไซส์", "ผิดประเภท"].map(r => (
                                         <button key={r} type="button"
                                           onClick={() => setItemReasons(p => ({ ...p, [uid]: r }))}
@@ -966,6 +981,15 @@ export default function SchoolDonationPage() {
                                         >{r}</button>
                                       ))}
                                     </div>
+                                    <textarea
+                                      rows={2}
+                                      maxLength={150}
+                                      placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ) เช่น ส่งบิกินี่มาแทนเสื้อนักเรียน"
+                                      value={itemNotes[uid] || ""}
+                                      onChange={e => setItemNotes(p => ({ ...p, [uid]: e.target.value }))}
+                                      onFocus={e => { e.target.style.outline = "none"; e.target.style.boxShadow = "none"; }}
+                                      style={{ width:"100%", fontSize:11, padding:"6px 8px", borderRadius:6, border:"1px solid #fcd34d", background:"#fff", resize:"none", outline:"none", boxShadow:"none", boxSizing:"border-box", color:"#1e293b", WebkitAppearance:"none" }}
+                                    />
                                   </div>
                                 )}
                               </div>

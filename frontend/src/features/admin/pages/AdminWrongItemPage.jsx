@@ -34,9 +34,11 @@ function EvidenceModal({ c, onClose }) {
   const condSnap  = parseJson(c.items_condition_snapshot);
   const condMap   = {};
   const reasonMap = {};
+  const noteMap   = {};
   for (const x of condSnap) {
     condMap[x.uniform_type_id]   = x.item_condition;
     if (x.reason) reasonMap[x.uniform_type_id] = x.reason;
+    if (x.note)   noteMap[x.uniform_type_id]   = x.note;
   }
 
   const COND_LABEL = {
@@ -126,6 +128,11 @@ function EvidenceModal({ c, onClose }) {
                               {reasonMap[it.uniform_type_id] && (
                                 <span style={{ fontSize: 10, fontWeight: 600, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "1px 7px", whiteSpace: "nowrap" }}>
                                   {reasonMap[it.uniform_type_id]}
+                                </span>
+                              )}
+                              {noteMap[it.uniform_type_id] && (
+                                <span style={{ fontSize: 10, color: "#78350f", background: "#fffbeb", borderRadius: 6, padding: "2px 7px", display: "block", marginTop: 2, maxWidth: 160, wordBreak: "break-word" }}>
+                                  {noteMap[it.uniform_type_id]}
                                 </span>
                               )}
                             </div>
@@ -543,6 +550,19 @@ export default function AdminWrongItemPage() {
                               <span style={{ fontSize: 12, color: "#94a3b8" }}>ไม่มีข้อมูลรายละเอียดชิ้น</span>
                             )}
                           </div>
+
+                          {/* ข้อความชี้แจงจากผู้บริจาค */}
+                          {c.clarification_text && (
+                            <div style={{ marginTop: 8, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 12px" }}>
+                              <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}>
+                                <Icon icon="mdi:message-reply-outline" width={12} />
+                                ข้อความชี้แจงจากผู้บริจาค
+                              </div>
+                              <div style={{ fontSize: 12, color: "#1e293b", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                {c.clarification_text}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

@@ -24,6 +24,7 @@ import {
 } from "./donation_schedule.controller.js";
 
 import { verifyAndIssueCertificate } from "../certificate/certificate.controller.js";
+import { sendNotification } from "../../lib/notify.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const r = Router();
@@ -129,10 +130,26 @@ r.get("/my-suspension", auth, async (req, res, next) => {
       [req.user.user_id]
     );
     const now = new Date();
+
+    // ถ้า strike_count >= 3 แต่ suspended_until ยังไม่ได้ set (เช่น crash ก่อนหน้า)
+    // ให้ apply suspension ตอนนี้เลย
+    if (donor?.strike_count >= 3 && !donor.suspended_until) {
+      await db.query(
+        `UPDATE users SET suspended_until = DATE_ADD(NOW(), INTERVAL 30 DAY) WHERE user_id = ?`,
+        [req.user.user_id]
+      );
+      const [[updated]] = await db.query(
+        `SELECT suspended_until FROM users WHERE user_id = ?`,
+        [req.user.user_id]
+      );
+      donor.suspended_until = updated?.suspended_until;
+    }
+
     const isSuspended = donor?.suspended_until && new Date(donor.suspended_until) > now && donor.strike_count >= 3;
+    // pending = admin ยังไม่ได้อ่าน (is_read = 0) — เมื่อ admin เปิดดูจะ mark read = processed
     const [[appealRow]] = await db.query(
       `SELECT body FROM notifications
-       WHERE ref_id = ? AND type = 'strike_appeal'
+       WHERE ref_id = ? AND type = 'strike_appeal' AND is_read = 0
        ORDER BY created_at DESC LIMIT 1`,
       [req.user.user_id]
     );
@@ -140,12 +157,48 @@ r.get("/my-suspension", auth, async (req, res, next) => {
     if (appealRow?.body) {
       try { appealReason = JSON.parse(appealRow.body)?.reason || null; } catch (_) {}
     }
+
+    const [caseRows] = await db.query(
+      `SELECT dr.donation_id,
+              s.school_name,
+              dr.items_snapshot,
+              dr.items_condition_snapshot,
+              DATE_FORMAT(dr.updated_at, '%Y-%m-%dT%H:%i:%s.000Z') AS updated_at
+       FROM donation_record dr
+       LEFT JOIN donation_request req ON req.request_id = dr.request_id
+       LEFT JOIN schools s ON s.school_id = req.school_id
+       WHERE dr.donor_id = ? AND dr.strike_issued = 1
+       ORDER BY dr.updated_at ASC`,
+      [req.user.user_id]
+    );
+    const wrong_item_cases = caseRows.map((c, i) => {
+      let wrongItems = [];
+      try {
+        const condSnap = typeof c.items_condition_snapshot === "string"
+          ? JSON.parse(c.items_condition_snapshot) : (c.items_condition_snapshot || []);
+        const itemSnap = typeof c.items_snapshot === "string"
+          ? JSON.parse(c.items_snapshot) : (c.items_snapshot || []);
+        const condMap = {};
+        for (const x of condSnap) condMap[x.uniform_type_id] = x.item_condition;
+        wrongItems = itemSnap
+          .filter(it => condMap[it.uniform_type_id] === "wrong_item")
+          .map(it => it.item_name || it.name || "รายการไม่ระบุ");
+      } catch (_) {}
+      return {
+        round:        i + 1,
+        school_name:  c.school_name || "ไม่ระบุโรงเรียน",
+        wrong_items:  wrongItems,
+        updated_at:   c.updated_at,
+      };
+    });
+
     res.json({
       strike_count:       donor?.strike_count || 0,
       suspended_until:    donor?.suspended_until || null,
       is_suspended:       !!isSuspended,
       has_pending_appeal: !!appealRow,
       appeal_reason:      appealReason,
+      wrong_item_cases,
     });
   } catch (err) { next(err); }
 });
@@ -286,6 +339,7 @@ r.get("/wrong-items", auth, requireRole(["admin"]), async (req, res, next) => {
          (SELECT n.body FROM notifications n
            WHERE n.ref_id = u.user_id
              AND n.type = 'strike_appeal'
+             AND n.is_read = 0
            ORDER BY n.created_at DESC LIMIT 1
          ) AS appeal_body,
          COUNT(dr.donation_id) AS total_cases,
@@ -303,7 +357,9 @@ r.get("/wrong-items", auth, requireRole(["admin"]), async (req, res, next) => {
              'donor_phone',              dr.donor_phone,
              'updated_at',               dr.updated_at,
              'request_title',            req.request_title,
-             'school_name',              s.school_name
+             'school_name',              s.school_name,
+             'clarification_text',       dr.clarification_text,
+             'clarified_at',             dr.clarified_at
            )
            ELSE NULL END
          ) AS cases
@@ -329,5 +385,43 @@ r.post("/:requestId", (req, _res, next) => {
 r.get("/:donationId",  auth, getDonationDetail);
 r.patch("/:donationId/status", auth, requireRole(["school_admin", "admin"]), updateDonationStatus);
 r.patch("/:donationId/verify", auth, requireRole(["school_admin", "admin"]), verifyAndIssueCertificate);
+
+// POST /donations/:donationId/clarify — donor ชี้แจงรายการไม่ตรง
+r.post("/:donationId/clarify", auth, async (req, res, next) => {
+  try {
+    const donationId = Number(req.params.donationId);
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ message: "กรุณาระบุข้อความชี้แจง" });
+
+    const [[dr]] = await db.query(
+      `SELECT donor_id, donor_name, condition_status, clarified_at FROM donation_record WHERE donation_id = ?`,
+      [donationId]
+    );
+    if (!dr) return res.status(404).json({ message: "ไม่พบรายการบริจาค" });
+    if (dr.donor_id && dr.donor_id !== req.user.user_id)
+      return res.status(403).json({ message: "ไม่มีสิทธิ์" });
+    if (dr.clarified_at)
+      return res.status(400).json({ message: "ชี้แจงไปแล้ว" });
+
+    await db.query(
+      `UPDATE donation_record SET clarification_text = ?, clarified_at = NOW() WHERE donation_id = ?`,
+      [text.trim(), donationId]
+    );
+
+    // แจ้ง admin ทุกคน
+    const [[donorUser]] = await db.query(`SELECT user_name FROM users WHERE user_id = ?`, [dr.donor_id]);
+    const [admins] = await db.query(`SELECT user_id FROM users WHERE role = 'admin'`);
+    await Promise.all(admins.map(admin =>
+      sendNotification(admin.user_id, {
+        type:   "donation_clarify",
+        title:  `${donorUser?.user_name || dr.donor_name || "ผู้บริจาค"} ชี้แจงรายการไม่ตรง`,
+        body:   { message: text.trim(), donation_id: donationId, donor_name: dr.donor_name, user_name: donorUser?.user_name },
+        ref_id: donationId,
+      })
+    ));
+
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
 
 export default r;

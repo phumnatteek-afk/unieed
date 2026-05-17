@@ -136,6 +136,90 @@ function StrikeResetPopup({ notif, onClose }) {
   );
 }
 
+// ── Wrong Item Popup (admin) ───────────────────────────────────────
+function WrongItemPopup({ notif, onClose }) {
+  let body = {};
+  try { body = JSON.parse(notif.body); } catch { /* noop */ }
+  const navigate = useNavigate();
+  const isClarify = notif.type === "donation_clarify";
+
+  const handleGoReview = () => { onClose(); navigate("/admin/wrong-items"); };
+
+  return (
+    <div className="nb-cert-overlay" onClick={onClose}>
+      <div className="nb-cert-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+        <div className="nb-cert-modal-top" style={{ background: isClarify ? "#0369a1" : "#f97316" }}>
+          <div className="nb-cert-modal-emoji">
+            {isClarify
+              ? <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24" style={{ color: "#fff" }}><path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2"/></svg>
+              : <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24" style={{ color: "#fff" }}><path fill="currentColor" d="M4.47 21h15.06c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L2.74 18c-.77 1.33.19 3 1.73 3M12 14c-.55 0-1-.45-1-1v-2c0-.55.45-1 1-1s1 .45 1 1v2c0 .55-.45 1-1 1m1 4h-2v-2h2z"/></svg>
+            }
+          </div>
+          <div className="nb-cert-modal-title">{isClarify ? "ผู้บริจาคชี้แจงเหตุการณ์" : "รายการบริจาคไม่ตรง"}</div>
+          <div className="nb-cert-modal-sub">
+            {isClarify && body.user_name
+              ? <>{body.user_name} <span style={{ opacity: 0.75, fontWeight: 400 }}>({body.donor_name})</span></>
+              : body.donor_name || "ผู้บริจาค"
+            }
+            {body.school_name ? ` · ${body.school_name}` : ""}
+          </div>
+        </div>
+        <div className="nb-cert-modal-body">
+          {/* wrong_item_report: แสดงรายการที่ไม่ตรง */}
+          {!isClarify && body.wrong_items?.length > 0 && (
+            <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#c2410c", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon icon="mdi:swap-horizontal" width={14} /> รายการที่ไม่ตรง
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "#92400e", lineHeight: 1.8 }}>
+                {body.wrong_items.map((item, i) => {
+                  const name   = typeof item === "string" ? item : item.name;
+                  const reason = typeof item === "object" ? item.reason : null;
+                  const note   = typeof item === "object" ? item.note   : null;
+                  return (
+                    <li key={i} style={{ marginBottom: 4 }}>
+                      {name}
+                      {reason && <span style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "1px 7px", marginLeft: 6 }}>{reason}</span>}
+                      {note && <div style={{ fontSize: 12, color: "#78350f", marginTop: 2, paddingLeft: 2 }}><span style={{ fontWeight: 600 }}>เหตุผล:</span> {note}</div>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+          {/* donation_clarify: เน้นข้อความชี้แจง */}
+          {isClarify && body.message && (
+            <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#0369a1", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon icon="mdi:message-reply-outline" width={14} /> ข้อความชี้แจงจากผู้บริจาค
+              </div>
+              <div style={{ fontSize: 13, color: "#0c4a6e", lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                {body.message}
+              </div>
+            </div>
+          )}
+          {/* wrong_item_report: message จากโรงเรียน */}
+          {!isClarify && body.message && (
+            <div style={{ fontSize: 13, color: "#64748b", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "9px 12px", marginBottom: 12 }}>
+              {body.message}
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: "#94a3b8", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 12px", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon icon="mdi:information-outline" width={14} />
+            ดูรายละเอียดและจัดการได้ที่หน้า "ตรวจสอบของไม่ตรง"
+          </div>
+          <div className="nb-cert-actions">
+            <button className="nb-cert-btn nb-cert-btn--close" onClick={onClose}>ปิด</button>
+            <button className="nb-cert-btn" onClick={handleGoReview} style={{ background: isClarify ? "#0369a1" : "#f97316", color: "#fff", border: "none" }}>
+              ไปตรวจสอบ →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Strike Appeal Popup (admin) ────────────────────────────────────
 function StrikeAppealPopup({ notif, onClose }) {
   let body = {};
@@ -254,9 +338,43 @@ function SuspensionPopup({ notif, onClose, isAdmin, onAppeal, hasPendingAppeal, 
 }
 
 // ── Donation Issue Popup ───────────────────────────────────────────
-function DonationIssuePopup({ notif, onClose, onNavigate }) {
+function DonationIssuePopup({ notif, onClose, onNavigate, token, isSuspended, onAppeal, hasPendingAppeal }) {
   let body = {};
   try { body = JSON.parse(notif.body); } catch { /* noop */ }
+
+  const clarifyKey = `clarified_${notif.ref_id}`;
+  const [showClarify,    setShowClarify]    = useState(false);
+  const [clarifyText,    setClarifyText]    = useState("");
+  const [clarifyLoading, setClarifyLoading] = useState(false);
+  const [clarifyDone,    setClarifyDone]    = useState(() => !!localStorage.getItem(clarifyKey));
+  const [clarifyErr,     setClarifyErr]     = useState("");
+
+  const handleClarify = async () => {
+    if (!clarifyText.trim()) return setClarifyErr("กรุณาระบุข้อความชี้แจง");
+    if (!notif.ref_id || isNaN(Number(notif.ref_id))) return setClarifyErr("ไม่พบรายการบริจาค");
+    setClarifyLoading(true);
+    setClarifyErr("");
+    try {
+      const res = await fetch(`${BASE}/donations/${notif.ref_id}/clarify`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ text: clarifyText.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data?.message === "ชี้แจงไปแล้ว") {
+          localStorage.setItem(clarifyKey, "1");
+          setClarifyDone(true);
+        } else {
+          setClarifyErr(data?.message || "ส่งไม่สำเร็จ");
+        }
+        return;
+      }
+      localStorage.setItem(clarifyKey, "1");
+      setClarifyDone(true);
+    } catch { setClarifyErr("เกิดข้อผิดพลาด กรุณาลองใหม่"); }
+    finally { setClarifyLoading(false); }
+  };
 
   return (
     <div className="nb-cert-overlay" onClick={onClose}>
@@ -284,9 +402,26 @@ function DonationIssuePopup({ notif, onClose, onNavigate }) {
             </div>
             {body.wrong_items?.length > 0 && (
               <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#92400e", lineHeight: 1.8 }}>
-                {body.wrong_items.map((name, i) => (
-                  <li key={i}>{name}</li>
-                ))}
+                {body.wrong_items.map((item, i) => {
+                  const name   = typeof item === "string" ? item : item.name;
+                  const reason = typeof item === "object" ? item.reason : null;
+                  const note   = typeof item === "object" ? item.note   : null;
+                  return (
+                    <li key={i} style={{ marginBottom: 4 }}>
+                      <span>{name}</span>
+                      {reason && (
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "1px 7px", marginLeft: 6, whiteSpace: "nowrap" }}>
+                          {reason}
+                        </span>
+                      )}
+                      {note && (
+                        <span style={{ display: "block", fontSize: 11, color: "#78350f", marginTop: 2, paddingLeft: 2 }}>
+                          <span style={{ fontWeight: 600 }}>เหตุผล:</span> {note}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -302,19 +437,87 @@ function DonationIssuePopup({ notif, onClose, onNavigate }) {
             </div>
           )}
 
+          {/* ชี้แจง — ซ่อนเมื่อถูก suspend แล้ว (รอบ 3) */}
+          {isSuspended ? (
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "12px 14px", marginBottom: 8 }}>
+              <div style={{ fontSize: 13, color: "#991b1b", fontWeight: 600, marginBottom: 6 }}>คุณถูกระงับการบริจาคชั่วคราว</div>
+              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>ยื่นคำร้องเพื่อขอให้ทีมงานตรวจสอบและพิจารณาปลดล็อค</div>
+              {hasPendingAppeal ? (
+                <div style={{ width: "100%", padding: "9px 0", borderRadius: 10, background: "#fef9c3", border: "1px solid #fde68a", color: "#92400e", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <Icon icon="mdi:clock-outline" width="16" />
+                  รอการตรวจสอบจากทีมงาน
+                </div>
+              ) : (
+                <button
+                  onClick={() => { onClose(); onAppeal?.(); }}
+                  style={{ width: "100%", padding: "9px 0", borderRadius: 10, border: "none", background: "#dc2626", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                >
+                  <Icon icon="mdi:file-document-edit-outline" width="16" />
+                  ยื่น Appeal การระงับ
+                </button>
+              )}
+            </div>
+          ) : !clarifyDone ? (
+            !showClarify ? (
+              <button
+                onClick={() => setShowClarify(true)}
+                style={{ width: "100%", padding: "9px 0", borderRadius: 10, border: "1.5px dashed #fed7aa", background: "#fff7ed", color: "#c2410c", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+              >
+                <Icon icon="mdi:message-reply-outline" width="16" />
+                ชี้แจงเหตุการณ์
+              </button>
+            ) : (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#92400e", marginBottom: 6 }}>ข้อความชี้แจง</div>
+                <textarea
+                  rows={3}
+                  maxLength={300}
+                  placeholder="อธิบายว่าเกิดอะไรขึ้น เช่น ส่งผิดพัสดุโดยไม่ตั้งใจ หรือเข้าใจผิดรายละเอียดโครงการ"
+                  value={clarifyText}
+                  onChange={e => setClarifyText(e.target.value)}
+                  onFocus={e => { e.target.style.outline = "none"; e.target.style.boxShadow = "none"; }}
+                  style={{ width: "100%", fontSize: 12, padding: "8px 10px", borderRadius: 8, border: "1px solid #fcd34d", background: "#fff", resize: "none", outline: "none", boxShadow: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+                />
+                {clarifyErr && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4 }}>{clarifyErr}</div>}
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button
+                    onClick={handleClarify}
+                    disabled={clarifyLoading}
+                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: "#f97316", color: "#fff", fontSize: 13, fontWeight: 600, cursor: clarifyLoading ? "not-allowed" : "pointer", opacity: clarifyLoading ? 0.7 : 1 }}
+                  >
+                    {clarifyLoading ? "กำลังส่ง..." : "ส่งข้อความชี้แจง"}
+                  </button>
+                  <button
+                    onClick={() => { setShowClarify(false); setClarifyErr(""); }}
+                    style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#f8fafc", color: "#64748b", fontSize: 13, cursor: "pointer" }}
+                  >
+                    ยกเลิก
+                  </button>
+                </div>
+              </div>
+            )
+          ) : (
+            <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "10px 14px", marginBottom: 8, fontSize: 13, color: "#16a34a", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              <Icon icon="mdi:check-circle-outline" width="18" />
+              ส่งข้อความชี้แจงแล้ว — แอดมินจะตรวจสอบและติดต่อกลับ
+            </div>
+          )}
+
           {/* Actions */}
-          <div className="nb-cert-actions">
-            <button
-              className="nb-cert-btn"
-              style={{ background: "#f97316", color: "#fff", border: "none" }}
-              onClick={onNavigate}
-            >
-              ดูประวัติการบริจาค →
-            </button>
-            <button className="nb-cert-btn nb-cert-btn--close" onClick={onClose}>
-              รับทราบ
-            </button>
-          </div>
+          {!showClarify && (
+            <div className="nb-cert-actions">
+              <button
+                className="nb-cert-btn"
+                style={{ background: "#f97316", color: "#fff", border: "none" }}
+                onClick={onNavigate}
+              >
+                ดูประวัติการบริจาค →
+              </button>
+              <button className="nb-cert-btn nb-cert-btn--close" onClick={onClose}>
+                รับทราบ
+              </button>
+            </div>
+          )}
 
         </div>
       </div>
@@ -370,9 +573,26 @@ function CertificatePopup({ notif, onClose }) {
               </div>
               {body.wrong_items?.length > 0 && (
                 <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#92400e", lineHeight: 1.8 }}>
-                  {body.wrong_items.map((name, i) => (
-                    <li key={i}>{name}</li>
-                  ))}
+                  {body.wrong_items.map((item, i) => {
+                    const name   = typeof item === "string" ? item : item.name;
+                    const reason = typeof item === "object" ? item.reason : null;
+                    const note   = typeof item === "object" ? item.note   : null;
+                    return (
+                      <li key={i} style={{ marginBottom: 4 }}>
+                        <span>{name}</span>
+                        {reason && (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "1px 7px", marginLeft: 6, whiteSpace: "nowrap" }}>
+                            {reason}
+                          </span>
+                        )}
+                        {note && (
+                          <span style={{ display: "block", fontSize: 11, color: "#78350f", marginTop: 2, paddingLeft: 2 }}>
+                            {note}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
@@ -445,7 +665,10 @@ function CertificatePopup({ notif, onClose }) {
 export default function NotificationBell() {
   const { token, role } = useAuth();
   const navigate = useNavigate();
-  const [notifs,    setNotifs]    = useState([]);
+  const [notifs,        setNotifs]        = useState([]);
+  const [synSuspNotif,  setSynSuspNotif]  = useState(null);
+  const [suspendedUntil, setSuspendedUntil] = useState(null);
+  const [isSuspended,   setIsSuspended]   = useState(false);
   const [open,      setOpen]      = useState(false);
   const [certPopup,         setCertPopup]         = useState(null);
   const [issuePopup,        setIssuePopup]        = useState(null);
@@ -456,13 +679,30 @@ export default function NotificationBell() {
   const [appealViewReason,  setAppealViewReason]  = useState("");
   const [strikeResetPopup,  setStrikeResetPopup]  = useState(null);
   const [strikeAppealPopup, setStrikeAppealPopup] = useState(null);
+  const [wrongItemPopup,    setWrongItemPopup]    = useState(null);
   const [loading,   setLoading]   = useState(false);
   const dropRef = useRef(null);
   const isAdmin = role === "admin";
 
-  const unread = notifs.filter(n => !n.is_read).length;
+  // merge synSuspNotif เข้า list แล้ว sort ตามเวลา (newest first)
+  // ถ้ามี real suspension notification จาก period ปัจจุบันอยู่แล้ว → ไม่ใส่ synthetic ซ้ำ
+  const displayNotifs = (() => {
+    if (!synSuspNotif) return notifs;
+    if (suspendedUntil) {
+      const suspStart = new Date(new Date(suspendedUntil).getTime() - 31 * 24 * 60 * 60 * 1000);
+      const hasRealNow = notifs.some(
+        n => n.type === "suspension" && new Date(n.created_at) >= suspStart
+      );
+      if (hasRealNow) return notifs;
+    }
+    const merged = [synSuspNotif, ...notifs];
+    merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return merged;
+  })();
+  const unread = displayNotifs.filter(n => !n.is_read).length;
 
   const fetchNotifs = useCallback(async () => {
+    console.log("[NotifBell] fetchNotifs called, token:", token ? "ok" : "null");
     if (!token) return;
     try {
       setLoading(true);
@@ -471,9 +711,22 @@ export default function NotificationBell() {
       });
       if (res.ok) {
         const data = await res.json();
-        setNotifs(Array.isArray(data) ? data : []);
+        console.log("[NotifBell] fetched:", data?.length, "items");
+        const sorted = (Array.isArray(data) ? data : []).sort((a, b) => {
+          const timeDiff = new Date(b.created_at) - new Date(a.created_at);
+          // ถ้า timestamp ห่างกันไม่เกิน 5 นาที ให้ suspension ขึ้นก่อนเสมอ
+          if (Math.abs(timeDiff) < 300000) {
+            const w = t => t === "suspension" ? 1 : 0;
+            const wDiff = w(b.type) - w(a.type);
+            if (wDiff !== 0) return wDiff;
+          }
+          return timeDiff;
+        });
+        setNotifs(sorted);
+      } else {
+        console.warn("[NotifBell] fetch failed:", res.status);
       }
-    } catch { /* silent */ }
+    } catch (e) { console.warn("[NotifBell] error:", e); }
     finally { setLoading(false); }
   }, [token]);
 
@@ -483,6 +736,42 @@ export default function NotificationBell() {
     const interval = setInterval(fetchNotifs, 60000);
     return () => clearInterval(interval);
   }, [fetchNotifs]);
+
+  // ── ถ้า user ถูก suspend → inject notification + แสดง popup ────────────────────
+  useEffect(() => {
+    if (!token || role === "admin" || role === "school_admin") return;
+    fetch(`${BASE}/donations/my-suspension`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.is_suspended) return;
+        setIsSuspended(true);
+        setSuspendedUntil(data.suspended_until);
+        setHasPendingAppeal(!!data.has_pending_appeal);
+        if (data.appeal_reason) setAppealViewReason(data.appeal_reason);
+        const ackKey  = `suspAck_${data.suspended_until}`;
+        const synBody = JSON.stringify({
+          message:         "เนื่องจากมีประวัติส่งรายการบริจาคไม่ตรง 3 ครั้ง คุณถูกระงับการบริจาคผ่านพัสดุและ drop-off เป็นเวลา 30 วัน",
+          suspended_until: data.suspended_until,
+          strike_count:    data.strike_count,
+        });
+        const synNotif = {
+          notification_id: "synthetic_suspension",
+          type:            "suspension",
+          title:           "คุณถูกระงับการบริจาคชั่วคราว 30 วัน",
+          body:            synBody,
+          is_read:         !!localStorage.getItem(ackKey),
+          created_at:      new Date().toISOString(),
+          _ackKey:         ackKey,
+        };
+        // เก็บไว้ใน state แยก (ไม่โดนทับโดย fetchNotifs)
+        setSynSuspNotif(synNotif);
+        // แสดง popup ถ้ายังไม่เคย ack
+        if (!localStorage.getItem(ackKey)) {
+          setSuspensionPopup({ ...synNotif, _ackKey: ackKey });
+        }
+      })
+      .catch(() => {});
+  }, [token, role]);
 
   // ── Socket.io: รับ notification แบบ real-time ────────────────────
   useEffect(() => {
@@ -527,7 +816,14 @@ export default function NotificationBell() {
   };
 
   const handleNotifClick = async (notif) => {
-    if (!notif.is_read) await markRead(notif.notification_id);
+    if (!notif.is_read) {
+      if (notif.notification_id === "synthetic_suspension") {
+        if (notif._ackKey) localStorage.setItem(notif._ackKey, "1");
+        setSynSuspNotif(prev => prev ? { ...prev, is_read: true } : prev);
+      } else {
+        await markRead(notif.notification_id);
+      }
+    }
     if (notif.type === "certificate") {
       setOpen(false);
       setCertPopup(notif);
@@ -555,6 +851,9 @@ export default function NotificationBell() {
     } else if (notif.type === "strike_appeal") {
       setOpen(false);
       setStrikeAppealPopup(notif);
+    } else if (notif.type === "wrong_item_report" || notif.type === "donation_clarify") {
+      setOpen(false);
+      setWrongItemPopup(notif);
     }
   };
 
@@ -601,14 +900,14 @@ export default function NotificationBell() {
 
             {/* List */}
             <div className="nb-list">
-              {loading && notifs.length === 0 ? (
+              {loading && displayNotifs.length === 0 ? (
                 <div className="nb-loading">กำลังโหลด...</div>
-              ) : notifs.length === 0 ? (
+              ) : displayNotifs.length === 0 ? (
                 <div className="nb-empty">
                   <div className="nb-empty-icon">🔔</div>
                   <div className="nb-empty-text">ยังไม่มีการแจ้งเตือน</div>
                 </div>
-              ) : notifs.map(notif => {
+              ) : displayNotifs.map(notif => {
                 const isCert          = notif.type === "certificate";
                 const isSuspension    = notif.type === "suspension";
                 const isAdminApproved = notif.type === "admin_approved";
@@ -621,7 +920,6 @@ export default function NotificationBell() {
                     className={`nb-item ${!notif.is_read ? "nb-item--unread" : ""}`}
                     onClick={() => handleNotifClick(notif)}
                   >
-                    {/* Icon */}
                     <div className={`nb-item-icon ${isCert ? "nb-item-icon--cert" : isSuspension ? "nb-item-icon--suspension" : isAdminApproved ? "nb-item-icon--approved" : "nb-item-icon--default"}`}>
                       <Icon
                         icon={isCert ? "mdi:certificate-outline" : isSuspension ? "mdi:account-cancel" : isAdminApproved ? "mdi:check-circle-outline" : "mdi:bell"}
@@ -629,28 +927,21 @@ export default function NotificationBell() {
                         style={{ color: "#fff" }}
                       />
                     </div>
-
-                    {/* Content */}
                     <div className="nb-item-body">
                       <div className={`nb-item-title ${!notif.is_read ? "nb-item-title--bold" : "nb-item-title--normal"}`}>
                         {notif.title}
                       </div>
-
                       {(isCert || isAdminApproved) && body.message && (
                         <div className="nb-item-preview">"{body.message}"</div>
                       )}
-
                       {isCert && (
                         <div className="nb-item-chip">
                           <Icon icon="mdi:download" width="11" />
                           รับใบประกาศนียบัตร
                         </div>
                       )}
-
                       <div className="nb-item-time">{timeAgo(notif.created_at)}</div>
                     </div>
-
-                    {/* Unread dot */}
                     {!notif.is_read && <div className="nb-item-dot" />}
                   </div>
                 );
@@ -680,8 +971,12 @@ export default function NotificationBell() {
       {issuePopup && (
         <DonationIssuePopup
           notif={issuePopup}
+          token={token}
           onClose={() => setIssuePopup(null)}
           onNavigate={() => { setIssuePopup(null); navigate("/donations/history"); }}
+          isSuspended={isSuspended}
+          hasPendingAppeal={hasPendingAppeal}
+          onAppeal={() => setAppealModal(true)}
         />
       )}
 
@@ -689,7 +984,10 @@ export default function NotificationBell() {
       {suspensionPopup && (
         <SuspensionPopup
           notif={suspensionPopup}
-          onClose={() => setSuspensionPopup(null)}
+          onClose={() => {
+            if (suspensionPopup._ackKey) localStorage.setItem(suspensionPopup._ackKey, "1");
+            setSuspensionPopup(null);
+          }}
           isAdmin={isAdmin}
           hasPendingAppeal={hasPendingAppeal}
           onAppeal={() => { setSuspensionPopup(null); setAppealModal(true); }}
@@ -746,6 +1044,14 @@ export default function NotificationBell() {
         <StrikeAppealPopup
           notif={strikeAppealPopup}
           onClose={() => setStrikeAppealPopup(null)}
+        />
+      )}
+
+      {/* Wrong Item Popup (admin) */}
+      {wrongItemPopup && (
+        <WrongItemPopup
+          notif={wrongItemPopup}
+          onClose={() => setWrongItemPopup(null)}
         />
       )}
     </>

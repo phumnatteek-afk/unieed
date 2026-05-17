@@ -183,11 +183,13 @@ export async function verifyAndIssueCertificate(req, res, next) {
             );
             }
         // ✅ INSERT fulfillment — นับเฉพาะ item ที่ item_condition === "usable"
+        let snap;
         {
-            const [[snap]] = await db.query(
+            const [[snapRow]] = await db.query(
                 `SELECT request_id, items_snapshot FROM donation_record WHERE donation_id = ?`,
                 [donation_id]
             );
+            snap = snapRow;
 
             if (snap) {
                 let snapItems = [];
@@ -348,6 +350,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
         // 4. Strike logic — เพิ่ม strike เฉพาะ wrong_item และยังไม่เคย issue ของ donation นี้
         let justSuspended = false;
         let suspendedUntilDate = null;
+        let suspDonor = null;
         if (!isAdmin && donation.donor_id && condition_status === "wrong_item") {
             const [[dr]] = await db.query(
                 `SELECT strike_issued FROM donation_record WHERE donation_id = ?`, [donation_id]
@@ -366,6 +369,7 @@ export async function verifyAndIssueCertificate(req, res, next) {
                 `SELECT strike_count, user_name FROM users WHERE user_id = ?`,
                 [donation.donor_id]
             );
+            suspDonor = donor;
             if (donor && donor.strike_count >= 3) {
                 const [[alreadySuspended]] = await db.query(
                     `SELECT suspended_until FROM users WHERE user_id = ? AND suspended_until > NOW()`,
@@ -382,45 +386,6 @@ export async function verifyAndIssueCertificate(req, res, next) {
                     );
                     justSuspended = true;
                     suspendedUntilDate = updated?.suspended_until;
-
-                    // แจ้ง donor ว่าถูกระงับ
-                    await db.query(
-                        `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
-                         VALUES (?, 'suspension', ?, ?, ?, 0, NOW())`,
-                        [
-                            donation.donor_id,
-                            "คุณถูกระงับการบริจาคชั่วคราว 30 วัน",
-                            JSON.stringify({
-                                message: "เนื่องจากมีประวัติส่งรายการบริจาคไม่ตรง 3 ครั้ง คุณถูกระงับการบริจาคผ่านพัสดุและ drop-off เป็นเวลา 30 วัน",
-                                suspended_until: suspendedUntilDate,
-                                strike_count: donor.strike_count,
-                                donor_name: donor.user_name,
-                            }),
-                            donation_id,
-                        ]
-                    );
-
-                    // แจ้ง admin ทุกคน
-                    const [admins] = await db.query(
-                        `SELECT user_id FROM users WHERE role = 'admin'`
-                    );
-                    await Promise.all(admins.map(admin =>
-                        db.query(
-                            `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
-                             VALUES (?, 'suspension', ?, ?, ?, 0, NOW())`,
-                            [
-                                admin.user_id,
-                                `ผู้บริจาค ${donor.user_name || "ไม่ระบุชื่อ"} ถูกระงับอัตโนมัติ (คำเตือน 3/3)`,
-                                JSON.stringify({
-                                    message: `ผู้บริจาคถูกระงับการส่งพัสดุและ drop-off เป็นเวลา 30 วัน เนื่องจากมีประวัติส่งรายการบริจาคไม่ตรง 3 ครั้ง`,
-                                    suspended_until: suspendedUntilDate,
-                                    donor_id: donation.donor_id,
-                                    donor_name: donor.user_name,
-                                }),
-                                donation_id,
-                            ]
-                        )
-                    ));
                 }
             }
             } // end else (strike not yet issued)
@@ -436,12 +401,22 @@ export async function verifyAndIssueCertificate(req, res, next) {
                     ? JSON.parse(donation.items_snapshot)
                     : donation.items_snapshot || [];
             } catch { snapForNotif = []; }
-            const condMapNotif = {};
-            for (const r of items_received) condMapNotif[r.uniform_type_id] = r.item_condition ?? null;
+            const condMapNotif   = {};
+            const reasonMapNotif = {};
+            const noteMapNotif   = {};
+            for (const r of items_received) {
+                condMapNotif[r.uniform_type_id]   = r.item_condition ?? null;
+                if (r.reason) reasonMapNotif[r.uniform_type_id] = r.reason;
+                if (r.note)   noteMapNotif[r.uniform_type_id]   = r.note;
+            }
             wrong_items = snapForNotif
                 .filter(it => condMapNotif[it.uniform_type_id] === "wrong_item")
-                .map(it => String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim())
-                .filter(Boolean);
+                .map(it => ({
+                    name:   String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim(),
+                    reason: reasonMapNotif[it.uniform_type_id] || null,
+                    note:   noteMapNotif[it.uniform_type_id]   || null,
+                }))
+                .filter(it => it.name);
         }
 
         if (donation.donor_id) {
@@ -496,14 +471,68 @@ export async function verifyAndIssueCertificate(req, res, next) {
                 });
             }
 
-            await db.query(
-                `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
-         VALUES (?, ?, ?, ?, ?, 0, NOW())`,
-                [donation.donor_id, notifType, notifTitle, notifBody, donation_id]
-            );
-            console.log("✅ notification inserted");
+            await sendNotification(donation.donor_id, {
+                type:   notifType,
+                title:  notifTitle,
+                body:   JSON.parse(notifBody),
+                ref_id: donation_id,
+            });
+            console.log("✅ notification sent (DB + socket)");
+
+            // ส่ง suspension notification หลัง wrong-item notification (เพื่อให้ notification_id สูงกว่า = ขึ้นบนใน bell)
+            if (justSuspended && suspendedUntilDate && suspDonor) {
+                await sendNotification(donation.donor_id, {
+                    type:  "suspension",
+                    title: "คุณถูกระงับการบริจาคชั่วคราว 30 วัน",
+                    body:  {
+                        message:         "เนื่องจากมีประวัติส่งรายการบริจาคไม่ตรง 3 ครั้ง คุณถูกระงับการบริจาคผ่านพัสดุและ drop-off เป็นเวลา 30 วัน",
+                        suspended_until: suspendedUntilDate,
+                        strike_count:    suspDonor.strike_count,
+                        donor_name:      suspDonor.user_name,
+                    },
+                    ref_id: donation_id,
+                });
+                const [suspAdmins] = await db.query(`SELECT user_id FROM users WHERE role = 'admin'`);
+                await Promise.all(suspAdmins.map(admin =>
+                    sendNotification(admin.user_id, {
+                        type:  "suspension",
+                        title: `ผู้บริจาค ${suspDonor.user_name || "ไม่ระบุชื่อ"} ถูกระงับอัตโนมัติ (คำเตือน 3/3)`,
+                        body:  {
+                            message:         `ผู้บริจาคถูกระงับการส่งพัสดุและ drop-off เป็นเวลา 30 วัน เนื่องจากมีประวัติส่งรายการบริจาคไม่ตรง 3 ครั้ง`,
+                            suspended_until: suspendedUntilDate,
+                            donor_id:        donation.donor_id,
+                            donor_name:      suspDonor.user_name,
+                        },
+                        ref_id: donation_id,
+                    })
+                ));
+            }
         } else {
             console.log("⚠️ donor_id is null, skip notification");
+        }
+
+        // แจ้ง admin เมื่อ school ยืนยัน wrong_item
+        if (!isAdmin && condition_status === "wrong_item") {
+            const donorUserName = suspDonor?.user_name
+                || (donation.donor_id
+                    ? (await db.query(`SELECT user_name FROM users WHERE user_id = ?`, [donation.donor_id]))[0][0]?.user_name
+                    : null);
+            const [admins] = await db.query(`SELECT user_id FROM users WHERE role = 'admin'`);
+            await Promise.all(admins.map(admin =>
+                sendNotification(admin.user_id, {
+                    type:  "wrong_item_report",
+                    title: `${donorUserName || donation.donor_name || "ผู้บริจาค"} ส่งรายการไม่ตรง — ${donation.school_name}`,
+                    body:  {
+                        message:     `${donation.school_name} แจ้งว่ารายการบริจาคไม่ตรงตามที่ระบุ`,
+                        donation_id,
+                        donor_name:  donation.donor_name,
+                        user_name:   donorUserName,
+                        school_name: donation.school_name,
+                        wrong_items,
+                    },
+                    ref_id: donation_id,
+                })
+            ));
         }
 
         // แจ้ง school admin เมื่อ admin เป็นคนอนุมัติ

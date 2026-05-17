@@ -29,7 +29,10 @@ export default function ProjectDetailPage() {
   // ── Donate qty map: key = index ใน uniform_items array ──
   const [donateQty, setDonateQty] = useState({});
   const [suspension, setSuspension] = useState({ is_suspended: false, suspended_until: null, strike_count: 0 });
-  const [appealSent, setAppealSent] = useState(false);
+  const [appealOpen,    setAppealOpen]    = useState(false);
+  const [appealReason,  setAppealReason]  = useState("");
+  const [appealLoading, setAppealLoading] = useState(false);
+  const [appealErr,     setAppealErr]     = useState("");
 
   // ── AI match state (passed from AIAssessPage) ──
   const aiMatch = location.state?.aiMatch || null;
@@ -649,21 +652,18 @@ export default function ProjectDetailPage() {
                         <div style={{ color: "#64748b", marginTop: 4 }}>
                           จะสามารถใช้งานได้อีกครั้งในวันที่ {new Date(suspension.suspended_until).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}
                         </div>
-                        {!appealSent ? (
+                        {suspension.has_pending_appeal ? (
+                          <button disabled style={{ marginTop: 8, background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 8, padding: "5px 12px", fontSize: 12, color: "#92400e", cursor: "not-allowed", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            รอการตรวจสอบ
+                          </button>
+                        ) : (
                           <button
-                            onClick={async () => {
-                              try {
-                                const { postJson } = await import("../../../api/http.js");
-                                await postJson("/donations/appeal-strike", {}, true);
-                                setAppealSent(true);
-                              } catch {}
-                            }}
+                            onClick={() => { setAppealOpen(true); setAppealReason(""); setAppealErr(""); }}
                             style={{ marginTop: 8, background: "none", border: "1px solid #fca5a5", borderRadius: 8, padding: "5px 12px", fontSize: 12, color: "#dc2626", cursor: "pointer", fontFamily: "inherit" }}
                           >
                             ขอให้ทีมงานตรวจสอบ
                           </button>
-                        ) : (
-                          <div style={{ marginTop: 8, fontSize: 12, color: "#16a34a" }}>✓ ส่งคำร้องเรียบร้อยแล้ว</div>
                         )}
                       </div>
                     )}
@@ -905,6 +905,91 @@ export default function ProjectDetailPage() {
           </>
         )}
       </div>
+
+      {/* Appeal Modal */}
+      {appealOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => setAppealOpen(false)}>
+          <div style={{ background: "#fff", borderRadius: 18, width: "100%", maxWidth: 460, overflow: "hidden", maxHeight: "90vh", display: "flex", flexDirection: "column" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ background: "#1d4ed8", padding: "18px 24px", textAlign: "center", flexShrink: 0 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "#fff" }}>ขอให้ทีมงานตรวจสอบ</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", marginTop: 4 }}>ชี้แจงเหตุผลเพื่อขอปลดล็อคการบริจาค</div>
+            </div>
+            <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+              {/* Wrong-item timeline */}
+              {suspension.wrong_item_cases?.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    ประวัติรายการไม่ตรง
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {suspension.wrong_item_cases.map(c => (
+                      <div key={c.round} style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                        <div style={{ background: "#dc2626", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 700, padding: "2px 8px", whiteSpace: "nowrap", flexShrink: 0, marginTop: 1 }}>
+                          ครั้งที่ {c.round}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b", marginBottom: 3 }}>{c.school_name}</div>
+                          {c.wrong_items?.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                              {c.wrong_items.map((item, idx) => (
+                                <span key={idx} style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 99, fontSize: 11, padding: "2px 8px" }}>
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+                            {new Date(c.updated_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 8 }}>อธิบายสิ่งที่เกิดขึ้น หรือเหตุผลที่คิดว่าการระงับนี้ไม่ถูกต้อง</div>
+              <textarea
+                value={appealReason}
+                onChange={e => setAppealReason(e.target.value)}
+                rows={4}
+                placeholder="เช่น ของที่ส่งตรงตามที่โครงการระบุทุกอย่าง มีหลักฐานการซื้อ..."
+                onFocus={e => { e.target.style.outline = "none"; e.target.style.boxShadow = "none"; }}
+                style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxShadow: "none", marginBottom: 8 }}
+              />
+              {appealErr && <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 8 }}>{appealErr}</div>}
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button onClick={() => setAppealOpen(false)} disabled={appealLoading}
+                  style={{ padding: "9px 18px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc", color: "#64748b", fontSize: 13, cursor: "pointer" }}>
+                  ยกเลิก
+                </button>
+                <button
+                  disabled={appealLoading}
+                  onClick={async () => {
+                    if (!appealReason.trim()) return setAppealErr("กรุณาระบุเหตุผล");
+                    setAppealLoading(true);
+                    setAppealErr("");
+                    try {
+                      const { postJson } = await import("../../../api/http.js");
+                      await postJson("/donations/appeal-strike", { reason: appealReason.trim() }, true);
+                      setSuspension(prev => ({ ...prev, has_pending_appeal: true }));
+                      setAppealOpen(false);
+                    } catch (e) {
+                      setAppealErr(e?.message || "ส่งไม่สำเร็จ กรุณาลองใหม่");
+                    } finally {
+                      setAppealLoading(false);
+                    }
+                  }}
+                  style={{ padding: "9px 20px", borderRadius: 10, border: "none", background: "#2563eb", color: "#fff", fontSize: 13, fontWeight: 600, cursor: appealLoading ? "not-allowed" : "pointer", opacity: appealLoading ? 0.7 : 1 }}
+                >
+                  {appealLoading ? "กำลังส่ง..." : "ส่งคำร้อง"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer id="about" className="footer">
         <div className="footerInner">

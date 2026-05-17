@@ -200,8 +200,10 @@ export async function runMigrations() {
     `);
 
     // ── donation_record ───────────────────────────────────
-    await addColumnIfMissing("donation_record", "admin_resolved_at", "DATETIME NULL DEFAULT NULL");
-    await addColumnIfMissing("donation_record", "strike_issued",     "TINYINT(1) NOT NULL DEFAULT 0");
+    await addColumnIfMissing("donation_record", "admin_resolved_at",   "DATETIME NULL DEFAULT NULL");
+    await addColumnIfMissing("donation_record", "strike_issued",       "TINYINT(1) NOT NULL DEFAULT 0");
+    await addColumnIfMissing("donation_record", "clarification_text",  "TEXT NULL DEFAULT NULL");
+    await addColumnIfMissing("donation_record", "clarified_at",        "DATETIME NULL DEFAULT NULL");
 
     // ── payouts ───────────────────────────────────────────
     // สร้าง table payouts ถ้ายังไม่มี

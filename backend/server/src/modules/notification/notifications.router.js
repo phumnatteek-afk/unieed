@@ -9,9 +9,11 @@ const r = Router();
 r.get("/", auth, async (req, res, next) => {
   try {
     const [rows] = await db.query(
-      `SELECT * FROM notifications
+      `SELECT notification_id, user_id, type, title, body, is_read, ref_id,
+              DATE_FORMAT(created_at, '%Y-%m-%dT%H:%i:%s.000Z') AS created_at
+       FROM notifications
        WHERE user_id = ?
-       ORDER BY created_at DESC
+       ORDER BY created_at DESC, notification_id DESC
        LIMIT 50`,
       [req.user.user_id]
     );

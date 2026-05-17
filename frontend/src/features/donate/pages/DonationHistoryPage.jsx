@@ -284,7 +284,7 @@ export default function DonationHistoryPage() {
               </div>
               <div style={{ fontSize: 13, color: "#b91c1c" }}>
                 ระงับถึง {new Date(suspension.suspended_until).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
-                {" · "}strike {suspension.strike_count}/3
+                {" · "}คำเตือน {suspension.strike_count}/3
               </div>
             </div>
             {(suspension.has_pending_appeal || appealDone) ? (
