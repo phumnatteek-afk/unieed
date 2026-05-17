@@ -546,6 +546,9 @@ export default function NotificationBell() {
           }
         })
         .catch(() => {});
+    } else if (notif.type === "admin_approved") {
+      setOpen(false);
+      navigate("/school/donations");
     } else if (notif.type === "strike_reset") {
       setOpen(false);
       setStrikeResetPopup(notif);
@@ -606,8 +609,9 @@ export default function NotificationBell() {
                   <div className="nb-empty-text">ยังไม่มีการแจ้งเตือน</div>
                 </div>
               ) : notifs.map(notif => {
-                const isCert       = notif.type === "certificate";
-                const isSuspension = notif.type === "suspension";
+                const isCert          = notif.type === "certificate";
+                const isSuspension    = notif.type === "suspension";
+                const isAdminApproved = notif.type === "admin_approved";
                 let body = {};
                 try { body = JSON.parse(notif.body); } catch { /* noop */ }
 
@@ -618,9 +622,9 @@ export default function NotificationBell() {
                     onClick={() => handleNotifClick(notif)}
                   >
                     {/* Icon */}
-                    <div className={`nb-item-icon ${isCert ? "nb-item-icon--cert" : isSuspension ? "nb-item-icon--suspension" : "nb-item-icon--default"}`}>
+                    <div className={`nb-item-icon ${isCert ? "nb-item-icon--cert" : isSuspension ? "nb-item-icon--suspension" : isAdminApproved ? "nb-item-icon--approved" : "nb-item-icon--default"}`}>
                       <Icon
-                        icon={isCert ? "mdi:certificate-outline" : isSuspension ? "mdi:account-cancel" : "mdi:bell"}
+                        icon={isCert ? "mdi:certificate-outline" : isSuspension ? "mdi:account-cancel" : isAdminApproved ? "mdi:check-circle-outline" : "mdi:bell"}
                         width="18"
                         style={{ color: "#fff" }}
                       />
@@ -632,7 +636,7 @@ export default function NotificationBell() {
                         {notif.title}
                       </div>
 
-                      {isCert && body.message && (
+                      {(isCert || isAdminApproved) && body.message && (
                         <div className="nb-item-preview">"{body.message}"</div>
                       )}
 

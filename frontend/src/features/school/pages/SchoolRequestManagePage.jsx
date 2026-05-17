@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson, getBlob } from "../../../api/http.js";
 import { schoolRequestSvc } from "../services/schoolRequest.service.js";
 import StudentModal from "../components/StudentModal.jsx";
@@ -14,7 +15,7 @@ function projectStatusMeta(status) {
     case "open":     return { label: "กำลังเปิดรับบริจาค", cls: "pill-green"  };
     case "closed":   return { label: "ปิดรับบริจาคแล้ว",   cls: "pill-yellow" };
     case "archived": return { label: "จบโครงการแล้ว",      cls: "pill-gray"   };
-    case "paused":   return { label: "พักโครงการชั่วคราว", cls: "pill-yellow" };
+    case "paused":   return { label: "ได้รับครบแล้ว — ซ่อนจากฟีดชั่วคราว", cls: "pill-green" };
     case "draft":    return { label: "ฉบับร่าง",           cls: "pill-blue"   };
     default:         return { label: "ไม่ทราบสถานะ",        cls: "pill-gray"   };
   }
@@ -83,6 +84,7 @@ export default function SchoolRequestManagePage() {
   const { requestId } = useParams();
   const navigate      = useNavigate();
   const location      = useLocation();
+  const { token }     = useAuth();
 
   const [project,      setProject]      = useState(null);
   const [loading,      setLoading]      = useState(true);
@@ -103,6 +105,19 @@ export default function SchoolRequestManagePage() {
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [closeConfirm, setCloseConfirm] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [pendingModal, setPendingModal] = useState({ show: false, count: 0 });
+  const BANNER_KEY = `canOpenBanner_${requestId}`;
+  // canOpenProject = conditions met (persist ใน sessionStorage, ไม่ถูกลบเมื่อ dismiss)
+  const [canOpenProject, setCanOpenProject] = useState(() => sessionStorage.getItem(BANNER_KEY) === "1");
+  // bannerDismissed = local state ควบคุมการซ่อน banner เท่านั้น
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const canOpenBanner = canOpenProject && !bannerDismissed;
+
+  const setCanOpenBannerTrue = () => {
+    sessionStorage.setItem(BANNER_KEY, "1");
+    setCanOpenProject(true);
+    setBannerDismissed(false);
+  };
 
   const meta = projectStatusMeta(project?.status);
 
@@ -208,7 +223,6 @@ export default function SchoolRequestManagePage() {
   const handleCloseProject = async () => {
     try {
       setClosing(true);
-      const token = localStorage.getItem("token");
       const res = await fetch(`http://localhost:3000/school/projects/${requestId}/close`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
@@ -217,6 +231,11 @@ export default function SchoolRequestManagePage() {
       if (!res.ok) throw new Error(data.message || "ปิดโครงการไม่สำเร็จ");
       setCloseConfirm(false);
       await loadProject();
+      if (data.pending_count > 0) {
+        setPendingModal({ show: true, count: data.pending_count });
+      } else {
+        setCanOpenBannerTrue();
+      }
     } catch (e) {
       alert(e.message);
     } finally {
@@ -271,6 +290,21 @@ export default function SchoolRequestManagePage() {
               <Icon icon="mdi:lock-outline" width="16" /> ปิดโครงการ
             </button>
           )}
+          {canOpenProject && bannerDismissed && (
+            <button
+              type="button"
+              onClick={() => navigate("/school/request/new")}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", borderRadius: 10,
+                background: "#f0fdf4", color: "#15803d",
+                border: "1.5px solid #86efac",
+                fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              <Icon icon="mdi:plus-circle-outline" width="16" /> เปิดโครงการใหม่
+            </button>
+          )}
           <button
             className="pm-edit-btn"
             onClick={() => navigate(`/school/projects/${requestId}/edit`)}
@@ -283,8 +317,50 @@ export default function SchoolRequestManagePage() {
 
       {err && <div className="pm-err"><Icon icon="mdi:alert-circle" width="16" /> {err}</div>}
 
+      {/* ══ PAUSED BANNER ════════════════════════════════ */}
+      {project?.status === "paused" && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          background: "#f0fdf4", border: "1.5px solid #86efac",
+          borderRadius: 12, padding: "14px 16px", marginBottom: 16,
+        }}>
+          <Icon icon="mdi:check-circle" width={22} color="#16a34a" style={{ flexShrink: 0 }} />
+          <div>
+            <div style={{ fontWeight: 700, color: "#15803d", fontSize: 14 }}>ได้รับชุดครบตามจำนวนที่ต้องการแล้ว</div>
+            <div style={{ fontSize: 12, color: "#166534", marginTop: 2 }}>โครงการนี้ถูกซ่อนจากฟีดชั่วคราว — จะกลับมาปรากฏเมื่อเพิ่มนักเรียนหรือจำนวนความต้องการใหม่</div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ CAN OPEN BANNER ══════════════════════════════ */}
+      {canOpenBanner && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          background: "#f0fdf4", border: "1.5px solid #86efac",
+          borderRadius: 12, padding: "14px 16px", marginBottom: 16,
+        }}>
+          <Icon icon="mdi:check-circle" width={22} color="#16a34a" style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, color: "#15803d", fontSize: 14 }}>ไม่มีรายการค้าง — เปิดโครงการใหม่ได้ทันที</div>
+            <div style={{ fontSize: 12, color: "#166534", marginTop: 2 }}>รายการบริจาคทั้งหมดได้รับการยืนยันครบแล้ว</div>
+          </div>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            style={{ background: "none", border: "1.5px solid #86efac", borderRadius: 8, padding: "6px 12px", fontWeight: 600, fontSize: 12, color: "#166534", cursor: "pointer", whiteSpace: "nowrap" }}
+          >
+            ไม่ใช่ตอนนี้
+          </button>
+          <button
+            onClick={() => navigate("/school/request/new")}
+            style={{ background: "#16a34a", border: "none", borderRadius: 8, padding: "6px 14px", fontWeight: 700, fontSize: 12, color: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}
+          >
+            เปิดโครงการใหม่ →
+          </button>
+        </div>
+      )}
+
       {/* ══ CLOSED BANNER ════════════════════════════════ */}
-      {project?.status === "closed" && (() => {
+      {project?.status === "closed" && !canOpenProject && (() => {
         const canCreateDate = project.end_date
           ? new Date(new Date(project.end_date).getTime() + 14 * 24 * 60 * 60 * 1000)
           : null;
@@ -297,6 +373,9 @@ export default function SchoolRequestManagePage() {
             <span>
               โครงการปิดแล้ว — ยังสามารถอัปเดตสถานะรายการได้อีก 14 วัน
               {formatted && <> สร้างโครงการใหม่ได้ตั้งแต่ <strong>{formatted}</strong></>}
+              <span style={{ display: "block", fontSize: 12, color: "#92400e", marginTop: 3 }}>
+                หากรายการบริจาคทั้งหมดได้รับการยืนยันก่อนครบ 14 วัน สามารถสร้างโครงการใหม่ได้ทันที
+              </span>
             </span>
           </div>
         );
@@ -621,6 +700,48 @@ export default function SchoolRequestManagePage() {
         onDone={loadStudentsAndTypes}
       />
 
+      {/* ── Pending Modal หลังปิดโครงการ ── */}
+      {pendingModal.show && createPortal(
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 9999, padding: 16,
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: 28,
+            maxWidth: 400, width: "100%",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+          }}>
+            <div style={{ fontSize: 20, marginBottom: 8 }}>⚠️</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a2e", marginBottom: 10 }}>
+              ยังมีรายการบริจาคค้างอยู่
+            </div>
+            <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.8, marginBottom: 20 }}>
+              มีรายการที่รอยืนยัน <strong style={{ color: "#DC2626" }}>{pendingModal.count} รายการ</strong><br />
+              กรุณาตรวจสอบและยืนยันให้ครบ<br /><br />
+              ระบบจะอนุญาตให้เปิดโครงการใหม่ได้<br />
+              • <strong>ทันที</strong> — เมื่อเคลียร์รายการค้างครบ<br />
+              • <strong>อัตโนมัติ</strong> — เมื่อครบ 14 วันหลังปิด
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setPendingModal({ show: false, count: 0 })}
+                style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              >
+                รับทราบ
+              </button>
+              <button
+                onClick={() => { setPendingModal({ show: false, count: 0 }); navigate("/school/donations"); }}
+                style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: "#FFBE1B", color: "#1a1a2e", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+              >
+                ดูรายการค้าง →
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* ── Confirm ปิดโครงการ ── */}
       {closeConfirm && createPortal(
         <div style={{
@@ -637,8 +758,8 @@ export default function SchoolRequestManagePage() {
               ยืนยันปิดโครงการ?
             </div>
             <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, marginBottom: 20 }}>
-              โครงการจะหยุดรับบริจาคทันที และจะไม่สามารถเปิดใหม่ได้<br />
-              ยังสามารถอัปเดตสถานะรายการได้อีก <strong>14 วัน</strong> หลังปิด
+              โครงการจะหยุดรับบริจาคทันที และจะไม่แสดงในหน้าหลักอีกต่อไป<br />
+              หากไม่มีรายการบริจาคค้าง สามารถเปิดโครงการใหม่ได้ทันที
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button

@@ -1,5 +1,7 @@
 // certificate.controller.js
 import { db } from "../../config/db.js";
+import { sendNotification } from "../../lib/notify.js";
+import { syncProjectFeedStatus } from "../school/school.service.js";
 import {
     genCertCode,
     buildCertHtml,
@@ -242,9 +244,14 @@ export async function verifyAndIssueCertificate(req, res, next) {
             }
         }
 
+        // ซิงค์สถานะโครงการ (pause ถ้าครบ / open ถ้ายังไม่ครบ)
+        if (snap?.request_id) {
+            await syncProjectFeedStatus(snap.request_id).catch(() => {});
+        }
+
         // 2. ดึงข้อมูลบริจาค
         const [rows] = await db.query(
-            `SELECT dr.*, req.request_title, s.school_name
+            `SELECT dr.*, req.request_title, req.school_id, s.school_name
        FROM donation_record dr
        JOIN donation_request req ON req.request_id = dr.request_id
        JOIN schools s ON s.school_id = req.school_id
@@ -497,6 +504,39 @@ export async function verifyAndIssueCertificate(req, res, next) {
             console.log("✅ notification inserted");
         } else {
             console.log("⚠️ donor_id is null, skip notification");
+        }
+
+        // แจ้ง school admin เมื่อ admin เป็นคนอนุมัติ
+        if (isAdmin && donation.school_id) {
+            const [[schoolUser]] = await db.query(
+                `SELECT user_id FROM users WHERE role = 'school_admin' AND school_id = ? AND status = 'active' LIMIT 1`,
+                [donation.school_id]
+            );
+            if (schoolUser) {
+                let itemsSummary = "";
+                try {
+                    const snapItems = typeof donation.items_snapshot === "string"
+                        ? JSON.parse(donation.items_snapshot)
+                        : (donation.items_snapshot || []);
+                    itemsSummary = snapItems
+                        .map(it => `${String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} ${it.quantity} ตัว`)
+                        .join(", ");
+                } catch { /* noop */ }
+
+                await sendNotification(schoolUser.user_id, {
+                    type: "admin_approved",
+                    title: `แอดมินอนุมัติรายการบริจาคของ ${donation.donor_name} แล้ว`,
+                    body: {
+                        message: itemsSummary
+                            ? `${itemsSummary} จาก ${donation.donor_name}`
+                            : `รายการบริจาคจาก ${donation.donor_name} ได้รับการอนุมัติแล้ว`,
+                        donation_id,
+                        donor_name: donation.donor_name,
+                        project_title: donation.request_title,
+                    },
+                    ref_id: donation_id,
+                });
+            }
         }
 
         res.json({ success: true, certificate: cert });

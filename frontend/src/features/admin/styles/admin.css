@@ -335,6 +335,11 @@ textarea{
   resize: vertical;
   margin-top: 12px;
 }
+.adPlainTextarea:focus {
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
 
 /* Link in card */
 .card a{

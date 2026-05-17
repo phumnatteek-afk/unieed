@@ -1,6 +1,7 @@
 // src/pages/school/EditProjectPage.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson, request } from "../../../api/http.js";
 import "../styles/EditProjectPage.css";
 
@@ -125,6 +126,7 @@ const cKey = (catId, level) => `${catId}__${level ?? "null"}`;
 export default function EditProjectPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { token } = useAuth();
 
   const [project,     setProject]     = useState(null);
   const [title,       setTitle]       = useState("");
@@ -228,8 +230,7 @@ if (!cs[k] || isSchoolImage) {
 useEffect(() => {
   async function loadTypes() {
     try {
-      const token = localStorage.getItem("token");
-
+      
       const res = await fetch(`${BASE}/school/uniform-types`, {
         headers: { Authorization: token ? `Bearer ${token}` : "" }
       });
@@ -302,8 +303,7 @@ for (const cat of MAIN_CATEGORIES) {
     setErr(""); setUploading(true);
     try {
       const fd = new FormData(); fd.append("image", file);
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${BASE}/school/projects/${id}/image`, {
+            const res = await fetch(`${BASE}/school/projects/${id}/image`, {
         method: "POST", headers: { Authorization: token ? `Bearer ${token}` : "" }, body: fd,
       });
       const data = await res.json();
@@ -384,8 +384,7 @@ for (const cat of MAIN_CATEGORIES) {
         fd.append("category_id", modalCat.id);
         fd.append("custom_type_name", typeName);
 
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${BASE}/school/projects/${id}/uniform-images/${selectedTypeId}`, {
+                const res = await fetch(`${BASE}/school/projects/${id}/uniform-images/${selectedTypeId}`, {
           method: "POST",
           headers: { Authorization: token ? `Bearer ${token}` : "" },
           body: fd,
@@ -430,8 +429,7 @@ for (const cat of MAIN_CATEGORIES) {
       return;
     }
     try {
-      const token = localStorage.getItem("token");
-      const qs = `?education_level=${encodeURIComponent(activeLevel)}`;
+            const qs = `?education_level=${encodeURIComponent(activeLevel)}`;
       const res = await fetch(`${BASE}/school/projects/${id}/uniform-images/${uniformTypeId}${qs}`, {
         method: "DELETE", headers: { Authorization: token ? `Bearer ${token}` : "" },
       });

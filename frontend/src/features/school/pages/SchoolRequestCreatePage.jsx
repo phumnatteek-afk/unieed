@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext.jsx";
 import { postJson } from "../../../api/http.js";
 import "../styles/schoolRequestCreate.css";
 
 export default function SchoolRequestCreatePage() {
   const nav = useNavigate();
+  const { token } = useAuth();
 
   const [request_title, setTitle] = useState("");
   const [request_description, setDesc] = useState("");
@@ -47,7 +49,7 @@ export default function SchoolRequestCreatePage() {
     formData.append("file", imageFile);
     const res = await fetch("http://localhost:3000/upload/image?type=project", {
       method: "POST",
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
     const data = await res.json();
@@ -170,7 +172,6 @@ export default function SchoolRequestCreatePage() {
             <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, fontWeight: 500 }}>ระยะเวลา</div>
             <div style={{ display: "flex", gap: 8 }}>
               {[
-                { label: "1 เดือน", months: 1 },
                 { label: "3 เดือน", months: 3 },
                 { label: "6 เดือน", months: 6 },
                 { label: "1 ปี",    months: 12 },

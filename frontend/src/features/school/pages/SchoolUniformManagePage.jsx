@@ -1,5 +1,6 @@
 // src/features/school/pages/SchoolUniformManagePage.jsx
 import { useEffect, useState } from "react";
+import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
 import "../styles/EditProjectPage.css";
 
@@ -170,6 +171,7 @@ function CategoryCard({ cat, level, state, onEdit, onReset }) {
 
 /* ─── Main Page ──────────────────────────────────────────────────────── */
 export default function SchoolUniformManagePage() {
+  const { token } = useAuth();
   // ── Projects ──
   const [projects,        setProjects]        = useState([]);
   const [selectedId,      setSelectedId]      = useState(null);
@@ -210,8 +212,7 @@ export default function SchoolUniformManagePage() {
   useEffect(() => {
     async function loadTypes() {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${BASE}/school/uniform-types`, {
+                const res = await fetch(`${BASE}/school/uniform-types`, {
           headers: { Authorization: token ? `Bearer ${token}` : "" },
         });
         const data = await res.json();
@@ -334,8 +335,7 @@ export default function SchoolUniformManagePage() {
         fd.append("category_id", modalCat.id);
         fd.append("custom_type_name", typeName);
 
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${BASE}/school/projects/${selectedId}/uniform-images/${selectedTypeId}`, {
+                const res = await fetch(`${BASE}/school/projects/${selectedId}/uniform-images/${selectedTypeId}`, {
           method: "POST",
           headers: { Authorization: token ? `Bearer ${token}` : "" },
           body: fd,
@@ -383,8 +383,7 @@ export default function SchoolUniformManagePage() {
       return;
     }
     try {
-      const token = localStorage.getItem("token");
-      const qs = `?education_level=${encodeURIComponent(activeLevel)}`;
+            const qs = `?education_level=${encodeURIComponent(activeLevel)}`;
       const res = await fetch(`${BASE}/school/projects/${selectedId}/uniform-images/${uniformTypeId}${qs}`, {
         method: "DELETE",
         headers: { Authorization: token ? `Bearer ${token}` : "" },

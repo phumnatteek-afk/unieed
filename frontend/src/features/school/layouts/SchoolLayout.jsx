@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getJson } from "../../../api/http.js";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
+import NotificationBell from "../../../pages/NotificationBell.jsx";
 import "../styles/school.css";
 
 export default function SchoolLayout() {
@@ -92,6 +93,7 @@ export default function SchoolLayout() {
               <span style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{schoolName}</span>
             </div>
           )}
+          <NotificationBell />
           <ProfileDropdown />
         </header>
 

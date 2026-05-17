@@ -80,7 +80,7 @@ function DeliveryCell({ d, onOpenTracking }) {
         </div>
         {d.tracking_number && (
           <button onClick={() => onOpenTracking(d.shipping_carrier, d.tracking_number)}
-            style={{ fontSize:11, color:"#2563eb", background:"none", border:"none", cursor:"pointer", padding:0, fontFamily:"monospace", marginTop:2 }}>
+            style={{ fontSize:11, color:"#2563eb", background:"none", border:"none", cursor:"pointer", padding:0, fontFamily:"monospace", marginTop:2, transform:"none" }}>
             #{d.tracking_number}
           </button>
         )}
@@ -94,7 +94,7 @@ function DeliveryCell({ d, onOpenTracking }) {
       </div>
       {d.tracking_number ? (
         <button onClick={() => onOpenTracking(d.shipping_carrier, d.tracking_number)}
-          style={{ fontSize:11, color:"#2563eb", background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:6, padding:"2px 8px", cursor:"pointer", fontFamily:"monospace", marginTop:3 }}>
+          style={{ fontSize:11, color:"#2563eb", background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:6, padding:"2px 8px", cursor:"pointer", fontFamily:"monospace", marginTop:3, transform:"none" }}>
           #{d.tracking_number}
         </button>
       ) : (
@@ -121,14 +121,19 @@ function ConfirmPopup({ donation, onConfirm, onCancel, loading }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onCancel}>
       <div style={{ background:"#fff", borderRadius:16, padding:"28px 32px", maxWidth:420, width:"90%", boxShadow:"0 20px 60px rgba(0,0,0,0.15)" }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize:32, textAlign:"center", marginBottom:12 }}>✅</div>
+        <div style={{ textAlign:"center", marginBottom:12 }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none" />
+            <path fill="#16a34a" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd" />
+          </svg>
+        </div>
         <div style={{ fontWeight:700, fontSize:16, color:"#0f172a", textAlign:"center", marginBottom:8 }}>อนุมัติรายการบริจาค</div>
         <div style={{ fontSize:13, color:"#64748b", textAlign:"center", marginBottom:20 }}>
           อนุมัติการบริจาคจาก <strong>{donation.donor_name}</strong> และออกใบ Certificate ให้ผู้บริจาคทันที
         </div>
         <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
-          <button onClick={onCancel} disabled={loading} style={{ padding:"9px 20px", borderRadius:8, border:"1.5px solid #e2e8f0", background:"#fff", color:"#64748b", fontSize:13, fontWeight:600, cursor:"pointer" }}>ยกเลิก</button>
-          <button onClick={onConfirm} disabled={loading} style={{ padding:"9px 20px", borderRadius:8, border:"none", background:loading?"#94a3b8":"#2563eb", color:"#fff", fontSize:13, fontWeight:600, cursor:loading?"not-allowed":"pointer" }}>
+          <button onClick={onCancel} disabled={loading} style={{ padding:"9px 20px", borderRadius:8, border:"1.5px solid #e2e8f0", background:"#fff", color:"#64748b", fontSize:13, fontWeight:600, cursor:"pointer", transform:"none" }}>ยกเลิก</button>
+          <button onClick={onConfirm} disabled={loading} style={{ padding:"9px 20px", borderRadius:8, border:"none", background:loading?"#94a3b8":"#2563eb", color:"#fff", fontSize:13, fontWeight:600, cursor:loading?"not-allowed":"pointer", transform:"none" }}>
             {loading ? "กำลังอนุมัติ..." : "ยืนยันอนุมัติ"}
           </button>
         </div>
@@ -142,7 +147,12 @@ function RejectPopup({ donation, onReject, onCancel, loading }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onCancel}>
       <div style={{ background:"#fff", borderRadius:16, padding:"28px 32px", maxWidth:460, width:"90%", boxShadow:"0 20px 60px rgba(0,0,0,0.15)" }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize:32, textAlign:"center", marginBottom:12 }}>❌</div>
+        <div style={{ textAlign:"center", marginBottom:12 }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none" />
+            <path fill="#dc2626" d="M12 2c5.53 0 10 4.47 10 10s-4.47 10-10 10S2 17.53 2 12S6.47 2 12 2m3.59 5L12 10.59L8.41 7L7 8.41L10.59 12L7 15.59L8.41 17L12 13.41L15.59 17L17 15.59L13.41 12L17 8.41z" />
+          </svg>
+        </div>
         <div style={{ fontWeight:700, fontSize:16, color:"#0f172a", textAlign:"center", marginBottom:8 }}>ไม่อนุมัติรายการบริจาค</div>
         <div style={{ fontSize:13, color:"#64748b", textAlign:"center", marginBottom:20 }}>จาก <strong>{donation.donor_name}</strong></div>
         <div style={{ marginBottom:20 }}>
@@ -150,18 +160,17 @@ function RejectPopup({ donation, onReject, onCancel, loading }) {
             เหตุผลที่ไม่อนุมัติ <span style={{ color:"#ef4444" }}>*</span>
           </label>
           <textarea rows={4}
+            className="adPlainTextarea"
             placeholder="เช่น พัสดุถูกตีกลับ, ของที่บริจาคไม่ตรงความต้องการ, ไม่มีหลักฐานการส่ง..."
             value={reason} onChange={e => setReason(e.target.value)}
-            style={{ width:"100%", boxSizing:"border-box", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#1e293b", resize:"vertical", outline:"none", fontFamily:"inherit", lineHeight:1.6 }}
-            onFocus={e => e.target.style.borderColor="#dc2626"}
-            onBlur={e => e.target.style.borderColor="#e2e8f0"}
+            style={{ width:"100%", boxSizing:"border-box", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#1e293b", resize:"vertical", outline:"none", fontFamily:"inherit", lineHeight:1.6, background:"#fff", marginTop:0 }}
           />
           {reason.trim()==="" && <div style={{ fontSize:11, color:"#ef4444", marginTop:4 }}>กรุณากรอกเหตุผล</div>}
         </div>
         <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
-          <button onClick={onCancel} disabled={loading} style={{ padding:"9px 20px", borderRadius:8, border:"1.5px solid #e2e8f0", background:"#fff", color:"#64748b", fontSize:13, fontWeight:600, cursor:"pointer" }}>ยกเลิก</button>
+          <button onClick={onCancel} disabled={loading} style={{ padding:"9px 20px", borderRadius:8, border:"1.5px solid #e2e8f0", background:"#fff", color:"#64748b", fontSize:13, fontWeight:600, cursor:"pointer", transform:"none" }}>ยกเลิก</button>
           <button onClick={() => onReject(reason)} disabled={loading||!reason.trim()}
-            style={{ padding:"9px 20px", borderRadius:8, border:"none", background:(loading||!reason.trim())?"#94a3b8":"#dc2626", color:"#fff", fontSize:13, fontWeight:600, cursor:(loading||!reason.trim())?"not-allowed":"pointer" }}>
+            style={{ padding:"9px 20px", borderRadius:8, border:"none", background:(loading||!reason.trim())?"#94a3b8":"#dc2626", color:"#fff", fontSize:13, fontWeight:600, cursor:(loading||!reason.trim())?"not-allowed":"pointer", transform:"none" }}>
             {loading ? "กำลังบันทึก..." : "ยืนยันไม่อนุมัติ"}
           </button>
         </div>
@@ -226,7 +235,7 @@ function DonationRow({ donation, token, doneStatus, onDone }) {
           {donation.strike_count > 0 && (
             <div style={{ marginTop:4 }}>
               <span style={{ fontSize:11, fontWeight:600, color:"#dc2626", background:"#fee2e2", border:"1px solid #fca5a5", borderRadius:20, padding:"2px 8px" }}>
-                ⚠ strike {donation.strike_count}/3
+                ⚠ คำเตือน {donation.strike_count}/3
               </span>
             </div>
           )}
@@ -237,7 +246,7 @@ function DonationRow({ donation, token, doneStatus, onDone }) {
         <td style={{ padding:"12px 16px" }} onClick={e => e.stopPropagation()}>
           {donation.donation_pic ? (
             <button onClick={() => setShowImage(true)}
-              style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:8, border:"1.5px solid #bfdbfe", background:"#eff6ff", color:"#2563eb", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+              style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:8, border:"1.5px solid #bfdbfe", background:"#eff6ff", color:"#2563eb", fontSize:12, fontWeight:600, cursor:"pointer", transform:"none" }}>
               <Icon icon="mdi:image-outline" width={13} />ดูรูปภาพ
             </button>
           ) : (
@@ -343,8 +352,24 @@ function DonationRow({ donation, token, doneStatus, onDone }) {
   );
 }
 
+const PROJECT_STATUS_META = {
+  open:     { label:"เปิดอยู่",  color:"#16a34a", bg:"#dcfce7" },
+  closed:   { label:"ปิดแล้ว",  color:"#dc2626", bg:"#fee2e2" },
+  archived: { label:"เก็บถาวร", color:"#64748b", bg:"#f1f5f9" },
+};
+
+function ProjectStatusBadge({ status }) {
+  const meta = PROJECT_STATUS_META[status] || PROJECT_STATUS_META.closed;
+  return (
+    <span style={{ fontSize:11, fontWeight:600, color:meta.color, background:meta.bg, padding:"2px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
+      {meta.label}
+    </span>
+  );
+}
+
 function SchoolCard({ school, onSelect }) {
-  const maxDays = Math.max(...school.donations.map(d => d.days_elapsed));
+  const allDonations = school.projects.flatMap(p => p.donations);
+  const maxDays = Math.max(...allDonations.map(d => d.days_elapsed));
   const urgent  = maxDays >= 14;
   return (
     <div onClick={() => onSelect(school)}
@@ -358,7 +383,7 @@ function SchoolCard({ school, onSelect }) {
         <div>
           <div style={{ fontWeight:600, fontSize:14, color:"#1e293b" }}>{school.school_name}</div>
           <div style={{ fontSize:12, color:"#64748b", marginTop:3, display:"flex", alignItems:"center", gap:6 }}>
-            {school.donations.length} รายการรอดำเนินการ · รายการเก่าสุด <DaysBadge days={maxDays} />
+            {allDonations.length} รายการรอดำเนินการ · รายการเก่าสุด <DaysBadge days={maxDays} />
           </div>
         </div>
       </div>
@@ -433,8 +458,8 @@ export default function AdminDonationManagement() {
       const json = await res.json();
       const list = json.schools ?? [];
       setSchools(list);
-      const totalDonations = list.reduce((s,sc) => s+sc.donations.length, 0);
-      const urgentSchools  = list.filter(sc => sc.donations.some(d => d.days_elapsed >= 14)).length;
+      const totalDonations = list.reduce((s,sc) => s + sc.projects.reduce((ps,p) => ps + p.donations.length, 0), 0);
+      const urgentSchools  = list.filter(sc => sc.projects.some(p => p.donations.some(d => d.days_elapsed >= 14))).length;
       setStats({ total:totalDonations, schools:list.length, urgent:urgentSchools });
     } catch(e) { console.error(e); }
     finally { setLoading(false); }
@@ -451,23 +476,29 @@ export default function AdminDonationManagement() {
     [schools, search]
   );
 
-  const filteredDonations = useMemo(() => {
-    if (!selectedSchool) return [];
-    return filterMethod === "all"
-      ? selectedSchool.donations
-      : selectedSchool.donations.filter(d => d.delivery_method === filterMethod);
-  }, [selectedSchool, filterMethod]);
+  const allSelectedDonations = useMemo(() =>
+    selectedSchool ? selectedSchool.projects.flatMap(p => p.donations) : [],
+  [selectedSchool]);
 
   const tabCounts = useMemo(() => {
-    if (!selectedSchool) return {};
-    const d = selectedSchool.donations;
+    const d = allSelectedDonations;
     return {
       all:             d.length,
       parcel:          d.filter(x => x.delivery_method === "parcel").length,
       dropoff:         d.filter(x => x.delivery_method === "dropoff").length,
       market_purchase: d.filter(x => x.delivery_method === "market_purchase").length,
     };
-  }, [selectedSchool]);
+  }, [allSelectedDonations]);
+
+  const filteredProjects = useMemo(() => {
+    if (!selectedSchool) return [];
+    return selectedSchool.projects.map(proj => ({
+      ...proj,
+      donations: filterMethod === "all"
+        ? proj.donations
+        : proj.donations.filter(d => d.delivery_method === filterMethod),
+    })).filter(proj => proj.donations.length > 0);
+  }, [selectedSchool, filterMethod]);
 
   return (
     <div style={{ padding:"28px 32px", maxWidth:1200, margin:"0 auto" }}>
@@ -520,43 +551,57 @@ export default function AdminDonationManagement() {
             <FilterTabs filterMethod={filterMethod} setFilterMethod={setFilterMethod} tabCounts={tabCounts} />
           </div>
 
-          <div style={{ background:"#fff", border:"1.5px solid #e2e8f0", borderRadius:14, overflow:"hidden" }}>
-            {/* School header */}
-            <div style={{ padding:"16px 20px", borderBottom:"1px solid #f1f5f9", display:"flex", alignItems:"center", gap:12 }}>
-              <div style={{ width:38, height:38, borderRadius:10, background:"#eff6ff", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                <Icon icon="teenyicons:school-outline" width={18} color="#2563eb" />
-              </div>
-              <div>
-                <div style={{ fontWeight:700, fontSize:15, color:"#0f172a" }}>{selectedSchool.school_name}</div>
-                <div style={{ fontSize:12, color:"#64748b" }}>{selectedSchool.donations.length} รายการที่เกิน 7 วันและยังไม่ได้รับการยืนยัน</div>
-              </div>
+          {/* School header */}
+          <div style={{ background:"#fff", border:"1.5px solid #e2e8f0", borderRadius:14, padding:"16px 20px", marginBottom:16, display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ width:38, height:38, borderRadius:10, background:"#eff6ff", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <Icon icon="teenyicons:school-outline" width={18} color="#2563eb" />
             </div>
+            <div>
+              <div style={{ fontWeight:700, fontSize:15, color:"#0f172a" }}>{selectedSchool.school_name}</div>
+              <div style={{ fontSize:12, color:"#64748b" }}>{allSelectedDonations.length} รายการที่เกิน 7 วันและยังไม่ได้รับการยืนยัน</div>
+            </div>
+          </div>
 
-            <div style={{ overflowX:"auto" }}>
-              <table style={{ width:"100%", borderCollapse:"collapse", minWidth:900 }}>
-                <thead>
-                  <tr style={{ background:"#f8fafc" }}>
-                    {["วันที่บริจาค","ผู้บริจาค","ข้อมูลการจัดส่ง","หลักฐาน","รายการบริจาค","สถานะ","จัดการ"].map(h => (
-                      <th key={h} style={{ padding:"10px 16px", fontSize:12, fontWeight:600, color:"#64748b", textAlign:"left", borderBottom:"1px solid #e2e8f0", whiteSpace:"nowrap" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredDonations.length === 0 ? (
-                    <tr><td colSpan={7} style={{ textAlign:"center", padding:32, color:"#94a3b8", fontSize:13 }}>ไม่มีรายการในหมวดนี้</td></tr>
-                  ) : filteredDonations.map(d => (
-                    <DonationRow 
-                      key={d.donation_id} 
-                      donation={d} 
-                      onRefresh={loadData} 
-                      token={token}
-                      doneStatus={doneMap[d.donation_id] ?? null}
-                      onDone={(id, data) => setDoneMap(prev => ({ ...prev, [id]: data }))}
-                    />
+          {/* Projects grouped */}
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            {filteredProjects.length === 0 ? (
+              <div style={{ textAlign:"center", padding:32, color:"#94a3b8", fontSize:13, background:"#fff", borderRadius:14, border:"1.5px solid #e2e8f0" }}>
+                ไม่มีรายการในหมวดนี้
+              </div>
+            ) : filteredProjects.map(proj => (
+              <div key={proj.request_id} style={{ background:"#fff", border:"1.5px solid #e2e8f0", borderRadius:14, overflow:"hidden" }}>
+                {/* Project header */}
+                <div style={{ padding:"12px 20px", borderBottom:"1px solid #f1f5f9", display:"flex", alignItems:"center", gap:10, background:"#f8fafc" }}>
+                  <Icon icon="mdi:clipboard-text-outline" width={16} color="#475569" />
+                  <span style={{ fontWeight:600, fontSize:14, color:"#1e293b", flex:1 }}>{proj.request_title}</span>
+                  <ProjectStatusBadge status={proj.project_status} />
+                  <span style={{ fontSize:12, color:"#94a3b8" }}>{proj.donations.length} รายการ</span>
+                </div>
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse", minWidth:900 }}>
+                    <thead>
+                      <tr style={{ background:"#f8fafc" }}>
+                        {["วันที่บริจาค","ผู้บริจาค","ข้อมูลการจัดส่ง","หลักฐาน","รายการบริจาค","สถานะ","จัดการ"].map(h => (
+                          <th key={h} style={{ padding:"10px 16px", fontSize:12, fontWeight:600, color:"#64748b", textAlign:"left", borderBottom:"1px solid #e2e8f0", whiteSpace:"nowrap" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {proj.donations.map(d => (
+                        <DonationRow
+                          key={d.donation_id}
+                          donation={d}
+                          onRefresh={loadData}
+                          token={token}
+                          doneStatus={doneMap[d.donation_id] ?? null}
+                          onDone={(id, data) => setDoneMap(prev => ({ ...prev, [id]: data }))}
+                        />
                       ))}
-                </tbody>
-              </table>
-            </div>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ) : (

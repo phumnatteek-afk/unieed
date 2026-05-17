@@ -9,6 +9,7 @@ import {
   insertCert,
   getCertByDonation,
 } from "../certificate/certificate.service.js";
+import { syncProjectFeedStatus } from "../school/school.service.js";
 
 // ── 1. Tracking Adapters ──────────────────────────────────────────────────────
 
@@ -292,6 +293,9 @@ export async function runAutoCheck() {
     } catch (certErr) {
       console.error(`[AutoCheck] ❌ Cert error donation_id=${donation_id}:`, certErr.message);
     }
+
+    // ซิงค์สถานะโครงการ (pause ถ้าครบ)
+    await syncProjectFeedStatus(donation.request_id).catch(() => {});
   }
 
   const summary = { total: overdueDonations.length, approved, skipped, runAt: new Date().toISOString() };
@@ -312,6 +316,7 @@ export async function getOverdueDonations() {
        dr.condition_status, dr.status,
        dr.reject_reason,
        TIMESTAMPDIFF(DAY, COALESCE(dr.donation_date, dr.created_at), DATE_ADD(NOW(), INTERVAL 7 HOUR)) AS days_elapsed,
+       req.request_id, req.request_title, req.status AS project_status,
        req.school_id, s.school_name,
        u.strike_count, u.suspended_until
      FROM donation_record dr
@@ -338,16 +343,30 @@ export async function getOverdueDonations() {
 
 export async function getOverdueDonationsBySchool() {
   const rows = await getOverdueDonations();
-  const grouped = {};
+  const schoolMap = {};
   for (const row of rows) {
-    if (!grouped[row.school_id]) {
-      grouped[row.school_id] = {
+    if (!schoolMap[row.school_id]) {
+      schoolMap[row.school_id] = {
         school_id:   row.school_id,
         school_name: row.school_name,
-        donations:   [],
+        projects:    {},
       };
     }
-    grouped[row.school_id].donations.push(row);
+    const sc = schoolMap[row.school_id];
+    if (!sc.projects[row.request_id]) {
+      sc.projects[row.request_id] = {
+        request_id:     row.request_id,
+        request_title:  row.request_title,
+        project_status: row.project_status,
+        donations:      [],
+      };
+    }
+    sc.projects[row.request_id].donations.push(row);
   }
-  return Object.values(grouped).sort((a, b) => b.donations.length - a.donations.length);
+  return Object.values(schoolMap)
+    .map(sc => ({ ...sc, projects: Object.values(sc.projects) }))
+    .sort((a, b) =>
+      b.projects.reduce((s, p) => s + p.donations.length, 0) -
+      a.projects.reduce((s, p) => s + p.donations.length, 0)
+    );
 }

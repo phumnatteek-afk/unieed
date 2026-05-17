@@ -239,6 +239,9 @@ export default function SchoolDonationPage() {
   const [search,       setSearch]       = useState("");
   const [filterMethod, setFilterMethod] = useState("all");
  
+  const [projectStatus, setProjectStatus] = useState(null);
+  const [latestRequestId, setLatestRequestId] = useState(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [confirmPopup, setConfirmPopup] = useState(null);
   const [verifyPopup,  setVerifyPopup]  = useState(null);
   const [apptPopup,    setApptPopup]    = useState(null);
@@ -252,15 +255,19 @@ export default function SchoolDonationPage() {
  
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
  
-  const loadDonations = async () => {
+  const loadDonations = async ({ checkCleared = false } = {}) => {
     try {
       setLoading(true);
       const projRes = await fetch(`${BASE}/school/projects/latest`, { headers });
       const proj    = await projRes.json();
       if (!proj?.request_id) { setDonations([]); return; }
+      setProjectStatus(proj.status);
+      setLatestRequestId(proj.request_id);
       const res  = await fetch(`${BASE}/donations/project/${proj.request_id}`, { headers });
       const data = await res.json();
-      setDonations(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setDonations(list);
+      if (checkCleared) setBannerDismissed(false);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -276,6 +283,15 @@ export default function SchoolDonationPage() {
     market:     donations.filter(d => d.delivery_method === "market_purchase").length,
   }), [donations]);
  
+  const showClearedBanner = projectStatus === "closed" && summary.pending === 0 && donations.length > 0 && !bannerDismissed;
+
+  // เมื่อเคลียร์หมดแล้ว → บอก SchoolRequestManagePage ผ่าน sessionStorage แทนการแสดง banner ที่นี่
+  useEffect(() => {
+    if (showClearedBanner && latestRequestId) {
+      sessionStorage.setItem(`canOpenBanner_${latestRequestId}`, "1");
+    }
+  }, [showClearedBanner, latestRequestId]);
+
   const overdueCount = useMemo(() =>
     donations.filter(d =>
       d.status === "pending" && (
@@ -312,7 +328,7 @@ export default function SchoolDonationPage() {
         body: JSON.stringify({ status: "approved" }),
       });
       setConfirmPopup(null);
-      loadDonations();
+      loadDonations({ checkCleared: true });
     } catch (e) { console.error(e); }
   };
 
@@ -360,7 +376,7 @@ export default function SchoolDonationPage() {
       setItemReasons({});
       setCheckedSet(new Set());
       setThankMsg("");
-      loadDonations();
+      loadDonations({ checkCleared: true });
     } catch (e) { console.error(e); }
     finally { setVerifying(false); }
   };
@@ -401,6 +417,7 @@ export default function SchoolDonationPage() {
           <p className="sdTitleSub">{donations.length} รายการทั้งหมด</p>
         </div>
       </div>
+
 
       {/* Warning: รายการเกิน 7 วัน */}
       {overdueCount > 0 && (

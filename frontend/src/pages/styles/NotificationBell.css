@@ -154,6 +154,10 @@
   background: linear-gradient(135deg, #991b1b, #dc2626);
 }
 
+.nb-item-icon--approved {
+  background: linear-gradient(135deg, #15803d, #16a34a);
+}
+
 .nb-item-body {
   flex: 1;
   min-width: 0;

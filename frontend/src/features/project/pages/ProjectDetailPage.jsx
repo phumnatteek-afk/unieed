@@ -627,7 +627,13 @@ export default function ProjectDetailPage() {
                   })()}
                 </div>
 
-                {["closed", "archived"].includes(project.status) ? (
+                {project.status === "paused" ? (
+                  <div className="pdClosedState">
+                    <div className="pdClosedEmoji">✅</div>
+                    <div className="pdClosedTitle">ได้รับชุดครบตามจำนวนที่ต้องการแล้ว</div>
+                    <div className="pdClosedSub">ขอบคุณทุกท่านที่ร่วมส่งต่อความห่วงใย — โครงการจะกลับมาหากมีความต้องการเพิ่มเติม</div>
+                  </div>
+                ) : ["closed", "archived"].includes(project.status) ? (
                   <div className="pdClosedState">
                     <div className="pdClosedEmoji">🎉</div>
                     <div className="pdClosedTitle">โครงการปิดรับบริจาคแล้ว</div>

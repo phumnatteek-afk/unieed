@@ -1,4 +1,4 @@
-import { getSchoolMe } from "./school.service.js";
+import { getSchoolMe, syncProjectFeedStatus } from "./school.service.js";
 import { db } from "../../config/db.js";
 import { cloudinary } from "../../config/cloudinary.js"; // ปรับ path ตามจริง
  
@@ -595,22 +595,15 @@ export async function createStudentWithNeeds(req, res) {
       if (!codeCheck[0]) newCode = providedCode; // ไม่ซ้ำ → ใช้รหัสที่กรอกมา
     }
     if (!newCode) {
-      // auto-generate ต่อจาก max ที่มีอยู่
-      const [lastCode] = await conn.query(
-        `SELECT student_code FROM students WHERE school_id = ? AND student_code IS NOT NULL
-         ORDER BY CAST(student_code AS UNSIGNED) DESC LIMIT 1`,
+      // FOR UPDATE lock ป้องกัน race condition — concurrent request จะรอ transaction นี้ commit ก่อน
+      const [[{ max_num }]] = await conn.query(
+        `SELECT MAX(CAST(student_code AS UNSIGNED)) AS max_num
+         FROM students
+         WHERE school_id = ? AND student_code IS NOT NULL
+         FOR UPDATE`,
         [school_id]
       );
-      if (lastCode[0]?.student_code) {
-        const match = String(lastCode[0].student_code).match(/\d+$/);
-        const num = match ? parseInt(match[0]) + 1 : 1;
-        newCode = String(num).padStart(5, "0");
-      } else {
-        const [[{ cnt }]] = await conn.query(
-          `SELECT COUNT(*) AS cnt FROM students WHERE school_id = ?`, [school_id]
-        );
-        newCode = String(Number(cnt) + 1).padStart(5, "0");
-      }
+      newCode = String((Number(max_num) || 0) + 1).padStart(5, "0");
     }
 
     const [ins] = await conn.query(
@@ -659,6 +652,8 @@ export async function createStudentWithNeeds(req, res) {
     }
  
     await conn.commit();
+    // นักเรียนใหม่เพิ่มความต้องการ → un-pause โครงการถ้าครบไปแล้ว
+    await syncProjectFeedStatus(request_id).catch(() => {});
     res.json({ message: "created", student_id });
   } catch (e) {
     await conn.rollback();
@@ -761,6 +756,8 @@ export async function updateStudentWithNeeds(req, res) {
  
  
     await conn.commit();
+    // ความต้องการเปลี่ยน → sync สถานะฟีดใหม่
+    await syncProjectFeedStatus(request_id).catch(() => {});
     res.json({ message: "updated" });
   } catch (e) {
     await conn.rollback();
@@ -827,17 +824,38 @@ export async function createProject(req, res, next) {
 
     // เช็คว่ามีโครงการที่ยัง open หรือ closed อยู่มั้ย
     const [existing] = await db.query(
-      `SELECT request_id, status FROM donation_request
+      `SELECT request_id, status, end_date FROM donation_request
        WHERE school_id = ? AND status IN ('open','closed') LIMIT 1`,
       [school_id]
     );
     if (existing[0]) {
-      const isClosed = existing[0].status === 'closed';
-      return res.status(400).json({
-        message: isClosed
-          ? "โครงการเก่าอยู่ในช่วง 14 วันหลังปิด ระบบจะเปิดให้สร้างโครงการใหม่ได้เมื่อโครงการเก่าถูกจัดเก็บอัตโนมัติ"
-          : "มีโครงการที่ยังเปิดอยู่ กรุณาปิดโครงการก่อนสร้างใหม่"
-      });
+      if (existing[0].status === 'open') {
+        return res.status(400).json({ message: "มีโครงการที่ยังเปิดอยู่ กรุณาปิดโครงการก่อนสร้างใหม่" });
+      }
+
+      // status === 'closed' → เช็ค pending และวันที่ผ่านไป
+      const [pendingRows] = await db.query(
+        `SELECT COUNT(*) as cnt FROM donation_record WHERE request_id = ? AND status = 'pending'`,
+        [existing[0].request_id]
+      );
+      const pendingCount = Number(pendingRows[0].cnt);
+      const endDate = new Date(existing[0].end_date);
+      const daysSinceClosed = Math.floor((Date.now() - endDate.getTime()) / (1000 * 60 * 60 * 24));
+      const daysRemaining = Math.max(0, 14 - daysSinceClosed);
+
+      if (pendingCount > 0 && daysRemaining > 0) {
+        return res.status(400).json({
+          message: "ยังมีรายการบริจาคค้างอยู่",
+          pending_count: pendingCount,
+          days_remaining: daysRemaining,
+        });
+      }
+
+      // เคลียร์แล้ว หรือ 14 วันผ่านแล้ว → archive โครงการเก่าแล้วสร้างใหม่ได้
+      await db.query(
+        `UPDATE donation_request SET status='archived' WHERE request_id=?`,
+        [existing[0].request_id]
+      );
     }
 
     // คำนวณ duration_months จาก start → end (round เป็นเดือน)
@@ -992,12 +1010,18 @@ export async function closeProject(req, res, next) {
     if (!rows[0]) return res.status(404).json({ message: "ไม่พบโครงการ" });
     if (rows[0].status !== "open") return res.status(400).json({ message: "โครงการนี้ไม่ได้อยู่ในสถานะเปิด" });
 
+    const [pendingRows] = await db.query(
+      `SELECT COUNT(*) as cnt FROM donation_record WHERE request_id = ? AND status = 'pending'`,
+      [request_id]
+    );
+    const pendingCount = Number(pendingRows[0].cnt);
+
     await db.query(
-      `UPDATE donation_request SET status='closed', end_date=COALESCE(end_date, CURDATE()) WHERE request_id=? AND school_id=?`,
+      `UPDATE donation_request SET status='closed', end_date=CURDATE() WHERE request_id=? AND school_id=?`,
       [request_id, school_id]
     );
 
-    res.json({ message: "ปิดโครงการเรียบร้อย" });
+    res.json({ message: "ปิดโครงการเรียบร้อย", pending_count: pendingCount });
   } catch (err) {
     next(err);
   }
