@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import {
   ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip,
@@ -134,28 +134,50 @@ export function FeeSummary({ fee }) {
   if (!fee) return null;
   return (
     <div className="slCard slFeeTable">
-      <div style={{ padding:"14px 18px", fontWeight:700, borderBottom:"1px solid #f1f5f9" }}>
-        สรุปค่าธรรมเนียม (เดือนนี้)
+      <div style={{ padding:"14px 18px", fontWeight:700, borderBottom:"1px solid #f1f5f9", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <span>สรุปรายได้และค่าบริการ (เดือนนี้)</span>
+        <span style={{ fontSize:11, fontWeight:400, color:"#94a3b8" }}>ค่าธรรมเนียม 15% (ขั้นต่ำ ฿20 ต่อออเดอร์)</span>
       </div>
       <div className="slFeeTable__row">
-        <span>รายได้รวมจากคำสั่งซื้อ</span>
+        <span>ยอดขายรวม (Gross)</span>
         <span className="slBlue" style={{ fontWeight:700 }}>{fmtBaht(fee.gross)}</span>
       </div>
-      <div className="slFeeTable__row">
-        <span>ค่าธรรมเนียมขั้นต่ำ (฿20)</span>
-        <span className="slAmber" style={{ fontWeight:700 }}>{fmtBaht(fee.fee_min)}</span>
+      <div className="slFeeTable__row" style={{ background:"#fffbeb" }}>
+        <span style={{ color:"#92400e" }}>
+          ค่าบริการแพลตฟอร์มที่ถูกหัก
+          <span style={{ fontSize:11, color:"#94a3b8", marginLeft:6 }}>
+            (ที่ใช้ขั้นต่ำ ฿20: {fmtBaht(fee.fee_min)} / ที่คิด 15%: {fmtBaht(fee.fee_pct)})
+          </span>
+        </span>
+        <span className="slAmber" style={{ fontWeight:700 }}>-{fmtBaht(fee.fee_total)}</span>
       </div>
       <div className="slFeeTable__row">
-        <span>ค่าธรรมเนียมระบบ 15%</span>
-        <span className="slAmber" style={{ fontWeight:700 }}>{fmtBaht(fee.fee_pct)}</span>
+        <span>ค่าจัดส่ง (ได้รับเต็มจำนวน)</span>
+        <span style={{ fontWeight:700 }}>+{fmtBaht(fee.shipping_total)}</span>
       </div>
-      <div className="slFeeTable__row">
-        <span>ค่าจัดส่ง</span>
-        <span style={{ fontWeight:700 }}>{fmtBaht(fee.shipping_total)}</span>
+      <div className="slFeeTable__row" style={{ borderTop:"2px solid #e2e8f0" }}>
+        <span style={{ fontWeight:700 }}>รายได้สุทธิเดือนนี้</span>
+        <span className="slGreen" style={{ fontWeight:700, fontSize:15 }}>{fmtBaht(fee.net)}</span>
       </div>
-      <div className="slFeeTable__row">
-        <span>รายได้สุทธิที่ได้รับ</span>
-        <span className="slGreen" style={{ fontWeight:700 }}>{fmtBaht(fee.net)}</span>
+      {/* ยอดรอโอน + ยอดโอนสำเร็จ */}
+      <div className="slFeeTable__row" style={{ background:"#fefce8" }}>
+        <span style={{ color:"#92400e" }}>
+          ยอดเงินระหว่างดำเนินการโอน
+          <span style={{ fontSize:11, color:"#94a3b8", marginLeft:6 }}>({fee.pending_count ?? 0} ออเดอร์รอตัดรอบ)</span>
+        </span>
+        <span className="slAmber" style={{ fontWeight:700 }}>{fmtBaht(fee.pending_amount)}</span>
+      </div>
+      <div className="slFeeTable__row" style={{ background:"#f0fdf4" }}>
+        <span style={{ color:"#166534" }}>
+          ยอดเงินที่โอนสำเร็จแล้ว (ทั้งหมด)
+          <span style={{ fontSize:11, color:"#94a3b8", marginLeft:6 }}>({fee.paid_count ?? 0} รอบ)</span>
+        </span>
+        <span className="slGreen" style={{ fontWeight:700 }}>{fmtBaht(fee.paid_amount)}</span>
+      </div>
+      <div style={{ padding:"10px 18px", textAlign:"right" }}>
+        <Link to="/seller/payouts" style={{ fontSize:12, color:"#3b82f6", textDecoration:"none" }}>
+          ดูรายละเอียดรายได้และประวัติการโอนทั้งหมด →
+        </Link>
       </div>
     </div>
   );

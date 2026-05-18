@@ -358,12 +358,13 @@ const placeOrder = async ({
     const totalPrice    = itemsTotal + shippingTotal;
 
     // ── คำนวณค่าธรรมเนียมแพลตฟอร์ม ───────────────────────────
-    //   itemsTotal >= 100 บาท → หัก 15% ของยอดสินค้า
-    //   itemsTotal < 100 บาท  → หักคงที่ ฿20 ต่อออเดอร์
+    //   หัก 15% ของราคาสินค้า แต่มีขั้นต่ำ ฿20 ต่อออเดอร์
+    //   ตัวอย่าง: ฿140 × 15% = ฿21 (≥ ฿20 → ใช้ 21)
+    //             ฿80  × 15% = ฿12 (< ฿20 → ใช้ขั้นต่ำ 20)
     //   ค่าส่งคืนผู้ขายเต็มจำนวน (ไม่หักค่าธรรมเนียม)
-    const platformFee        = itemsTotal >= 100
-                               ? Math.round(itemsTotal * 0.15 * 100) / 100
-                               : (itemsTotal > 0 ? 20.00 : 0);
+    const platformFee        = itemsTotal > 0
+                               ? Math.max(Math.round(itemsTotal * 0.15 * 100) / 100, 20)
+                               : 0;
     const sellerPayoutAmount = Math.max(totalPrice - platformFee, 0);
 
     // ── ดึงที่อยู่จัดส่ง ──────────────────────────────────
