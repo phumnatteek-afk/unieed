@@ -234,6 +234,24 @@ export async function getMonthFeeSummary(sellerId) {
       AND o.created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
   `, [sellerId]).catch(() => [[{ shipping_total: 0 }]]);
 
+  // ยอดรอโอน (delivered + payout_status=pending)
+  const [[pendingRow]] = await db.query(`
+    SELECT
+      COALESCE(SUM(seller_payout_amount), 0) AS pending_amount,
+      COUNT(*) AS pending_count
+    FROM orders
+    WHERE seller_id = ? AND order_status = 'delivered' AND payout_status = 'pending'
+  `, [sellerId]).catch(() => [[{ pending_amount: 0, pending_count: 0 }]]);
+
+  // ยอดโอนสำเร็จแล้ว (จาก payouts table)
+  const [[paidRow]] = await db.query(`
+    SELECT
+      COALESCE(SUM(net_amount), 0) AS paid_amount,
+      COUNT(*) AS paid_count
+    FROM payouts
+    WHERE seller_id = ? AND status = 'completed'
+  `, [sellerId]).catch(() => [[{ paid_amount: 0, paid_count: 0 }]]);
+
   return {
     gross:           Math.round(Number(r.gross || 0)),
     fee_min:         Math.round(Number(r.fee_min || 0)),
@@ -241,6 +259,11 @@ export async function getMonthFeeSummary(sellerId) {
     fee_total:       Math.round(Number(r.fee_total || 0)),
     shipping_total:  Math.round(Number(shipRow?.shipping_total || 0)),
     net:             Math.round(Number(r.net || 0)),
+    // ยอดรอโอนและยอดโอนสำเร็จ (แสดงใน dashboard)
+    pending_amount:  Math.round(Number(pendingRow?.pending_amount || 0)),
+    pending_count:   Number(pendingRow?.pending_count || 0),
+    paid_amount:     Math.round(Number(paidRow?.paid_amount || 0)),
+    paid_count:      Number(paidRow?.paid_count || 0),
   };
 }
 
@@ -480,6 +503,12 @@ export async function getSellerPayouts(sellerId, { page = 1, limit = 10 } = {}) 
     verified = !!v?.bank_account_verified;
   }
 
+  // คำนวณวันตัดรอบและวันโอนเงินของเดือนนี้
+  const now = new Date();
+  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const payoutDeadline = new Date(now.getFullYear(), now.getMonth() + 1, 7); // สิ้นเดือน + 7 วัน
+  const fmtDate = (d) => d.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" });
+
   return {
     stats: {
       this_month_net: Math.round(Number(summary?.this_month_net || 0)),
@@ -487,6 +516,11 @@ export async function getSellerPayouts(sellerId, { page = 1, limit = 10 } = {}) 
       pending_count:  Number(summary?.pending_count  || 0),
       paid_total:     Math.round(Number(summary?.paid_total     || 0)),
       paid_count:     Number(summary?.paid_count     || 0),
+    },
+    payout_cycle: {
+      cutoff_date:   fmtDate(lastDayOfMonth),   // วันตัดรอบ: สิ้นเดือนนี้
+      payout_date:   fmtDate(payoutDeadline),    // วันโอนเงิน: ภายใน 7 วันหลังสิ้นเดือน
+      note: "ตัดรอบทุกสิ้นเดือน เฉพาะรายการที่ลูกค้ายืนยันรับของแล้ว โอนเงินภายใน 7 วันทำการ",
     },
     history: history || [],
     bank: bank

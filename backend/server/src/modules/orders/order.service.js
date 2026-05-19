@@ -9,11 +9,14 @@ export const autoCompleteShippedOrders = async () => {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
-    // ดึงออเดอร์ที่จัดส่งแล้ว > 7 วัน
+    // ดึงออเดอร์ที่จัดส่งแล้ว > 7 วัน และมีเลข tracking number
+    // (ตาม policy: มีเลขพัสดุ + ครบ 7 วันนับจากวันจัดส่ง → อนุมัติรับของอัตโนมัติ)
     const [toComplete] = await conn.execute(
       `SELECT order_id FROM orders
        WHERE order_status = 'shipping'
          AND shipping_date IS NOT NULL
+         AND tracking_number IS NOT NULL
+         AND tracking_number <> ''
          AND shipping_date <= DATE_SUB(NOW(), INTERVAL 7 DAY)`
     );
     if (toComplete.length > 0) {

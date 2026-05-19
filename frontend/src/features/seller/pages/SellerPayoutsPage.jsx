@@ -85,12 +85,14 @@ export default function SellerPayoutsPage() {
         <Card label="โอนเข้าบัญชีแล้ว" value={fmtBaht(s.paid_total)} subtitle={`${s.paid_count} รายการ`} cls="slGreen" />
       </div>
 
+      {/* กล่องรอบโอนเงิน */}
+      {data.payout_cycle && <PayoutCycleBox cycle={data.payout_cycle} />}
+
       <div className="slIncomeColumns">
         {/* History */}
         <div className="slCard">
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
             <strong>ประวัติการโอนเงิน</strong>
-            <button className="slBtnPrimary slBtn">ดูทั้งหมด</button>
           </div>
           {data.history?.length === 0
             ? <div style={{ color:"#94a3b8", padding:20, textAlign:"center" }}>ยังไม่มีประวัติการโอน</div>
@@ -132,15 +134,18 @@ export default function SellerPayoutsPage() {
           </div>
 
           <div className="slCard" style={{ marginTop:14 }}>
-            <strong>ความเข้าใจค่าธรรมเนียม</strong>
+            <strong>รายละเอียดค่าธรรมเนียม</strong>
             <div className="slFeeNote">
-              ค่าธรรมเนียมการใช้แพลตฟอร์มจะถูกหักจากราคาสินค้าก่อนโอนรายได้ให้ผู้ขายโดยมีเกณฑ์ดังนี้
-              <ul>
-                <li>สินค้าที่มีราคาตั้งแต่ ฿100 ขึ้นไป — หักค่าธรรมเนียม ร้อยละ 15 ของราคาสินค้า</li>
-                <li>สินค้าที่มีราคา ไม่เกิน ฿100 — หักค่าธรรมเนียมคงที่ ฿20 ต่อรายการ</li>
-              </ul>
-              <div style={{ marginTop:10, padding:8, background:"#fff7ed", borderRadius:6 }}>
-                ค่าจัดส่งไม่อยู่ภายใต้การคิดค่าธรรมเนียม — ผู้ขายจะได้รับค่าจัดส่งเต็มจำนวนทุกกรณี
+              <div style={{ marginBottom:8 }}>
+                ค่าธรรมเนียมแพลตฟอร์ม <b>หัก 15% ของราคาสินค้า แต่มีขั้นต่ำ ฿20 ต่อออเดอร์</b>
+              </div>
+              <div style={{ background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:6, padding:"8px 12px", fontSize:12, marginBottom:8 }}>
+                <div style={{ fontWeight:600, marginBottom:4, color:"#0369a1" }}>ตัวอย่างการคำนวณ</div>
+                <div>• สินค้าราคา ฿140 → หัก 15% = <b>฿21</b> (≥ ขั้นต่ำ ฿20)</div>
+                <div>• สินค้าราคา ฿80 → หัก 15% = ฿12 → ใช้ขั้นต่ำ <b>฿20</b></div>
+              </div>
+              <div style={{ padding:8, background:"#fff7ed", borderRadius:6, fontSize:12 }}>
+                <b>ค่าจัดส่งไม่ถูกหักค่าธรรมเนียม</b> — ผู้ขายได้รับค่าจัดส่งเต็มจำนวนทุกกรณี
               </div>
             </div>
           </div>
@@ -179,22 +184,85 @@ function Card({ label, value, subtitle, cls }) {
 }
 
 function PayoutRow({ p }) {
+  const [open, setOpen] = useState(false);
   const dateStr = new Date(p.created_at).toLocaleDateString("th-TH", { day:"2-digit", month:"short", year:"2-digit" });
   const isDone = p.status === "completed";
   const dot = isDone ? "#22c55e" : "#f59e0b";
+  const completedStr = p.completed_at
+    ? new Date(p.completed_at).toLocaleDateString("th-TH", { day:"2-digit", month:"short", year:"2-digit" })
+    : null;
   return (
-    <div style={{ display:"flex", padding:"14px 4px", borderBottom:"1px solid #f1f5f9", gap:12, alignItems:"center" }}>
-      <span style={{ width:10, height:10, borderRadius:"50%", background: dot }} />
-      <div style={{ flex:1 }}>
-        <div style={{ fontSize:12, color:"#64748b" }}>
-          {dateStr} · {isDone ? `ผ่าน ${p.method === "omise" ? "Omise Transfer" : "การโอนของระบบ"}` : "รอระบบโอนเงิน"}
+    <>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{ display:"flex", padding:"14px 4px", borderBottom:"1px solid #f1f5f9", gap:12, alignItems:"center", cursor:"pointer" }}
+      >
+        <span style={{ width:10, height:10, borderRadius:"50%", background: dot, flexShrink:0 }} />
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:12, color:"#64748b" }}>
+            {dateStr} · {isDone ? `โอนเสร็จสิ้น${completedStr ? ` (${completedStr})` : ""}` : "รอระบบโอนเงิน"}
+          </div>
+          <div style={{ fontSize:13, fontWeight:600 }}>
+            {isDone ? "โอนเงินสำเร็จ" : "รอระบบโอนเงิน"} — รวม {p.order_count} ออเดอร์
+          </div>
         </div>
-        <div style={{ fontSize:13, fontWeight:600 }}>
-          {isDone ? "โอนเงิน" : "รอระบบโอนเงิน"} — รวม {p.order_count} ออเดอร์
+        <div style={{ fontWeight:700, color: isDone ? "#22c55e" : "#f59e0b", marginRight:4 }}>
+          {isDone ? "+" : ""}{fmtBaht(p.net_amount)}
         </div>
+        <Icon icon={open ? "mdi:chevron-up" : "mdi:chevron-down"} style={{ color:"#94a3b8", fontSize:18 }} />
       </div>
-      <div style={{ fontWeight:700, color: isDone ? "#22c55e" : "#f59e0b" }}>
-        {isDone ? "+" : ""}{fmtBaht(p.net_amount)}
+      {open && (
+        <div style={{ background:"#f8fafc", padding:"12px 16px", borderBottom:"1px solid #f1f5f9", fontSize:12 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+            <div><span style={{ color:"#64748b" }}>รายได้รวม (Gross)</span></div>
+            <div style={{ textAlign:"right", fontWeight:600 }}>{fmtBaht((Number(p.net_amount || 0) + Number(p.fee_amount || 0)).toFixed(0))}</div>
+            <div><span style={{ color:"#64748b" }}>ค่าธรรมเนียมแพลตฟอร์ม</span></div>
+            <div style={{ textAlign:"right", color:"#f59e0b", fontWeight:600 }}>-{fmtBaht(p.fee_amount)}</div>
+            <div><span style={{ color:"#64748b" }}>รายได้สุทธิ</span></div>
+            <div style={{ textAlign:"right", color:"#22c55e", fontWeight:700 }}>{fmtBaht(p.net_amount)}</div>
+            <div><span style={{ color:"#64748b" }}>สถานะ</span></div>
+            <div style={{ textAlign:"right" }}>
+              <span style={{ padding:"2px 8px", borderRadius:99, fontSize:11, background: isDone ? "#dcfce7" : "#fef3c7", color: isDone ? "#166534" : "#92400e", fontWeight:600 }}>
+                {isDone ? "โอนสำเร็จ" : "รอโอน"}
+              </span>
+            </div>
+            {p.omise_transfer_id && (
+              <>
+                <div style={{ color:"#64748b" }}>รหัสอ้างอิง</div>
+                <div style={{ textAlign:"right", fontFamily:"monospace" }}>{p.omise_transfer_id}</div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function PayoutCycleBox({ cycle }) {
+  return (
+    <div style={{
+      display:"flex", gap:12, alignItems:"flex-start",
+      padding:"14px 18px", marginBottom:16,
+      background:"#eff6ff", border:"1px solid #bfdbfe",
+      borderRadius:12, fontSize:13
+    }}>
+      <Icon icon="mdi:calendar-clock" style={{ fontSize:22, color:"#3b82f6", flexShrink:0, marginTop:1 }} />
+      <div>
+        <div style={{ fontWeight:700, color:"#1d4ed8", marginBottom:4 }}>รอบการโอนเงิน</div>
+        <div style={{ color:"#1e40af", lineHeight:1.7 }}>
+          {cycle.note}
+        </div>
+        <div style={{ marginTop:8, display:"flex", gap:20, flexWrap:"wrap" }}>
+          <div>
+            <span style={{ color:"#64748b" }}>วันตัดรอบ: </span>
+            <b style={{ color:"#1d4ed8" }}>{cycle.cutoff_date}</b>
+          </div>
+          <div>
+            <span style={{ color:"#64748b" }}>โอนเงินภายใน: </span>
+            <b style={{ color:"#1d4ed8" }}>{cycle.payout_date}</b>
+          </div>
+        </div>
       </div>
     </div>
   );
