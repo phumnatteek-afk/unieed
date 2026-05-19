@@ -91,23 +91,23 @@ export default function SchoolDashboardPage() {
             <div className="dbProgressLabel">
               <span>ชุดที่ได้รับ</span>
               <span className="dbProgressCount">
-                {project.total_received || 0} / {project.total_needed} ตัว
+                {project.total_fulfilled || 0} / {project.total_needed} ตัว
               </span>
             </div>
             <div className="dbProgressBar">
               <div
                 className="dbProgressFill"
-                style={{ width: project.total_needed > 0 ? `${Math.min(((project.total_received || 0) / project.total_needed) * 100, 100)}%` : "0%" }}
+                style={{ width: project.total_needed > 0 ? `${Math.min(((project.total_fulfilled || 0) / project.total_needed) * 100, 100)}%` : "0%" }}
               />
             </div>
             <div className="dbProgressPct">
-              ความคืบหน้า {project.total_needed > 0 ? Math.round(((project.total_received || 0) / project.total_needed) * 100) : 0}%
+              ความคืบหน้า {project.total_needed > 0 ? Math.round(((project.total_fulfilled || 0) / project.total_needed) * 100) : 0}%
               <span style={{ float: "right", color: "#6B7280" }}>เป้าหมาย {project.total_needed} ตัว</span>
             </div>
             <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4, display: "flex", gap: 10 }}>
-              <span>ยืนยันรับแล้ว <strong style={{ color: "#6b7280" }}>{project.total_received || 0}</strong> ตัว</span>
+              <span>ยืนยันรับแล้ว <strong style={{ color: "#6b7280" }}>{project.total_fulfilled || 0}</strong> ตัว</span>
               <span>·</span>
-              <span>ใช้งานได้ <strong style={{ color: "#16a34a" }}>{project.total_received || 0}</strong> ตัว</span>
+              <span>ใช้งานได้ <strong style={{ color: "#16a34a" }}>{project.total_fulfilled || 0}</strong> ตัว</span>
             </div>
           </div>
           <button className="dbManageBtn" onClick={() => navigate(`/school/projects/${project.request_id}`)}>
@@ -130,7 +130,7 @@ export default function SchoolDashboardPage() {
             svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><path d="M3 10h18M3 10v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9M3 10l2.5-6h13L21 10"/><path d="M12 10v11M8 10v3m8-3v3"/></g></svg> },
           { label: "นัด Drop-off",      value: stats.pending_dropoff,   unit: "รายการ", sub: stats.pending_dropoff_qty > 0 ? `รวม ${stats.pending_dropoff_qty} ตัว` : null, accent: "violet",
             svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><path d="M12 21s-7-5.75-7-11a7 7 0 0 1 14 0c0 5.25-7 11-7 11"/><circle cx="12" cy="10" r="2.5"/></g></svg> },
-          { label: "ส่งมอบสำเร็จ",     value: stats.approved_qty || 0, unit: "ตัว",    sub: null,                                        accent: "green",
+          { label: "ส่งมอบสำเร็จ",     value: project.total_fulfilled || 0, unit: "ตัว",    sub: null,                                        accent: "green",
             svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M20 7h-1.21c.13-.41.21-.9.21-1.5C19 3.57 17.43 2 15.5 2c-1.62 0-2.7 1.48-3.4 3.09C11.41 3.58 10.27 2 8.5 2C6.57 2 5 3.57 5 5.5c0 .6.08 1.09.21 1.5H4c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2v7c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2m-4.5-3c.83 0 1.5.67 1.5 1.5C17 7 16.37 7 16 7h-2.48c.51-1.58 1.25-3 1.98-3M7 5.5C7 4.67 7.67 4 8.5 4c.89 0 1.71 1.53 2.2 3H8c-.37 0-1 0-1-1.5M4 9h7v2H4zm2 11v-7h5v7zm12 0h-5v-7h5zm-5-9V9.08s.01-.06.02-.08H20v2z"/></svg> },
           { label: "นักเรียนทั้งหมด",  value: stats.students_waiting,  unit: "คน",     sub: null,                                        accent: "blue",
             svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><path d="M2.5 6L8 4l5.5 2L11 7.5V9s-.667-.5-3-.5S5 9 5 9V7.5zm0 0v4"/><path d="M11 8.5v.889c0 1.718-1.343 3.111-3 3.111s-3-1.393-3-3.111V8.5m10.318 2.53s.485-.353 2.182-.353s2.182.352 2.182.352m-4.364 0V10L13.5 9l4-1.5l4 1.5l-1.818 1v1.03m-4.364 0v.288a2.182 2.182 0 1 0 4.364 0v-.289M4.385 15.926c-.943.527-3.416 1.602-1.91 2.947C3.211 19.53 4.03 20 5.061 20h5.878c1.03 0 1.85-.47 2.586-1.127c1.506-1.345-.967-2.42-1.91-2.947c-2.212-1.235-5.018-1.235-7.23 0M16 20h3.705c.773 0 1.387-.376 1.939-.902c1.13-1.076-.725-1.936-1.432-2.357A5.34 5.34 0 0 0 16 16.214"/></g></svg> },

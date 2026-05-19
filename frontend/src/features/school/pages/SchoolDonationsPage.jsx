@@ -60,6 +60,8 @@ const parseItems = (snapshot) => {
   try { return typeof snapshot === "string" ? JSON.parse(snapshot) : snapshot; }
   catch { return []; }
 };
+
+const itemKey = (it) => `${it.uniform_type_id}__${JSON.stringify(it.size ?? "")}__${it.name ?? ""}`;
  
 const isOverdue = (createdAt) => {
   if (!createdAt) return false;
@@ -73,10 +75,21 @@ const getDaysElapsed = (createdAt) => {
 
 const cleanName = (raw) => String(raw || "").replace(/\s*\(.*?\)\s*/g, "").trim();
 
+const displayName = (it) => {
+  const base = cleanName(it.name);
+  if (!it.size) return base;
+  try {
+    const s = typeof it.size === "string" ? JSON.parse(it.size) : it.size;
+    if (s?.chest) return `${base} (อก ${s.chest}")`;
+    if (s?.waist) return `${base} (เอว ${s.waist}")`;
+  } catch { /* ignore */ }
+  return base;
+};
+
 function buildVerifyThankMsg(donorName, items, itemConditions) {
   const n = donorName || "ผู้บริจาค";
-  const nameList = (arr) => arr.map(it => cleanName(it.name)).join(", ");
-  const cond = (it) => itemConditions[it.uniform_type_id] ?? "usable";
+  const nameList = (arr) => arr.map(it => displayName(it)).join(", ");
+  const cond = (it) => itemConditions[itemKey(it)] ?? "usable";
 
   const usableItems  = items.filter(it => cond(it) === "usable");
   const wrongItems   = items.filter(it => cond(it) === "wrong_item");
@@ -240,6 +253,7 @@ export default function SchoolDonationPage() {
   const [filterMethod, setFilterMethod] = useState("all");
  
   const [projectStatus, setProjectStatus] = useState(null);
+  const [projectFulfilled, setProjectFulfilled] = useState(0);
   const [latestRequestId, setLatestRequestId] = useState(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [confirmPopup, setConfirmPopup] = useState(null);
@@ -263,6 +277,7 @@ export default function SchoolDonationPage() {
       const proj    = await projRes.json();
       if (!proj?.request_id) { setDonations([]); return; }
       setProjectStatus(proj.status);
+      setProjectFulfilled(Number(proj.total_fulfilled) || 0);
       setLatestRequestId(proj.request_id);
       const res  = await fetch(`${BASE}/donations/project/${proj.request_id}`, { headers });
       const data = await res.json();
@@ -276,13 +291,13 @@ export default function SchoolDonationPage() {
   useEffect(() => { loadDonations(); }, []);
  
   const summary = useMemo(() => ({
-    usable_qty: donations.filter(d => d.condition_status === "usable").reduce((s, d) => s + Number(d.quantity || 0), 0),
+    usable_qty: projectFulfilled,
     wrong_item: donations.filter(d => d.condition_status === "wrong_item").length,
     damaged:    donations.filter(d => d.condition_status === "damaged").length,
     approved:   donations.filter(d => d.status === "approved").length,
     pending:    donations.filter(d => d.status === "pending").length,
     market:     donations.filter(d => d.delivery_method === "market_purchase").length,
-  }), [donations]);
+  }), [donations, projectFulfilled]);
  
   const showClearedBanner = projectStatus === "closed" && summary.pending === 0 && donations.length > 0 && !bannerDismissed;
 
@@ -344,27 +359,29 @@ export default function SchoolDonationPage() {
     const snapItems = parseItems(verifyPopup?.items_snapshot);
     if (checkedSet.size === 0) return alert("กรุณาติ๊กรายการที่ได้รับอย่างน้อย 1 รายการ");
     const issueNeedReason = snapItems.filter(it =>
-      checkedSet.has(it.uniform_type_id) &&
-      itemConditions[it.uniform_type_id] === "issue" &&
-      !itemReasons[it.uniform_type_id]
+      checkedSet.has(itemKey(it)) &&
+      itemConditions[itemKey(it)] === "issue" &&
+      !itemReasons[itemKey(it)]
     );
     if (issueNeedReason.length > 0) return alert("กรุณาระบุสาเหตุของรายการที่ไม่ตรงให้ครบ");
     try {
       setVerifying(true);
       const items_received = snapItems.map(it => {
-        const uid = it.uniform_type_id;
-        const isChecked = checkedSet.has(uid);
-        const resolved = isChecked ? resolveItemCond(uid) : "not_received";
+        const key = itemKey(it);
+        const isChecked = checkedSet.has(key);
+        const resolved = isChecked ? resolveItemCond(key) : "not_received";
         return {
-          uniform_type_id: uid,
+          uniform_type_id: it.uniform_type_id,
+          name: it.name ?? null,
+          size: it.size ?? null,
           qty_received: isChecked ? it.quantity : 0,
           item_condition: resolved,
-          ...(resolved === "wrong_item" && itemReasons[uid] ? { reason: itemReasons[uid], note: itemNotes[uid] || "" } : {}),
+          ...(resolved === "wrong_item" && itemReasons[key] ? { reason: itemReasons[key], note: itemNotes[key] || "" } : {}),
         };
       });
       const resolvedConditions = Object.fromEntries(
-        snapItems.filter(it => checkedSet.has(it.uniform_type_id))
-          .map(it => [it.uniform_type_id, resolveItemCond(it.uniform_type_id)])
+        snapItems.filter(it => checkedSet.has(itemKey(it)))
+          .map(it => [itemKey(it), resolveItemCond(itemKey(it))])
       );
       const overall = snapItems.length > 0 ? deriveOverallCondition(resolvedConditions) : "usable";
       await fetch(`${BASE}/donations/${verifyPopup.donation_id}/verify`, {
@@ -386,7 +403,7 @@ export default function SchoolDonationPage() {
   const openVerifyPopup = (donation) => {
     setVerifyPopup(donation);
     const snapItems = parseItems(donation.items_snapshot);
-    const allUids = snapItems.map(it => it.uniform_type_id);
+    const allUids = snapItems.map(itemKey);
     setCheckedSet(new Set(allUids));
     setItemConditions(Object.fromEntries(allUids.map(uid => [uid, "usable"])));
     setItemReasons({});
@@ -405,9 +422,9 @@ export default function SchoolDonationPage() {
     const items = parseItems(verifyPopup.items_snapshot);
     if (items.length === 0) return;
     const resolved = Object.fromEntries(
-      items.map(it => [it.uniform_type_id, checkedSet.has(it.uniform_type_id) ? resolveItemCond(it.uniform_type_id) : "not_received"])
+      items.map(it => [itemKey(it), checkedSet.has(itemKey(it)) ? resolveItemCond(itemKey(it)) : "not_received"])
     );
-    setThankMsg(buildVerifyThankMsg(verifyPopup.donor_name, items.filter(it => checkedSet.has(it.uniform_type_id)), resolved));
+    setThankMsg(buildVerifyThankMsg(verifyPopup.donor_name, items.filter(it => checkedSet.has(itemKey(it))), resolved));
   }, [itemConditions, checkedSet, verifyPopup]);
  
   return (
@@ -744,7 +761,14 @@ export default function SchoolDonationPage() {
                               catch { return null; }
                             })();
                             const condMap = condSnap
-                              ? Object.fromEntries(condSnap.map(r => [r.uniform_type_id, r]))
+                              ? condSnap.reduce((acc, r) => {
+                                  const ck3 = `${r.uniform_type_id}__${JSON.stringify(r.size ?? "")}__${r.name ?? ""}`;
+                                  const ck2 = `${r.uniform_type_id}__${JSON.stringify(r.size ?? "")}`;
+                                  acc[ck3] = r;
+                                  if (!acc[ck2]) acc[ck2] = r;
+                                  if (!acc[r.uniform_type_id]) acc[r.uniform_type_id] = r;
+                                  return acc;
+                                }, {})
                               : null;
                             const ITEM_COND = {
                               usable:       { label: "ใช้งานได้",      color: "#16a34a", icon: "mdi:check-circle-outline" },
@@ -756,7 +780,9 @@ export default function SchoolDonationPage() {
                             return items.length === 0
                               ? <span style={{ color:"#94a3b8", fontSize:13 }}>ไม่มีข้อมูลรายการ</span>
                               : items.map((item, i) => {
-                                const cond = condMap?.[item.uniform_type_id];
+                                const ck3 = `${item.uniform_type_id}__${JSON.stringify(item.size ?? "")}__${item.name ?? ""}`;
+                                const ck2 = `${item.uniform_type_id}__${JSON.stringify(item.size ?? "")}`;
+                                const cond = condMap?.[ck3] ?? condMap?.[ck2] ?? condMap?.[item.uniform_type_id];
                                 const meta = cond ? ITEM_COND[cond.item_condition] : null;
                                 return (
                                   <div key={i} className="sdExpandItem" style={{ alignItems: "center" }}>
@@ -879,10 +905,10 @@ export default function SchoolDonationPage() {
  
             {(() => {
               const snapItems = parseItems(verifyPopup.items_snapshot);
-              const allChecked = snapItems.length > 0 && snapItems.every(it => checkedSet.has(it.uniform_type_id));
+              const allChecked = snapItems.length > 0 && snapItems.every(it => checkedSet.has(itemKey(it)));
               const resolvedConditions = Object.fromEntries(
-                snapItems.filter(it => checkedSet.has(it.uniform_type_id))
-                  .map(it => [it.uniform_type_id, resolveItemCond(it.uniform_type_id)])
+                snapItems.filter(it => checkedSet.has(itemKey(it)))
+                  .map(it => [itemKey(it), resolveItemCond(itemKey(it))])
               );
               const overallCond = checkedSet.size > 0 ? deriveOverallCondition(resolvedConditions) : null;
               const COND_OPTS = [
@@ -907,7 +933,7 @@ export default function SchoolDonationPage() {
                       <label style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:6, cursor:"pointer", userSelect:"none", padding:"3px 10px", borderRadius:20, background: allChecked ? "#dcfce7" : "#f3f4f6", border:`1.5px solid ${allChecked ? "#86efac" : "#d1d5db"}` }}>
                         <input type="checkbox" checked={allChecked}
                           onChange={() => {
-                            const allKeys = snapItems.map(it => it.uniform_type_id);
+                            const allKeys = snapItems.map(itemKey);
                             if (allChecked) {
                               setCheckedSet(new Set());
                               setItemConditions({});
@@ -924,7 +950,7 @@ export default function SchoolDonationPage() {
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                       {snapItems.map(it => {
-                        const uid = it.uniform_type_id;
+                        const uid = itemKey(it);
                         const isChecked = checkedSet.has(uid);
                         const cond = itemConditions[uid] || "usable";
                         const activeMeta = COND_OPTS.find(o => o.value === cond) || COND_OPTS[0];

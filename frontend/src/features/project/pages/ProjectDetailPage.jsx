@@ -191,7 +191,7 @@ export default function ProjectDetailPage() {
   const totalSelected = Object.values(donateQty).reduce((a, b) => a + b, 0);
 
   const needed    = project?.total_needed    || 0;
-  const fulfilled = project?.total_received  || 0;  // ชุดที่โรงเรียนยืนยันรับแล้ว (primary metric)
+  const fulfilled = project?.total_fulfilled || 0;  // ชุดที่โรงเรียนยืนยันรับและใช้งานได้ (snapshot-based, capped)
   const pending   = project?.total_pending   || 0;  // 🔵 กำลังดำเนินการ
   const remaining = Math.max(needed - fulfilled, 0);
   const pct       = needed > 0 ? Math.min(Math.round((fulfilled / needed) * 100), 100) : 0;

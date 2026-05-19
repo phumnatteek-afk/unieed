@@ -103,9 +103,10 @@ export async function getHomeData() {
 
       -- ความต้องการรวมทั้งหมดของ request นี้
       COALESCE((
-        SELECT SUM(ri.quantity)
-        FROM request_item ri
-        WHERE ri.request_id = dr.request_id
+        SELECT SUM(sn.quantity_needed)
+        FROM student_need sn
+        JOIN students st ON st.student_id = sn.student_id
+        WHERE st.request_id = dr.request_id
       ), 0) AS total_needed,
 
       -- ✅ เพิ่ม: นับนักเรียน very_urgent ต่อโครงการ

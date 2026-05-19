@@ -167,10 +167,16 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
   const items    = details || [];
   const grouped  = useMemo(() => groupItems(items).slice(0, 3), [items]);
 
-  const totalFulfilled = Number(p.total_fulfilled || 0);
-  const totalNeeded    = items.length > 0
-    ? items.reduce((sum, item) => sum + Number(item.quantity_remaining ?? item.quantity_needed ?? item.quantity ?? 0), 0)
-    : Math.max(Number(p.total_needed || 0) - totalFulfilled, 0);
+  const itemsTotalNeeded = items.length > 0
+    ? items.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0)
+    : Number(p.total_needed || 0);
+  // ถ้า items โหลดแล้ว ใช้ quantity_remaining จาก getProjectByIdPublic (snapshot-based, แม่นยำกว่า)
+  // ถ้ายังไม่โหลด ใช้ total_fulfilled จาก list api เป็น fallback
+  const totalNeeded = items.length > 0
+    ? items.reduce((sum, item) => sum + Number(item.quantity_remaining ?? item.quantity ?? 0), 0)
+    : Math.max(itemsTotalNeeded - Number(p.total_fulfilled || 0), 0);
+  const totalFulfilled  = Math.max(itemsTotalNeeded - totalNeeded, 0);
+  const goalMet         = totalNeeded === 0 && itemsTotalNeeded > 0;
 
   const handleMouseEnter = () => {
     if (cardRef.current) {
@@ -196,7 +202,7 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
         {p.request_image_url
           ? <img src={p.request_image_url} alt={p.request_title} />
           : <div className="dpCardImgPlaceholder" />}
-        {p.total_needed > 0 && p.total_received >= p.total_needed && (
+        {items.length > 0 && goalMet && (
           <div className="dpSliderTag" style={{ background: "#f0fdf4", color: "#4ade80", border: "1.5px solid #86efac", borderRadius: 6, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/></svg>
             ได้รับครบแล้ว
@@ -274,9 +280,18 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
           <div className="dpHoverHeader">
             <div className="dpHoverSchool">{p.school_name}</div>
             <div className="dpHoverMeta">
-              <span className="dpHoverNeed">ต้องการ {totalNeeded}</span>
-              <span className="dpHoverSep">|</span>
-              <span className="dpHoverGot">ได้ {totalFulfilled} ชิ้น</span>
+              {goalMet ? (
+                <span style={{ color: "#16a34a", fontWeight: 700, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  ครบเป้าหมายแล้ว · ได้ {totalFulfilled} ชิ้น
+                </span>
+              ) : (
+                <>
+                  <span className="dpHoverNeed">ต้องการอีก {totalNeeded}</span>
+                  <span className="dpHoverSep">|</span>
+                  <span className="dpHoverGot">ได้ {totalFulfilled} ชิ้น</span>
+                </>
+              )}
             </div>
           </div>
           <div className="dpHoverLine" />
@@ -375,7 +390,12 @@ export default function DonationProject() {
   const [selCollections, setSelCollections] = useState([]);
 
   const toggleCollection = (col) =>
-    setSelCollections(prev => prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]);
+    setSelCollections(prev => {
+      if (prev.includes(col)) return prev.filter(c => c !== col);
+      // ปิดโครงการ exclusive — deselect collection อื่นเมื่อเลือก และ deselect ปิดโครงการเมื่อเลือก collection อื่น
+      if (col === "ปิดโครงการ") return ["ปิดโครงการ"];
+      return [...prev.filter(c => c !== "ปิดโครงการ"), col];
+    });
 
   // ===== โหลดโครงการ =====
   useEffect(() => {
@@ -421,29 +441,27 @@ export default function DonationProject() {
 
  // ===== โหลด uniform_items ของแต่ละโครงการ =====
 const [projectDetails, setProjectDetails] = useState({});
-const detailsFetchedRef = useRef(false); // ← เพิ่ม ref กันยิงซ้ำ
+const detailsFetchedRef = useRef(false);
 
-// ปรับปรุง useEffect ส่วนโหลดรายละเอียด
 useEffect(() => {
   if (projects.length === 0 || detailsFetchedRef.current) return;
-  
   detailsFetchedRef.current = true;
 
+  const BATCH = 8;
   const fetchDetails = async () => {
-    const map = {};
-    // ใช้ for loop แทน Promise.all เพื่อไม่ให้ยิงพร้อมกันทีเดียว 20-30 request
-    // หรือถ้าจะใช้ Promise.all ควรส่งเป็น batch
-    for (const p of projects) {
-      try {
-        const d = await getJson(`/school/projects/public/${p.request_id}`, false);
-        if (d?.request_id) {
-          map[d.request_id] = d.uniform_items || [];
+    let map = {};
+    for (let i = 0; i < projects.length; i += BATCH) {
+      const batch = projects.slice(i, i + BATCH);
+      const results = await Promise.allSettled(
+        batch.map(p => getJson(`/school/projects/public/${p.request_id}`, false))
+      );
+      results.forEach(r => {
+        if (r.status === "fulfilled" && r.value?.request_id) {
+          map[r.value.request_id] = r.value.uniform_items || [];
         }
-      } catch (err) {
-        console.error(`Failed to fetch ID: ${p.request_id}`, err);
-      }
+      });
+      setProjectDetails({ ...map });
     }
-    setProjectDetails(map);
   };
 
   fetchDetails();
@@ -599,19 +617,20 @@ useEffect(() => {
       }).map(p => p.request_id)
     );
     const nearGoalIds = new Set(
-      [...projects].filter(p => Number(p.total_needed) > 0)
-        .sort((a, b) => (Number(b.total_received) / Number(b.total_needed)) - (Number(a.total_received) / Number(a.total_needed)))
-        .slice(0, 6).map(p => p.request_id)
+      projects.filter(p => {
+        const needed = Number(p.total_needed);
+        const fulfilled = Number(p.total_fulfilled);
+        return needed > 0 && fulfilled / needed >= 0.7;
+      }).map(p => p.request_id)
     );
     const map = {};
     projects.forEach(p => {
       const id = p.request_id;
-      const cols = [];
-      if (closingIds.has(id))  cols.push("ใกล้เวลาปิด");
-      if (nearGoalIds.has(id)) cols.push("ใกล้ถึงเป้าหมาย");
-      if (newestIds.has(id))   cols.push("ใหม่ล่าสุด");
-      if (fairIds.has(id))     cols.push("แนะนำ");
-      if (cols.length) map[id] = cols;
+      // แต่ละโครงการติด collection เดียวตาม priority
+      if (closingIds.has(id))       map[id] = ["ใกล้เวลาปิด"];
+      else if (nearGoalIds.has(id)) map[id] = ["ใกล้ถึงเป้าหมาย"];
+      else if (newestIds.has(id))   map[id] = ["ใหม่ล่าสุด"];
+      else if (fairIds.has(id))     map[id] = ["แนะนำ"];
     });
     return map;
   }, [projects, fairProjects]);
@@ -707,52 +726,48 @@ useEffect(() => {
     );
   }
 
-  // ── collection filter (OR logic) ──
+  // ── collection filter — ใช้ projectAllCollections เพื่อให้สอดคล้องกับ badge ──
   if (selCollections.length > 0) {
-    const fairIds = new Set(fairProjects.map(p => p.request_id));
-    const pools = [];
-
-    if (selCollections.includes("แนะนำ"))
-      pools.push(...list.filter(p => fairIds.has(p.request_id)));
-
-    if (selCollections.includes("ใหม่ล่าสุด")) {
-      const now = new Date();
-      pools.push(...list.filter(p => {
-        const ref = p.start_date || p.created_at;
-        if (!ref) return false;
-        return Math.ceil((now - new Date(ref)) / 86400000) <= 30;
-      }));
-    }
-
-    if (selCollections.includes("ใกล้เวลาปิด")) {
-      const now = new Date();
-      pools.push(...list.filter(p => {
-        if (!p.end_date) return false;
-        const d = Math.ceil((new Date(p.end_date) - now) / 86400000);
-        return d >= 0 && d <= 7;
-      }));
-    }
-
-    if (selCollections.includes("ใกล้ถึงเป้าหมาย"))
-      pools.push(...[...list]
-        .filter(p => Number(p.total_needed) > 0)
-        .sort((a, b) => (Number(b.total_received) / Number(b.total_needed)) - (Number(a.total_received) / Number(a.total_needed)))
-        .slice(0, 6));
-
-    const unionIds = new Set(pools.map(p => p.request_id));
-    list = list.filter(p => unionIds.has(p.request_id));
-  }
-
-  if (sortBy === "most_needed") {
-    list = [...list].sort((a, b) => {
-      const remA = Number(a.total_needed || 0) - Number(a.total_received || 0);
-      const remB = Number(b.total_needed || 0) - Number(b.total_received || 0);
-      return remB - remA;
+    list = list.filter(p => {
+      const cols = projectAllCollections[p.request_id] || [];
+      return selCollections.some(c => cols.includes(c));
     });
   }
 
+  if (sortBy === "most_needed") {
+    const getRemainingItems = (p) => {
+      const items = projectDetails[p.request_id] || [];
+      if (items.length > 0)
+        return items.reduce((sum, item) => sum + Number(item.quantity_remaining ?? item.quantity_needed ?? 0), 0);
+      return Math.max(Number(p.total_needed || 0) - Number(p.total_fulfilled || 0), 0);
+    };
+    list = [...list].sort((a, b) => getRemainingItems(b) - getRemainingItems(a));
+  } else if (sortBy === "newest") {
+    const badge      = p => (projectAllCollections[p.request_id] || [])[0];
+    const isClosing  = p => badge(p) === "ใกล้เวลาปิด";
+    const isNew      = p => badge(p) === "ใหม่ล่าสุด";
+    const isNearGoal = p => badge(p) === "ใกล้ถึงเป้าหมาย";
+    const isUrgent   = p => badge(p) === "แนะนำ";
+
+    const sortedClosing  = list.filter(isClosing).sort((a, b) => new Date(a.end_date) - new Date(b.end_date));
+    const sortedNew      = list.filter(isNew).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const sortedNearGoal = list.filter(isNearGoal).sort((a, b) => {
+      const ra = Number(a.total_needed) > 0 ? Number(a.total_fulfilled) / Number(a.total_needed) : 0;
+      const rb = Number(b.total_needed) > 0 ? Number(b.total_fulfilled) / Number(b.total_needed) : 0;
+      return rb - ra;
+    });
+    const sortedUrgent = list.filter(isUrgent);
+    const rest         = list.filter(p => !isClosing(p) && !isNew(p) && !isNearGoal(p) && !isUrgent(p));
+
+    if (selCollections.includes("ใหม่ล่าสุด")) {
+      list = [...sortedNew, ...sortedClosing, ...sortedNearGoal, ...sortedUrgent, ...rest];
+    } else {
+      list = [...sortedClosing, ...sortedNew, ...sortedNearGoal, ...sortedUrgent, ...rest];
+    }
+  }
+
   return list;
-}, [projects, closedProjects, projectDetails, searchQ, autoQuery, meiliHits, selType, selGender, selLevel, selSize, selProvince, selCollections, fairProjects, sortBy]);
+}, [projects, closedProjects, projectDetails, searchQ, autoQuery, meiliHits, selType, selGender, selLevel, selSize, selProvince, selCollections, fairProjects, sortBy, projectAllCollections]);
 
   // ===== reset size เมื่อเปลี่ยนประเภท/ระดับ =====
   useEffect(() => { setSelSize(""); }, [selType, selLevel]);
@@ -1082,17 +1097,20 @@ useEffect(() => {
           <div className="dpFilterSubLabel dpFilterSectionLabel" style={{ marginBottom: 10, marginTop: 16 }}>กรองโครงการ</div>
           <div className="dpFilterBtnRow" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, marginLeft: 200 }}>
             {[
-              { key: "แนะนำ", label: "ต้องการความช่วยเหลือ" },
-              { key: "ใหม่ล่าสุด", label: "ใหม่ล่าสุด" },
-              { key: "ใกล้เวลาปิด", label: "ใกล้เวลาปิด" },
-              { key: "ใกล้ถึงเป้าหมาย", label: "ใกล้ถึงเป้าหมาย" },
-              { key: "ปิดโครงการ", label: "ปิดโครงการ" },
-            ].map(({ key, label }) => (
-              <label key={key} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: selCollections.includes(key) ? "#053f5c" : "#f3f4f6", color: selCollections.includes(key) ? "#fff" : "#374151", borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 500, userSelect: "none", transition: "all 0.2s" }}>
-                <input type="checkbox" checked={selCollections.includes(key)} onChange={() => toggleCollection(key)} style={{ display: "none" }} />
-                {label}
-              </label>
-            ))}
+              { key: "แนะนำ",          label: "ต้องการความช่วยเหลือ", color: "#ef4444", icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" d="M17.66 11.2c-.23-.3-.51-.56-.77-.82c-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32c-2.59 2.08-3.61 5.75-2.39 8.9c.04.1.08.2.08.33c0 .22-.15.42-.35.5c-.23.1-.47.04-.66-.12a.58.58 0 0 1-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5c.14.6.41 1.2.71 1.73c1.08 1.73 2.95 2.97 4.96 3.22c2.14.27 4.43-.12 6.07-1.6c1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26m-3.16 6.3c-.28.24-.74.5-1.1.6c-1.12.4-2.24-.16-2.9-.82c1.19-.28 1.9-1.16 2.11-2.05c.17-.8-.15-1.46-.28-2.23c-.12-.74-.1-1.37.17-2.06c.19.38.39.76.63 1.06c.77 1 1.98 1.44 2.24 2.8c.06.14.09.28.09.43c.03.82-.33 1.72-.96 2.27"/></svg> },
+              { key: "ใหม่ล่าสุด",      label: "ใหม่ล่าสุด",            color: "#3b82f6", icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 36 36"><path fill="currentColor" d="m34.11 24.49l-3.92-6.62l3.88-6.35a1 1 0 0 0-.85-1.52H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h31.25a1 1 0 0 0 .86-1.51m-23.6-3.31H9.39l-3.26-4.34v4.35H5V15h1.13l3.27 4.35V15h1.12ZM16.84 16h-3.53v1.49h3.2v1h-3.2v1.61h3.53v1h-4.66V15h4.65Zm8.29 5.16H24l-1.55-4.59l-1.55 4.61h-1.12l-2-6.18H19l1.32 4.43L21.84 15h1.22l1.46 4.43L25.85 15h1.23Z"/><path fill="none" d="M0 0h36v36H0z"/></svg> },
+              { key: "ใกล้เวลาปิด",     label: "ใกล้เวลาปิด",           color: "#f97316", icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+              { key: "ใกล้ถึงเป้าหมาย", label: "ใกล้ถึงเป้าหมาย",       color: "#10b981", icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8zm0-12a4 4 0 1 0 4 4a4 4 0 0 0-4-4zm0 6a2 2 0 1 1 2-2a2 2 0 0 1-2 2z"/></svg> },
+              { key: "ปิดโครงการ",      label: "ปิดโครงการ",            color: "#6b7280", icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> },
+            ].map(({ key, label, color, icon }) => {
+              const active = selCollections.includes(key);
+              return (
+                <label key={key} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: active ? color : "#f3f4f6", color: active ? "#fff" : "#374151", border: `1.5px solid ${active ? color : "transparent"}`, borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 500, userSelect: "none", transition: "all 0.2s" }}>
+                  <input type="checkbox" checked={active} onChange={() => toggleCollection(key)} style={{ display: "none" }} />
+                  {icon}{label}
+                </label>
+              );
+            })}
           </div>
 
           {/* reset */}

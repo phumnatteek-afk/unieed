@@ -40,9 +40,9 @@ function groupItems(items = []) {
 
 const COLLECTION_BADGE_CONFIG = {
   "แนะนำ":           { bg: "#ef4444", label: "ต้องการความช่วยเหลือ", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M17.66 11.2c-.23-.3-.51-.56-.77-.82c-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32c-2.59 2.08-3.61 5.75-2.39 8.9c.04.1.08.2.08.33c0 .22-.15.42-.35.5c-.23.1-.47.04-.66-.12a.58.58 0 0 1-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5c.14.6.41 1.2.71 1.73c1.08 1.73 2.95 2.97 4.96 3.22c2.14.27 4.43-.12 6.07-1.6c1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26m-3.16 6.3c-.28.24-.74.5-1.1.6c-1.12.4-2.24-.16-2.9-.82c1.19-.28 1.9-1.16 2.11-2.05c.17-.8-.15-1.46-.28-2.23c-.12-.74-.1-1.37.17-2.06c.19.38.39.76.63 1.06c.77 1 1.98 1.44 2.24 2.8c.06.14.09.28.09.43c.03.82-.33 1.72-.96 2.27"/></svg> },
-  "ใหม่ล่าสุด":      { bg: "#3b82f6", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36"><path fill="currentColor" d="m34.11 24.49l-3.92-6.62l3.88-6.35a1 1 0 0 0-.85-1.52H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h31.25a1 1 0 0 0 .86-1.51m-23.6-3.31H9.39l-3.26-4.34v4.35H5V15h1.13l3.27 4.35V15h1.12ZM16.84 16h-3.53v1.49h3.2v1h-3.2v1.61h3.53v1h-4.66V15h4.65Zm8.29 5.16H24l-1.55-4.59l-1.55 4.61h-1.12l-2-6.18H19l1.32 4.43L21.84 15h1.22l1.46 4.43L25.85 15h1.23Z"/><path fill="none" d="M0 0h36v36H0z"/></svg> },
-  "ใกล้เวลาปิด":     { bg: "#f97316", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
-  "ใกล้ถึงเป้าหมาย": { bg: "#10b981", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8zm0-12a4 4 0 1 0 4 4a4 4 0 0 0-4-4zm0 6a2 2 0 1 1 2-2a2 2 0 0 1-2 2z"/></svg> },
+  "ใหม่ล่าสุด":      { bg: "#3b82f6", label: "ใหม่ล่าสุด", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36"><path fill="currentColor" d="m34.11 24.49l-3.92-6.62l3.88-6.35a1 1 0 0 0-.85-1.52H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h31.25a1 1 0 0 0 .86-1.51m-23.6-3.31H9.39l-3.26-4.34v4.35H5V15h1.13l3.27 4.35V15h1.12ZM16.84 16h-3.53v1.49h3.2v1h-3.2v1.61h3.53v1h-4.66V15h4.65Zm8.29 5.16H24l-1.55-4.59l-1.55 4.61h-1.12l-2-6.18H19l1.32 4.43L21.84 15h1.22l1.46 4.43L25.85 15h1.23Z"/><path fill="none" d="M0 0h36v36H0z"/></svg> },
+  "ใกล้เวลาปิด":     { bg: "#f97316", label: "ใกล้เวลาปิด", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+  "ใกล้ถึงเป้าหมาย": { bg: "#10b981", label: "ใกล้ถึงเป้า", icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8zm0-12a4 4 0 1 0 4 4a4 4 0 0 0-4-4zm0 6a2 2 0 1 1 2-2a2 2 0 0 1-2 2z"/></svg> },
 };
 
 function ProjCard({ p, navigate, details, collectionLabel }) {
@@ -61,10 +61,14 @@ function ProjCard({ p, navigate, details, collectionLabel }) {
   const itemRows = useMemo(() => items.slice(0, 3), [items]);
   const hasMore  = items.length > 3;
 
-  const totalFulfilled = Number(p.total_fulfilled || 0);
-  const totalNeeded    = items.length > 0
+  const totalFulfilled    = Number(p.total_fulfilled || 0);
+  const itemsTotalNeeded  = items.length > 0
+    ? items.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0)
+    : Number(p.total_needed || 0);
+  const totalNeeded = items.length > 0
     ? items.reduce((sum, item) => sum + Number(item.quantity_remaining ?? item.quantity_needed ?? item.quantity ?? 0), 0)
     : Math.max(Number(p.total_needed || 0) - totalFulfilled, 0);
+  const goalMet = items.length > 0 && totalNeeded === 0 && itemsTotalNeeded > 0;
 
   const handleMouseEnter = () => {
     if (cardRef.current) {
@@ -95,7 +99,7 @@ function ProjCard({ p, navigate, details, collectionLabel }) {
         {p.request_image_url
           ? <img src={p.request_image_url} alt={p.request_title} />
           : <div className="dpCardImgPlaceholder" />}
-        {p.total_needed > 0 && p.total_received >= p.total_needed && (
+        {goalMet && (
           <div className="dpSliderTag" style={{ background: "#f0fdf4", color: "#4ade80", border: "1.5px solid #86efac", borderRadius: 6, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd"/></svg>
             ได้รับครบแล้ว
@@ -124,8 +128,7 @@ function ProjCard({ p, navigate, details, collectionLabel }) {
       </div>
 
       <div className="projBody">
-        <div className="dpCardBadge">โครงการ</div>
-        <div className="dpCardTitle">{p.request_title}</div>
+        <div className="dpCardTitle" style={{ marginTop: 4 }}>{p.request_title}</div>
         <div className="dpCardSchool">{p.school_name}</div>
         <div className="dpCardAddr">
           <Icon icon="fluent:location-20-filled" width="14"
@@ -225,32 +228,52 @@ export default function HomePage() {
 
   const [q, setQ] = useState("");
 
-  // ===== Projects carousel (page-based, 2 cards/page)
-  const [projPage, setProjPage] = useState(0);
-  const [isSliding, setIsSliding] = useState(false);
-
-  // ===== Projects random + auto slide (เพิ่ม)
-  const [projectMode, setProjectMode] = useState("newest"); // "newest" | "random"
-  const [randomProjects, setRandomProjects] = useState([]);
-
   const [projectDetails, setProjectDetails] = useState({});
   const detailsFetchedRef = useRef(false);
   const [donationMatchedIds, setDonationMatchedIds] = useState(new Set());
   const matchedFetchedRef = useRef(false);
 
-  const [autoPlay, setAutoPlay] = useState(true);
-  const autoTimerRef = useRef(null);
-  const AUTO_MS = 3500;
+  // ===== Meilisearch inline search =====
+  const MEILI_BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
+  const [searchHitIds, setSearchHitIds] = useState(null); // null = ไม่ได้ค้นหา
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchTotal, setSearchTotal] = useState(0);
 
-  // ===== helper: shuffle (randomize once statically, not on every render) (added)
-  function shuffleArray(arr) {
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
+  useEffect(() => {
+    if (!q.trim()) { setSearchHitIds(null); setSearchTotal(0); return; }
+    const t = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const params = new URLSearchParams({ q: q.trim(), limit: "6" });
+        const res = await fetch(`${MEILI_BASE}/api/search/projects?${params}`);
+        const data = await res.json();
+        if (Array.isArray(data.hits)) {
+          setSearchHitIds(data.hits.map(h => h.request_id));
+          setSearchTotal(data.estimatedTotalHits ?? data.hits.length);
+        } else {
+          setSearchHitIds([]);
+        }
+      } catch {
+        setSearchHitIds(null); // offline fallback: ไม่แสดงผล search
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [q, MEILI_BASE]);
+
+  // project map สำหรับ lookup เร็ว
+  const projectMap = useMemo(() => {
+    const m = {};
+    projects.forEach(p => { m[p.request_id] = p; });
+    return m;
+  }, [projects]);
+
+  // ผลลัพธ์ค้นหา: เรียงตาม Meilisearch ranking, กรองเฉพาะที่มีใน projects
+  const searchResults = useMemo(() => {
+    if (!searchHitIds) return null;
+    return searchHitIds.map(id => projectMap[id]).filter(Boolean);
+  }, [searchHitIds, projectMap]);
 
   function formatThaiDate(dateStr) {
     if (!dateStr) return "";
@@ -274,7 +297,6 @@ export default function HomePage() {
         // ✅ projects: set once + randomize once after load
         const list = Array.isArray(data.projects) ? data.projects : [];
         setProjects(list);
-        setRandomProjects(shuffleArray(list));
         setClosedProjects(Array.isArray(data.closed_projects) ? data.closed_projects : []);
         setProducts(Array.isArray(data.products) ? data.products : []);
         setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
@@ -319,14 +341,9 @@ export default function HomePage() {
     fetchMatchedIds();
   }, [projects]);
 
-  // ถ้า projects โหลดใหม่/เปลี่ยนจำนวน -> รีเซ็ตหน้า + สถานะ slide
-  useEffect(() => {
-    setProjPage(0);
-    setIsSliding(false);
-  }, [projects.length]);
 
 
-  const [homeTab, setHomeTab] = useState("แนะนำ");
+  const [homeTab, setHomeTab] = useState("ใหม่ล่าสุด"); // bottom row tab
   const [navHover, setNavHover] = useState(false);
   const [faqOpen, setFaqOpen] = useState(null);
 
@@ -424,151 +441,241 @@ export default function HomePage() {
   // ── end nearby ────────────────────────────────────────────
 
 
-  const displayProjects = useMemo(() => {
-    if (homeTab === NEARBY_TAB) return nearbyProjects;
-    if (!projects.length) return [];
+  // แถวบน: fairProjects top-6 เหมือน DonationProject
+  // แล้วกรองออกโครงการที่ qualify collection priority สูงกว่า (เหมือนที่หน้าโครงการแสดง badge อื่นแทน)
+  const [urgentProjects, setUrgentProjects] = useState([]);
+  useEffect(() => {
+    if (!projects.length) return;
     const today = new Date();
 
-    if (homeTab === "แนะนำ") {
-      return [...projects]
-        .filter(p => {
-          const totalNeeded   = Number(p.total_needed)  || 0;
-          const totalReceived = Number(p.total_received) || 0;
-          // ตัดโครงการที่ได้รับครบแล้วออก
-          if (totalNeeded > 0 && totalReceived >= totalNeeded) return false;
-          return true;
-        })
-        .map(p => {
-          const totalNeeded   = Number(p.total_needed)  || 0;
-          const totalReceived = Number(p.total_received) || 0;
-          const refDate = p.start_date || p.created_at;
-          const daysWaiting = refDate ? Math.ceil((today - new Date(refDate)) / 86400000) : 0;
+    const top6 = [...projects]
+      .filter(p => {
+        const totalNeeded   = Number(p.total_needed)  || 0;
+        const totalReceived = Number(p.total_received) || 0;
+        if (totalNeeded > 0 && totalReceived >= totalNeeded) return false;
+        return true;
+      })
+      .map(p => {
+        const totalNeeded   = Number(p.total_needed)  || 0;
+        const totalReceived = Number(p.total_received) || 0;
+        const refDate = p.start_date || p.created_at;
+        const daysWaiting = refDate ? Math.ceil((today - new Date(refDate)) / 86400000) : 0;
+        const deficitRatio = totalNeeded > 0 ? Math.max((totalNeeded - totalReceived) / totalNeeded, 0) : 0;
+        const waitScore = Math.min(daysWaiting / 60, 1);
+        let deadlineScore = 0;
+        if (p.end_date) {
+          const daysLeft = Math.ceil((new Date(p.end_date) - today) / 86400000);
+          if (daysLeft <= 7) deadlineScore = 1.0;
+          else if (daysLeft <= 14) deadlineScore = 0.6;
+          else if (daysLeft <= 30) deadlineScore = 0.3;
+        }
+        let completionBonus = 0;
+        if (totalNeeded > 0) {
+          const ratio = totalReceived / totalNeeded;
+          if (ratio >= 0.8) completionBonus = 1.0;
+          else if (ratio >= 0.6) completionBonus = 0.5;
+        }
+        let neglectModifier = 0;
+        if (p.last_donation_at) {
+          const daysSince = Math.ceil((today - new Date(p.last_donation_at)) / 86400000);
+          if (daysSince > 14) neglectModifier = 1.0;
+          else if (daysSince > 7) neglectModifier = 0.5;
+          else if (daysSince <= 3) neglectModifier = -1.0;
+        } else {
+          neglectModifier = 0.8;
+        }
+        const _fairScore = (deficitRatio * 0.40) + (waitScore * 0.25) + (deadlineScore * 0.20) + (completionBonus * 0.10) + (neglectModifier * 0.05);
+        return { ...p, _fairScore };
+      })
+      .sort((a, b) => b._fairScore - a._fairScore)
+      .slice(0, 6);
 
-          // 1. deficit ratio (40%) — ยังขาดอยู่กี่ %
-          const deficitRatio = totalNeeded > 0
-            ? Math.max((totalNeeded - totalReceived) / totalNeeded, 0)
-            : 0;
-
-          // 2. wait score (25%) — รอนานแค่ไหน cap 60 วัน
-          const waitScore = Math.min(daysWaiting / 60, 1);
-
-          // 3. deadline score (20%) — end_date ใกล้แค่ไหน
-          let deadlineScore = 0;
-          if (p.end_date) {
-            const daysLeft = Math.ceil((new Date(p.end_date) - today) / 86400000);
-            if (daysLeft <= 7)       deadlineScore = 1.0;
-            else if (daysLeft <= 14) deadlineScore = 0.6;
-            else if (daysLeft <= 30) deadlineScore = 0.3;
-          }
-
-          // 4. completion bonus (10%) — เกือบถึงเป้า ดันขึ้นมาให้คนช่วยปิด
-          let completionBonus = 0;
-          if (totalNeeded > 0) {
-            const ratio = totalReceived / totalNeeded;
-            if (ratio >= 0.8)      completionBonus = 1.0;
-            else if (ratio >= 0.6) completionBonus = 0.5;
-          }
-
-          // 5. neglect modifier (5%) — ไม่มีคนบริจาคมานานแค่ไหน
-          let neglectModifier = 0;
-          if (p.last_donation_at) {
-            const daysSince = Math.ceil((today - new Date(p.last_donation_at)) / 86400000);
-            if (daysSince > 14)      neglectModifier = 1.0;
-            else if (daysSince > 7)  neglectModifier = 0.5;
-            else if (daysSince <= 3) neglectModifier = -1.0;
-          } else {
-            neglectModifier = 0.8; // ยังไม่เคยได้รับบริจาคเลย
-          }
-
-          const _fairScore = (deficitRatio * 0.40)
-            + (waitScore * 0.25)
-            + (deadlineScore * 0.20)
-            + (completionBonus * 0.10)
-            + (neglectModifier * 0.05);
-
-          return { ...p, _fairScore };
-        })
-        .sort((a, b) => b._fairScore - a._fairScore)
-        .slice(0, 6);
-    }
-
-    if (homeTab === "ใหม่ล่าสุด") {
-      return projects.filter(p => {
+    // คอลเลคชัน priority สูงกว่า "แนะนำ"
+    const closingIds = new Set(
+      projects.filter(p => {
+        if (!p.end_date) return false;
+        const d = Math.ceil((new Date(p.end_date) - today) / 86400000);
+        return d >= 0 && d <= 7;
+      }).map(p => p.request_id)
+    );
+    const nearGoalIds = new Set(
+      projects.filter(p => {
+        const needed = Number(p.total_needed);
+        const fulfilled = Number(p.total_fulfilled);
+        return needed > 0 && fulfilled / needed >= 0.7;
+      }).map(p => p.request_id)
+    );
+    const newestIds = new Set(
+      projects.filter(p => {
         const ref = p.start_date || p.created_at;
         if (!ref) return false;
         return Math.ceil((today - new Date(ref)) / 86400000) <= 30;
-      }).sort((a, b) => new Date(b.start_date || b.created_at) - new Date(a.start_date || a.created_at));
+      }).map(p => p.request_id)
+    );
+
+    // เหลือเฉพาะโครงการที่ badge จริงๆ คือ "แนะนำ" (ไม่มี priority สูงกว่า)
+    const urgentOnly = top6.filter(p =>
+      !closingIds.has(p.request_id) &&
+      !nearGoalIds.has(p.request_id) &&
+      !newestIds.has(p.request_id)
+    );
+
+    setUrgentProjects([...urgentOnly].sort(() => Math.random() - 0.5));
+  }, [projects]);
+
+  // badge priority map — เหมือน DonationProject
+  const BADGE_PRIORITY = ["ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย", "ใหม่ล่าสุด", "แนะนำ"];
+  const projectAllCollections = useMemo(() => {
+    const today = new Date();
+    const urgentIds = new Set(urgentProjects.map(p => p.request_id));
+    const newestIds = new Set(
+      projects.filter(p => {
+        const ref = p.start_date || p.created_at;
+        if (!ref) return false;
+        return Math.ceil((today - new Date(ref)) / 86400000) <= 30;
+      }).map(p => p.request_id)
+    );
+    const closingIds = new Set(
+      projects.filter(p => {
+        if (!p.end_date) return false;
+        const d = Math.ceil((new Date(p.end_date) - today) / 86400000);
+        return d >= 0 && d <= 7;
+      }).map(p => p.request_id)
+    );
+    const nearGoalIds = new Set(
+      projects.filter(p => {
+        const needed = Number(p.total_needed);
+        const fulfilled = Number(p.total_fulfilled);
+        return needed > 0 && fulfilled / needed >= 0.7;
+      }).map(p => p.request_id)
+    );
+    const map = {};
+    projects.forEach(p => {
+      const id = p.request_id;
+      const cols = [];
+      if (closingIds.has(id))  cols.push("ใกล้เวลาปิด");
+      if (nearGoalIds.has(id)) cols.push("ใกล้ถึงเป้าหมาย");
+      if (newestIds.has(id))   cols.push("ใหม่ล่าสุด");
+      if (urgentIds.has(id))   cols.push("แนะนำ");
+      map[id] = cols;
+    });
+    return map;
+  }, [projects, urgentProjects]);
+
+  // แถวล่าง: ตาม homeTab
+  const displayProjects = useMemo(() => {
+    if (homeTab === NEARBY_TAB) return nearbyProjects.slice(0, 3);
+    if (!projects.length) return [];
+    const today = new Date();
+    const urgentIds = new Set(urgentProjects.map(p => p.request_id));
+
+    if (homeTab === "ใหม่ล่าสุด") {
+      return projects.filter(p => {
+        if (urgentIds.has(p.request_id)) return false;
+        const ref = p.start_date || p.created_at;
+        if (!ref) return false;
+        return Math.ceil((today - new Date(ref)) / 86400000) <= 30;
+      }).sort((a, b) => new Date(b.start_date || b.created_at) - new Date(a.start_date || a.created_at)).slice(0, 3);
     }
 
     if (homeTab === "ใกล้เวลาปิด") {
       return projects.filter(p => {
+        if (urgentIds.has(p.request_id)) return false;
         if (!p.end_date) return false;
         const d = Math.ceil((new Date(p.end_date) - today) / 86400000);
         return d >= 0 && d <= 7;
-      }).sort((a, b) => new Date(a.end_date) - new Date(b.end_date));
+      }).sort((a, b) => new Date(a.end_date) - new Date(b.end_date)).slice(0, 3);
     }
 
     if (homeTab === "ใกล้ถึงเป้าหมาย") {
-      return [...projects].filter(p => Number(p.total_needed) > 0)
-        .sort((a, b) => (Number(b.total_received) / Number(b.total_needed)) - (Number(a.total_received) / Number(a.total_needed)))
-        .slice(0, 6);
+      return [...projects]
+        .filter(p => {
+          if (urgentIds.has(p.request_id)) return false;
+          const needed = Number(p.total_needed);
+          const fulfilled = Number(p.total_fulfilled);
+          return needed > 0 && fulfilled / needed >= 0.7;
+        })
+        .sort((a, b) => (Number(b.total_fulfilled) / Number(b.total_needed)) - (Number(a.total_fulfilled) / Number(a.total_needed)))
+        .slice(0, 3);
     }
 
-    return projects;
-  }, [projects, homeTab, nearbyProjects]);
+    return projects.filter(p => !urgentIds.has(p.request_id)).slice(0, 3);
+  }, [projects, homeTab, nearbyProjects, urgentProjects]);
 
-  useEffect(() => {
-    setProjPage(0);
-    setIsSliding(false);
-  }, [displayProjects.length, homeTab]);
+  // Badge map สำหรับ "ใกล้ฉัน" — ใช้ algorithm เดียวกับ DonationProject.jsx
+  const nearbyBadgeMap = useMemo(() => {
+    if (!nearbyProjects.length) return {};
+    const today = new Date();
 
-  // ===== Projects paging logic (ปรับให้ใช้ displayProjects)
-  const perPage = 3;
-  const projPages = useMemo(() => {
-    const len = displayProjects?.length || 0;
-    return Math.max(1, Math.ceil(len / perPage));
-  }, [displayProjects]);
+    const fairIds = new Set(
+      [...nearbyProjects]
+        .filter(p => {
+          const n = Number(p.total_needed) || 0;
+          const r = Number(p.total_received) || 0;
+          return !(n > 0 && r >= n);
+        })
+        .map(p => {
+          const n = Number(p.total_needed) || 0;
+          const r = Number(p.total_received) || 0;
+          const ref = p.start_date || p.created_at;
+          const daysWaiting = ref ? Math.ceil((today - new Date(ref)) / 86400000) : 0;
+          const deficitRatio = n > 0 ? Math.max((n - r) / n, 0) : 0;
+          const waitScore = Math.min(daysWaiting / 60, 1);
+          let deadlineScore = 0;
+          if (p.end_date) {
+            const dl = Math.ceil((new Date(p.end_date) - today) / 86400000);
+            if (dl <= 7) deadlineScore = 1.0;
+            else if (dl <= 14) deadlineScore = 0.6;
+            else if (dl <= 30) deadlineScore = 0.3;
+          }
+          let completionBonus = 0;
+          if (n > 0) { const ratio = r / n; if (ratio >= 0.8) completionBonus = 1.0; else if (ratio >= 0.6) completionBonus = 0.5; }
+          let neglectModifier = 0;
+          if (p.last_donation_at) {
+            const ds = Math.ceil((today - new Date(p.last_donation_at)) / 86400000);
+            if (ds > 14) neglectModifier = 1.0; else if (ds > 7) neglectModifier = 0.5; else if (ds <= 3) neglectModifier = -1.0;
+          } else { neglectModifier = 0.8; }
+          return { ...p, _s: (deficitRatio * 0.40) + (waitScore * 0.25) + (deadlineScore * 0.20) + (completionBonus * 0.10) + (neglectModifier * 0.05) };
+        })
+        .sort((a, b) => b._s - a._s)
+        .slice(0, 6)
+        .map(p => p.request_id)
+    );
 
-  // ===== auto slide: start/stop (เพิ่ม)
-  const stopAuto = () => {
-    if (autoTimerRef.current) clearInterval(autoTimerRef.current);
-    autoTimerRef.current = null;
-  };
+    const newestIds = new Set(
+      nearbyProjects.filter(p => {
+        const ref = p.start_date || p.created_at;
+        return ref && Math.ceil((today - new Date(ref)) / 86400000) <= 30;
+      }).map(p => p.request_id)
+    );
+    const closingIds = new Set(
+      nearbyProjects.filter(p => {
+        if (!p.end_date) return false;
+        const d = Math.ceil((new Date(p.end_date) - today) / 86400000);
+        return d >= 0 && d <= 7;
+      }).map(p => p.request_id)
+    );
+    const nearGoalIds = new Set(
+      [...nearbyProjects].filter(p => {
+        const n = Number(p.total_needed);
+        const r = Number(p.total_received);
+        return n > 0 && r / n >= 0.5;
+      })
+        .sort((a, b) => (Number(b.total_received) / Number(b.total_needed)) - (Number(a.total_received) / Number(a.total_needed)))
+        .slice(0, 6).map(p => p.request_id)
+    );
 
-  const startAuto = () => {
-    stopAuto();
-    if (!autoPlay) return;
-    if (projPages <= 1) return;
-
-    autoTimerRef.current = setInterval(() => {
-      // กันกรณีมี transition ค้าง: ไม่บังคับก็ได้ แต่ช่วยให้ไม่ตีกัน
-      setProjPage((p) => (p + 1) % projPages);
-    }, AUTO_MS);
-  };
-
-  const resetAuto = () => {
-    startAuto();
-  };
-
-  useEffect(() => {
-    startAuto();
-    return stopAuto;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPlay, projPages, projectMode, displayProjects.length]);
-
-  const goPrev = () => {
-    if (isSliding || projPages <= 1) return;
-    setIsSliding(true);
-    setProjPage((p) => (p - 1 + projPages) % projPages);
-    resetAuto(); // ✅ กดเองแล้วรีเซ็ต auto
-  };
-
-  const goNext = () => {
-    if (isSliding || projPages <= 1) return;
-    setIsSliding(true);
-    setProjPage((p) => (p + 1) % projPages);
-    resetAuto(); // ✅ กดเองแล้วรีเซ็ต auto
-  };
+    const map = {};
+    nearbyProjects.forEach(p => {
+      const id = p.request_id;
+      if (closingIds.has(id))       map[id] = "ใกล้เวลาปิด";
+      else if (nearGoalIds.has(id)) map[id] = "ใกล้ถึงเป้าหมาย";
+      else if (newestIds.has(id))   map[id] = "ใหม่ล่าสุด";
+      else if (fairIds.has(id))     map[id] = "แนะนำ";
+      else                          map[id] = "แนะนำ";
+    });
+    return map;
+  }, [nearbyProjects]);
 
   const steps = [
     {
@@ -950,143 +1057,199 @@ export default function HomePage() {
 
       {/* ===== Projects ===== */}
       <section id="projects" className="section sectionBlue">
-        {/* Title */}
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <h3 className="projSectionTitle">
-            โครงการที่กำลังเปิดรับบริจาค
-          </h3>
-          {/* Tab pills */}
-          {(() => {
-            const TAB_COLORS = { "แนะนำ": "#ef4444", "ใหม่ล่าสุด": "#3b82f6", "ใกล้เวลาปิด": "#f97316", "ใกล้ถึงเป้าหมาย": "#10b981", "โครงการใกล้ฉัน": "#8b5cf6" };
-            const TAB_LABELS = { "แนะนำ": "ต้องการความช่วยเหลือ", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย", "โครงการใกล้ฉัน": "ใกล้ฉัน" };
-            return (
-              <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-                {Object.entries(TAB_LABELS).map(([key, label]) => {
-                  const active = homeTab === key;
+        {/* Title + Search bar */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <h3 className="projSectionTitle">โครงการที่กำลังเปิดรับบริจาค</h3>
+          {/* Search bar — พิมพ์ได้, Enter/ปุ่มค้นหา → navigate */}
+          <form
+            className="projSearchBar"
+            onSubmit={e => e.preventDefault()}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              className="projSearchInput"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="ค้นหาโครงการ โรงเรียน หรือจังหวัด..."
+            />
+            <button type="submit" className="projSearchBtn">ค้นหา</button>
+          </form>
+        </div>
+
+        <style>{`@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}`}</style>
+
+        {/* ── Search results mode ── */}
+        {searchResults !== null ? (
+          <>
+            <div className="projRowHeader">
+              <div className="projRowLabel" style={{ color: "#374151" }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                {searchLoading
+                  ? "กำลังค้นหา..."
+                  : searchResults.length
+                    ? `ผลการค้นหา "${q.trim()}" — ${searchTotal} โครงการ`
+                    : `ไม่พบโครงการที่ตรงกับ "${q.trim()}"`}
+              </div>
+              {searchTotal > 6 && (
+                <button onClick={() => navigate("/projects", { state: { focusSearch: true, q: q.trim() } })} className="projRowSeeAll">
+                  ดูทั้งหมด {searchTotal} รายการ →
+                </button>
+              )}
+            </div>
+
+            {searchLoading ? (
+              <div className="projGrid">
+                {[0,1,2].map(i => <div key={i} style={{ height: 340, borderRadius: 14, background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite" }} />)}
+              </div>
+            ) : searchResults.length ? (
+              <div className="projGrid">
+                {searchResults.map(p => (
+                  <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel={null} />
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "48px 0", color: "#94a3b8", fontFamily: "Mitr, sans-serif" }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12, color: "#cbd5e1" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <div style={{ fontSize: 15, fontWeight: 500, color: "#64748b", marginBottom: 4 }}>ไม่พบโครงการที่ตรงกัน</div>
+                <div style={{ fontSize: 13 }}>ลองค้นหาด้วยคำอื่น หรือ</div>
+                <button onClick={() => navigate("/projects", { state: { focusSearch: true, q: q.trim() } })} style={{ marginTop: 12, background: "#5285E8", color: "#fff", border: "none", borderRadius: 99, padding: "8px 20px", fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif", fontWeight: 500 }}>
+                  ค้นหาขั้นสูงเพิ่มเติม
+                </button>
+              </div>
+            )}
+          </>
+        ) : loading ? (
+          <div className="projGrid" style={{ marginBottom: 0 }}>
+            {[0,1,2,3,4,5].map(i => (
+              <div key={i} style={{ height: 340, borderRadius: 14, background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite" }} />
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* ── แถวบน: ต้องการความช่วยเหลือ (fixed) ── */}
+            <div className="projRowHeader">
+              <div className="projRowLabel">
+                <span style={{ background: "#fef2f2", borderRadius: 8, padding: "4px 8px", display: "flex", alignItems: "center", gap: 5 }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style={{color:"#ef4444"}}><path fill="currentColor" d="M17.66 11.2c-.23-.3-.51-.56-.77-.82c-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32c-2.59 2.08-3.61 5.75-2.39 8.9c.04.1.08.2.08.33c0 .22-.15.42-.35.5c-.23.1-.47.04-.66-.12a.58.58 0 0 1-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5c.14.6.41 1.2.71 1.73c1.08 1.73 2.95 2.97 4.96 3.22c2.14.27 4.43-.12 6.07-1.6c1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26m-3.16 6.3c-.28.24-.74.5-1.1.6c-1.12.4-2.24-.16-2.9-.82c1.19-.28 1.9-1.16 2.11-2.05c.17-.8-.15-1.46-.28-2.23c-.12-.74-.1-1.37.17-2.06c.19.38.39.76.63 1.06c.77 1 1.98 1.44 2.24 2.8c.06.14.09.28.09.43c.03.82-.33 1.72-.96 2.27"/></svg>
+                  <span style={{color:"#ef4444"}}>ต้องการความช่วยเหลือ</span>
+                </span>
+              </div>
+              <Link to="/projects" state={{ collection: "แนะนำ" }} className="projRowSeeAll">ดูทั้งหมด →</Link>
+            </div>
+            <div className="projGrid">
+              {urgentProjects.length ? urgentProjects.map(p => (
+                <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel="แนะนำ" />
+              )) : (
+                <div className="muted" style={{ gridColumn: "1/-1", padding: "32px 0", textAlign: "center" }}>ไม่มีโครงการในขณะนี้</div>
+              )}
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <Link to="/projects" state={{ collection: "แนะนำ" }} className="projSeeAllMobile">
+                ดูโครงการทั้งหมด →
+              </Link>
+            </div>
+
+            {/* ── divider ── */}
+            <div style={{ maxWidth: 1240, margin: "40px auto 0", width: "100%" }}>
+              <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #e2e8f0 20%, #e2e8f0 80%, transparent)" }} />
+            </div>
+
+            {/* ── แถวล่าง: switchable tab ── */}
+            <div className="projRowHeader" style={{ marginTop: 28 }}>
+              <div className="projTabRow" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {[
+                  { key: "ใหม่ล่าสุด", label: "ใหม่ล่าสุด", color: "#3b82f6", icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 36 36"><path fill="currentColor" d="m34.11 24.49l-3.92-6.62l3.88-6.35a1 1 0 0 0-.85-1.52H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h31.25a1 1 0 0 0 .86-1.51m-23.6-3.31H9.39l-3.26-4.34v4.35H5V15h1.13l3.27 4.35V15h1.12ZM16.84 16h-3.53v1.49h3.2v1h-3.2v1.61h3.53v1h-4.66V15h4.65Zm8.29 5.16H24l-1.55-4.59l-1.55 4.61h-1.12l-2-6.18H19l1.32 4.43L21.84 15h1.22l1.46 4.43L25.85 15h1.23Z"/><path fill="none" d="M0 0h36v36H0z"/></svg> },
+                  { key: "ใกล้เวลาปิด", label: "ใกล้เวลาปิด", color: "#f97316", icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+                  { key: "ใกล้ถึงเป้าหมาย", label: "ใกล้ถึงเป้าหมาย", color: "#10b981", icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8zm0-12a4 4 0 1 0 4 4a4 4 0 0 0-4-4zm0 6a2 2 0 1 1 2-2a2 2 0 0 1-2 2z"/></svg> },
+                  { key: "โครงการใกล้ฉัน", label: "ใกล้ฉัน", color: "#8b5cf6", icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C7.589 2 4 5.589 4 9.995C3.971 16.44 11.696 21.784 12 22c0 0 8.029-5.56 8-12c0-4.411-3.589-8-8-8m0 12c-2.21 0-4-1.79-4-4s1.79-4 4-4s4 1.79 4 4s-1.79 4-4 4"/></svg> },
+                ].map(tab => {
+                  const active = homeTab === tab.key;
                   return (
-                    <button key={key} onClick={() => setHomeTab(key)} style={{ padding: "8px 20px", borderRadius: 99, border: active ? `1.5px solid ${TAB_COLORS[key]}` : "1.5px solid #d1d5db", background: active ? TAB_COLORS[key] : "#fff", color: active ? "#fff" : "#374151", fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
-                      {key === "โครงการใกล้ฉัน" && <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C7.589 2 4 5.589 4 9.995C3.971 16.44 11.696 21.784 12 22c0 0 8.029-5.56 8-12c0-4.411-3.589-8-8-8m0 12c-2.21 0-4-1.79-4-4s1.79-4 4-4s4 1.79 4 4s-1.79 4-4 4"/></svg>}
-                      {label}
+                    <button key={tab.key} onClick={() => setHomeTab(tab.key)} style={{
+                      padding: "6px 16px", borderRadius: 99,
+                      border: `1.5px solid ${active ? tab.color : "#e5e7eb"}`,
+                      background: active ? tab.color : "#fff",
+                      color: active ? "#fff" : "#6b7280",
+                      fontWeight: 500, fontSize: 13, cursor: "pointer", fontFamily: "Mitr, sans-serif",
+                      display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s", flexShrink: 0,
+                    }}>
+                      {tab.icon}{tab.label}
                     </button>
                   );
                 })}
               </div>
-            );
-          })()}
-        </div>
-
-        {/* ── Nearby tab: province picker modal ── */}
-        {homeTab === NEARBY_TAB && showProvincePicker && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ background: "#fff", borderRadius: 16, padding: "28px 28px 24px", width: "min(92vw,420px)", boxShadow: "0 8px 40px rgba(0,0,0,0.18)", fontFamily: "Mitr, sans-serif" }}>
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 17, color: "#1e293b" }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="#8b5cf6" d="M12 2C7.589 2 4 5.589 4 9.995C3.971 16.44 11.696 21.784 12 22c0 0 8.029-5.56 8-12c0-4.411-3.589-8-8-8m0 12c-2.21 0-4-1.79-4-4s1.79-4 4-4s4 1.79 4 4s-1.79 4-4 4"/></svg>
-                  เลือกจังหวัดของคุณ
-                </div>
-                {nearbyGpsError && <div style={{ fontSize: 12, color: "#ef4444", marginTop: 4, marginLeft: 30 }}>{nearbyGpsError}</div>}
-                {!nearbyGpsError && <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, marginLeft: 30 }}>เพื่อแสดงโครงการในจังหวัดของคุณ</div>}
-              </div>
-              <input
-                type="text"
-                placeholder="พิมพ์ชื่อจังหวัด…"
-                value={provinceInput}
-                onChange={e => setProvinceInput(e.target.value)}
-                style={{ width: "100%", padding: "9px 14px", border: "1.5px solid #d1d5db", borderRadius: 8, fontSize: 14, fontFamily: "Mitr, sans-serif", outline: "none", boxShadow: "none", boxSizing: "border-box", marginBottom: 12 }}
-                onFocus={e => e.currentTarget.style.borderColor = "#d1d5db"}
-                onBlur={e => e.currentTarget.style.borderColor = "#d1d5db"}
-                autoFocus
-              />
-              <div style={{ maxHeight: 260, overflowY: "auto", display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {PROVINCES_LIST.filter(p => !provinceInput || p.includes(provinceInput)).map(prov => (
-                  <button key={prov} onClick={() => handleSelectProvince(prov)}
-                    style={{ padding: "6px 14px", borderRadius: 99, border: "1.5px solid #e2e8f0", background: "#f8fafc", color: "#334155", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "Mitr, sans-serif", transition: "background 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "#8b5cf6"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.color = "#334155"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
-                  >
-                    {prov}
-                  </button>
-                ))}
-              </div>
-              {nearbyProvince && (
-                <button onClick={() => setShowProvincePicker(false)} style={{ marginTop: 16, width: "100%", padding: "9px", border: "none", background: "#f1f5f9", borderRadius: 8, color: "#475569", fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif" }}>
-                  ยกเลิก
-                </button>
+              {homeTab !== NEARBY_TAB && (
+                <Link to="/projects" state={{ collection: homeTab }} className="projRowSeeAll">ดูทั้งหมด →</Link>
               )}
             </div>
-          </div>
-        )}
 
-        {/* ── Nearby tab: province label + change button ── */}
-        {homeTab === NEARBY_TAB && nearbyProvince && !showProvincePicker && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
-            <span style={{ background: "#ede9fe", color: "#6d28d9", padding: "5px 16px", borderRadius: 99, fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 5 }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C7.589 2 4 5.589 4 9.995C3.971 16.44 11.696 21.784 12 22c0 0 8.029-5.56 8-12c0-4.411-3.589-8-8-8m0 12c-2.21 0-4-1.79-4-4s1.79-4 4-4s4 1.79 4 4s-1.79 4-4 4"/></svg>
-              โครงการในจังหวัด{nearbyProvince}
-            </span>
-            <button onClick={handleChangeProvince} style={{ background: "none", border: "1.5px solid #c4b5fd", color: "#7c3aed", borderRadius: 99, padding: "5px 14px", fontSize: 13, cursor: "pointer", fontFamily: "Mitr, sans-serif", fontWeight: 500 }}>
-              เปลี่ยนจังหวัด
-            </button>
-          </div>
-        )}
-
-        {(loading || (homeTab === NEARBY_TAB && nearbyLoading)) ? (
-          /* Loading skeleton */
-          <div style={{ display: "flex", gap: 20, justifyContent: "center", padding: "24px 0" }}>
-            {[0, 1, 2].map(i => (
-              <div key={i} style={{ width: 240, height: 280, borderRadius: 14, background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite", flexShrink: 0 }} />
-            ))}
-            <style>{`@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}`}</style>
-          </div>
-        ) : (
-          <>
-            <div className="carouselRow">
-              <button className="navArrow" onClick={goPrev} disabled={isSliding || projPages <= 1} aria-label="prev">‹</button>
-              <div className="carouselViewport" onMouseEnter={() => setAutoPlay(false)} onMouseLeave={() => setAutoPlay(true)}>
-                {!displayProjects.length ? (
-                  <div style={{ padding: "48px 0", textAlign: "center" }}>
-                    {homeTab === NEARBY_TAB ? (
-                      <div style={{ color: "#94a3b8", fontFamily: "Mitr, sans-serif" }}>
-                        <div style={{ marginBottom: 10, color: "#8b5cf6" }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" strokeWidth="4"><path strokeLinejoin="round" d="M4 33a2 2 0 0 1 2-2h6v-7l12-8l12 8v7h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4z"/><path strokeLinecap="round" d="M24 6v10"/><path strokeLinecap="round" strokeLinejoin="round" d="M36 12V6s-1.5 3-6 0s-6 0-6 0v6s1.5-3 6 0s6 0 6 0m-8 32V31h-8v13m-2 0h12"/></g></svg>
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 500, color: "#475569", marginBottom: 6 }}>ยังไม่มีโครงการในจังหวัด{nearbyProvince}</div>
-                        <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>ลองเลือกจังหวัดอื่นดูนะ</div>
-                        <button onClick={handleChangeProvince} style={{ background: "#8b5cf6", color: "#fff", border: "none", borderRadius: 99, padding: "8px 22px", fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif", fontWeight: 500 }}>
-                          เปลี่ยนจังหวัด
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="muted">ไม่มีโครงการในหมวดนี้</div>
-                    )}
+            {/* Province picker modal */}
+            {homeTab === NEARBY_TAB && showProvincePicker && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ background: "#fff", borderRadius: 16, padding: "28px 28px 24px", width: "min(92vw,420px)", boxShadow: "0 8px 40px rgba(0,0,0,0.18)", fontFamily: "Mitr, sans-serif" }}>
+                  <div style={{ marginBottom: 18 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 17, color: "#1e293b" }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="#8b5cf6" d="M12 2C7.589 2 4 5.589 4 9.995C3.971 16.44 11.696 21.784 12 22c0 0 8.029-5.56 8-12c0-4.411-3.589-8-8-8m0 12c-2.21 0-4-1.79-4-4s1.79-4 4-4s4 1.79 4 4s-1.79 4-4 4"/></svg>
+                      เลือกจังหวัดของคุณ
+                    </div>
+                    {nearbyGpsError && <div style={{ fontSize: 12, color: "#ef4444", marginTop: 4, marginLeft: 30 }}>{nearbyGpsError}</div>}
+                    {!nearbyGpsError && <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, marginLeft: 30 }}>เพื่อแสดงโครงการในจังหวัดของคุณ</div>}
                   </div>
-                ) : (
-                  <div className="carouselTrack" style={{ transform: `translateX(-${projPage * 100}%)` }} onTransitionEnd={() => setIsSliding(false)}>
-                    {Array.from({ length: projPages }).map((_, pageIndex) => {
-                      const slice = displayProjects.slice(pageIndex * perPage, pageIndex * perPage + perPage);
-                      return (
-                        <div className="carouselPage" key={pageIndex}>
-                          {slice.map(p => <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel={homeTab === NEARBY_TAB ? null : homeTab} />)}
-                          {slice.length < 2 && <div className="projCard projCardGhost" />}
-                        </div>
-                      );
-                    })}
+                  <input type="text" placeholder="พิมพ์ชื่อจังหวัด…" value={provinceInput} onChange={e => setProvinceInput(e.target.value)}
+                    style={{ width: "100%", padding: "9px 14px", border: "1.5px solid #d1d5db", borderRadius: 8, fontSize: 14, fontFamily: "Mitr, sans-serif", outline: "none", boxSizing: "border-box", marginBottom: 12 }} autoFocus />
+                  <div style={{ maxHeight: 260, overflowY: "auto", display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {PROVINCES_LIST.filter(p => !provinceInput || p.includes(provinceInput)).map(prov => (
+                      <button key={prov} onClick={() => handleSelectProvince(prov)}
+                        style={{ padding: "6px 14px", borderRadius: 99, border: "1.5px solid #e2e8f0", background: "#f8fafc", color: "#334155", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "Mitr, sans-serif", transition: "background 0.15s" }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "#8b5cf6"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.color = "#334155"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+                      >{prov}</button>
+                    ))}
                   </div>
-                )}
-              </div>
-              <button className="navArrow" onClick={goNext} disabled={isSliding || projPages <= 1} aria-label="next">›</button>
-            </div>
-            {/* Navigate link */}
-            {homeTab !== NEARBY_TAB && (() => {
-              const TAB_LABELS = { "แนะนำ": "ต้องการความช่วยเหลือ", "ใหม่ล่าสุด": "ใหม่ล่าสุด", "ใกล้เวลาปิด": "ใกล้เวลาปิด", "ใกล้ถึงเป้าหมาย": "ใกล้ถึงเป้าหมาย" };
-              return (
-                <div style={{ textAlign: "center", marginTop: 24 }}>
-                  <Link to="/projects" state={{ collection: homeTab }} onMouseEnter={() => setNavHover(true)} onMouseLeave={() => setNavHover(false)} style={{ color: navHover ? "#5285E8" : "#053f5c", fontWeight: 600, fontSize: 15, textDecoration: "underline", textUnderlineOffset: 3, transition: "color 0.2s" }}>
-                    ดู{TAB_LABELS[homeTab]}ทั้งหมด →
-                  </Link>
+                  {nearbyProvince && (
+                    <button onClick={() => setShowProvincePicker(false)} style={{ marginTop: 16, width: "100%", padding: "9px", border: "none", background: "#f1f5f9", borderRadius: 8, color: "#475569", fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif" }}>ยกเลิก</button>
+                  )}
                 </div>
-              );
-            })()}
+              </div>
+            )}
+
+            {homeTab === NEARBY_TAB && nearbyProvince && !showProvincePicker && (
+              <div className="projRowHeader" style={{ marginTop: 10, marginBottom: 12 }}>
+                <span style={{ background: "#ede9fe", color: "#6d28d9", padding: "5px 16px", borderRadius: 99, fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 5 }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C7.589 2 4 5.589 4 9.995C3.971 16.44 11.696 21.784 12 22c0 0 8.029-5.56 8-12c0-4.411-3.589-8-8-8m0 12c-2.21 0-4-1.79-4-4s1.79-4 4-4s4 1.79 4 4s-1.79 4-4 4"/></svg>
+                  โครงการในจังหวัด{nearbyProvince}
+                </span>
+                <button onClick={handleChangeProvince} style={{ background: "none", border: "1.5px solid #c4b5fd", color: "#7c3aed", borderRadius: 99, padding: "5px 14px", fontSize: 13, cursor: "pointer", fontFamily: "Mitr, sans-serif", fontWeight: 500 }}>เปลี่ยนจังหวัด</button>
+              </div>
+            )}
+
+            <div className="projGrid" id="tabProjGrid">
+              {(homeTab === NEARBY_TAB && nearbyLoading) ? (
+                [0,1,2].map(i => <div key={i} style={{ height: 280, borderRadius: 14, background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite" }} />)
+              ) : !displayProjects.length ? (
+                <div style={{ gridColumn: "1/-1", padding: "48px 0", textAlign: "center" }}>
+                  {homeTab === NEARBY_TAB ? (
+                    <div style={{ fontFamily: "Mitr, sans-serif" }}>
+                      <div style={{ marginBottom: 10, color: "#8b5cf6" }}><svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" strokeWidth="4"><path strokeLinejoin="round" d="M4 33a2 2 0 0 1 2-2h6v-7l12-8l12 8v7h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4z"/><path strokeLinecap="round" d="M24 6v10"/><path strokeLinecap="round" strokeLinejoin="round" d="M36 12V6s-1.5 3-6 0s-6 0-6 0v6s1.5-3 6 0s6 0 6 0m-8 32V31h-8v13m-2 0h12"/></g></svg></div>
+                      <div style={{ fontSize: 16, fontWeight: 500, color: "#475569", marginBottom: 6 }}>ยังไม่มีโครงการในจังหวัด{nearbyProvince}</div>
+                      <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>ลองเลือกจังหวัดอื่นดูนะ</div>
+                      <button onClick={handleChangeProvince} style={{ background: "#8b5cf6", color: "#fff", border: "none", borderRadius: 99, padding: "8px 22px", fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif", fontWeight: 500 }}>เปลี่ยนจังหวัด</button>
+                    </div>
+                  ) : (
+                    <div className="muted">ไม่มีโครงการในหมวดนี้</div>
+                  )}
+                </div>
+              ) : displayProjects.map(p => (
+                <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel={homeTab === NEARBY_TAB ? (nearbyBadgeMap[p.request_id] || null) : homeTab} />
+              ))}
+            </div>
+            {homeTab !== NEARBY_TAB && (
+              <div style={{ textAlign: "center" }}>
+                <Link to="/projects" state={{ collection: homeTab }} className="projSeeAllMobile">
+                  ดูโครงการทั้งหมด →
+                </Link>
+              </div>
+            )}
           </>
         )}
       </section>
