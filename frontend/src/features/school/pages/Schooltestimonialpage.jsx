@@ -6,7 +6,7 @@ import "../styles/Schooltestimonialpage.css";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
-const STATUS_LABEL = { open: "กำลังดำเนินการ", closed: "ปิดรับบริจาคแล้ว", archived: "จัดเก็บแล้ว" };
+const STATUS_LABEL = { open: "กำลังดำเนินการ", closed: "ปิดรับบริจาคแล้ว", archived: "ปิดโครงการ" };
 const STATUS_CLASS = { open: "stBadgeOpen", closed: "stBadgeClosed", archived: "stBadgeArchived" };
 
 const MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];

@@ -201,24 +201,29 @@ export async function verifyAndIssueCertificate(req, res, next) {
 
                 const receivedMap = {};
                 const conditionMap = {};
+                const itemSnapKey = (it) => `${it.uniform_type_id}__${JSON.stringify(it.size ?? "")}__${it.name ?? ""}`;
                 if (Array.isArray(items_received) && items_received.length > 0) {
                     for (const r of items_received) {
-                        receivedMap[r.uniform_type_id] = Number(r.qty_received ?? 0);
-                        conditionMap[r.uniform_type_id] = r.item_condition ?? null;
+                        const k = itemSnapKey(r);
+                        receivedMap[k] = Number(r.qty_received ?? 0);
+                        conditionMap[k] = r.item_condition ?? null;
+                        // fallback key for backward compat (no size)
+                        if (!receivedMap[r.uniform_type_id]) {
+                            receivedMap[r.uniform_type_id] = Number(r.qty_received ?? 0);
+                            conditionMap[r.uniform_type_id] = r.item_condition ?? null;
+                        }
                     }
                 }
                 const usePerItem = Object.keys(receivedMap).length > 0;
 
                 for (const item of snapItems) {
-                    // ถ้ามี per-item condition → นับเฉพาะ usable
-                    // ถ้าไม่มี (backward compat) → นับเฉพาะถ้า overall เป็น usable
                     const itemCond = usePerItem
-                        ? (conditionMap[item.uniform_type_id] ?? null)
+                        ? (conditionMap[itemSnapKey(item)] ?? conditionMap[item.uniform_type_id] ?? null)
                         : (condition_status === "usable" ? "usable" : null);
                     if (itemCond !== "usable") continue;
 
                     const qty = usePerItem
-                        ? (receivedMap[item.uniform_type_id] ?? 0)
+                        ? (receivedMap[itemSnapKey(item)] ?? receivedMap[item.uniform_type_id] ?? 0)
                         : item.quantity;
                     if (qty <= 0) continue;
 
@@ -280,9 +285,16 @@ export async function verifyAndIssueCertificate(req, res, next) {
             let usableItems = [];
             const CERT_ELIGIBLE = ["usable", "damaged"];
             if (Array.isArray(items_received) && items_received.length > 0) {
-                const condMap = {};
-                for (const r of items_received) condMap[r.uniform_type_id] = r.item_condition ?? null;
-                usableItems = snapItems.filter(it => CERT_ELIGIBLE.includes(condMap[it.uniform_type_id]));
+                const certCondMap = {};
+                for (const r of items_received) {
+                    const k = `${r.uniform_type_id}__${JSON.stringify(r.size ?? "")}__${r.name ?? ""}`;
+                    certCondMap[k] = r.item_condition ?? null;
+                    if (!certCondMap[r.uniform_type_id]) certCondMap[r.uniform_type_id] = r.item_condition ?? null;
+                }
+                usableItems = snapItems.filter(it => {
+                    const k = `${it.uniform_type_id}__${JSON.stringify(it.size ?? "")}__${it.name ?? ""}`;
+                    return CERT_ELIGIBLE.includes(certCondMap[k] ?? certCondMap[it.uniform_type_id]);
+                });
             } else {
                 // backward compat — ไม่มี per-item → ใช้ overall
                 if (condition_status !== "wrong_item") usableItems = snapItems;
@@ -405,17 +417,25 @@ export async function verifyAndIssueCertificate(req, res, next) {
             const reasonMapNotif = {};
             const noteMapNotif   = {};
             for (const r of items_received) {
-                condMapNotif[r.uniform_type_id]   = r.item_condition ?? null;
-                if (r.reason) reasonMapNotif[r.uniform_type_id] = r.reason;
-                if (r.note)   noteMapNotif[r.uniform_type_id]   = r.note;
+                const k = `${r.uniform_type_id}__${JSON.stringify(r.size ?? "")}__${r.name ?? ""}`;
+                condMapNotif[k]   = r.item_condition ?? null;
+                if (r.reason) reasonMapNotif[k] = r.reason;
+                if (r.note)   noteMapNotif[k]   = r.note;
+                if (!condMapNotif[r.uniform_type_id]) condMapNotif[r.uniform_type_id] = r.item_condition ?? null;
             }
             wrong_items = snapForNotif
-                .filter(it => condMapNotif[it.uniform_type_id] === "wrong_item")
-                .map(it => ({
-                    name:   String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim(),
-                    reason: reasonMapNotif[it.uniform_type_id] || null,
-                    note:   noteMapNotif[it.uniform_type_id]   || null,
-                }))
+                .filter(it => {
+                    const k = `${it.uniform_type_id}__${JSON.stringify(it.size ?? "")}__${it.name ?? ""}`;
+                    return (condMapNotif[k] ?? condMapNotif[it.uniform_type_id]) === "wrong_item";
+                })
+                .map(it => {
+                    const k = `${it.uniform_type_id}__${JSON.stringify(it.size ?? "")}__${it.name ?? ""}`;
+                    return {
+                        name:   String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim(),
+                        reason: reasonMapNotif[k] || null,
+                        note:   noteMapNotif[k]   || null,
+                    };
+                })
                 .filter(it => it.name);
         }
 

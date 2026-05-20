@@ -589,15 +589,16 @@ export default function SchoolAppointmentPage() {
                   <Icon icon="mdi:clock-alert-outline" width="13" style={{ marginRight: 3 }} />
                   เกินกำหนดยืนยันรับ
                 </span>
-              ) : (
-                <span className="sdBadge" style={{
-                  marginLeft: "auto",
-                  color:      STATUS_META[detailPopup.status]?.color,
-                  background: STATUS_META[detailPopup.status]?.bg,
-                }}>
-                  {STATUS_META[detailPopup.status]?.label}
-                </span>
-              )}
+              ) : (() => {
+                const condBadge = detailPopup.status === "approved" && detailPopup.condition_status && detailPopup.condition_status !== "usable"
+                  ? (CONDITION_BADGE[detailPopup.condition_status] || { label: detailPopup.condition_status, color: "#64748b", bg: "#f1f5f9" })
+                  : STATUS_META[detailPopup.status];
+                return (
+                  <span className="sdBadge" style={{ marginLeft: "auto", color: condBadge?.color, background: condBadge?.bg }}>
+                    {condBadge?.label}
+                  </span>
+                );
+              })()}
             </div>
 
             <div className="sapPopupInfoRow">

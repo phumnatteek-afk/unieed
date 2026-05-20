@@ -48,15 +48,12 @@ export async function getProjectByIdPublic(req, res, next) {
           FROM student_need sn
           JOIN students st ON st.student_id = sn.student_id
           WHERE st.request_id = dr.request_id) AS total_needed,
-         (SELECT COALESCE(SUM(sn2.quantity_received), 0)
-          FROM student_need sn2
-          JOIN students st2 ON st2.student_id = sn2.student_id
-          WHERE st2.request_id = dr.request_id) AS total_fulfilled,
-         (SELECT COALESCE(SUM(don.quantity), 0)
-          FROM donation_record don
-          WHERE don.request_id = dr.request_id
-            AND don.status = 'approved'
-            AND don.condition_status = 'usable') AS total_received,
+         (SELECT COALESCE(SUM(f.quantity_fulfilled), 0)
+          FROM fulfillment f
+          WHERE f.request_id = dr.request_id) AS total_fulfilled,
+         (SELECT COALESCE(SUM(f2.quantity_fulfilled), 0)
+          FROM fulfillment f2
+          WHERE f2.request_id = dr.request_id) AS total_received,
          (SELECT COALESCE(SUM(don.quantity), 0)
           FROM donation_record don
           WHERE don.request_id = dr.request_id
@@ -181,6 +178,98 @@ export async function getProjectByIdPublic(req, res, next) {
     };
   });
  
+  // คำนวณ quantity_remaining per (type, size) จาก items_condition_snapshot
+  try {
+    const [approvedDons] = await db.query(
+      `SELECT items_snapshot, items_condition_snapshot, condition_status
+       FROM donation_record
+       WHERE request_id = ? AND status = 'approved'`,
+      [request_id]
+    );
+    const parseJ = (v) => { try { return typeof v === "string" ? JSON.parse(v) : (v || null); } catch { return null; } };
+    const normSize = (s) => {
+      if (!s) return "null";
+      let obj;
+      if (typeof s === "string") { try { obj = JSON.parse(s); } catch { return s; } }
+      else { obj = s; }
+      if (!obj || typeof obj !== "object") return String(obj);
+      const cleaned = Object.fromEntries(
+        Object.entries(obj).filter(([, v]) => v !== null && v !== undefined && v !== "")
+      );
+      return Object.keys(cleaned).length ? JSON.stringify(cleaned) : "null";
+    };
+    const snapKey = (typeId, size) => `${typeId}__${normSize(size)}`;
+
+    // fulfilledByTypeSize = exact (typeId__size), fulfilledByType = no-size pool
+    const fulfilledByTypeSize = {};
+    const fulfilledByType = {};
+
+    for (const d of approvedDons) {
+      const condSnap = parseJ(d.items_condition_snapshot);
+      if (Array.isArray(condSnap) && condSnap.length > 0) {
+        for (const it of condSnap) {
+          if (it.item_condition === "usable") {
+            const sizeStr = normSize(it.size);
+            if (sizeStr === "null") {
+              const tid = String(it.uniform_type_id);
+              fulfilledByType[tid] = (fulfilledByType[tid] || 0) + Number(it.qty_received || 0);
+            } else {
+              const k = `${it.uniform_type_id}__${sizeStr}`;
+              fulfilledByTypeSize[k] = (fulfilledByTypeSize[k] || 0) + Number(it.qty_received || 0);
+            }
+          }
+        }
+      } else if (d.condition_status === "usable") {
+        const snap = parseJ(d.items_snapshot);
+        if (Array.isArray(snap)) {
+          for (const it of snap) {
+            const sizeStr = normSize(it.size);
+            if (sizeStr === "null") {
+              const tid = String(it.uniform_type_id);
+              fulfilledByType[tid] = (fulfilledByType[tid] || 0) + Number(it.quantity || 0);
+            } else {
+              const k = `${it.uniform_type_id}__${sizeStr}`;
+              fulfilledByTypeSize[k] = (fulfilledByTypeSize[k] || 0) + Number(it.quantity || 0);
+            }
+          }
+        }
+      }
+    }
+
+    // คำนวณ total qty needed per type สำหรับ proportional fallback
+    const typeQtyNeeded = {};
+    for (const item of project.uniform_items) {
+      const tid = String(item.uniform_type_id);
+      typeQtyNeeded[tid] = (typeQtyNeeded[tid] || 0) + item.quantity;
+    }
+
+    let totalFulfilledCapped = 0;
+    project.uniform_items = project.uniform_items.map(item => {
+      const tid = String(item.uniform_type_id);
+      const sizeStr = normSize(item.size);
+      const exactKey = `${item.uniform_type_id}__${sizeStr}`;
+
+      const exactFulfilled = fulfilledByTypeSize[exactKey] || 0;
+      const typePool = fulfilledByType[tid] || 0;
+      const typeTotalNeeded = typeQtyNeeded[tid] || 1;
+      const proportionalFulfilled = typePool > 0
+        ? Math.round(typePool * (item.quantity / typeTotalNeeded))
+        : 0;
+
+      const itemFulfilled = Math.min(exactFulfilled + proportionalFulfilled, item.quantity);
+      const quantity_remaining = Math.max(item.quantity - itemFulfilled, 0);
+      totalFulfilledCapped += itemFulfilled;
+      return { ...item, quantity_needed: item.quantity, quantity_remaining };
+    });
+    project.total_fulfilled = totalFulfilledCapped;
+  } catch (e) {
+    console.warn("[getProjectByIdPublic] snapshot qty failed:", e.message);
+    for (const item of project.uniform_items) {
+      item.quantity_remaining = item.quantity || 0;
+      item.quantity_needed = item.quantity || 0;
+    }
+  }
+
   // ✅ FIX สำคัญ: ดึง uniform_type_images ของโรงเรียนนี้มา merge เสมอ
   // เพื่อให้แสดงรูปที่โรงเรียน upload แม้ยังไม่มีนักเรียนใน request นี้
   // หรือ type นั้นไม่ได้อยู่ใน student_need
@@ -227,82 +316,6 @@ export async function getProjectByIdPublic(req, res, next) {
  
   project.uniform_items = [...itemMap.values()];
 
-  // ── Approved qty per item (จาก donation_record items_snapshot) ──────────
-  try {
-    const [approvedRows] = await db.query(
-      `SELECT
-         jt.type_id          AS uniform_type_id,
-         jt.chest,
-         jt.waist,
-         SUM(jt.qty)         AS approved_qty
-       FROM donation_record dr
-       CROSS JOIN JSON_TABLE(
-         dr.items_snapshot, '$[*]'
-         COLUMNS (
-           type_id INT         PATH '$.uniform_type_id',
-           qty     INT         PATH '$.quantity',
-           chest   VARCHAR(20) PATH '$.size.chest',
-           waist   VARCHAR(20) PATH '$.size.waist'
-         )
-       ) AS jt
-       WHERE dr.request_id = ?
-         AND dr.status = 'approved'
-         AND dr.condition_status = 'usable'
-       GROUP BY jt.type_id, jt.chest, jt.waist`,
-      [request_id]
-    );
-
-    // แยก rows ที่มี size info (format ใหม่) vs ไม่มี (format เก่า)
-    const rowsWithSize    = approvedRows.filter(r => r.chest !== null || r.waist !== null);
-    const rowsWithoutSize = approvedRows.filter(r => r.chest === null && r.waist === null);
-
-    // คำนวณ total quantity per type_id สำหรับ proportional fallback
-    const totalQtyPerType = {};
-    for (const item of project.uniform_items) {
-      const tid = item.uniform_type_id;
-      totalQtyPerType[tid] = (totalQtyPerType[tid] || 0) + (item.quantity || 0);
-    }
-
-    for (const item of project.uniform_items) {
-      let sizeObj = null;
-      try {
-        sizeObj = item.size
-          ? (typeof item.size === "string" ? JSON.parse(item.size) : item.size)
-          : null;
-      } catch { sizeObj = null; }
-
-      const chest = sizeObj?.chest ?? null;
-      const waist = sizeObj?.waist ?? null;
-
-      // ลอง match ด้วย size (format ใหม่) ก่อน
-      const sizeMatch = rowsWithSize.find(r =>
-        r.uniform_type_id === item.uniform_type_id &&
-        String(r.chest ?? "") === String(chest ?? "") &&
-        String(r.waist ?? "") === String(waist ?? "")
-      );
-
-      let approvedQty = 0;
-      if (sizeMatch) {
-        approvedQty = Number(sizeMatch.approved_qty);
-      } else {
-        // fallback: format เก่าไม่มี size → กระจาย proportional ตาม item.quantity
-        const oldApproved = rowsWithoutSize
-          .filter(r => r.uniform_type_id === item.uniform_type_id)
-          .reduce((s, r) => s + Number(r.approved_qty), 0);
-        const typeTotal = totalQtyPerType[item.uniform_type_id] || 1;
-        approvedQty = Math.round(oldApproved * ((item.quantity || 0) / typeTotal));
-      }
-
-      item.quantity_approved = approvedQty;
-      item.quantity_remaining = Math.max((item.quantity || 0) - approvedQty, 0);
-    }
-  } catch (approvedErr) {
-    console.warn("[getProjectByIdPublic] approved qty query failed:", approvedErr.message);
-    for (const item of project.uniform_items) {
-      item.quantity_approved = 0;
-      item.quantity_remaining = item.quantity || 0;
-    }
-  }
 
 } catch (uniformErr) {
   console.error("[getProjectByIdPublic] uniform_items query failed:", uniformErr.message);
@@ -905,17 +918,63 @@ export async function listSchoolProjects(req, res, next) {
 export async function getLatestProject(req, res, next) {
   try {
     const school_id = req.user.school_id;
- 
+
     const [rows] = await db.query(
-      `SELECT request_id, request_title, request_description, request_image_url, request_image_public_id, status, created_at, start_date, duration_months, end_date
+      `SELECT request_id, request_title, request_description, request_image_url, request_image_public_id, status, created_at, start_date, duration_months, end_date,
+              COALESCE((SELECT SUM(sn.quantity_needed) FROM student_need sn JOIN students st ON st.student_id = sn.student_id WHERE st.request_id = donation_request.request_id), 0) AS total_needed,
+              COALESCE((SELECT SUM(don.quantity) FROM donation_record don WHERE don.request_id = donation_request.request_id AND don.status = 'pending'), 0) AS total_pending
        FROM donation_request
        WHERE school_id = ?
        ORDER BY request_id DESC
        LIMIT 1`,
       [school_id]
     );
- 
-    res.json(rows[0] || null);
+
+    if (!rows[0]) return res.json(null);
+    const project = { ...rows[0], total_needed: Number(rows[0].total_needed) || 0, total_pending: Number(rows[0].total_pending) || 0, total_fulfilled: 0 };
+
+    // คำนวณ total_fulfilled จาก snapshot (per-type, capped) เหมือน getProjectByIdPublic
+    try {
+      const request_id = project.request_id;
+      const parseJ = (v) => { try { return typeof v === "string" ? JSON.parse(v) : (v || null); } catch { return null; } };
+
+      const [[snapRows], [needRows]] = await Promise.all([
+        db.query(`SELECT items_snapshot, items_condition_snapshot, condition_status FROM donation_record WHERE request_id = ? AND status = 'approved'`, [request_id]),
+        db.query(`SELECT sn.uniform_type_id, SUM(sn.quantity_needed) AS qty FROM student_need sn JOIN students st ON st.student_id = sn.student_id WHERE st.request_id = ? GROUP BY sn.uniform_type_id`, [request_id]),
+      ]);
+
+      const typeNeeded = {};
+      for (const r of needRows) typeNeeded[String(r.uniform_type_id)] = Number(r.qty);
+
+      const fulfilledByType = {};
+      for (const d of snapRows) {
+        const condSnap = parseJ(d.items_condition_snapshot);
+        if (Array.isArray(condSnap) && condSnap.length > 0) {
+          for (const it of condSnap) {
+            if (it.item_condition === "usable") {
+              const tid = String(it.uniform_type_id);
+              fulfilledByType[tid] = (fulfilledByType[tid] || 0) + Number(it.qty_received || 0);
+            }
+          }
+        } else if (d.condition_status === "usable") {
+          const snap = parseJ(d.items_snapshot);
+          if (Array.isArray(snap)) {
+            for (const it of snap) {
+              const tid = String(it.uniform_type_id);
+              fulfilledByType[tid] = (fulfilledByType[tid] || 0) + Number(it.quantity || 0);
+            }
+          }
+        }
+      }
+
+      let totalFulfilledCapped = 0;
+      for (const [tid, fulfilled] of Object.entries(fulfilledByType)) {
+        totalFulfilledCapped += Math.min(fulfilled, typeNeeded[tid] || 0);
+      }
+      project.total_fulfilled = totalFulfilledCapped;
+    } catch { /* noop */ }
+
+    res.json(project);
   } catch (err) {
     next(err);
   }
@@ -2031,6 +2090,42 @@ export async function getSchoolDashboard(req, res, next) {
     if (!project) return res.json({ project: null, stats: {}, chart_by_level: [], chart_by_status: {}, action_items: [], testimonials: [] });
 
     const rid = project.request_id;
+
+    // คำนวณ total_fulfilled จาก snapshot (per-type, capped) แทน fulfillment table
+    try {
+      const parseJ = (v) => { try { return typeof v === "string" ? JSON.parse(v) : (v || null); } catch { return null; } };
+      const [[snapRows], [needRows]] = await Promise.all([
+        db.query(`SELECT items_snapshot, items_condition_snapshot, condition_status FROM donation_record WHERE request_id = ? AND status = 'approved'`, [rid]),
+        db.query(`SELECT sn.uniform_type_id, SUM(sn.quantity_needed) AS qty FROM student_need sn JOIN students st ON st.student_id = sn.student_id WHERE st.request_id = ? GROUP BY sn.uniform_type_id`, [rid]),
+      ]);
+      const typeNeeded = {};
+      for (const r of needRows) typeNeeded[String(r.uniform_type_id)] = Number(r.qty);
+      const fulfilledByType = {};
+      for (const d of snapRows) {
+        const condSnap = parseJ(d.items_condition_snapshot);
+        if (Array.isArray(condSnap) && condSnap.length > 0) {
+          for (const it of condSnap) {
+            if (it.item_condition === "usable") {
+              const tid = String(it.uniform_type_id);
+              fulfilledByType[tid] = (fulfilledByType[tid] || 0) + Number(it.qty_received || 0);
+            }
+          }
+        } else if (d.condition_status === "usable") {
+          const snap = parseJ(d.items_snapshot);
+          if (Array.isArray(snap)) {
+            for (const it of snap) {
+              const tid = String(it.uniform_type_id);
+              fulfilledByType[tid] = (fulfilledByType[tid] || 0) + Number(it.quantity || 0);
+            }
+          }
+        }
+      }
+      let capped = 0;
+      for (const [tid, fulfilled] of Object.entries(fulfilledByType)) {
+        capped += Math.min(fulfilled, typeNeeded[tid] || 0);
+      }
+      project.total_fulfilled = capped;
+    } catch { /* noop */ }
 
     // ── 2. Stats ──────────────────────────────────────────────────────────────
     const [[stats]] = await db.query(

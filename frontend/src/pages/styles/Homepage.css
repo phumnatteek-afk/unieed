@@ -704,10 +704,7 @@ width: 100vw;
 }
 
 .sectionBlue {
-  /* background: #ffffff; */
-   /* background: #ffffff;
-  position: relative;
-  z-index: 1; */
+  background: #f8fafc;
 }
 
 .sectionSoftBlue {
@@ -784,6 +781,99 @@ width: 100vw;
 }
 
 
+/* ===== PROJECT SEARCH BAR ===== */
+.projSearchBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 99px;
+  padding: 8px 8px 8px 18px;
+  max-width: 500px;
+  margin: 18px auto 0;
+  outline: none;
+}
+.projSearchBar:focus-within {
+  border-color: #e2e8f0;
+  box-shadow: none;
+  outline: none;
+}
+.projSearchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  font-size: 14px;
+  color: #374151;
+  font-family: Mitr, sans-serif;
+  background: transparent;
+  min-width: 0;
+}
+.projSearchInput:focus {
+  outline: none;
+  box-shadow: none;
+}
+.projSearchInput::placeholder { color: #94a3b8; }
+.projSearchBtn {
+  background: #5285E8;
+  color: #fff;
+  border: none;
+  border-radius: 99px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-family: Mitr, sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.projSearchBtn:hover { background: #3b6fd4; }
+
+/* ===== PROJECT 2-ROW GRID ===== */
+.projGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.projRowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1240px;
+  margin: 0 auto 14px;
+  width: 100%;
+}
+
+.projRowLabel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: Mitr, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.projRowSeeAll {
+  font-family: Mitr, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5285E8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.projRowSeeAll:hover { color: #3b6fd4; }
+
+/* Mobile-only "see all" button — hidden on desktop */
+.projSeeAllMobile { display: none; }
+
 /* ===== CAROUSEL PROJECTS ===== */
 /* ===== CAROUSEL PROJECTS (SMOOTH) ===== */
 .carouselRow {
@@ -850,21 +940,29 @@ gap: 20px;
   border: 1px solid var(--line);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, .08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .07);
   padding-bottom: 10px;
+  /* grid layout */
   flex: 0 0 400px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.15s;
+}
+.projCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .10);
+}
+/* ใน carousel เดิม: ยังคงขนาดเดิม */
+.carouselPage .projCard {
+  flex: 0 0 380px;
   width: 380px;
   min-width: 380px;
   max-width: 380px;
-  height: 430px;
-  display: flex;
-  flex-direction: column;
 }
 
-.projCard:hover {
-  transform: none !important;
-  transition: none;
-}
 
 .projCardGhost {
   visibility: hidden;
@@ -1144,6 +1242,7 @@ gap: 20px;
 
 @media (max-width: 1024px) {
   .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .projGrid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 480px) {
   #market { padding: 0 12px 30px; }
@@ -1716,14 +1815,65 @@ gap: 20px;
   .stepDesc { font-size: 9px; padding: 14px 0 0; }
 
   /* — Section headings — */
-  #projects { margin-top: 40px; }
-  .section { padding: 16px; }
+  #projects { margin-top: 40px; padding: 12px 12px; overflow-x: hidden; }
+  #projects .projRowHeader .projRowSeeAll { display: none; }
+  .projSeeAllMobile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 24px;
+    background: #5285E8;
+    border-radius: 99px;
+    color: #fff;
+    font-family: Mitr, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    margin-top: 16px;
+  }
+  .section { padding: 12px; }
+  .projRowHeader { padding: 0 12px; }
+  .projSearchBar { margin: 0 12px; max-width: calc(100% - 24px); }
+  .projGrid { padding: 0; gap: 10px; width: 100%; }
+  .projCard { border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.08); min-width: 0; flex: unset; width: 100%; max-width: 100%; }
   .sectionHead { padding: 0 4px; margin-bottom: 14px; }
   .sectionHead h3 { font-size: 22px !important; font-weight: 400; }
   .projSectionTitle { font-size: 22px !important; font-weight: 400 !important; }
   .btnGhost { font-size: 14px; height: 32px; padding: 0 12px; }
 
-  /* — Carousel: เปลี่ยนเป็น horizontal scroll บนมือถือ — */
+  /* — Grid: 1 column บนมือถือ — */
+  .projGrid { grid-template-columns: 1fr; gap: 14px; }
+  .projRowHeader { flex-wrap: wrap; gap: 8px; }
+  .projSearchBar { max-width: 100%; }
+
+  /* — Tab buttons: horizontal scroll บนมือถือ — */
+  .projTabRow {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+  .projTabRow::-webkit-scrollbar { display: none; }
+
+  /* — Project cards: full width ใน grid — */
+  .projCard {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: auto;
+    flex: unset;
+  }
+  .thumb { height: 160px; }
+  .projTitle { font-size: 15px; }
+  .projMeta { font-size: 13px; }
+  .adr { font-size: 11px; }
+  .projBody { padding: 10px 12px; }
+  .projBottom button { font-size: 15px; padding: 4px 14px; }
+
+  /* — Carousel (legacy) — */
   .carouselRow { gap: 0; }
   .navArrow { display: none; }
   .carouselViewport {
@@ -1735,33 +1885,9 @@ gap: 20px;
     border-radius: 12px;
   }
   .carouselViewport::-webkit-scrollbar { display: none; }
-  .carouselTrack {
-    transform: none !important;
-    transition: none !important;
-    width: auto;
-  }
-  .carouselPage {
-    flex: none;
-    width: auto;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    gap: 12px;
-    padding: 4px 0;
-  }
-  .projCard {
-    flex: 0 0 72vw;
-    width: 72vw;
-    min-width: 72vw;
-    max-width: 72vw;
-    height: auto;
-    scroll-snap-align: start;
-  }
-  .thumb { height: 130px; }
-  .projTitle { font-size: 15px; }
-  .projMeta { font-size: 13px; }
-  .adr { font-size: 11px; }
-  .projBody { padding: 10px 12px; }
-  .projBottom button { font-size: 15px; padding: 4px 14px; }
+  .carouselTrack { transform: none !important; transition: none !important; width: auto; }
+  .carouselPage { flex: none; width: auto; flex-wrap: nowrap; justify-content: flex-start; gap: 12px; padding: 4px 0; }
+  .carouselPage .projCard { flex: 0 0 72vw; width: 72vw; min-width: 72vw; max-width: 72vw; scroll-snap-align: start; }
 
   /* — Market — */
   #market { padding: 0 16px 30px; margin-top: 30px; margin-bottom: 30px; }
@@ -1780,10 +1906,20 @@ gap: 20px;
   .tsCardMain { transform: scale(1); }
 
   /* — Closed Projects — */
-  .closedSection { padding: 36px 16px; margin-top: 40px; }
+  .closedSection { padding: 36px 0; margin-top: 40px; overflow: visible; }
+  .closedSection::before, .closedSection::after { display: none; }
+  .closedSecHead { padding: 0 16px; }
+  .closedImpact { margin-left: 16px !important; margin-right: 16px !important; max-width: calc(100% - 32px) !important; }
+  .closedScroll {
+    padding-left: 16px;
+    padding-right: 0;
+    gap: 14px;
+    -webkit-mask-image: linear-gradient(to right, black 0%, black calc(100% - 48px), transparent 100%);
+    mask-image: linear-gradient(to right, black 0%, black calc(100% - 48px), transparent 100%);
+  }
   .closedSecTitle { font-size: 22px !important; }
   .closedSecSub { font-size: 15px !important; }
-  .closedCard { min-width: 72vw !important; width: 72vw !important; }
+  .closedCard { min-width: calc(100vw - 60px) !important; width: calc(100vw - 60px) !important; }
   .closedImpact { flex-direction: row; padding: 16px 0; }
   .closedImpactNum { font-size: 28px; }
 
@@ -1838,9 +1974,13 @@ gap: 20px;
 
   .grid3 { grid-template-columns: 1fr; gap: 12px; }
 
-  .projCard { flex: 0 0 78vw; width: 78vw; min-width: 78vw; max-width: 78vw; }
+  .carouselPage .projCard { flex: 0 0 78vw; width: 78vw; min-width: 78vw; max-width: 78vw; }
+  .projGrid .projCard { flex: unset; width: 100%; min-width: 0; max-width: 100%; border-radius: 12px; }
 
-  .closedCard { min-width: 78vw !important; width: 78vw !important; }
+  .closedCard { min-width: calc(100vw - 90px) !important; width: calc(100vw - 90px) !important; height: auto !important; }
+  .closedCardImg { height: 180px !important; }
+  .closedCardBody { padding: 12px 14px !important; }
+  .closedCardTitle { font-size: 13px !important; margin-bottom: 8px !important; }
   .closedImpact { flex-direction: column; gap: 12px; }
   .closedImpactDivider { width: 60px; height: 1px; }
 }
