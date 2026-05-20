@@ -251,14 +251,14 @@ export default function AdminBackofficePage() {
             )}
           </div>
 
-          {/* Card 2: ค่าธรรมเนียม 15% */}
+          {/* Card 2: ค่าธรรมเนียม 15% (ออเดอร์ที่ยอด > ฿133.33 → 15% เกินขั้นต่ำ) */}
           <div className="boRevCard" style={{ borderTop: "3px solid #f59e0b" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
               <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>15%</span>
               <div className="boRevCard__label" style={{ marginBottom: 0 }}>ค่าธรรมเนียม</div>
             </div>
             <div className="boRevCard__value boRevCard__value--amber">{formatBaht(revenue.fee_15_revenue)}</div>
-            <div className="boRevCard__sub boRevCard__sub--muted">{formatNumber(revenue.fee_15_count)} รายการ · ยอด ≥ 100 บาท</div>
+            <div className="boRevCard__sub boRevCard__sub--muted">{formatNumber(revenue.fee_15_count)} รายการ · ยอด &gt; ฿133.33</div>
             {revenue.pct_fee_15 !== null && (
               <div className="boRevCard__sub" style={{ color: revenue.pct_fee_15 >= 0 ? "#16a34a" : "#dc2626", marginTop: 2 }}>
                 {pctLabel(revenue.pct_fee_15)}
@@ -266,14 +266,14 @@ export default function AdminBackofficePage() {
             )}
           </div>
 
-          {/* Card 3: ค่าธรรมเนียมขั้นต่ำ 20 บาท */}
+          {/* Card 3: ค่าธรรมเนียมขั้นต่ำ ฿20 (ออเดอร์ที่ยอด ≤ ฿133.33 → 15% < ฿20 → ใช้ขั้นต่ำ) */}
           <div className="boRevCard" style={{ borderTop: "3px solid #f59e0b" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
               <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>฿20 min</span>
               <div className="boRevCard__label" style={{ marginBottom: 0 }}>ค่าธรรมเนียมขั้นต่ำ</div>
             </div>
             <div className="boRevCard__value boRevCard__value--amber">{formatBaht(revenue.fee_min_revenue)}</div>
-            <div className="boRevCard__sub boRevCard__sub--muted">{formatNumber(revenue.fee_min_count)} รายการ · ยอด &lt; 100 บาท</div>
+            <div className="boRevCard__sub boRevCard__sub--muted">{formatNumber(revenue.fee_min_count)} รายการ · ยอด ≤ ฿133.33</div>
             {revenue.pct_fee_min !== null && (
               <div className="boRevCard__sub" style={{ color: revenue.pct_fee_min >= 0 ? "#16a34a" : "#dc2626", marginTop: 2 }}>
                 {pctLabel(revenue.pct_fee_min)}

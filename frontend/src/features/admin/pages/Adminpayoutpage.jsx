@@ -230,13 +230,13 @@ function OrderDetailModal({ seller, onClose }) {
   const totalPayout   = orders.reduce((s, o) => s + Number(o.seller_payout_amount || 0), 0);
 
   const thSt = {
-    padding: "10px 14px", background: "#f0f4ff", color: "#1e3a8a",
+    padding: "10px 18px", background: "#f0f4ff", color: "#1e3a8a",
     fontSize: 11, fontWeight: 700, textAlign: "left",
     borderBottom: "2px solid #dbeafe", textTransform: "uppercase",
     letterSpacing: "0.4px", whiteSpace: "nowrap",
   };
   const tdSt = {
-    padding: "11px 14px", fontSize: 13, color: "#334155",
+    padding: "11px 18px", fontSize: 13, color: "#334155",
     borderBottom: "1px solid #f1f5f9", verticalAlign: "middle",
   };
 
@@ -286,20 +286,45 @@ function OrderDetailModal({ seller, onClose }) {
           </div>
         </div>
 
-        {/* financial summary strip */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", background: "#fff", padding: "16px 24px", borderBottom: "1px solid #e2e8f0", gap: 8 }}>
-          {[
-            { label: "ยอดขายสินค้า",    value: fmtBaht(totalSales),    color: "#0f172a", icon: "mdi:tag-outline",           bg: "#f0f9ff" },
-            { label: "ค่าธรรมเนียม",    value: fmtBaht(totalFee),      color: "#d97706", icon: "mdi:percent-outline",       bg: "#fff8e1" },
-            { label: "ค่าจัดส่ง",       value: fmtBaht(totalShipping), color: "#7c3aed", icon: "mdi:truck-delivery-outline", bg: "#f5f3ff" },
-            { label: "ยอดโอนสุทธิ",     value: fmtBaht(totalPayout),   color: "#16a34a", icon: "mdi:cash-check",            bg: "#f0fdf4" },
-          ].map((s) => (
-            <div key={s.label} style={{ textAlign: "center", padding: "10px 8px", borderRadius: 12, background: s.bg }}>
-              <Icon icon={s.icon} style={{ fontSize: 20, color: s.color, marginBottom: 4 }} />
-              <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>{s.label}</div>
-              <div style={{ fontWeight: 800, fontSize: 16, color: s.color, marginTop: 2 }}>{s.value}</div>
+        {/* financial summary strip — formula layout */}
+        <div style={{ background: "#fff", padding: "16px 24px", borderBottom: "1px solid #e2e8f0" }}>
+          {/* formula row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+            {/* ยอดสินค้า */}
+            <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "8px 14px", textAlign: "center", minWidth: 100 }}>
+              <div style={{ fontSize: 10, color: "#0369a1", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>ยอดสินค้า</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: "#0f172a", marginTop: 2 }}>{fmtBaht(totalSales - totalShipping)}</div>
+              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 1 }}>ไม่รวมค่าส่ง</div>
             </div>
-          ))}
+            <div style={{ fontSize: 18, color: "#94a3b8", fontWeight: 700 }}>+</div>
+            {/* ค่าจัดส่ง */}
+            <div style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: 10, padding: "8px 14px", textAlign: "center", minWidth: 90 }}>
+              <div style={{ fontSize: 10, color: "#7c3aed", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>ค่าจัดส่ง</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: "#7c3aed", marginTop: 2 }}>{fmtBaht(totalShipping)}</div>
+            </div>
+            <div style={{ fontSize: 13, color: "#64748b", fontWeight: 700, padding: "0 2px" }}>= {fmtBaht(totalSales)}</div>
+            <div style={{ fontSize: 18, color: "#e03131", fontWeight: 700 }}>−</div>
+            {/* ค่าธรรมเนียม */}
+            <div style={{ background: "#fff8e1", border: "1px solid #fde68a", borderRadius: 10, padding: "8px 14px", textAlign: "center", minWidth: 110 }}>
+              <div style={{ fontSize: 10, color: "#d97706", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>ค่าธรรมเนียม</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: "#d97706", marginTop: 2 }}>{fmtBaht(totalFee)}</div>
+              <div style={{ fontSize: 10, color: "#a16207", marginTop: 1 }}>15% ขั้นต่ำ ฿20/ออเดอร์</div>
+            </div>
+            <div style={{ fontSize: 18, color: "#16a34a", fontWeight: 700 }}>=</div>
+            {/* ยอดโอนสุทธิ */}
+            <div style={{ background: "#f0fdf4", border: "2px solid #86efac", borderRadius: 10, padding: "8px 16px", textAlign: "center", minWidth: 110 }}>
+              <div style={{ fontSize: 10, color: "#15803d", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>ยอดโอนสุทธิ</div>
+              <div style={{ fontWeight: 900, fontSize: 18, color: "#16a34a", marginTop: 2 }}>{fmtBaht(totalPayout)}</div>
+            </div>
+          </div>
+          {/* fee note */}
+          <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 8, padding: "7px 12px", fontSize: 11, color: "#92400e", display: "flex", alignItems: "flex-start", gap: 6 }}>
+            <Icon icon="mdi:information-outline" style={{ fontSize: 14, color: "#f59e0b", flexShrink: 0, marginTop: 1 }} />
+            <span>
+              <strong>ค่าธรรมเนียมคิดจากยอดสินค้าเท่านั้น</strong> (ไม่รวมค่าจัดส่ง) อัตรา 15% ขั้นต่ำ ฿20/ออเดอร์
+              &nbsp;— ยอดโอนสุทธิ = ยอดสินค้า + ค่าจัดส่ง − ค่าธรรมเนียม
+            </span>
+          </div>
         </div>
 
         {/* orders body */}
@@ -329,9 +354,15 @@ function OrderDetailModal({ seller, onClose }) {
                     <th style={thSt}>รหัสออเดอร์</th>
                     <th style={thSt}>วันที่สั่ง</th>
                     <th style={thSt}>สินค้า</th>
-                    <th style={{ ...thSt, textAlign: "right" }}>ยอดรวม</th>
+                    <th style={{ ...thSt, textAlign: "right" }}>
+                      <div>ยอดสินค้า</div>
+                      <div style={{ fontWeight: 400, fontSize: 10, color: "#64748b", textTransform: "none" }}>ไม่รวมค่าส่ง</div>
+                    </th>
                     <th style={{ ...thSt, textAlign: "right" }}>ค่าส่ง</th>
-                    <th style={{ ...thSt, textAlign: "right" }}>ค่าธรรมเนียม</th>
+                    <th style={{ ...thSt, textAlign: "right" }}>
+                      <div>ค่าธรรมเนียม</div>
+                      <div style={{ fontWeight: 400, fontSize: 10, color: "#64748b", textTransform: "none" }}>15% ขั้นต่ำ ฿20</div>
+                    </th>
                     <th style={{ ...thSt, textAlign: "right" }}>ยอดโอน</th>
                   </tr>
                 </thead>
@@ -346,10 +377,14 @@ function OrderDetailModal({ seller, onClose }) {
                   ) : orders.map((o, i) => {
                     const exp = expanded[o.order_id];
                     const isOpen = !!exp;
-                    const fee      = Number(o.platform_fee          || 0);
-                    const shipping = Number(o.shipping_total        || 0);
-                    const total    = Number(o.total_price            || 0);
-                    const net      = Number(o.seller_payout_amount   || (total - fee));
+                    const fee        = Number(o.platform_fee          || 0);
+                    const shipping   = Number(o.shipping_total        || 0);
+                    const total      = Number(o.total_price            || 0);
+                    const itemsOnly  = total - shipping; // ยอดสินค้าไม่รวมค่าส่ง
+                    const net        = Number(o.seller_payout_amount   || (total - fee));
+                    // แสดงสูตรคำนวณค่าธรรมเนียม: max(items * 15%, 20)
+                    const feeCalcPct = Math.round(itemsOnly * 0.15);
+                    const feeIsMin   = feeCalcPct < 20; // ใช้ขั้นต่ำ ฿20
                     return (
                       <>
                         {/* main row — clickable */}
@@ -372,16 +407,20 @@ function OrderDetailModal({ seller, onClose }) {
                           <td style={{ ...tdSt, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>
                             {o.products || "—"}
                           </td>
-                          <td style={{ ...tdSt, textAlign: "right", fontWeight: 600 }}>{fmtBaht(total)}</td>
+                          <td style={{ ...tdSt, textAlign: "right" }}>
+                            <div style={{ fontWeight: 600 }}>{fmtBaht(itemsOnly)}</div>
+                          </td>
                           <td style={{ ...tdSt, textAlign: "right", color: "#7c3aed", fontWeight: 700 }}>{fmtBaht(shipping)}</td>
-                          <td style={{ ...tdSt, textAlign: "right", color: "#d97706", fontWeight: 700 }}>{fmtBaht(fee)}</td>
+                          <td style={{ ...tdSt, textAlign: "right" }}>
+                            <div style={{ fontWeight: 700, color: "#d97706" }}>{fmtBaht(fee)}</div>
+                          </td>
                           <td style={{ ...tdSt, textAlign: "right", color: "#16a34a", fontWeight: 700 }}>{fmtBaht(net)}</td>
                         </tr>
 
                         {/* expanded items row */}
                         {isOpen && (
                           <tr key={`exp-${o.order_id}`} style={{ background: "#f0f9ff" }}>
-                            <td colSpan={8} style={{ padding: "0 14px 14px 42px", borderBottom: "1px solid #dbeafe" }}>
+                            <td colSpan={8} style={{ padding: "0 18px 14px 50px", borderBottom: "1px solid #dbeafe" }}>
                               {exp.loading ? (
                                 <div style={{ padding: "12px 0", color: "#94a3b8", display: "flex", alignItems: "center", gap: 8 }}>
                                   <Icon icon="eos-icons:loading" style={{ fontSize: 18 }} /> กำลังโหลดรายการสินค้า…
@@ -529,18 +568,37 @@ function PaidDetailModal({ row, onClose }) {
           {/* amount summary */}
           <div style={{ background: "#f8fafc", borderRadius: 12, padding: "14px 16px", border: "1px solid #e2e8f0" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>สรุปยอดโอน</div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#475569", marginBottom: 8 }}>
-              <span>ยอดขายสินค้า</span>
+
+            {/* ยอดรวม (net + fee = total) */}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#475569", marginBottom: 6 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <Icon icon="mdi:tag-outline" style={{ fontSize: 14, color: "#5285e8" }} />
+                ยอดรวมที่ผู้ขายรับจากผู้ซื้อ
+              </span>
               <span style={{ fontWeight: 600 }}>
                 {fmtBaht(row.total_sales || (Number(row.net_amount || 0) + Number(row.fee_amount || 0)))}
               </span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#d97706", marginBottom: 8 }}>
-              <span>หัก ค่าธรรมเนียม</span>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#d97706", marginBottom: 6 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <Icon icon="mdi:minus-circle-outline" style={{ fontSize: 14 }} />
+                หัก ค่าธรรมเนียม
+                <span style={{ fontSize: 11, background: "#fef3c7", color: "#92400e", borderRadius: 4, padding: "1px 5px" }}>
+                  15% ขั้นต่ำ ฿20/ออเดอร์
+                </span>
+              </span>
               <span style={{ fontWeight: 700 }}>-{fmtBaht(row.fee_amount)}</span>
             </div>
-            <div style={{ borderTop: "2px dashed #e2e8f0", paddingTop: 10, marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontWeight: 800, fontSize: 15, color: "#0f172a" }}>ยอดโอนสุทธิ</span>
+            {/* fee basis note */}
+            <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 8, paddingLeft: 20, fontStyle: "italic" }}>
+              * ค่าธรรมเนียมคิดจากยอดสินค้า (ไม่รวมค่าจัดส่ง) อัตรา 15% ขั้นต่ำ ฿20/ออเดอร์
+            </div>
+
+            <div style={{ borderTop: "2px dashed #e2e8f0", paddingTop: 10, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: "#0f172a" }}>ยอดโอนสุทธิ</div>
+                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>ที่โอนให้ผู้ขายจริง</div>
+              </div>
               <span style={{ fontWeight: 900, fontSize: 22, color: "#16a34a" }}>{fmtBaht(row.net_amount)}</span>
             </div>
           </div>
@@ -562,8 +620,10 @@ function ConfirmPayoutModal({ item, onConfirm, onCancel }) {
   const [confirming, setConfirming] = useState(false);
 
   if (!item) return null;
-  const fee15 = Number(item.fee_amount || 0);
-  const net   = Number(item.net_amount  || 0);
+  const fee15    = Number(item.fee_amount     || 0);
+  const net      = Number(item.net_amount     || 0);
+  const shipping = Number(item.shipping_total || 0);
+  const itemsOnly = Number(item.total_sales   || 0) - shipping; // ยอดสินค้าไม่รวมค่าส่ง
 
   const STEPS = [
     { n: 1, label: "ตรวจสอบ" },
@@ -673,19 +733,54 @@ function ConfirmPayoutModal({ item, onConfirm, onCancel }) {
               <Icon icon="mdi:receipt-text-outline" style={{ color: "#5285e8", fontSize: 16 }} />
               สรุปรายการโอน
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#475569", marginBottom: 8 }}>
-              <span>ยอดขายสินค้ารวม</span>
-              <span style={{ fontWeight: 600 }}>{fmtBaht(item.total_sales)}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#d97706", marginBottom: 8 }}>
+
+            {/* ยอดสินค้า + ค่าส่ง */}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#475569", marginBottom: 6 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <Icon icon="mdi:minus-circle-outline" style={{ fontSize: 16 }} />
-                ค่าธรรมเนียม 15%
+                <Icon icon="mdi:tag-outline" style={{ fontSize: 15, color: "#5285e8" }} />
+                ยอดสินค้า (ไม่รวมค่าจัดส่ง)
+              </span>
+              <span style={{ fontWeight: 600 }}>{fmtBaht(itemsOnly)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#7c3aed", marginBottom: 6 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon icon="mdi:plus-circle-outline" style={{ fontSize: 15 }} />
+                ค่าจัดส่ง
+              </span>
+              <span style={{ fontWeight: 600 }}>+{fmtBaht(shipping)}</span>
+            </div>
+
+            {/* subtotal divider */}
+            <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: 8, marginBottom: 8, display: "flex", justifyContent: "space-between", fontSize: 13, color: "#334155" }}>
+              <span style={{ fontWeight: 700 }}>รวมที่ผู้ขายได้รับจากผู้ซื้อ</span>
+              <span style={{ fontWeight: 700 }}>{fmtBaht(item.total_sales)}</span>
+            </div>
+
+            {/* ค่าธรรมเนียม */}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#d97706", marginBottom: 4 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon icon="mdi:minus-circle-outline" style={{ fontSize: 15 }} />
+                หัก ค่าธรรมเนียมแพลตฟอร์ม
               </span>
               <span style={{ fontWeight: 700 }}>-{fmtBaht(fee15)}</span>
             </div>
-            <div style={{ borderTop: "2px dashed #e2e8f0", paddingTop: 12, marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontWeight: 800, fontSize: 16, color: "#0f172a" }}>ยอดโอนสุทธิ</span>
+            {/* fee formula note */}
+            <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 8, padding: "7px 10px", marginBottom: 10, fontSize: 11, color: "#92400e", display: "flex", alignItems: "flex-start", gap: 6 }}>
+              <Icon icon="mdi:information-outline" style={{ fontSize: 14, color: "#f59e0b", flexShrink: 0, marginTop: 1 }} />
+              <span>
+                คิดจากยอดสินค้า {fmtBaht(itemsOnly)} × 15% = {fmtBaht(Math.round(itemsOnly * 0.15))}
+                {Math.round(itemsOnly * 0.15) < 20
+                  ? ` → ใช้ขั้นต่ำ ฿20/ออเดอร์`
+                  : ` (ใช้ 15% เพราะ > ขั้นต่ำ ฿20)`}
+              </span>
+            </div>
+
+            {/* net total */}
+            <div style={{ borderTop: "2px solid #e2e8f0", paddingTop: 12, marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: "#0f172a" }}>ยอดโอนสุทธิ</div>
+                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>= ยอดสินค้า + ค่าส่ง − ค่าธรรมเนียม</div>
+              </div>
               <span style={{ fontWeight: 900, fontSize: 26, color: "#16a34a" }}>{fmtBaht(net)}</span>
             </div>
           </div>
@@ -739,6 +834,7 @@ export default function AdminPayoutPage() {
   const [summaryStats, setSummaryStats] = useState({ pending_total: 0, pending_count: 0, paid_total: 0, paid_count: 0, fee_total: 0 });
   const [pendingRows, setPendingRows]   = useState([]);
   const [historyRows, setHistoryRows]   = useState([]);
+  const [payoutCycle, setPayoutCycle]   = useState(null);
   const [period, setPeriod]             = useState("week");
   const [selectedItem, setSelectedItem] = useState(null);   // confirm modal
   const [orderDetail, setOrderDetail]   = useState(null);   // pending detail
@@ -764,10 +860,11 @@ export default function AdminPayoutPage() {
       setLoading(true); setErr("");
       const params = new URLSearchParams({ period, page, limit: 10 });
       const data   = await request(`/admin/payouts?${params}`, { method: "GET", auth: true });
-      setSummaryStats(data.stats   || {});
-      setPendingRows(data.pending  || []);
-      setHistoryRows(data.history  || []);
-      setTotalPages(data.total_pages || 1);
+      setSummaryStats(data.stats        || {});
+      setPendingRows(data.pending       || []);
+      setHistoryRows(data.history       || []);
+      setTotalPages(data.total_pages    || 1);
+      if (data.payout_cycle) setPayoutCycle(data.payout_cycle);
     } catch (e) {
       setErr(e?.data?.message || e.message || "โหลดข้อมูลไม่สำเร็จ");
     } finally {
@@ -818,6 +915,41 @@ export default function AdminPayoutPage() {
             ))}
           </div>
           <div className="boDateLabel">{dateStr} · {timeStr}</div>
+        </div>
+
+        {/* ── กล่องข้อกำหนดการโอนเงิน ── */}
+        <div style={{
+          background: "linear-gradient(135deg,#eff6ff 0%,#f0f9ff 100%)",
+          border: "1px solid #bfdbfe", borderRadius: 14,
+          padding: "14px 18px", marginBottom: 16,
+          display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start",
+        }}>
+          {/* icon */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon icon="mdi:calendar-clock" style={{ fontSize: 22, color: "#fff" }} />
+            </div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1e3a8a" }}>ข้อกำหนดการโอนเงินผู้ขาย</div>
+          </div>
+          {/* divider */}
+          <div style={{ width: 1, background: "#bfdbfe", alignSelf: "stretch", flexShrink: 0 }} />
+          {/* rules */}
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", flex: 1, fontSize: 12, color: "#1e40af" }}>
+            {[
+              { icon: "mdi:calendar-end", label: "วันตัดรอบ", value: payoutCycle?.cutoff_date || "สิ้นเดือนนี้" },
+              { icon: "mdi:bank-transfer", label: "โอนเงินภายใน", value: payoutCycle?.payout_date ? `ภายใน ${payoutCycle.payout_date}` : "7 วันหลังสิ้นเดือน" },
+              { icon: "mdi:check-decagram-outline", label: "เงื่อนไข", value: "เฉพาะออเดอร์ที่ลูกค้ายืนยันรับของแล้ว" },
+              { icon: "mdi:percent-circle-outline", label: "ค่าธรรมเนียม", value: "15% ขั้นต่ำ ฿20/ออเดอร์ (คิดจากยอดสินค้า)" },
+            ].map((r) => (
+              <div key={r.label} style={{ display: "flex", alignItems: "flex-start", gap: 8, minWidth: 160 }}>
+                <Icon icon={r.icon} style={{ fontSize: 16, color: "#3b82f6", marginTop: 1, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>{r.label}</div>
+                  <div style={{ fontWeight: 700, color: "#1e3a8a", marginTop: 1 }}>{r.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* stat cards */}
@@ -876,13 +1008,19 @@ export default function AdminPayoutPage() {
                 <table className="admTable" style={{ tableLayout: "auto" }}>
                   <thead>
                     <tr>
-                      <th>ผู้ขาย</th>
-                      <th>ออเดอร์</th>
-                      <th>ยอดขายสินค้า</th>
-                      <th>ค่าธรรมเนียม</th>
-                      <th>ยอดโอนสุทธิ</th>
-                      <th>สถานะ</th>
-                      <th style={{ textAlign: "center", whiteSpace: "nowrap" }}>จัดการ</th>
+                      <th style={{ verticalAlign: "top" }}><div>ผู้ขาย</div></th>
+                      <th style={{ verticalAlign: "top" }}><div>ออเดอร์</div></th>
+                      <th style={{ verticalAlign: "top" }}>
+                        <div>ยอดขายรวม</div>
+                        <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "none", marginTop: 2 }}>สินค้า + ค่าส่ง</div>
+                      </th>
+                      <th style={{ verticalAlign: "top" }}>
+                        <div>ค่าธรรมเนียม</div>
+                        <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "none", marginTop: 2 }}>15% ขั้นต่ำ ฿20/ออเดอร์</div>
+                      </th>
+                      <th style={{ verticalAlign: "top" }}><div>ยอดโอนสุทธิ</div></th>
+                      <th style={{ verticalAlign: "top" }}><div>สถานะ</div></th>
+                      <th style={{ textAlign: "center", verticalAlign: "top", whiteSpace: "nowrap" }}><div>จัดการ</div></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -954,13 +1092,19 @@ export default function AdminPayoutPage() {
                 <table className="admTable" style={{ tableLayout: "auto" }}>
                   <thead>
                     <tr>
-                      <th style={{ whiteSpace: "nowrap" }}>วันที่โอน</th>
-                      <th>ผู้ขาย</th>
-                      <th>บัญชีปลายทาง</th>
-                      <th>ยอดโอนสุทธิ</th>
-                      <th>ค่าธรรมเนียม</th>
-                      <th>สถานะ</th>
-                      <th style={{ textAlign: "center" }}>รายละเอียด</th>
+                      <th style={{ whiteSpace: "nowrap", verticalAlign: "top" }}><div>วันที่โอน</div></th>
+                      <th style={{ verticalAlign: "top" }}><div>ผู้ขาย</div></th>
+                      <th style={{ verticalAlign: "top" }}><div>บัญชีปลายทาง</div></th>
+                      <th style={{ verticalAlign: "top" }}>
+                        <div>ยอดโอนสุทธิ</div>
+                        <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "none", marginTop: 2 }}>ที่ผู้ขายได้รับจริง</div>
+                      </th>
+                      <th style={{ verticalAlign: "top" }}>
+                        <div>ค่าธรรมเนียม</div>
+                        <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "none", marginTop: 2 }}>รายได้แพลตฟอร์ม</div>
+                      </th>
+                      <th style={{ verticalAlign: "top" }}><div>สถานะ</div></th>
+                      <th style={{ textAlign: "center", verticalAlign: "top" }}><div>รายละเอียด</div></th>
                     </tr>
                   </thead>
                   <tbody>

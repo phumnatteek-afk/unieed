@@ -292,9 +292,14 @@ export async function getOverviewStats() {
 /**
  * รายได้แพลตฟอร์ม
  * - platform_revenue = ยอดขายสินค้ารวม (ก่อนหักค่าธรรมเนียม)
- * - fee_revenue      = ค่าธรรมเนียม (15% หรือขั้นต่ำ 20 บาท) ที่แพลตฟอร์มได้
- * - fee_min_revenue  = ส่วนที่เป็น "ขั้นต่ำ 20 บาท" (สินค้าราคา < 100 บาท)
+ * - fee_revenue      = ค่าธรรมเนียม max(15%, ฿20 ต่อออเดอร์) ที่แพลตฟอร์มได้
+ * - fee_15_revenue   = ส่วนที่คิด 15% จริง (subtotal > ฿133.33 ซึ่ง 15% > ฿20)
+ * - fee_min_revenue  = ส่วนที่ใช้ขั้นต่ำ ฿20 (subtotal ≤ ฿133.33 ซึ่ง 15% ≤ ฿20)
  * - net_revenue      = รายได้สุทธิหลังหักค่าธรรมเนียม (= ยอดที่ผู้ขายควรได้รวมกัน)
+ *
+ * จุด breakeven: 20 / 0.15 = 133.33 บาท
+ *   subtotal > 133.33 → ใช้ 15%  (เช่น ฿140 → ฿21)
+ *   subtotal ≤ 133.33 → ใช้ขั้นต่ำ ฿20 (เช่น ฿80 → ฿20, ฿100 → ฿20, ฿120 → ฿20)
  */
 export async function getRevenueStats(period = "week") {
   const { from, to } = periodToDateRange(period);
@@ -307,24 +312,26 @@ export async function getRevenueStats(period = "week") {
   const prevFrom = new Date(fromDate - diffMs - 1).toISOString().slice(0, 19);
 
   // Query รายได้ + แยกประเภทค่าธรรมเนียม
-  // fee_15_revenue  = ค่าธรรมเนียม 15% (orders ที่ item_subtotal >= 100 บาท)
-  // fee_min_revenue = ค่าธรรมเนียมขั้นต่ำ 20 บาท (orders ที่ item_subtotal < 100 บาท → fee = 20 flat)
+  // ใช้ logic ใหม่: max(subtotal * 15%, ฿20) ต่อออเดอร์
+  // จุด breakeven = 20 / 0.15 = 133.33 บาท
+  //   fee_15_revenue  = รายการที่คิด 15% จริง (subtotal > 133.33)
+  //   fee_min_revenue = รายการที่ใช้ขั้นต่ำ ฿20 (subtotal ≤ 133.33)
   const revenueQuery = `
     SELECT
       COALESCE(SUM(o.total_price), 0)           AS platform_revenue,
       COALESCE(SUM(o.platform_fee), 0)          AS fee_revenue,
       COALESCE(SUM(o.seller_payout_amount), 0)  AS net_revenue,
       COUNT(*)                                  AS fee_count,
-      -- ค่าธรรมเนียม 15% (สินค้ารวม >= 100 บาท)
+      -- ค่าธรรมเนียม 15% จริง (subtotal > 133.33 → 15% เกิน ฿20)
       COALESCE(SUM(
-        CASE WHEN COALESCE(items_sub.subtotal, 0) >= 100 THEN o.platform_fee ELSE 0 END
+        CASE WHEN COALESCE(items_sub.subtotal, 0) > 133.33 THEN o.platform_fee ELSE 0 END
       ), 0) AS fee_15_revenue,
-      -- ค่าธรรมเนียมขั้นต่ำ 20 บาท (สินค้ารวม < 100 บาท)
+      -- ขั้นต่ำ ฿20 (subtotal ≤ 133.33 → 15% ต่ำกว่า ฿20 → ใช้ขั้นต่ำ)
       COALESCE(SUM(
-        CASE WHEN COALESCE(items_sub.subtotal, 0) < 100 AND o.platform_fee > 0 THEN o.platform_fee ELSE 0 END
+        CASE WHEN COALESCE(items_sub.subtotal, 0) <= 133.33 AND o.platform_fee > 0 THEN o.platform_fee ELSE 0 END
       ), 0) AS fee_min_revenue,
-      COUNT(CASE WHEN COALESCE(items_sub.subtotal, 0) >= 100 THEN 1 END) AS fee_15_count,
-      COUNT(CASE WHEN COALESCE(items_sub.subtotal, 0) < 100 AND o.platform_fee > 0 THEN 1 END) AS fee_min_count
+      COUNT(CASE WHEN COALESCE(items_sub.subtotal, 0) > 133.33 THEN 1 END)                                     AS fee_15_count,
+      COUNT(CASE WHEN COALESCE(items_sub.subtotal, 0) <= 133.33 AND o.platform_fee > 0 THEN 1 END)             AS fee_min_count
     FROM orders o
     LEFT JOIN (
       SELECT order_id,
@@ -686,9 +693,15 @@ export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}
       COUNT(o.order_id)                              AS order_count,
       COALESCE(SUM(o.total_price), 0)                AS total_sales,
       COALESCE(SUM(o.platform_fee), 0)               AS fee_amount,
-      COALESCE(SUM(o.seller_payout_amount), 0)       AS net_amount
+      COALESCE(SUM(o.seller_payout_amount), 0)       AS net_amount,
+      COALESCE(SUM(ship_agg.ship_sum), 0)            AS shipping_total
     FROM orders o
     LEFT JOIN users u ON u.user_id = o.seller_id
+    LEFT JOIN (
+      SELECT order_id, COALESCE(SUM(shipping_price), 0) AS ship_sum
+      FROM order_shipping
+      GROUP BY order_id
+    ) AS ship_agg ON ship_agg.order_id = o.order_id
     WHERE o.order_status  = 'delivered'
       AND o.payout_status = 'pending'
     GROUP BY u.user_id, u.user_name, u.bank_account_number, u.bank_account_name, u.bank_code
@@ -748,10 +761,11 @@ export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}
         bank_account_number: rawNum,
         bank_account_number_masked: maskBankAccountNumber(rawNum),
         bank_account_number_formatted: formatBankAccountNumber(rawNum),
-        total_sales: Math.round(Number(r.total_sales || 0)),
-        fee_amount:  Math.round(Number(r.fee_amount  || 0)),
-        net_amount:  Math.round(Number(r.net_amount  || 0)),
-        order_count: Number(r.order_count || 0),
+        total_sales:    Math.round(Number(r.total_sales    || 0)),
+        fee_amount:     Math.round(Number(r.fee_amount     || 0)),
+        net_amount:     Math.round(Number(r.net_amount     || 0)),
+        shipping_total: Math.round(Number(r.shipping_total || 0)),
+        order_count:    Number(r.order_count || 0),
       };
     }),
     history: (historyRows || []).map(r => {
@@ -770,6 +784,21 @@ export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}
       };
     }),
     total_pages: Math.max(1, Math.ceil(Number(countRow?.c || 0) / safeLimit)),
+    payout_cycle: (() => {
+      const now = new Date();
+      // วันสุดท้ายของเดือนนี้ (cutoff)
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      lastDay.setHours(23, 59, 59, 0);
+      // วันโอนเงิน = cutoff + 7 วัน
+      const payoutDeadline = new Date(lastDay);
+      payoutDeadline.setDate(lastDay.getDate() + 7);
+      const fmt = (d) => d.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" });
+      return {
+        cutoff_date: fmt(lastDay),
+        payout_date: fmt(payoutDeadline),
+        note: "ตัดรอบทุกสิ้นเดือน เฉพาะรายการที่ลูกค้ายืนยันรับของแล้ว โอนเงินภายใน 7 วันทำการหลังสิ้นเดือน",
+      };
+    })(),
   };
 }
 

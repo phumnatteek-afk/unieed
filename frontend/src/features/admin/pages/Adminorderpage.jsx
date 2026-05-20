@@ -392,7 +392,7 @@ export default function AdminOrderPage() {
                 <div style={{ fontWeight: 700, fontSize: 13, color: "#334155", marginBottom: 10 }}>สรุปการเงิน</div>
                 {[
                   { label: "ยอดสินค้า", val: fmtBaht(detailSubtotal), color: "#0f172a" },
-                  { label: `ค่าธรรมเนียม ${detailSubtotal >= 100 ? "15%" : "ขั้นต่ำ 20 บาท"}`, val: `− ${fmtBaht(detailFee)}`, color: "#f59e0b" },
+                  { label: `ค่าธรรมเนียม (15%, ขั้นต่ำ ฿20)`, val: `− ${fmtBaht(detailFee)}`, color: "#f59e0b" },
                   { label: "ค่าจัดส่ง", val: fmtBaht(detail.shipping_total || 0), color: "#64748b" },
                 ].map(r => (
                   <div key={r.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, fontSize: 13 }}>
