@@ -74,8 +74,8 @@ export async function adminOverview(req, res, next) {
 
 export async function adminRevenue(req, res, next) {
   try {
-    const { period = "week" } = req.query;
-    res.json(await svc.getRevenueStats(period));
+    const { period = "month", start_date, end_date } = req.query;
+    res.json(await svc.getRevenueStats({ period, start_date, end_date }));
   } catch (e) { next(e); }
 }
 
@@ -148,6 +148,13 @@ export async function adminPayAll(req, res, next) {
 export async function adminDemandInsight(req, res, next) {
   try {
     res.json(await svc.getDemandInsight());
+  } catch (e) { next(e); }
+}
+
+export async function adminProjectStatusProjects(req, res, next) {
+  try {
+    const { status = "open", limit = 200 } = req.query;
+    res.json(await svc.listProjectStatusProjects({ status, limit: Number(limit) }));
   } catch (e) { next(e); }
 }
 

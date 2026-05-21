@@ -438,6 +438,46 @@ export default function HomePage() {
     setShowProvincePicker(true);
     setProvinceInput("");
   };
+
+  // ── High-demand fallback (แสดงเมื่อจังหวัดใกล้ไม่มีโครงการ) ──────────────
+  const [demandFallback, setDemandFallback] = useState([]); // [{province, still_needed, top_items}]
+  const [demandFallbackProjects, setDemandFallbackProjects] = useState([]); // projects from top demand province
+  const [demandFallbackProvince, setDemandFallbackProvince] = useState("");
+  const [demandFallbackLoading, setDemandFallbackLoading] = useState(false);
+
+  // โหลด demand insight เมื่อ nearby เสร็จโหลดแล้วแต่ว่างเปล่า
+  useEffect(() => {
+    if (homeTab !== NEARBY_TAB) return;
+    if (nearbyLoading) return;
+    if (nearbyProjects.length > 0) return; // มีโครงการแล้ว ไม่ต้องโหลด fallback
+    if (!nearbyProvince) return; // ยังไม่รู้จังหวัด ยังไม่ต้อง fallback
+    // โหลด high-demand provinces (public endpoint)
+    (async () => {
+      try {
+        const dm = await getJson(`/projects/high-demand?exclude=${encodeURIComponent(nearbyProvince)}&limit=3`, false);
+        const topProvs = dm?.provinces || [];
+        setDemandFallback(topProvs);
+        if (topProvs.length > 0) {
+          const bestProv = topProvs[0].province;
+          setDemandFallbackProvince(bestProv);
+          setDemandFallbackLoading(true);
+          const data = await getJson(`/projects/by-province?province=${encodeURIComponent(bestProv)}`, false);
+          setDemandFallbackProjects(Array.isArray(data.projects) ? data.projects.slice(0, 3) : []);
+          setDemandFallbackLoading(false);
+        }
+      } catch { /* ไม่แสดง error — fallback เสริม */ }
+    })();
+  }, [homeTab, nearbyLoading, nearbyProjects.length, nearbyProvince]); // eslint-disable-line
+
+  const handleLoadDemandProvince = async (province) => {
+    setDemandFallbackProvince(province);
+    setDemandFallbackLoading(true);
+    try {
+      const data = await getJson(`/projects/by-province?province=${encodeURIComponent(province)}`, false);
+      setDemandFallbackProjects(Array.isArray(data.projects) ? data.projects.slice(0, 3) : []);
+    } catch { setDemandFallbackProjects([]); }
+    finally { setDemandFallbackLoading(false); }
+  };
   // ── end nearby ────────────────────────────────────────────
 
 
@@ -1227,16 +1267,86 @@ export default function HomePage() {
               {(homeTab === NEARBY_TAB && nearbyLoading) ? (
                 [0,1,2].map(i => <div key={i} style={{ height: 280, borderRadius: 14, background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite" }} />)
               ) : !displayProjects.length ? (
-                <div style={{ gridColumn: "1/-1", padding: "48px 0", textAlign: "center" }}>
+                <div style={{ gridColumn: "1/-1" }}>
                   {homeTab === NEARBY_TAB ? (
                     <div style={{ fontFamily: "Mitr, sans-serif" }}>
-                      <div style={{ marginBottom: 10, color: "#8b5cf6" }}><svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" strokeWidth="4"><path strokeLinejoin="round" d="M4 33a2 2 0 0 1 2-2h6v-7l12-8l12 8v7h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4z"/><path strokeLinecap="round" d="M24 6v10"/><path strokeLinecap="round" strokeLinejoin="round" d="M36 12V6s-1.5 3-6 0s-6 0-6 0v6s1.5-3 6 0s6 0 6 0m-8 32V31h-8v13m-2 0h12"/></g></svg></div>
-                      <div style={{ fontSize: 16, fontWeight: 500, color: "#475569", marginBottom: 6 }}>ยังไม่มีโครงการในจังหวัด{nearbyProvince}</div>
-                      <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>ลองเลือกจังหวัดอื่นดูนะ</div>
-                      <button onClick={handleChangeProvince} style={{ background: "#8b5cf6", color: "#fff", border: "none", borderRadius: 99, padding: "8px 22px", fontSize: 14, cursor: "pointer", fontFamily: "Mitr, sans-serif", fontWeight: 500 }}>เปลี่ยนจังหวัด</button>
+
+                      {/* ── Row 1: notice (compact inline) ── */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                        <div style={{ color: "#a78bfa", flexShrink: 0 }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" strokeWidth="4"><path strokeLinejoin="round" d="M4 33a2 2 0 0 1 2-2h6v-7l12-8l12 8v7h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4z"/><path strokeLinecap="round" d="M24 6v10"/><path strokeLinecap="round" strokeLinejoin="round" d="M36 12V6s-1.5 3-6 0s-6 0-6 0v6s1.5-3 6 0s6 0 6 0m-8 32V31h-8v13m-2 0h12"/></g></svg>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>ยังไม่มีโครงการในจังหวัด{nearbyProvince}</div>
+                          <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 1 }}>มีพื้นที่อื่นที่ต้องการความช่วยเหลือเร่งด่วน</div>
+                        </div>
+                      </div>
+
+                      {/* ── Row 2: Province chips ── */}
+                      {demandFallback.length > 0 && (
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+                          {demandFallback.map((dp) => {
+                            const active = demandFallbackProvince === dp.province;
+                            return (
+                              <button
+                                key={dp.province}
+                                onClick={() => handleLoadDemandProvince(dp.province)}
+                                style={{
+                                  display: "flex", alignItems: "center", gap: 6,
+                                  background: active ? "#ede9fe" : "#f8fafc",
+                                  color: active ? "#5b21b6" : "#475569",
+                                  border: `1.5px solid ${active ? "#c4b5fd" : "#e2e8f0"}`,
+                                  borderRadius: 99, padding: "6px 14px", cursor: "pointer",
+                                  fontFamily: "Mitr, sans-serif", fontSize: 13, fontWeight: active ? 700 : 500,
+                                  transition: "all 0.15s",
+                                }}
+                              >
+                                <Icon icon="mdi:map-marker" style={{ fontSize: 14, color: active ? "#7c3aed" : "#a78bfa", flexShrink: 0 }} />
+                                {dp.province}
+                                <span style={{
+                                  fontSize: 11, fontWeight: 600,
+                                  background: active ? "#ddd6fe" : "#f1f5f9",
+                                  color: active ? "#5b21b6" : "#94a3b8",
+                                  borderRadius: 99, padding: "1px 7px",
+                                }}>
+                                  {(dp.still_needed || 0).toLocaleString()} ชิ้น
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* ── Row 3: Project cards ── */}
+                      {demandFallbackProvince && (
+                        <div>
+                          <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 12, display: "flex", alignItems: "center", gap: 5 }}>
+                            <Icon icon="mdi:map-marker" style={{ color: "#a78bfa", fontSize: 14 }} />
+                            โครงการในจังหวัด{demandFallbackProvince}
+                          </div>
+                          {demandFallbackLoading ? (
+                            <div className="projGrid">
+                              {[0,1,2].map(i => (
+                                <div key={i} style={{ borderRadius: 14, background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite", minHeight: 280 }} />
+                              ))}
+                            </div>
+                          ) : demandFallbackProjects.length === 0 ? (
+                            <div style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: "24px 0" }}>ไม่มีโครงการในจังหวัดนี้</div>
+                          ) : (
+                            <div className="projGrid">
+                              {demandFallbackProjects.map(p => (
+                                <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel="แนะนำ" />
+                              ))}
+                            </div>
+                          )}
+                          <div style={{ textAlign: "center", marginTop: 14 }}>
+                            <Link to="/projects" className="projRowSeeAll">ดูโครงการทั้งหมด →</Link>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="muted">ไม่มีโครงการในหมวดนี้</div>
+                    <div className="muted" style={{ textAlign: "center", padding: "48px 0" }}>ไม่มีโครงการในหมวดนี้</div>
                   )}
                 </div>
               ) : displayProjects.map(p => (

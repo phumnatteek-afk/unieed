@@ -51,6 +51,67 @@ export async function getProjectsByProvince(province) {
   return rows;
 }
 
+// ── จังหวัดที่ต้องการความช่วยเหลือมากสุด (public — ใช้ใน Homepage fallback) ──
+export async function getHighDemandProvinces(excludeProvince = "", limit = 3) {
+  const [provRows] = await db.query(`
+    SELECT
+      s.province,
+      SUM(sn.quantity_needed - COALESCE(sn.quantity_received, 0)) AS still_needed
+    FROM student_need sn
+    JOIN students         st ON st.student_id  = sn.student_id
+    JOIN donation_request dr ON dr.request_id  = st.request_id
+    JOIN schools           s ON s.school_id    = dr.school_id
+    WHERE dr.status = 'open'
+      AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
+      AND sn.quantity_needed > COALESCE(sn.quantity_received, 0)
+      AND s.province IS NOT NULL AND s.province != ''
+      AND s.province != ?
+    GROUP BY s.province
+    ORDER BY still_needed DESC
+    LIMIT ?
+  `, [excludeProvince || "", Number(limit) || 3]).catch(() => [[]]);
+
+  if (!provRows.length) return [];
+
+  // top items ต่อจังหวัด
+  const topProvinces = provRows.map(r => r.province);
+  const placeholders = topProvinces.map(() => "?").join(", ");
+  const [itemRows] = await db.query(`
+    SELECT
+      s.province,
+      ut.type_name,
+      ut.gender,
+      SUM(sn.quantity_needed - COALESCE(sn.quantity_received, 0)) AS still_needed
+    FROM student_need sn
+    JOIN students         st ON st.student_id  = sn.student_id
+    JOIN donation_request dr ON dr.request_id  = st.request_id
+    JOIN schools           s ON s.school_id    = dr.school_id
+    JOIN uniform_type     ut ON ut.uniform_type_id = sn.uniform_type_id
+    WHERE dr.status = 'open'
+      AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
+      AND sn.quantity_needed > COALESCE(sn.quantity_received, 0)
+      AND s.province IN (${placeholders})
+    GROUP BY s.province, ut.uniform_type_id, ut.type_name, ut.gender
+    ORDER BY s.province, still_needed DESC
+  `, topProvinces).catch(() => [[]]);
+
+  const GENDER_LABEL = { male: "ชาย", female: "หญิง" };
+  const itemMap = {};
+  for (const r of (itemRows || [])) {
+    if (!itemMap[r.province]) itemMap[r.province] = [];
+    if (itemMap[r.province].length < 3) {
+      const label = r.gender ? `${r.type_name} (${GENDER_LABEL[r.gender] || r.gender})` : r.type_name;
+      itemMap[r.province].push({ type_name: r.type_name, gender: r.gender || null, label, still_needed: Number(r.still_needed || 0) });
+    }
+  }
+
+  return provRows.map(r => ({
+    province:     r.province,
+    still_needed: Number(r.still_needed || 0),
+    top_items:    itemMap[r.province] || [],
+  }));
+}
+
 export async function getHomeData() {
   // 1) Stats
   const [[stats]] = await db.query(`

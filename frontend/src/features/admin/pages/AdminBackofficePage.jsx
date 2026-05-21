@@ -7,8 +7,8 @@ import "../styles/admin.css";
 import "../styles/adminPages.css";
 import { Icon } from "@iconify/react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 
 const OVERVIEW_CARDS = [
@@ -18,6 +18,27 @@ const OVERVIEW_CARDS = [
   { key: "total_products",  pctKey: "pct_products",  label: "รายการสินค้า",          icon: "icon-park-outline:ad-product",    bg: "#fff1be" },
   { key: "total_orders",    pctKey: "pct_orders",    label: "รายการสั่งซื้อสินค้า", icon: "lets-icons:order",                bg: "#ffd6d6" },
 ];
+
+const PROJECT_STATUS_META = {
+  open: {
+    label: "เปิดอยู่",
+    title: "โครงการที่เปิดอยู่",
+    empty: "ไม่มีโครงการที่เปิดอยู่",
+    icon: "mdi:folder-open-outline",
+    color: "#16a34a",
+    bg: "#f0fdf4",
+    border: "#bbf7d0",
+  },
+  closed: {
+    label: "ปิดแล้ว",
+    title: "โครงการที่ปิดแล้ว",
+    empty: "ไม่มีโครงการที่ปิดแล้ว",
+    icon: "mdi:folder-check-outline",
+    color: "#d97706",
+    bg: "#fffbeb",
+    border: "#fed7aa",
+  },
+};
 
 function pctLabel(pct) {
   if (pct === null || pct === undefined) return null;
@@ -60,13 +81,20 @@ function urgencyMeta(stillNeeded, totalNeeded) {
   return              { label: "ขาดน้อย",      pctColor: "#16a34a", badgeBg: "rgba(255,255,255,0.22)", badgeColor: "#fff" };
 }
 
+function fmtProjectDate(value) {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default function AdminBackofficePage() {
   const [stats, setStats] = useState({
     total_users: 0, total_schools: 0, total_donations: 0, total_products: 0, total_orders: 0,
     pct_users: null, pct_schools: null, pct_donations: null, pct_products: null, pct_orders: null,
   });
   const [revenue, setRevenue] = useState({
-    platform_revenue: 0, fee_revenue: 0,
+    platform_revenue: 0, order_volume: 0, fee_revenue: 0,
     fee_15_revenue: 0, fee_min_revenue: 0,
     fee_15_count: 0, fee_min_count: 0, fee_count: 0,
     pct_platform_revenue: null, pct_fee_15: null, pct_fee_min: null,
@@ -77,9 +105,19 @@ export default function AdminBackofficePage() {
     top3_types: [], province_demand: [], region_demand: [], open_projects: 0,
     completed_stats: { closed_projects: 0, school_count: 0, total_uniforms: 0, students_helped: 0 },
   });
-  const [period, setPeriod] = useState("week");
+  const [period, setPeriod] = useState("month");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate]     = useState("");
+  const [showPicker, setShowPicker] = useState(false);
+  const [chartMonths, setChartMonths] = useState(6);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [projectModalStatus, setProjectModalStatus] = useState(null);
+  const [projectLists, setProjectLists] = useState({ open: null, closed: null });
+  const [projectListLoading, setProjectListLoading] = useState(false);
+  const [projectListErr, setProjectListErr] = useState("");
+  const [expandedProvince, setExpandedProvince] = useState(null);
+  const [campaignModalProvince, setCampaignModalProvince] = useState(null);
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
@@ -130,11 +168,12 @@ export default function AdminBackofficePage() {
   // โหลด revenue ตาม period ที่เลือก
   useEffect(() => {
     let cancelled = false;
-    svc.getRevenue(period)
+    svc.getRevenue({ period, start_date: period === "custom" ? startDate : null, end_date: period === "custom" ? endDate : null })
       .then((r) => {
         if (cancelled) return;
         setRevenue({
           platform_revenue:     Number(r?.platform_revenue  || 0),
+          order_volume:         Number(r?.order_volume      || 0),
           fee_revenue:          Number(r?.fee_revenue       || 0),
           fee_15_revenue:       Number(r?.fee_15_revenue    || 0),
           fee_min_revenue:      Number(r?.fee_min_revenue   || 0),
@@ -148,6 +187,13 @@ export default function AdminBackofficePage() {
       })
       .catch(() => {});
     return () => { cancelled = true; };
+  }, [period, startDate, endDate]);
+
+  useEffect(() => {
+    const map = { today: 3, month: 3, "3months": 3, "6months": 6, year: 12, custom: 6 };
+    const m = map[period] || 6;
+    setChartMonths(m);
+    svc.getChart(m).then((ch) => setChart(ch || {})).catch(() => {});
   }, [period]);
 
   const chartData = useMemo(
@@ -159,13 +205,39 @@ export default function AdminBackofficePage() {
     [chart],
   );
 
+  const projectStatusCounts = useMemo(() => {
+    const open = Number(demand?.open_projects || 0);
+    const closed = Number(demand?.completed_stats?.closed_projects || 0);
+    return { open, closed, total: open + closed };
+  }, [demand]);
+
   const donationData = useMemo(() => {
-    const open = Number(chart.donation_open_pct || 0);
+    const open = projectStatusCounts.total > 0
+      ? Math.round((projectStatusCounts.open / projectStatusCounts.total) * 100)
+      : 0;
     return [
-      { name: "เปิดอยู่", value: open,        color: "#22c55e" },
-      { name: "ปิดแล้ว", value: 100 - open,  color: "#f59e0b" },
+      { name: "เปิดอยู่", value: open, count: projectStatusCounts.open, color: "#22c55e" },
+      { name: "ปิดแล้ว", value: projectStatusCounts.total > 0 ? 100 - open : 0, count: projectStatusCounts.closed, color: "#f59e0b" },
     ];
-  }, [chart.donation_open_pct]);
+  }, [projectStatusCounts]);
+
+  const openProjectStatusModal = async (status) => {
+    setProjectModalStatus(status);
+    setProjectListErr("");
+    if (projectLists[status]) return;
+    setProjectListLoading(true);
+    try {
+      const data = await svc.listProjectStatusProjects(status);
+      setProjectLists((prev) => ({
+        ...prev,
+        [status]: Array.isArray(data?.rows) ? data.rows : [],
+      }));
+    } catch (e) {
+      setProjectListErr(e?.data?.message || e.message || "โหลดรายการโครงการไม่สำเร็จ");
+    } finally {
+      setProjectListLoading(false);
+    }
+  };
 
   return (
     <div className="boPage">
@@ -211,24 +283,77 @@ export default function AdminBackofficePage() {
           </div>
         )}
 
-        {/* ===== Period tabs ===== */}
-        <div className="boTopDateRow" style={{ padding: "0 0 12px" }}>
-          <div /> {/* spacer */}
-          <div className="boPeriodTabs">
+        {/* ===== Advanced Time Filter ===== */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+          padding: "10px 0 16px", borderBottom: "1px solid #f1f5f9", marginBottom: 16,
+        }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {[
-              { v: "week",  l: "สัปดาห์นี้" },
-              { v: "month", l: "เดือนนี้" },
-              { v: "year",  l: "ปีนี้" },
+              { v: "today",   l: "วันนี้" },
+              { v: "month",   l: "เดือนนี้" },
+              { v: "3months", l: "3 เดือน" },
+              { v: "6months", l: "6 เดือน" },
+              { v: "year",    l: "1 ปี" },
             ].map((t) => (
               <button
                 key={t.v}
                 type="button"
-                className={`boPeriodTab ${period === t.v ? "active" : ""}`}
-                onClick={() => setPeriod(t.v)}
+                onClick={() => { setPeriod(t.v); setShowPicker(false); }}
+                style={{
+                  padding: "7px 16px", borderRadius: 20, border: "1px solid",
+                  fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.15s",
+                  background: period === t.v && !showPicker ? "#1d4ed8" : "#f8fafc",
+                  color: period === t.v && !showPicker ? "#fff" : "#475569",
+                  borderColor: period === t.v && !showPicker ? "#1d4ed8" : "#e2e8f0",
+                }}
               >
                 {t.l}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => { setShowPicker(!showPicker); if (!showPicker) setPeriod("custom"); }}
+              style={{
+                padding: "7px 16px", borderRadius: 20, border: "1px solid",
+                fontWeight: 700, fontSize: 13, cursor: "pointer",
+                background: showPicker ? "#7c3aed" : "#f8fafc",
+                color: showPicker ? "#fff" : "#475569",
+                borderColor: showPicker ? "#7c3aed" : "#e2e8f0",
+                display: "flex", alignItems: "center", gap: 6,
+              }}
+            >
+              <Icon icon="mdi:calendar-range" style={{ fontSize: 16 }} />
+              กำหนดเอง
+            </button>
+          </div>
+
+          {/* Custom date picker */}
+          {showPicker && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f5f3ff", borderRadius: 12, padding: "8px 14px", border: "1px solid #ddd6fe" }}>
+              <Icon icon="mdi:calendar-start" style={{ color: "#7c3aed", fontSize: 16 }} />
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                style={{ border: "1px solid #ddd6fe", borderRadius: 8, padding: "4px 8px", fontSize: 13, color: "#1e293b", background: "#fff", fontFamily: "inherit" }}
+              />
+              <span style={{ color: "#94a3b8", fontSize: 13 }}>ถึง</span>
+              <Icon icon="mdi:calendar-end" style={{ color: "#7c3aed", fontSize: 16 }} />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                style={{ border: "1px solid #ddd6fe", borderRadius: 8, padding: "4px 8px", fontSize: 13, color: "#1e293b", background: "#fff", fontFamily: "inherit" }}
+              />
+            </div>
+          )}
+
+          {/* Period label */}
+          <div style={{ marginLeft: "auto", fontSize: 12, color: "#94a3b8" }}>
+            {period === "custom" && startDate && endDate
+              ? `${startDate} → ${endDate}`
+              : { today: "วันนี้", month: "เดือนนี้", "3months": "ย้อนหลัง 3 เดือน", "6months": "ย้อนหลัง 6 เดือน", year: "ย้อนหลัง 1 ปี" }[period]}
           </div>
         </div>
 
@@ -241,9 +366,10 @@ export default function AdminBackofficePage() {
             <div style={{ position: "absolute", right: 20, bottom: -30, width: 70, height: 70, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <Icon icon="mdi:currency-usd" style={{ color: "rgba(255,255,255,0.7)", fontSize: 16 }} />
-              <div className="boRevCard__label" style={{ color: "rgba(255,255,255,0.82)", marginBottom: 0 }}>รายได้รวมแพลตฟอร์ม</div>
+              <div className="boRevCard__label" style={{ color: "rgba(255,255,255,0.82)", marginBottom: 0 }}>รายได้ค่าธรรมเนียมรวม</div>
             </div>
             <div className="boRevCard__value" style={{ color: "#fff", fontSize: 28, fontWeight: 800 }}>{formatBaht(revenue.platform_revenue)}</div>
+            <div className="boRevCard__sub" style={{ color: "rgba(255,255,255,0.65)", fontSize: 11, marginBottom: 2 }}>ผลรวมค่าธรรมเนียมที่เก็บจากผู้ขายทั้งหมด</div>
             {revenue.pct_platform_revenue !== null && (
               <div className="boRevCard__sub" style={{ color: revenue.pct_platform_revenue >= 0 ? "#86efac" : "#fca5a5" }}>
                 {pctLabel(revenue.pct_platform_revenue)}
@@ -285,27 +411,32 @@ export default function AdminBackofficePage() {
         {/* ===== Chart + Pending tasks ===== */}
         <div className="boChartRow">
           <div className="boChartCard">
-            <div className="boChartCard__title">ยอดขายรวม vs ค่าธรรมเนียมที่ได้รับ — ย้อนหลัง 6 เดือน</div>
+            <div className="boChartCard__title">{`รายได้ค่าธรรมเนียมแพลตฟอร์ม — ย้อนหลัง ${chartMonths} เดือน`}</div>
             <div className="boChartLegend">
               <div className="boChartLegend__item">
-                <span className="boChartLegend__dot" style={{ background: "#fcd34d" }} />
-                ยอดขายสินค้ารวม
-              </div>
-              <div className="boChartLegend__item">
-                <span className="boChartLegend__dot" style={{ background: "#60a5fa" }} />
+                <span className="boChartLegend__dot" style={{ background: "#1d4ed8" }} />
                 รายได้ค่าธรรมเนียม
               </div>
             </div>
             <div style={{ width: "100%", height: 280 }}>
               <ResponsiveContainer>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `${v / 1000}K`} />
-                  <Tooltip formatter={(v) => formatBaht(v)} />
-                  <Line type="monotone" dataKey="sales" stroke="#fcd34d" strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="fees" stroke="#60a5fa" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
+                <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barSize={28}>
+                  <defs>
+                    <linearGradient id="feeBarGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563eb" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#93c5fd" stopOpacity={0.8} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(1)}K` : v} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                    formatter={(v) => [formatBaht(v), "รายได้ค่าธรรมเนียม"]}
+                    cursor={{ fill: "rgba(29,78,216,0.06)" }}
+                  />
+                  <Bar dataKey="fees" fill="url(#feeBarGrad)" radius={[6, 6, 0, 0]} name="fees" />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -523,26 +654,71 @@ export default function AdminBackofficePage() {
                 {demand.province_demand.length === 0 ? (
                   <div style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 16 }}>ยังไม่มีข้อมูลจังหวัด</div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {demand.province_demand.map((p, pi) => {
                       const rs = REGION_STYLE[p.region] || REGION_STYLE["อื่นๆ"];
+                      const isExpanded = expandedProvince === p.province;
+                      const barColor = pi === 0 ? "#1d4ed8" : pi < 3 ? "#3b82f6" : "#93c5fd";
                       return (
-                        <div key={p.province} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ minWidth: 24, fontSize: 12, fontWeight: 700, textAlign: "center", color: pi < 3 ? "#1d4ed8" : "#94a3b8" }}>
-                            #{pi + 1}
-                          </span>
-                          <span style={{ minWidth: 42, fontSize: 10, fontWeight: 700, textAlign: "center", padding: "2px 6px", borderRadius: 8, background: rs.bg, color: rs.color, border: `1px solid ${rs.border}` }}>
-                            {p.region}
-                          </span>
-                          <span style={{ minWidth: 84, fontSize: 13, fontWeight: pi < 3 ? 700 : 500, color: pi < 3 ? "#1e293b" : "#475569" }}>
-                            {p.province}
-                          </span>
-                          <div style={{ flex: 1, minWidth: 0, background: "#e2e8f0", borderRadius: 6, height: 9, overflow: "hidden" }}>
-                            <div style={{ width: `${p.pct}%`, height: "100%", borderRadius: 6, background: pi === 0 ? "#1d4ed8" : pi < 3 ? "#3b82f6" : "#93c5fd", transition: "width 0.5s ease" }} />
+                        <div key={p.province} style={{ borderRadius: 12, border: `1px solid ${isExpanded ? "#bfdbfe" : "#f1f5f9"}`, background: isExpanded ? "#f8faff" : "#fff", overflow: "hidden", transition: "all 0.2s" }}>
+                          {/* Row */}
+                          <div
+                            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer" }}
+                            onClick={() => setExpandedProvince(isExpanded ? null : p.province)}
+                          >
+                            <span style={{ minWidth: 22, fontSize: 12, fontWeight: 700, textAlign: "center", color: pi < 3 ? "#1d4ed8" : "#94a3b8" }}>
+                              #{pi + 1}
+                            </span>
+                            <span style={{ minWidth: 40, fontSize: 10, fontWeight: 700, textAlign: "center", padding: "2px 5px", borderRadius: 7, background: rs.bg, color: rs.color, border: `1px solid ${rs.border}` }}>
+                              {p.region}
+                            </span>
+                            <span style={{ minWidth: 80, fontSize: 13, fontWeight: pi < 3 ? 700 : 500, color: pi < 3 ? "#1e293b" : "#475569" }}>
+                              {p.province}
+                            </span>
+                            <div style={{ flex: 1, minWidth: 0, background: "#e2e8f0", borderRadius: 6, height: 8, overflow: "hidden" }}>
+                              <div style={{ width: `${p.pct}%`, height: "100%", borderRadius: 6, background: barColor, transition: "width 0.5s ease" }} />
+                            </div>
+                            <span style={{ minWidth: 58, fontSize: 12, fontWeight: 700, textAlign: "right", color: pi < 3 ? "#1d4ed8" : "#64748b" }}>
+                              {p.still_needed.toLocaleString()} ชิ้น
+                            </span>
+                            <Icon icon={isExpanded ? "mdi:chevron-up" : "mdi:chevron-down"} style={{ fontSize: 16, color: "#94a3b8", flexShrink: 0 }} />
                           </div>
-                          <span style={{ minWidth: 60, fontSize: 12, fontWeight: 700, textAlign: "right", color: pi < 3 ? "#1d4ed8" : "#64748b" }}>
-                            {p.still_needed.toLocaleString()} ชิ้น
-                          </span>
+
+                          {/* Expanded: item breakdown + campaign button */}
+                          {isExpanded && (
+                            <div style={{ borderTop: "1px solid #e0e7ff", padding: "10px 14px 12px", background: "#eff6ff" }}>
+                              {p.top_items && p.top_items.length > 0 ? (
+                                <div style={{ marginBottom: 10 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6 }}>
+                                    <Icon icon="mdi:tag-multiple-outline" style={{ fontSize: 12, marginRight: 4, verticalAlign: "middle" }} />
+                                    สิ่งของที่ขาดมากที่สุด
+                                  </div>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                    {p.top_items.map((item, ii) => (
+                                      <div key={ii} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: ii === 0 ? "#dbeafe" : "#f0f9ff", borderRadius: 8, padding: "5px 10px", border: `1px solid ${ii === 0 ? "#93c5fd" : "#e0f2fe"}` }}>
+                                        <span style={{ fontSize: 12, fontWeight: ii === 0 ? 700 : 500, color: ii === 0 ? "#1d4ed8" : "#0369a1" }}>
+                                          {ii === 0 ? "★ " : `${ii + 1}. `}{item.label}
+                                        </span>
+                                        <span style={{ fontSize: 12, fontWeight: 700, color: ii === 0 ? "#1d4ed8" : "#0284c7" }}>
+                                          {item.still_needed.toLocaleString()} ชิ้น
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>ไม่มีรายละเอียดสิ่งของ</div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setCampaignModalProvince(p)}
+                                style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(90deg,#1d4ed8,#2563eb)", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%" }}
+                              >
+                                <Icon icon="mdi:bullhorn-outline" style={{ fontSize: 14 }} />
+                                สร้างแคมเปญช่วยเหลือ{p.province}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -581,10 +757,37 @@ export default function AdminBackofficePage() {
                           <div key={d.name} className="boDonutCard__legendItem">
                             <span className="boDonutCard__legendDot" style={{ background: d.color }} />
                             <span className="boDonutCard__legendText">{d.name}</span>
+                            <span className="boDonutCard__legendCount">{formatNumber(d.count)} โครงการ</span>
                             <span style={{ fontWeight: 800, fontSize: 20, color: d.color }}>{d.value}%</span>
                           </div>
                         ))}
                       </div>
+                    </div>
+                    <div className="boProjectStatusGrid">
+                      {["open", "closed"].map((status) => {
+                        const meta = PROJECT_STATUS_META[status];
+                        const count = projectStatusCounts[status];
+                        return (
+                          <button
+                            key={status}
+                            type="button"
+                            className="boProjectStatusBtn"
+                            onClick={() => openProjectStatusModal(status)}
+                            style={{ "--status-color": meta.color, "--status-bg": meta.bg, "--status-border": meta.border }}
+                          >
+                            <span className="boProjectStatusBtn__icon">
+                              <Icon icon={meta.icon} />
+                            </span>
+                            <span className="boProjectStatusBtn__body">
+                              <span className="boProjectStatusBtn__label">{meta.label}</span>
+                              <strong>{formatNumber(count)}</strong>
+                            </span>
+                            <span className="boProjectStatusBtn__view">
+                              ดูรายการ <Icon icon="mdi:chevron-right" />
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -629,6 +832,22 @@ export default function AdminBackofficePage() {
           </>
         )}
       </div>
+      {projectModalStatus && (
+        <ProjectStatusModal
+          status={projectModalStatus}
+          projects={projectLists[projectModalStatus] || []}
+          loading={projectListLoading}
+          error={projectListErr}
+          onRetry={() => openProjectStatusModal(projectModalStatus)}
+          onClose={() => setProjectModalStatus(null)}
+        />
+      )}
+      {campaignModalProvince && (
+        <CampaignModal
+          province={campaignModalProvince}
+          onClose={() => setCampaignModalProvince(null)}
+        />
+      )}
     </div>
   );
 }
@@ -643,6 +862,211 @@ function PendingItem({ label, count, link, bg, labelColor, btnLabel }) {
       <a href={link} className="boPendingItem__btn">
         {btnLabel} <Icon icon="material-symbols:arrow-outward" />
       </a>
+    </div>
+  );
+}
+
+function CampaignModal({ province, onClose }) {
+  const [title, setTitle] = useState(`แคมเปญช่วยเหลือ${province.province}`);
+  const [msg, setMsg] = useState(
+    `📣 จังหวัด${province.province} ต้องการชุดนักเรียนเพิ่มเติม ${province.still_needed.toLocaleString()} ชิ้น` +
+    (province.top_items?.length
+      ? `\n\nสิ่งของที่ขาดมากที่สุด:\n${province.top_items.map((it, i) => `${i + 1}. ${it.label} — ${it.still_needed.toLocaleString()} ชิ้น`).join("\n")}`
+      : "") +
+    `\n\nร่วมบริจาคเพื่อเด็กๆ ในพื้นที่นี้ได้เลย 💙`
+  );
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(`${title}\n\n${msg}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const items = province.top_items || [];
+
+  return (
+    <div className="boProjectModalOverlay" onClick={onClose}>
+      <div className="boProjectModal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
+        {/* Header */}
+        <div className="boProjectModal__header" style={{ background: "linear-gradient(90deg,#1d4ed8,#3b82f6)", borderRadius: "12px 12px 0 0", padding: "16px 20px" }}>
+          <div className="boProjectModal__titleWrap">
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon icon="mdi:bullhorn-outline" style={{ color: "#fff", fontSize: 20 }} />
+            </div>
+            <div>
+              <div className="boProjectModal__title" style={{ color: "#fff" }}>สร้างแคมเปญกระตุ้นการบริจาค</div>
+              <div className="boProjectModal__sub" style={{ color: "rgba(255,255,255,0.75)" }}>จังหวัด{province.province} · {province.still_needed.toLocaleString()} ชิ้นที่ยังขาด</div>
+            </div>
+          </div>
+          <button type="button" className="boProjectModal__close" onClick={onClose} style={{ color: "#fff", background: "rgba(255,255,255,0.15)" }}>
+            <Icon icon="mdi:close" />
+          </button>
+        </div>
+
+        <div style={{ padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Summary chips */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>
+              📍 {province.province} · ภาค{province.region}
+            </span>
+            <span style={{ background: "#fef3c7", color: "#92400e", border: "1px solid #fde68a", borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>
+              🎽 ขาด {province.still_needed.toLocaleString()} ชิ้น
+            </span>
+          </div>
+
+          {/* Item breakdown */}
+          {items.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 6 }}>สิ่งของที่ขาดมากที่สุด</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {items.map((it, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: i === 0 ? "#dbeafe" : "#f8fafc", border: `1px solid ${i === 0 ? "#93c5fd" : "#e2e8f0"}`, borderRadius: 8, padding: "6px 12px" }}>
+                    <span style={{ fontSize: 13, fontWeight: i === 0 ? 700 : 500, color: i === 0 ? "#1d4ed8" : "#475569" }}>{i === 0 ? "★ " : `${i+1}. `}{it.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: i === 0 ? "#1d4ed8" : "#64748b" }}>{it.still_needed.toLocaleString()} ชิ้น</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Campaign title */}
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 4 }}>ชื่อแคมเปญ</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 12px", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+            />
+          </div>
+
+          {/* Campaign message */}
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 4 }}>ข้อความแคมเปญ</label>
+            <textarea
+              value={msg}
+              onChange={(e) => setMsg(e.target.value)}
+              rows={7}
+              style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 12px", fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
+            />
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              onClick={handleCopy}
+              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: copied ? "#16a34a" : "#1d4ed8", color: "#fff", border: "none", borderRadius: 8, padding: "10px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+            >
+              <Icon icon={copied ? "mdi:check" : "mdi:content-copy"} style={{ fontSize: 15 }} />
+              {copied ? "คัดลอกแล้ว!" : "คัดลอกข้อความแคมเปญ"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{ padding: "10px 20px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontWeight: 600, color: "#64748b", cursor: "pointer" }}
+            >
+              ปิด
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center" }}>
+            คัดลอกข้อความแล้วนำไปโพสต์บนโซเชียลมีเดีย หรือส่งผ่านช่องทางประชาสัมพันธ์ของแพลตฟอร์ม
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectStatusModal({ status, projects, loading, error, onRetry, onClose }) {
+  const meta = PROJECT_STATUS_META[status] || PROJECT_STATUS_META.open;
+
+  return (
+    <div className="boProjectModalOverlay" onClick={onClose}>
+      <div className="boProjectModal" onClick={(e) => e.stopPropagation()}>
+        <div className="boProjectModal__header">
+          <div className="boProjectModal__titleWrap">
+            <div className="boProjectModal__icon" style={{ background: meta.bg, color: meta.color, borderColor: meta.border }}>
+              <Icon icon={meta.icon} />
+            </div>
+            <div>
+              <div className="boProjectModal__title">{meta.title}</div>
+              <div className="boProjectModal__sub">{formatNumber(projects.length)} รายการที่แสดงในขณะนี้</div>
+            </div>
+          </div>
+          <button type="button" className="boProjectModal__close" onClick={onClose} aria-label="ปิด">
+            <Icon icon="mdi:close" />
+          </button>
+        </div>
+
+        {loading && <div className="boProjectModal__state">กำลังโหลดรายการโครงการ...</div>}
+
+        {!loading && error && (
+          <div className="boProjectModal__state boProjectModal__state--error">
+            <span>{error}</span>
+            <button type="button" onClick={onRetry}>ลองใหม่</button>
+          </div>
+        )}
+
+        {!loading && !error && projects.length === 0 && (
+          <div className="boProjectModal__state">{meta.empty}</div>
+        )}
+
+        {!loading && !error && projects.length > 0 && (
+          <div className="boProjectModal__list">
+            {projects.map((project) => {
+              const progress = project.total_needed > 0
+                ? Math.min(100, Math.round((Number(project.total_fulfilled || 0) / Number(project.total_needed || 0)) * 100))
+                : 0;
+              const dateLabel = status === "open"
+                ? `เริ่ม ${fmtProjectDate(project.start_date || project.created_at)}`
+                : `สิ้นสุด ${fmtProjectDate(project.end_date || project.created_at)}`;
+
+              return (
+                <div key={project.request_id} className="boProjectModalItem">
+                  <div className="boProjectModalItem__thumb">
+                    {project.request_image_url ? (
+                      <img src={project.request_image_url} alt={project.request_title || "โครงการ"} />
+                    ) : (
+                      <Icon icon="mdi:image-off-outline" />
+                    )}
+                  </div>
+                  <div className="boProjectModalItem__main">
+                    <div className="boProjectModalItem__top">
+                      <div>
+                        <div className="boProjectModalItem__title">{project.request_title || "ไม่ระบุชื่อโครงการ"}</div>
+                        <div className="boProjectModalItem__school">
+                          <Icon icon="teenyicons:school-outline" />
+                          {project.school_name || "ไม่ระบุโรงเรียน"}
+                          {project.school_province ? ` · ${project.school_province}` : ""}
+                        </div>
+                      </div>
+                      <span className="boProjectModalItem__badge" style={{ background: meta.bg, color: meta.color, borderColor: meta.border }}>
+                        {meta.label}
+                      </span>
+                    </div>
+
+                    <div className="boProjectModalItem__meta">
+                      <span>{dateLabel}</span>
+                      <span>{formatNumber(project.student_count)} นักเรียน</span>
+                      <span>ส่งมอบ {formatNumber(project.total_fulfilled)} / {formatNumber(project.total_needed)} ชิ้น</span>
+                    </div>
+
+                    <div className="boProjectModalItem__bar">
+                      <span style={{ width: `${progress}%`, background: meta.color }} />
+                    </div>
+                  </div>
+                  <a className="boProjectModalItem__link" href={`/projects/${project.request_id}`} target="_blank" rel="noreferrer">
+                    เปิดดู
+                    <Icon icon="mdi:open-in-new" />
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

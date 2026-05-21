@@ -25,6 +25,7 @@ import {
   adminGetDonorSuspensionHistory,
   adminGetDonorProfile,
   adminDemandInsight,
+  adminProjectStatusProjects,
 } from "./admin.controller.js";
 
 const r = Router();
@@ -46,6 +47,7 @@ r.get("/revenue",             auth, requireRole(["admin"]), adminRevenue);      
 r.get("/chart",               auth, requireRole(["admin"]), adminChart);         // ?months=6
 r.get("/pending-tasks",       auth, requireRole(["admin"]), adminPendingTasks);
 r.get("/demand-insight",      auth, requireRole(["admin"]), adminDemandInsight); // Demand Insight
+r.get("/project-status",      auth, requireRole(["admin"]), adminProjectStatusProjects); // ?status=open|closed
 
 /* ─── Orders ─── */
 r.get("/orders",              auth, requireRole(["admin"]), adminListOrders);    // ?status=&q=&page=&limit=

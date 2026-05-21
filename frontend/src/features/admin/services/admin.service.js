@@ -69,9 +69,13 @@ export function updateSchoolAdmin(id, payload) {
 
 /* ─────────────────────────── Dashboard ─────────────────────────── */
 
-/** GET /admin/revenue?period=week|month|year */
-export function getRevenue(period = "week") {
-  return request(`/admin/revenue?period=${period}`, { method: "GET", auth: true });
+/** GET /admin/revenue?period=today|month|3months|6months|year|custom&start_date=&end_date= */
+export function getRevenue({ period = "month", start_date = null, end_date = null } = {}) {
+  const params = new URLSearchParams();
+  params.set("period", period);
+  if (start_date) params.set("start_date", start_date);
+  if (end_date)   params.set("end_date", end_date);
+  return request(`/admin/revenue?${params.toString()}`, { method: "GET", auth: true });
 }
 
 /** GET /admin/chart?months=6 */
@@ -129,6 +133,13 @@ export function paySeller(sellerId, netAmount) {
 /** GET /admin/demand-insight */
 export function getDemandInsight() {
   return request("/admin/demand-insight", { method: "GET", auth: true });
+}
+
+/** GET /admin/project-status?status=open|closed */
+export function listProjectStatusProjects(status = "open") {
+  const params = new URLSearchParams();
+  params.set("status", status);
+  return request(`/admin/project-status?${params.toString()}`, { method: "GET", auth: true });
 }
 
 /** POST /admin/payouts/pay-all */

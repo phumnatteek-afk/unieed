@@ -18,15 +18,21 @@ function normalizeThaiPhone(input) {
   return raw;
 }
 
-function periodToDateRange(period) {
+function periodToDateRange(period, startDate = null, endDate = null) {
   const now = new Date();
+  if (period === "custom" && startDate && endDate) {
+    const f = new Date(startDate); f.setHours(0, 0, 0, 0);
+    const t = new Date(endDate);   t.setHours(23, 59, 59, 999);
+    return { from: f.toISOString().slice(0, 19), to: t.toISOString().slice(0, 19) };
+  }
   let from;
-  if (period === "week") {
-    from = new Date(now); from.setDate(now.getDate() - 7);
-  } else if (period === "month") {
-    from = new Date(now); from.setMonth(now.getMonth() - 1);
-  } else {
-    from = new Date(now); from.setFullYear(now.getFullYear() - 1);
+  switch (period) {
+    case "today":   from = new Date(now); from.setHours(0, 0, 0, 0); break;
+    case "month":   from = new Date(now.getFullYear(), now.getMonth(), 1); break;
+    case "3months": from = new Date(now); from.setMonth(now.getMonth() - 3); break;
+    case "6months": from = new Date(now); from.setMonth(now.getMonth() - 6); break;
+    case "year":    from = new Date(now); from.setFullYear(now.getFullYear() - 1); break;
+    default:        from = new Date(now); from.setDate(now.getDate() - 7);
   }
   return { from: from.toISOString().slice(0, 19), to: now.toISOString().slice(0, 19) };
 }
@@ -301,8 +307,8 @@ export async function getOverviewStats() {
  *   subtotal > 133.33 → ใช้ 15%  (เช่น ฿140 → ฿21)
  *   subtotal ≤ 133.33 → ใช้ขั้นต่ำ ฿20 (เช่น ฿80 → ฿20, ฿100 → ฿20, ฿120 → ฿20)
  */
-export async function getRevenueStats(period = "week") {
-  const { from, to } = periodToDateRange(period);
+export async function getRevenueStats({ period = "month", start_date = null, end_date = null } = {}) {
+  const { from, to } = periodToDateRange(period, start_date, end_date);
 
   // คำนวณ "ช่วงก่อนหน้า" ที่ยาวเท่ากัน สำหรับ % เปลี่ยนแปลง
   const fromDate = new Date(from);
@@ -318,7 +324,8 @@ export async function getRevenueStats(period = "week") {
   //   fee_min_revenue = รายการที่ใช้ขั้นต่ำ ฿20 (subtotal ≤ 133.33)
   const revenueQuery = `
     SELECT
-      COALESCE(SUM(o.total_price), 0)           AS platform_revenue,
+      COALESCE(SUM(o.platform_fee), 0)          AS platform_revenue,
+      COALESCE(SUM(o.total_price), 0)           AS order_volume,
       COALESCE(SUM(o.platform_fee), 0)          AS fee_revenue,
       COALESCE(SUM(o.seller_payout_amount), 0)  AS net_revenue,
       COUNT(*)                                  AS fee_count,
@@ -347,26 +354,21 @@ export async function getRevenueStats(period = "week") {
   const [[prevRow]]    = await db.query(revenueQuery, [prevFrom, prevTo]);
 
   return {
-    platform_revenue:     Math.round(Number(revenueRow?.platform_revenue || 0)),
-    fee_revenue:          Math.round(Number(revenueRow?.fee_revenue      || 0)),
-    fee_15_revenue:       Math.round(Number(revenueRow?.fee_15_revenue   || 0)),
-    fee_min_revenue:      Math.round(Number(revenueRow?.fee_min_revenue  || 0)),
-    fee_15_count:         Number(revenueRow?.fee_15_count  || 0),
-    fee_min_count:        Number(revenueRow?.fee_min_count || 0),
-    net_revenue:          Math.round(Number(revenueRow?.net_revenue      || 0)),
-    fee_count:            Number(revenueRow?.fee_count || 0),
+    platform_revenue: Math.round(Number(revenueRow?.platform_revenue || 0)),  // = SUM(fees)
+    order_volume:     Math.round(Number(revenueRow?.order_volume     || 0)),  // GMV
+    fee_revenue:      Math.round(Number(revenueRow?.fee_revenue      || 0)),
+    fee_15_revenue:   Math.round(Number(revenueRow?.fee_15_revenue   || 0)),
+    fee_min_revenue:  Math.round(Number(revenueRow?.fee_min_revenue  || 0)),
+    fee_15_count:     Number(revenueRow?.fee_15_count  || 0),
+    fee_min_count:    Number(revenueRow?.fee_min_count || 0),
+    net_revenue:      Math.round(Number(revenueRow?.net_revenue      || 0)),
+    fee_count:        Number(revenueRow?.fee_count || 0),
     pct_platform_revenue: pctChange(
       Number(revenueRow?.platform_revenue || 0),
       Number(prevRow?.platform_revenue    || 0)
     ),
-    pct_fee_15:           pctChange(
-      Number(revenueRow?.fee_15_revenue || 0),
-      Number(prevRow?.fee_15_revenue    || 0)
-    ),
-    pct_fee_min:          pctChange(
-      Number(revenueRow?.fee_min_revenue || 0),
-      Number(prevRow?.fee_min_revenue    || 0)
-    ),
+    pct_fee_15:  pctChange(Number(revenueRow?.fee_15_revenue || 0), Number(prevRow?.fee_15_revenue || 0)),
+    pct_fee_min: pctChange(Number(revenueRow?.fee_min_revenue || 0), Number(prevRow?.fee_min_revenue || 0)),
   };
 }
 
@@ -897,6 +899,10 @@ const PROVINCE_REGION = {
 export async function getDemandInsight() {
   const CATEGORY_LABEL = { 1:"เสื้อนักเรียน", 2:"กางเกงนักเรียน", 3:"กระโปรงนักเรียน", 4:"อื่นๆ" };
   const GENDER_LABEL   = { male:"ชาย", female:"หญิง" };
+  const [[openRowForSummary]] = await db.query(
+    `SELECT COUNT(*) AS c FROM donation_request
+     WHERE status = 'open' AND (start_date IS NULL OR start_date <= CURDATE())`
+  ).catch(() => [[{ c: 0 }]]);
 
   // ── 1) Top 3 ประเภทชุดที่ยังขาดมากสุด ──────────────────────────────────
   const [typeRows] = await db.query(`
@@ -965,7 +971,7 @@ export async function getDemandInsight() {
         total_uniforms:  Number(cu?.total_uniforms  || 0),
         students_helped: Number(cs?.students_helped || 0),
       },
-      open_projects: 0,
+      open_projects: Number(openRowForSummary?.c || 0),
     };
   }
 
@@ -1046,11 +1052,55 @@ export async function getDemandInsight() {
   `).catch(() => [[]]);
 
   const maxProv = Number((provRows || [])[0]?.still_needed || 1);
+  const topProvinces = (provRows || []).map(r => r.province).filter(Boolean);
+
+  // ── 4b) top items ต่อจังหวัด (top 3 ประเภทชุดที่ขาดมากสุดในแต่ละจังหวัด) ──
+  let provinceItemMap = {};
+  if (topProvinces.length > 0) {
+    const provPlaceholders = topProvinces.map(() => "?").join(", ");
+    const [provItemRows] = await db.query(`
+      SELECT
+        s.province,
+        ut.type_name,
+        ci.category_name,
+        ut.gender,
+        SUM(sn.quantity_needed - COALESCE(sn.quantity_received, 0)) AS still_needed
+      FROM student_need sn
+      JOIN students         st ON st.student_id  = sn.student_id
+      JOIN donation_request dr ON dr.request_id  = st.request_id
+      JOIN schools           s ON s.school_id    = dr.school_id
+      JOIN uniform_type     ut ON ut.uniform_type_id = sn.uniform_type_id
+      LEFT JOIN category_item ci ON ci.category_id = ut.category_id
+      WHERE dr.status = 'open'
+        AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
+        AND sn.quantity_needed > COALESCE(sn.quantity_received, 0)
+        AND s.province IN (${provPlaceholders})
+      GROUP BY s.province, ut.uniform_type_id, ut.type_name, ci.category_name, ut.gender
+      ORDER BY s.province, still_needed DESC
+    `, topProvinces).catch(() => [[]]);
+
+    for (const r of (provItemRows || [])) {
+      if (!provinceItemMap[r.province]) provinceItemMap[r.province] = [];
+      if (provinceItemMap[r.province].length < 3) {
+        const GENDER_LABEL = { male: "ชาย", female: "หญิง" };
+        const label = r.gender ? `${r.type_name} (${GENDER_LABEL[r.gender] || r.gender})` : r.type_name;
+        provinceItemMap[r.province].push({
+          type_name:     r.type_name   || "ไม่ระบุ",
+          category_name: r.category_name || "อื่นๆ",
+          gender:        r.gender || null,
+          label,
+          still_needed:  Number(r.still_needed || 0),
+        });
+      }
+    }
+  }
+
   const province_demand = (provRows || []).map(r => ({
     province:     r.province,
     region:       PROVINCE_REGION[r.province] || "อื่นๆ",
     still_needed: Number(r.still_needed || 0),
     pct:          Math.round((Number(r.still_needed || 0) / maxProv) * 100),
+    top_items:    provinceItemMap[r.province] || [],
   }));
 
   // สรุปตามภาค
@@ -1066,12 +1116,6 @@ export async function getDemandInsight() {
       still_needed: total,
       pct: Math.round((total / maxRegion) * 100),
     }));
-
-  // ── 5) โครงการที่เปิดอยู่ ───────────────────────────────────────────────
-  const [[openRow]] = await db.query(
-    `SELECT COUNT(*) AS c FROM donation_request
-     WHERE status = 'open' AND (start_date IS NULL OR start_date <= CURDATE())`
-  ).catch(() => [[{ c: 0 }]]);
 
   // ── 6) สถิติโครงการที่สำเร็จแล้ว (closed + archived) ─────────────────
   const [[closedRow]] = await db.query(`
@@ -1108,13 +1152,95 @@ export async function getDemandInsight() {
     })),
     province_demand,
     region_demand,
-    open_projects: Number(openRow?.c || 0),
+    open_projects: Number(openRowForSummary?.c || 0),
     completed_stats: {
       closed_projects:  Number(closedRow?.closed_projects  || 0),
       school_count:     Number(closedRow?.school_count     || 0),
       total_uniforms:   Number(closedUniform?.total_uniforms || 0),
       students_helped:  Number(closedStudents?.students_helped || 0),
     },
+  };
+}
+
+export async function listProjectStatusProjects({ status = "open", limit = 200 } = {}) {
+  const normalized = String(status || "open").toLowerCase();
+  const statusWhere = {
+    open: "dr.status = 'open' AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())",
+    closed: "dr.status IN ('closed', 'archived')",
+  };
+  if (!statusWhere[normalized]) {
+    throw Object.assign(new Error("สถานะโครงการไม่ถูกต้อง"), { status: 400 });
+  }
+
+  const safeLimit = Math.max(1, Math.min(500, Number(limit) || 200));
+
+  const [[counts]] = await db.query(`
+    SELECT
+      COUNT(CASE WHEN status = 'open' AND (start_date IS NULL OR start_date <= CURDATE()) THEN 1 END) AS open_projects,
+      COUNT(CASE WHEN status IN ('closed', 'archived') THEN 1 END) AS closed_projects
+    FROM donation_request
+  `);
+
+  const orderSql = normalized === "open"
+    ? "dr.created_at DESC"
+    : "COALESCE(dr.end_date, dr.created_at) DESC";
+
+  const [rows] = await db.query(`
+    SELECT
+      dr.request_id,
+      dr.school_id,
+      dr.request_title,
+      dr.request_description,
+      dr.request_image_url,
+      dr.status,
+      dr.created_at,
+      dr.start_date,
+      dr.end_date,
+      s.school_name,
+      s.school_address,
+      s.province AS school_province,
+      COALESCE((
+        SELECT COUNT(*)
+        FROM students st
+        WHERE st.request_id = dr.request_id
+      ), 0) AS student_count,
+      COALESCE((
+        SELECT SUM(sn.quantity_needed)
+        FROM student_need sn
+        JOIN students st ON st.student_id = sn.student_id
+        WHERE st.request_id = dr.request_id
+      ), 0) AS total_needed,
+      COALESCE((
+        SELECT SUM(don.quantity)
+        FROM donation_record don
+        WHERE don.request_id = dr.request_id
+          AND don.status != 'rejected'
+      ), 0) AS total_donated,
+      COALESCE((
+        SELECT SUM(f.quantity_fulfilled)
+        FROM fulfillment f
+        WHERE f.request_id = dr.request_id
+      ), 0) AS total_fulfilled
+    FROM donation_request dr
+    LEFT JOIN schools s ON s.school_id = dr.school_id
+    WHERE ${statusWhere[normalized]}
+    ORDER BY ${orderSql}
+    LIMIT ?
+  `, [safeLimit]);
+
+  return {
+    status: normalized,
+    counts: {
+      open_projects:   Number(counts?.open_projects || 0),
+      closed_projects: Number(counts?.closed_projects || 0),
+    },
+    rows: (rows || []).map((r) => ({
+      ...r,
+      student_count:   Number(r.student_count || 0),
+      total_needed:    Number(r.total_needed || 0),
+      total_donated:   Number(r.total_donated || 0),
+      total_fulfilled: Number(r.total_fulfilled || 0),
+    })),
   };
 }
 
