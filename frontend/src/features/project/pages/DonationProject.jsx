@@ -544,19 +544,19 @@ useEffect(() => {
     const today = new Date();
     return [...projects]
       .filter(p => {
-        const totalNeeded   = Number(p.total_needed)  || 0;
-        const totalReceived = Number(p.total_received) || 0;
-        if (totalNeeded > 0 && totalReceived >= totalNeeded) return false;
+        const totalNeeded    = Number(p.total_needed)    || 0;
+        const totalFulfilled = Number(p.total_fulfilled) || 0;
+        if (totalNeeded > 0 && totalFulfilled >= totalNeeded) return false;
         return true;
       })
       .map(p => {
-        const totalNeeded   = Number(p.total_needed)  || 0;
-        const totalReceived = Number(p.total_received) || 0;
+        const totalNeeded    = Number(p.total_needed)    || 0;
+        const totalFulfilled = Number(p.total_fulfilled) || 0;
         const refDate = p.start_date || p.created_at;
         const daysWaiting = refDate ? Math.ceil((today - new Date(refDate)) / 86400000) : 0;
 
         const deficitRatio = totalNeeded > 0
-          ? Math.max((totalNeeded - totalReceived) / totalNeeded, 0)
+          ? Math.max((totalNeeded - totalFulfilled) / totalNeeded, 0)
           : 0;
 
         const waitScore = Math.min(daysWaiting / 60, 1);
@@ -571,7 +571,7 @@ useEffect(() => {
 
         let completionBonus = 0;
         if (totalNeeded > 0) {
-          const ratio = totalReceived / totalNeeded;
+          const ratio = totalFulfilled / totalNeeded;
           if (ratio >= 0.8)      completionBonus = 1.0;
           else if (ratio >= 0.6) completionBonus = 0.5;
         }
