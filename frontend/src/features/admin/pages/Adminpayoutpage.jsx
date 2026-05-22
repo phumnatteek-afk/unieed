@@ -59,6 +59,26 @@ const formatSize = (size) => {
   return String(size) || "—";
 };
 
+/* ─── Time filter options ─── */
+const PAYOUT_PERIOD_OPTS = [
+  { v: "today",   l: "วันนี้",   icon: "mdi:weather-sunny" },
+  { v: "week",    l: "สัปดาห์นี้", icon: "mdi:calendar-week" },
+  { v: "month",   l: "เดือนนี้", icon: "mdi:calendar-month" },
+  { v: "3months", l: "3 เดือน",  icon: "mdi:calendar-range" },
+  { v: "6months", l: "6 เดือน",  icon: "mdi:calendar-range" },
+  { v: "year",    l: "1 ปี",     icon: "mdi:calendar-year"  },
+];
+
+const PAYOUT_PERIOD_LABELS = {
+  today:    "วันนี้",
+  week:     "สัปดาห์นี้",
+  month:    "เดือนนี้",
+  "3months": "ย้อนหลัง 3 เดือน",
+  "6months": "ย้อนหลัง 6 เดือน",
+  year:     "ย้อนหลัง 1 ปี",
+  custom:   "กำหนดเอง",
+};
+
 /* ─── helpers ─── */
 const fmtBaht = (n) =>
   "฿" + Number(n || 0).toLocaleString("th-TH", { minimumFractionDigits: 0 });
@@ -94,7 +114,7 @@ function PayAllConfirmModal({ rows, onConfirm, onCancel }) {
       >
         {/* header */}
         <div style={{
-          background: "linear-gradient(135deg,#7c3aed 0%,#8b5cf6 60%,#a78bfa 100%)",
+          background: "linear-gradient(135deg,#0d9488 0%,#14b8a6 60%,#5eead4 100%)",
           padding: "22px 26px 18px",
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -104,7 +124,7 @@ function PayAllConfirmModal({ rows, onConfirm, onCancel }) {
               </div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>โอนเงินทั้งหมด</div>
-                <div style={{ fontSize: 13, color: "#ddd6fe", marginTop: 2 }}>
+                <div style={{ fontSize: 13, color: "#99f6e4", marginTop: 2 }}>
                   {rows.length} ผู้ขาย · รวม {fmtBaht(totalNet)}
                 </div>
               </div>
@@ -125,7 +145,7 @@ function PayAllConfirmModal({ rows, onConfirm, onCancel }) {
                 border: "1px solid #f1f5f9", marginBottom: 6,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#7c3aed,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#0d9488,#14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13 }}>
                     {(r.seller_name || "ก").charAt(0)}
                   </div>
                   <div>
@@ -141,9 +161,9 @@ function PayAllConfirmModal({ rows, onConfirm, onCancel }) {
           </div>
 
           {/* total */}
-          <div style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: 14, padding: "14px 18px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: "#f0fdfb", border: "1px solid #99f6e4", borderRadius: 14, padding: "14px 18px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 15, color: "#4c1d95" }}>ยอดโอนรวมทั้งหมด</span>
-            <span style={{ fontWeight: 900, fontSize: 24, color: "#7c3aed" }}>{fmtBaht(totalNet)}</span>
+            <span style={{ fontWeight: 900, fontSize: 24, color: "#0d9488" }}>{fmtBaht(totalNet)}</span>
           </div>
 
           {/* warning */}
@@ -158,8 +178,8 @@ function PayAllConfirmModal({ rows, onConfirm, onCancel }) {
             </button>
             <button onClick={handleConfirm} disabled={loading} style={{
               flex: 2, padding: "12px", borderRadius: 12, border: "none",
-              background: loading ? "#ede9fe" : "linear-gradient(135deg,#7c3aed 0%,#8b5cf6 100%)",
-              color: loading ? "#7c3aed" : "#fff", fontWeight: 800, fontSize: 14,
+              background: loading ? "#ccfbf1" : "linear-gradient(135deg,#0d9488 0%,#14b8a6 100%)",
+              color: loading ? "#0d9488" : "#fff", fontWeight: 800, fontSize: 14,
               cursor: loading ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               boxShadow: loading ? "none" : "0 4px 14px rgba(124,58,237,0.3)",
@@ -298,9 +318,9 @@ function OrderDetailModal({ seller, onClose }) {
             </div>
             <div style={{ fontSize: 18, color: "#94a3b8", fontWeight: 700 }}>+</div>
             {/* ค่าจัดส่ง */}
-            <div style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: 10, padding: "8px 14px", textAlign: "center", minWidth: 90 }}>
-              <div style={{ fontSize: 10, color: "#7c3aed", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>ค่าจัดส่ง</div>
-              <div style={{ fontWeight: 800, fontSize: 15, color: "#7c3aed", marginTop: 2 }}>{fmtBaht(totalShipping)}</div>
+            <div style={{ background: "#f0fdfb", border: "1px solid #99f6e4", borderRadius: 10, padding: "8px 14px", textAlign: "center", minWidth: 90 }}>
+              <div style={{ fontSize: 10, color: "#0d9488", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>ค่าจัดส่ง</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: "#0d9488", marginTop: 2 }}>{fmtBaht(totalShipping)}</div>
             </div>
             <div style={{ fontSize: 13, color: "#64748b", fontWeight: 700, padding: "0 2px" }}>= {fmtBaht(totalSales)}</div>
             <div style={{ fontSize: 18, color: "#e03131", fontWeight: 700 }}>−</div>
@@ -410,7 +430,7 @@ function OrderDetailModal({ seller, onClose }) {
                           <td style={{ ...tdSt, textAlign: "right" }}>
                             <div style={{ fontWeight: 600 }}>{fmtBaht(itemsOnly)}</div>
                           </td>
-                          <td style={{ ...tdSt, textAlign: "right", color: "#7c3aed", fontWeight: 700 }}>{fmtBaht(shipping)}</td>
+                          <td style={{ ...tdSt, textAlign: "right", color: "#0d9488", fontWeight: 700 }}>{fmtBaht(shipping)}</td>
                           <td style={{ ...tdSt, textAlign: "right" }}>
                             <div style={{ fontWeight: 700, color: "#d97706" }}>{fmtBaht(fee)}</div>
                           </td>
@@ -466,13 +486,13 @@ function OrderDetailModal({ seller, onClose }) {
                                       ))}
                                       {/* shipping row */}
                                       {exp.shipping.length > 0 && exp.shipping.map((sh, j) => (
-                                        <tr key={`sh${j}`} style={{ background: "#f5f3ff" }}>
-                                          <td style={{ padding: "9px 12px", color: "#7c3aed", fontWeight: 600 }}>
+                                        <tr key={`sh${j}`} style={{ background: "#f0fdfb" }}>
+                                          <td style={{ padding: "9px 12px", color: "#0d9488", fontWeight: 600 }}>
                                             <Icon icon="mdi:truck-outline" style={{ verticalAlign: "middle", marginRight: 6 }} />
                                             ค่าจัดส่ง {sh.provider_name ? `(${sh.provider_name})` : ""}
                                           </td>
                                           <td colSpan={3} />
-                                          <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 700, color: "#7c3aed" }}>
+                                          <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 700, color: "#0d9488" }}>
                                             {fmtBaht(sh.shipping_price)}
                                           </td>
                                         </tr>
@@ -742,7 +762,7 @@ function ConfirmPayoutModal({ item, onConfirm, onCancel }) {
               </span>
               <span style={{ fontWeight: 600 }}>{fmtBaht(itemsOnly)}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#7c3aed", marginBottom: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#0d9488", marginBottom: 6 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <Icon icon="mdi:plus-circle-outline" style={{ fontSize: 15 }} />
                 ค่าจัดส่ง
@@ -835,14 +855,21 @@ export default function AdminPayoutPage() {
   const [pendingRows, setPendingRows]   = useState([]);
   const [historyRows, setHistoryRows]   = useState([]);
   const [payoutCycle, setPayoutCycle]   = useState(null);
-  const [period, setPeriod]             = useState("week");
+  const [period, setPeriod]             = useState("month");
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const [customStart, setCustomStart]   = useState("");
+  const [customEnd, setCustomEnd]       = useState("");
   const [selectedItem, setSelectedItem] = useState(null);   // confirm modal
   const [orderDetail, setOrderDetail]   = useState(null);   // pending detail
   const [paidDetail, setPaidDetail]     = useState(null);   // history detail
   const [payAllModal, setPayAllModal]   = useState(false);  // pay-all confirm
   const [page, setPage]                 = useState(1);
   const [totalPages, setTotalPages]     = useState(1);
+  const [pendingPage, setPendingPage]   = useState(1);
   const [loading, setLoading]           = useState(true);
+  const PENDING_PAGE_SIZE = 10;
+  const pendingTotalPages = Math.ceil(pendingRows.length / PENDING_PAGE_SIZE);
+  const pagedPending = pendingRows.slice((pendingPage - 1) * PENDING_PAGE_SIZE, pendingPage * PENDING_PAGE_SIZE);
   const [err, setErr]                   = useState("");
   const [toast, setToast]               = useState(null);
 
@@ -859,6 +886,10 @@ export default function AdminPayoutPage() {
     try {
       setLoading(true); setErr("");
       const params = new URLSearchParams({ period, page, limit: 10 });
+      if (period === "custom" && customStart && customEnd) {
+        params.set("start_date", customStart);
+        params.set("end_date", customEnd);
+      }
       const data   = await request(`/admin/payouts?${params}`, { method: "GET", auth: true });
       setSummaryStats(data.stats        || {});
       setPendingRows(data.pending       || []);
@@ -870,7 +901,7 @@ export default function AdminPayoutPage() {
     } finally {
       setLoading(false);
     }
-  }, [period, page]);
+  }, [period, page, customStart, customEnd]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -907,14 +938,105 @@ export default function AdminPayoutPage() {
       </div>
 
       <div className="boPageInner">
-        {/* date + period */}
-        <div className="admPayoutDateRow">
-          <div className="admPayoutPeriodTabs">
-            {[["week","วันนี้"],["month","สัปดาห์"],["year","เดือนนี้"]].map(([k,label]) => (
-              <button key={k} onClick={() => setPeriod(k)} className={`boPeriodTab${period===k?" active":""}`}>{label}</button>
-            ))}
+        {/* ── Time Filter Card ── */}
+        <div style={{
+          background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16,
+          padding: "14px 18px", marginBottom: 18,
+          boxShadow: "0 2px 8px rgba(15,23,42,0.05)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon icon="mdi:clock-time-four-outline" style={{ color: "#fff", fontSize: 18 }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: "#1e293b" }}>ช่วงเวลา</div>
+                <div style={{ fontSize: 11, color: "#94a3b8" }}>กรองข้อมูลการโอนเงินตามช่วงเวลา</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20, padding: "5px 12px", display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon icon="mdi:calendar-check" style={{ color: "#1d4ed8", fontSize: 14 }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8" }}>
+                  {period === "custom" && customStart && customEnd ? `${customStart} → ${customEnd}` : PAYOUT_PERIOD_LABELS[period] || "เดือนนี้"}
+                </span>
+              </div>
+              <div style={{ fontSize: 13, color: "#64748b" }}>{dateStr} · {timeStr}</div>
+            </div>
           </div>
-          <div className="boDateLabel">{dateStr} · {timeStr}</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {PAYOUT_PERIOD_OPTS.map((t) => {
+              const isActive = period === t.v && !showCustomPicker;
+              return (
+                <button
+                  key={t.v}
+                  type="button"
+                  onClick={() => { setPeriod(t.v); setShowCustomPicker(false); setPage(1); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "7px 14px", borderRadius: 20, border: "1.5px solid",
+                    fontWeight: 700, fontSize: 13, cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    background: isActive ? "#1d4ed8" : "#f8fafc",
+                    color: isActive ? "#fff" : "#475569",
+                    borderColor: isActive ? "#1d4ed8" : "#e2e8f0",
+                    boxShadow: isActive ? "0 2px 8px rgba(29,78,216,0.22)" : "none",
+                    transform: isActive ? "translateY(-1px)" : "none",
+                  }}
+                >
+                  <Icon icon={t.icon} style={{ fontSize: 13 }} />
+                  {t.l}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => { setShowCustomPicker(!showCustomPicker); if (!showCustomPicker) setPeriod("custom"); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 5,
+                padding: "7px 14px", borderRadius: 20, border: "1.5px solid",
+                fontWeight: 700, fontSize: 13, cursor: "pointer",
+                transition: "all 0.15s ease",
+                background: showCustomPicker ? "#1d4ed8" : "#f8fafc",
+                color: showCustomPicker ? "#fff" : "#475569",
+                borderColor: showCustomPicker ? "#1d4ed8" : "#e2e8f0",
+                boxShadow: showCustomPicker ? "0 2px 8px rgba(29,78,216,0.22)" : "none",
+              }}
+            >
+              <Icon icon="mdi:calendar-edit" style={{ fontSize: 13 }} />
+              กำหนดเอง
+            </button>
+          </div>
+          {showCustomPicker && (
+            <div style={{
+              marginTop: 12, padding: "12px 16px",
+              background: "linear-gradient(135deg,#eff6ff,#f0f9ff)",
+              borderRadius: 12, border: "1px solid #bfdbfe",
+              display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon icon="mdi:calendar-start" style={{ color: "#fff", fontSize: 14 }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>วันเริ่มต้น</div>
+                  <input type="date" value={customStart} onChange={(e) => { setCustomStart(e.target.value); setPage(1); }}
+                    style={{ border: "1.5px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 13, color: "#1e293b", background: "#fff", fontFamily: "inherit" }} />
+                </div>
+              </div>
+              <Icon icon="mdi:arrow-right" style={{ color: "#1d4ed8", fontSize: 18, paddingTop: 14 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon icon="mdi:calendar-end" style={{ color: "#fff", fontSize: 14 }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>วันสิ้นสุด</div>
+                  <input type="date" value={customEnd} onChange={(e) => { setCustomEnd(e.target.value); setPage(1); }}
+                    style={{ border: "1.5px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 13, color: "#1e293b", background: "#fff", fontFamily: "inherit" }} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── กล่องข้อกำหนดการโอนเงิน ── */}
@@ -987,80 +1109,102 @@ export default function AdminPayoutPage() {
         {!loading && !err && (
           <>
             {/* ── ตารางรายการรอโอน ── */}
-            <div className="admCard" style={{ width: "100%", marginBottom: 24 }}>
-              <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f1f5f9" }}>
-                <div>
-                  <span className="admCardTitle">รายการรอโอนทั้งหมด</span>
-                  {pendingRows.length > 0 && (
-                    <span style={{ marginLeft: 10, background: "#fee2e2", color: "#e03131", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 700 }}>
-                      {pendingRows.length} รายการ
-                    </span>
-                  )}
+            <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 24, boxShadow: "0 4px 18px rgba(15,23,42,0.07)" }}>
+              {/* card header */}
+              <div style={{ padding: "16px 22px", background: "linear-gradient(135deg,#fff 0%,#fafbff 100%)", borderBottom: "1px solid #eef2fb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: "#fff8e1", border: "1px solid #fde68a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon icon="mdi:clock-time-eight-outline" style={{ color: "#d97706", fontSize: 20 }} />
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: 800, fontSize: 16, color: "#1e293b" }}>รายการรอโอนทั้งหมด</span>
+                    {pendingRows.length > 0 && (
+                      <span style={{ marginLeft: 10, background: "#fee2e2", color: "#e03131", borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 700 }}>
+                        {pendingRows.length} รายการ
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {pendingRows.length > 0 && (
-                  <button onClick={() => setPayAllModal(true)} className="admPayAllBtn">
+                  <button onClick={() => setPayAllModal(true)} className="admPayAllBtn" style={{ background: "linear-gradient(135deg,#059669,#10b981)", boxShadow: "0 4px 14px rgba(5,150,105,0.28)", borderRadius: 12, padding: "9px 18px" }}>
                     <Icon icon="mdi:bank-transfer-out" style={{ width: 18, height: 18 }} />
                     โอนเงินทั้งหมด ({fmtBaht(pendingRows.reduce((s, r) => s + (r.net_amount || 0), 0))})
                   </button>
                 )}
               </div>
-              <div className="admTableWrap" style={{ marginTop: 0 }}>
-                <table className="admTable" style={{ tableLayout: "auto" }}>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr>
-                      <th style={{ verticalAlign: "top" }}><div>ผู้ขาย</div></th>
-                      <th style={{ verticalAlign: "top" }}><div>ออเดอร์</div></th>
-                      <th style={{ verticalAlign: "top" }}>
-                        <div>ยอดขายรวม</div>
-                        <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "none", marginTop: 2 }}>สินค้า + ค่าส่ง</div>
-                      </th>
-                      <th style={{ verticalAlign: "top" }}>
-                        <div>ค่าธรรมเนียม</div>
-                        <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "none", marginTop: 2 }}>15% ขั้นต่ำ ฿20/ออเดอร์</div>
-                      </th>
-                      <th style={{ verticalAlign: "top" }}><div>ยอดโอนสุทธิ</div></th>
-                      <th style={{ verticalAlign: "top" }}><div>สถานะ</div></th>
-                      <th style={{ textAlign: "center", verticalAlign: "top", whiteSpace: "nowrap" }}><div>จัดการ</div></th>
+                    <tr style={{ background: "linear-gradient(90deg,#1e3a8a 0%,#1d4ed8 100%)" }}>
+                      {[
+                        { label: "ผู้ขาย & บัญชี", sub: null },
+                        { label: "ออเดอร์", sub: null },
+                        { label: "ยอดขายรวม", sub: "สินค้า + ค่าส่ง" },
+                        { label: "ค่าธรรมเนียม", sub: "15% ขั้นต่ำ ฿20/ออเดอร์" },
+                        { label: "ยอดโอนสุทธิ", sub: null },
+                        { label: "สถานะ", sub: null },
+                        { label: "จัดการ", sub: null, center: true },
+                      ].map((h, i) => (
+                        <th key={i} style={{ padding: "12px 16px", textAlign: h.center ? "center" : "left", color: "#fff", fontWeight: 700, fontSize: 12, letterSpacing: "0.03em", whiteSpace: "nowrap", borderBottom: "2px solid rgba(255,255,255,0.15)" }}>
+                          <div>{h.label}</div>
+                          {h.sub && <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>{h.sub}</div>}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {pendingRows.length === 0 ? (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>
-                          <Icon icon="mdi:inbox-outline" style={{ fontSize: 32, display: "block", margin: "0 auto 8px" }} />
-                          ไม่มีรายการรอโอน
+                        <td colSpan={7} style={{ textAlign: "center", padding: "48px 24px", color: "#94a3b8" }}>
+                          <Icon icon="mdi:inbox-outline" style={{ fontSize: 36, display: "block", margin: "0 auto 10px", color: "#cbd5e1" }} />
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>ไม่มีรายการรอโอน</div>
+                          <div style={{ fontSize: 12, marginTop: 4 }}>รายการจะปรากฏที่นี่เมื่อออเดอร์ถูกยืนยัน</div>
                         </td>
                       </tr>
-                    ) : pendingRows.map((row, i) => (
-                      <tr key={i}>
-                        <td>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#5285e8,#1d4ed8)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                              {(row.seller_name || "ก").charAt(0)}
+                    ) : pagedPending.map((row, i) => (
+                      <tr
+                        key={i}
+                        style={{ background: i % 2 === 0 ? "#fff" : "#fafbff", transition: "background 0.15s", borderBottom: "1px solid #f1f5f9" }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "#eff6ff"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafbff"}
+                      >
+                        <td style={{ padding: "13px 16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#5285e8,#1d4ed8)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 15, flexShrink: 0, boxShadow: "0 2px 6px rgba(82,133,232,0.3)" }}>
+                              {(row.seller_name || "ก").charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <span className="admTdStrong">{row.seller_name}</span>
-                              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", whiteSpace: "nowrap" }}>
-                                <span style={{ background: "#f0f4ff", color: "#3b5bdb", borderRadius: 4, padding: "1px 5px", fontWeight: 700, fontSize: 10 }}>
-                                  {bankLabelShort(row.bank_code)}
-                                </span>
-                                <span style={{ color: "#94a3b8" }}>{maskAccNo(row.bank_account_number)}</span>
+                              <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{row.seller_name}</div>
+                              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
+                                <span style={{ background: "#eff6ff", color: "#1d4ed8", borderRadius: 5, padding: "1px 6px", fontWeight: 700, fontSize: 10 }}>{bankLabelShort(row.bank_code)}</span>
+                                <span>{maskAccNo(row.bank_account_number)}</span>
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td style={{ color: "#475569" }}>{row.order_count} ออเดอร์</td>
-                        <td style={{ fontWeight: 700 }}>{fmtBaht(row.total_sales)}</td>
-                        <td style={{ fontWeight: 700, color: "#d97706" }}>{fmtBaht(row.fee_amount)}</td>
-                        <td style={{ fontWeight: 800, color: "#22b14c", fontSize: 15 }}>{fmtBaht(row.net_amount)}</td>
-                        <td style={{ whiteSpace: "nowrap" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, background: "#fff8e1", color: "#92400e", fontSize: 12, fontWeight: 700, border: "1px solid #fde68a", whiteSpace: "nowrap" }}>
-                            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#f59e0b", flexShrink: 0, display: "inline-block" }} />
+                        <td style={{ padding: "13px 16px" }}>
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 8, padding: "4px 10px" }}>
+                            <Icon icon="mdi:shopping-outline" style={{ color: "#5285e8", fontSize: 14 }} />
+                            <span style={{ fontWeight: 700, color: "#475569", fontSize: 13 }}>{row.order_count}</span>
+                            <span style={{ fontSize: 11, color: "#94a3b8" }}>ออเดอร์</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "13px 16px", fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{fmtBaht(row.total_sales)}</td>
+                        <td style={{ padding: "13px 16px" }}>
+                          <div style={{ fontWeight: 700, color: "#d97706", fontSize: 14 }}>{fmtBaht(row.fee_amount)}</div>
+                          <div style={{ fontSize: 10, color: "#a16207", marginTop: 2 }}>15% ขั้นต่ำ ฿20</div>
+                        </td>
+                        <td style={{ padding: "13px 16px" }}>
+                          <div style={{ fontWeight: 900, color: "#16a34a", fontSize: 16 }}>{fmtBaht(row.net_amount)}</div>
+                        </td>
+                        <td style={{ padding: "13px 16px", whiteSpace: "nowrap" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 20, background: "#fef9c3", color: "#92400e", fontSize: 12, fontWeight: 700, border: "1px solid #fde68a" }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />
                             รอโอน
                           </span>
                         </td>
-                        <td style={{ textAlign: "center" }}>
-                          <div className="admPayoutActionRow">
+                        <td style={{ padding: "13px 16px", textAlign: "center" }}>
+                          <div style={{ display: "inline-flex", gap: 6 }}>
                             <button className="admPayoutBtn admPayoutBtn--transfer" onClick={() => setSelectedItem({ ...row })}>
                               <Icon icon="mdi:bank-transfer-out" style={{ fontSize: 15 }} />
                               โอนเงิน
@@ -1076,92 +1220,111 @@ export default function AdminPayoutPage() {
                   </tbody>
                 </table>
               </div>
+
+              {pendingTotalPages > 1 && (
+                <div className="admPager">
+                  <div className="admPagerNums">
+                    {Array.from({ length: pendingTotalPages }, (_, i) => i + 1).map((p) => (
+                      <button key={p} className={`admPageNum ${p === pendingPage ? "active" : ""}`} onClick={() => setPendingPage(p)}>{p}</button>
+                    ))}
+                  </div>
+                  <div className="admPagerBtns">
+                    <button className="admPagerBtn" disabled={pendingPage <= 1} onClick={() => setPendingPage((p) => p - 1)}>{"< ก่อนหน้า"}</button>
+                    <button className="admPagerBtn" disabled={pendingPage >= pendingTotalPages} onClick={() => setPendingPage((p) => p + 1)}>{"ถัดไป >"}</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ── ตารางประวัติการโอน ── */}
-            <div className="admCard" style={{ width: "100%" }}>
-              <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 10 }}>
-                <span className="admCardTitle">ประวัติการโอนทั้งหมด</span>
-                {historyRows.length > 0 && (
-                  <span style={{ background: "#dcfce7", color: "#15803d", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 700 }}>
-                    {historyRows.length} รายการ
-                  </span>
-                )}
+            <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #e2e8f0", overflow: "hidden", boxShadow: "0 4px 18px rgba(15,23,42,0.07)" }}>
+              {/* card header */}
+              <div style={{ padding: "16px 22px", background: "linear-gradient(135deg,#fff 0%,#fafbff 100%)", borderBottom: "1px solid #eef2fb", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: "#dcfce7", border: "1px solid #86efac", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon icon="mdi:history" style={{ color: "#15803d", fontSize: 20 }} />
+                </div>
+                <div>
+                  <span style={{ fontWeight: 800, fontSize: 16, color: "#1e293b" }}>ประวัติการโอนทั้งหมด</span>
+                  {historyRows.length > 0 && (
+                    <span style={{ marginLeft: 10, background: "#dcfce7", color: "#15803d", borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 700 }}>
+                      {historyRows.length} รายการ
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="admTableWrap" style={{ marginTop: 0 }}>
-                <table className="admTable" style={{ tableLayout: "auto" }}>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr>
-                      <th style={{ whiteSpace: "nowrap", verticalAlign: "top" }}><div>วันที่โอน</div></th>
-                      <th style={{ verticalAlign: "top" }}><div>ผู้ขาย</div></th>
-                      <th style={{ verticalAlign: "top" }}><div>บัญชีปลายทาง</div></th>
-                      <th style={{ verticalAlign: "top" }}>
-                        <div>ยอดโอนสุทธิ</div>
-                        <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "none", marginTop: 2 }}>ที่ผู้ขายได้รับจริง</div>
-                      </th>
-                      <th style={{ verticalAlign: "top" }}>
-                        <div>ค่าธรรมเนียม</div>
-                        <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "none", marginTop: 2 }}>รายได้แพลตฟอร์ม</div>
-                      </th>
-                      <th style={{ verticalAlign: "top" }}><div>สถานะ</div></th>
-                      <th style={{ textAlign: "center", verticalAlign: "top" }}><div>รายละเอียด</div></th>
+                    <tr style={{ background: "linear-gradient(90deg,#065f46 0%,#059669 100%)" }}>
+                      {[
+                        { label: "วันที่โอน", sub: null },
+                        { label: "ผู้ขาย", sub: null },
+                        { label: "บัญชีปลายทาง", sub: null },
+                        { label: "ยอดโอนสุทธิ", sub: "ที่ผู้ขายได้รับจริง" },
+                        { label: "ค่าธรรมเนียม", sub: "รายได้แพลตฟอร์ม" },
+                        { label: "สถานะ", sub: null },
+                        { label: "รายละเอียด", sub: null, center: true },
+                      ].map((h, i) => (
+                        <th key={i} style={{ padding: "12px 16px", textAlign: h.center ? "center" : "left", color: "#fff", fontWeight: 700, fontSize: 12, letterSpacing: "0.03em", whiteSpace: "nowrap", borderBottom: "2px solid rgba(255,255,255,0.15)" }}>
+                          <div>{h.label}</div>
+                          {h.sub && <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>{h.sub}</div>}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {historyRows.length === 0 ? (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>
-                          <Icon icon="mdi:history" style={{ fontSize: 32, display: "block", margin: "0 auto 8px" }} />
-                          ไม่มีประวัติการโอน
+                        <td colSpan={7} style={{ textAlign: "center", padding: "48px 24px", color: "#94a3b8" }}>
+                          <Icon icon="mdi:history" style={{ fontSize: 36, display: "block", margin: "0 auto 10px", color: "#cbd5e1" }} />
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>ไม่มีประวัติการโอน</div>
+                          <div style={{ fontSize: 12, marginTop: 4 }}>รายการที่โอนสำเร็จแล้วจะปรากฏที่นี่</div>
                         </td>
                       </tr>
                     ) : historyRows.map((row, i) => {
                       const transferDate = row.paid_at || row.completed_at;
                       return (
-                        <tr key={i}>
-                          <td>
-                            <div style={{ whiteSpace: "nowrap" }}>
-                              <div style={{ fontWeight: 700, color: "#0f172a", fontSize: 13 }}>
-                                {transferDate
-                                  ? new Date(transferDate).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })
-                                  : "—"}
-                              </div>
-                              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-                                {transferDate
-                                  ? new Date(transferDate).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })
-                                  : ""}
-                              </div>
+                        <tr
+                          key={i}
+                          style={{ background: i % 2 === 0 ? "#fff" : "#fafbff", transition: "background 0.15s", borderBottom: "1px solid #f1f5f9" }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "#eff6ff"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafbff"}
+                        >
+                          <td style={{ padding: "13px 16px", whiteSpace: "nowrap" }}>
+                            <div style={{ fontWeight: 700, color: "#0f172a", fontSize: 13 }}>
+                              {transferDate ? new Date(transferDate).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                            </div>
+                            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+                              {transferDate ? new Date(transferDate).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : ""}
                             </div>
                           </td>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#059669,#10b981)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-                                {(row.seller_name || "ก").charAt(0)}
+                          <td style={{ padding: "13px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#5285e8,#1d4ed8)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 14, flexShrink: 0, boxShadow: "0 2px 6px rgba(82,133,232,0.28)" }}>
+                                {(row.seller_name || "ก").charAt(0).toUpperCase()}
                               </div>
-                              <span className="admTdStrong">{row.seller_name}</span>
+                              <span style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{row.seller_name}</span>
                             </div>
                           </td>
-                          <td style={{ whiteSpace: "nowrap" }}>
-                            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 13, letterSpacing: "0.02em" }}>
-                              {maskAccNo(row.bank_account_number)}
-                            </div>
+                          <td style={{ padding: "13px 16px", whiteSpace: "nowrap" }}>
+                            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 13 }}>{maskAccNo(row.bank_account_number)}</div>
                             <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                              {bankLabelShort(row.bank_code)}
+                              <span style={{ background: "#eff6ff", color: "#1d4ed8", borderRadius: 5, padding: "1px 6px", fontWeight: 700, fontSize: 10 }}>{bankLabelShort(row.bank_code)}</span>
                             </div>
                           </td>
-                          <td style={{ fontWeight: 800, color: "#16a34a", fontSize: 15 }}>
-                            {fmtBaht(row.net_amount)}
+                          <td style={{ padding: "13px 16px" }}>
+                            <div style={{ fontWeight: 900, color: "#16a34a", fontSize: 16 }}>{fmtBaht(row.net_amount)}</div>
                           </td>
-                          <td style={{ fontWeight: 700, color: "#d97706" }}>
-                            {fmtBaht(row.fee_amount)}
+                          <td style={{ padding: "13px 16px" }}>
+                            <div style={{ fontWeight: 700, color: "#d97706", fontSize: 14 }}>{fmtBaht(row.fee_amount)}</div>
                           </td>
-                          <td>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 20, background: "#f0fdf4", color: "#15803d", fontSize: 12, fontWeight: 700, border: "1px solid #bbf7d0" }}>
-                              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22b14c", display: "inline-block" }} />
+                          <td style={{ padding: "13px 16px" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 20, background: "#f0fdf4", color: "#15803d", fontSize: 12, fontWeight: 700, border: "1px solid #bbf7d0" }}>
+                              <Icon icon="mdi:check-circle" style={{ fontSize: 13 }} />
                               โอนสำเร็จ
                             </span>
                           </td>
-                          <td style={{ textAlign: "center" }}>
+                          <td style={{ padding: "13px 16px", textAlign: "center" }}>
                             <button className="admPayoutBtn admPayoutBtn--detail" onClick={() => setPaidDetail({ ...row })}>
                               <Icon icon="mdi:eye-outline" style={{ fontSize: 15 }} />
                               ดูรายละเอียด

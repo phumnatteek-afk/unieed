@@ -1,11 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, AreaChart, Area, LineChart, Line,
 } from "recharts";
 import { getJson } from "../../../api/http.js";
 import "./SchoolDashboardPage.css";
+
+/* ── Time filter options ── */
+const SCHOOL_PERIODS = [
+  { v: "today",   l: "วันนี้",   icon: "☀️" },
+  { v: "month",   l: "เดือนนี้", icon: "📅" },
+  { v: "3months", l: "3 เดือน",  icon: "📆" },
+  { v: "6months", l: "6 เดือน",  icon: "🗓️" },
+  { v: "year",    l: "1 ปี",     icon: "📊" },
+];
+const SCHOOL_PERIOD_LABELS = {
+  today: "วันนี้", month: "เดือนนี้",
+  "3months": "ย้อนหลัง 3 เดือน", "6months": "ย้อนหลัง 6 เดือน",
+  year: "ย้อนหลัง 1 ปี", custom: "กำหนดเอง",
+};
 
 const daysSince = (dateStr) =>
   Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
@@ -44,16 +58,27 @@ function StatusBadge({ status }) {
 
 export default function SchoolDashboardPage() {
   const navigate = useNavigate();
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [actionTab, setActionTab] = useState("postal");
+  const [data, setData]             = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [actionTab, setActionTab]   = useState("postal");
+  const [period, setPeriod]         = useState("month");
+  const [showCustom, setShowCustom] = useState(false);
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd]   = useState("");
+  const [chartType, setChartType]   = useState("bar");
 
   useEffect(() => {
-    getJson("/school/dashboard", true)
+    setLoading(true);
+    const params = new URLSearchParams({ period });
+    if (period === "custom" && customStart && customEnd) {
+      params.set("start_date", customStart);
+      params.set("end_date", customEnd);
+    }
+    getJson(`/school/dashboard?${params}`, true)
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [period, customStart, customEnd]);
 
   if (loading) return <div className="dbLoading">กำลังโหลด...</div>;
   if (!data)   return <div className="dbLoading">ไม่สามารถโหลดข้อมูลได้</div>;
@@ -71,6 +96,60 @@ export default function SchoolDashboardPage() {
 
   return (
     <div className="dbPage">
+
+      {/* ── Time Filter ── */}
+      <div className="dbTimeFilter">
+        <div className="dbTimeFilter__head">
+          <div className="dbTimeFilter__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <div className="dbTimeFilter__title">ช่วงเวลา</div>
+            <div className="dbTimeFilter__sub">กรองข้อมูลโครงการและการบริจาคตามช่วงเวลา</div>
+          </div>
+          <div className="dbTimeFilter__badge">
+            {period === "custom" && customStart && customEnd ? `${customStart} → ${customEnd}` : SCHOOL_PERIOD_LABELS[period]}
+          </div>
+        </div>
+        <div className="dbTimeFilter__chips">
+          {SCHOOL_PERIODS.map((t) => (
+            <button
+              key={t.v}
+              type="button"
+              className={`dbTimeChip ${period === t.v && !showCustom ? "dbTimeChip--active" : ""}`}
+              onClick={() => { setPeriod(t.v); setShowCustom(false); }}
+            >
+              {t.icon} {t.l}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={`dbTimeChip dbTimeChip--custom ${showCustom ? "dbTimeChip--customActive" : ""}`}
+            onClick={() => { setShowCustom(!showCustom); if (!showCustom) setPeriod("custom"); }}
+          >
+            📅 กำหนดเอง
+          </button>
+        </div>
+        {showCustom && (
+          <div className="dbTimeFilter__range">
+            <div className="dbTimeFilter__rangeGroup">
+              <div className="dbTimeFilter__rangeIcon">▶</div>
+              <div>
+                <div className="dbTimeFilter__rangeLabel">วันเริ่มต้น</div>
+                <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="dbTimeFilter__dateInput" />
+              </div>
+            </div>
+            <span className="dbTimeFilter__arrow">→</span>
+            <div className="dbTimeFilter__rangeGroup">
+              <div className="dbTimeFilter__rangeIcon">■</div>
+              <div>
+                <div className="dbTimeFilter__rangeLabel">วันสิ้นสุด</div>
+                <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="dbTimeFilter__dateInput" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── Section 1: Project banner ── */}
       {project ? (
@@ -151,44 +230,129 @@ export default function SchoolDashboardPage() {
       {/* ── Section 3: Charts ── */}
       <div className="dbChartRow">
         <div className="dbChartCard">
-          <div className="dbChartTitle">ความคืบหน้าต่อระดับชั้น</div>
+          {/* chart header with type switcher */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <div className="dbChartTitle" style={{ marginBottom: 2 }}>ความคืบหน้าต่อระดับชั้น</div>
+              <div style={{ fontSize: 11, color: "#9ca3af" }}>จำนวนชุดที่ได้รับและที่ยังขาดอยู่ตามระดับชั้น</div>
+            </div>
+            <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 10, padding: 3, gap: 2 }}>
+              {[
+                { v: "bar",  label: "แท่ง",   icon: "▐▐" },
+                { v: "area", label: "พื้นที่", icon: "⌇" },
+                { v: "line", label: "เส้น",   icon: "—" },
+              ].map((ct) => (
+                <button
+                  key={ct.v}
+                  type="button"
+                  onClick={() => setChartType(ct.v)}
+                  style={{
+                    padding: "5px 10px", borderRadius: 8, border: "none",
+                    fontWeight: 700, fontSize: 11, cursor: "pointer",
+                    transition: "all 0.15s",
+                    background: chartType === ct.v ? "#fff" : "transparent",
+                    color: chartType === ct.v ? "#29b6e8" : "#6b7280",
+                    boxShadow: chartType === ct.v ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
+                  }}
+                >
+                  {ct.icon} {ct.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chart_by_level} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-              <XAxis dataKey="level" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(value, name) => [`${value} ตัว`, name]} />
-              <Legend iconType="circle" iconSize={8} />
-              <Bar dataKey="received" name="ได้รับแล้ว" fill="#29B6E8" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="remaining" name="คงเหลือ" fill="#D1D5DB" radius={[4, 4, 0, 0]} />
-            </BarChart>
+            {chartType === "bar" ? (
+              <BarChart data={chart_by_level} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="recvGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#29B6E8" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#7dd3fc" stopOpacity={0.7} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                <XAxis dataKey="level" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", boxShadow: "0 8px 24px rgba(0,0,0,0.09)", padding: "10px 14px" }}
+                  formatter={(value, name) => [`${value} ตัว`, name]}
+                  labelStyle={{ fontWeight: 700, marginBottom: 4 }}
+                  cursor={{ fill: "rgba(41,182,232,0.06)" }}
+                />
+                <Legend iconType="circle" iconSize={8} />
+                <Bar dataKey="received" name="ได้รับแล้ว" fill="url(#recvGrad)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="remaining" name="ยังขาดอยู่" fill="#E5E7EB" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            ) : chartType === "area" ? (
+              <AreaChart data={chart_by_level} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="areaRecv" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#29B6E8" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#29B6E8" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="areaRem" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#9ca3af" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#9ca3af" stopOpacity={0.01} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                <XAxis dataKey="level" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", boxShadow: "0 8px 24px rgba(0,0,0,0.09)", padding: "10px 14px" }}
+                  formatter={(value, name) => [`${value} ตัว`, name]}
+                  labelStyle={{ fontWeight: 700, marginBottom: 4 }}
+                />
+                <Legend iconType="circle" iconSize={8} />
+                <Area type="monotone" dataKey="received" name="ได้รับแล้ว" stroke="#29B6E8" strokeWidth={2} fill="url(#areaRecv)" />
+                <Area type="monotone" dataKey="remaining" name="ยังขาดอยู่" stroke="#9ca3af" strokeWidth={2} fill="url(#areaRem)" />
+              </AreaChart>
+            ) : (
+              <LineChart data={chart_by_level} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                <XAxis dataKey="level" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", boxShadow: "0 8px 24px rgba(0,0,0,0.09)", padding: "10px 14px" }}
+                  formatter={(value, name) => [`${value} ตัว`, name]}
+                  labelStyle={{ fontWeight: 700, marginBottom: 4 }}
+                />
+                <Legend iconType="circle" iconSize={8} />
+                <Line type="monotone" dataKey="received" name="ได้รับแล้ว" stroke="#29B6E8" strokeWidth={2.5} dot={{ fill: "#29B6E8", r: 4 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="remaining" name="ยังขาดอยู่" stroke="#9ca3af" strokeWidth={2} dot={{ fill: "#9ca3af", r: 3 }} />
+              </LineChart>
+            )}
           </ResponsiveContainer>
         </div>
 
         <div className="dbChartCard">
           <div className="dbChartTitle">สัดส่วนสถานะบริจาค</div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 10 }}>รายการบริจาคแยกตามสถานะปัจจุบัน</div>
           {donutTotal > 0 ? (
             <>
               <div className="dbDonutLegend">
                 {donutData.map(d => (
                   <span key={d.name} className="dbDonutLegendItem">
                     <span className="dbDonutDot" style={{ background: d.color }} />
-                    {d.name} {d.value}
+                    <span style={{ fontSize: 12, color: "#374151" }}>{d.name}</span>
+                    <span style={{ fontWeight: 700, color: d.color, marginLeft: 4 }}>{d.value}</span>
                   </span>
                 ))}
               </div>
               <div style={{ position: "relative" }}>
                 <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
-                    <Pie data={donutData} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}>
-                      {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                    <Pie data={donutData} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3}>
+                      {donutData.map((d, i) => <Cell key={i} fill={d.color} stroke="#fff" strokeWidth={2} />)}
                     </Pie>
-                    <Tooltip formatter={(v, n) => [v, n]} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                      formatter={(v, n) => [`${v} รายการ`, n]}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="dbDonutCenter">{donutTotal}</div>
+                <div className="dbDonutCenter" style={{ fontWeight: 900, fontSize: 22, color: "#1f2937" }}>{donutTotal}</div>
               </div>
-              <div className="dbDonutSub">รายการทั้งหมด (รวม {donutTotal} รายการ)</div>
+              <div className="dbDonutSub">รายการบริจาคทั้งหมด {donutTotal} รายการ</div>
             </>
           ) : (
             <div className="dbChartEmpty">ยังไม่มีข้อมูลการบริจาค</div>

@@ -411,7 +411,7 @@ width:100%;
 .admPending{background:#fff4cc;border-color:#ffe08a;color:#b07900;font-weight:500;}
 .admApproved{background:#d3ffe0;border-color:#8ce8a8;color:#1f7a3a;font-weight:500;}
 .admRejected{background:#ffe3e3;border-color:#ffc9c9;color:#c92a2a;font-weight:500;}
-.admSuspended{background:#ede9fe;border-color:#c4b5fd;color:#6d28d9;font-weight:500;}
+.admSuspended{background:#f1f5f9;border-color:#cbd5e1;color:#475569;font-weight:500;}
 
 /* ===== Pagination ===== */
 .admPager{

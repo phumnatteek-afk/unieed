@@ -62,7 +62,7 @@ function DeliveryCell({ d, onOpenTracking }) {
   if (d.delivery_method === "dropoff") {
     return (
       <div>
-        <div style={{ fontSize:12, color:"#7c3aed", fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
+        <div style={{ fontSize:12, color:"#0e7490", fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
           <Icon icon="mdi:calendar-clock" width={13} />Drop-Off
         </div>
         <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>

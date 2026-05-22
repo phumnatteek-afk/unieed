@@ -37,6 +37,14 @@ const getTrackingUrl = (providerName, trackingNo) => {
   return key ? TRACKING_URLS[key](trackingNo) : null;
 };
 
+const ORDER_TIME_FILTERS = [
+  { v: "today",   l: "วันนี้",   icon: "mdi:weather-sunny" },
+  { v: "month",   l: "เดือนนี้", icon: "mdi:calendar-month" },
+  { v: "3months", l: "3 เดือน",  icon: "mdi:calendar-range" },
+  { v: "6months", l: "6 เดือน",  icon: "mdi:calendar-range" },
+  { v: "year",    l: "1 ปี",     icon: "mdi:calendar-year" },
+];
+
 const STATUS_TABS = [
   { key: "",          label: "ทั้งหมด" },
   { key: "pending",   label: "รอจัดส่ง" },
@@ -98,6 +106,10 @@ export default function AdminOrderPage() {
   const [err, setErr]                   = useState("");
   const [toast, setToast]               = useState(null);
   const [detail, setDetail]             = useState(null);
+  const [period, setPeriod]             = useState("month");
+  const [startDate, setStartDate]       = useState("");
+  const [endDate, setEndDate]           = useState("");
+  const [showPicker, setShowPicker]     = useState(false);
 
   const now     = new Date();
   const dateStr = now.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
@@ -111,6 +123,9 @@ export default function AdminOrderPage() {
     try {
       setLoading(true); setErr("");
       const params = new URLSearchParams({ status: statusFilter, q, page, limit: 10 });
+      if (period !== "custom") params.set("period", period);
+      if (period === "custom" && startDate) params.set("start_date", startDate);
+      if (period === "custom" && endDate) params.set("end_date", endDate);
       const data = await request(`/admin/orders?${params}`, { method: "GET", auth: true });
       setStats(data.stats || {});
       setRows(data.rows || []);
@@ -118,7 +133,7 @@ export default function AdminOrderPage() {
     } catch (e) {
       setErr(e?.data?.message || e.message || "โหลดข้อมูลไม่สำเร็จ");
     } finally { setLoading(false); }
-  }, [statusFilter, q, page]);
+  }, [statusFilter, q, page, period, startDate, endDate]);
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
 
@@ -161,6 +176,67 @@ export default function AdminOrderPage() {
             <Icon icon="mdi:calendar-clock" style={{ fontSize: 16 }} />
             {dateStr} · {timeStr}
           </div>
+        </div>
+
+        {/* ── Time filter ── */}
+        <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "14px 18px", marginBottom: 16, boxShadow: "0 2px 8px rgba(15,23,42,0.05)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon icon="mdi:clock-time-four-outline" style={{ color: "#fff", fontSize: 18 }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: "#1e293b" }}>ช่วงเวลา</div>
+                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>กรองออเดอร์ตามช่วงเวลาที่เลือก</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20, padding: "5px 12px" }}>
+              <Icon icon="mdi:calendar-check" style={{ color: "#1d4ed8", fontSize: 14 }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8" }}>
+                {period === "custom" && startDate && endDate ? `${startDate} → ${endDate}` : { today: "วันนี้", month: "เดือนนี้", "3months": "ย้อนหลัง 3 เดือน", "6months": "ย้อนหลัง 6 เดือน", year: "ย้อนหลัง 1 ปี" }[period] || "เดือนนี้"}
+              </span>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+            {ORDER_TIME_FILTERS.map((t) => {
+              const isActive = period === t.v && !showPicker;
+              return (
+                <button key={t.v} type="button"
+                  onClick={() => { setPeriod(t.v); setShowPicker(false); setPage(1); }}
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 20, border: "1.5px solid", fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.15s ease", background: isActive ? "#1d4ed8" : "#f8fafc", color: isActive ? "#fff" : "#475569", borderColor: isActive ? "#1d4ed8" : "#e2e8f0", boxShadow: isActive ? "0 2px 8px rgba(29,78,216,0.22)" : "none" }}>
+                  <Icon icon={t.icon} style={{ fontSize: 13 }} />{t.l}
+                </button>
+              );
+            })}
+            <button type="button"
+              onClick={() => { setShowPicker(!showPicker); if (!showPicker) setPeriod("custom"); }}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 20, border: "1.5px solid", fontWeight: 700, fontSize: 13, cursor: "pointer", background: showPicker ? "#2563eb" : "#f8fafc", color: showPicker ? "#fff" : "#475569", borderColor: showPicker ? "#2563eb" : "#e2e8f0" }}>
+              <Icon icon="mdi:calendar-edit" style={{ fontSize: 13 }} />กำหนดเอง
+            </button>
+          </div>
+          {showPicker && (
+            <div style={{ marginTop: 12, padding: "12px 16px", background: "linear-gradient(135deg,#eff6ff,#f0f9ff)", borderRadius: 12, border: "1px solid #bfdbfe", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon icon="mdi:calendar-start" style={{ color: "#fff", fontSize: 14 }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", marginBottom: 3 }}>วันเริ่มต้น</div>
+                  <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1); }} style={{ border: "1.5px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 13, color: "#1e293b", background: "#fff", cursor: "pointer" }} />
+                </div>
+              </div>
+              <Icon icon="mdi:arrow-right" style={{ color: "#2563eb", fontSize: 18, paddingTop: 14 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon icon="mdi:calendar-end" style={{ color: "#fff", fontSize: 14 }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", marginBottom: 3 }}>วันสิ้นสุด</div>
+                  <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1); }} style={{ border: "1.5px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 13, color: "#1e293b", background: "#fff", cursor: "pointer" }} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Stat cards ── */}
@@ -211,14 +287,14 @@ export default function AdminOrderPage() {
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                    <th style={thSt}>รหัสออเดอร์</th>
-                    <th style={thSt}>สินค้า</th>
-                    <th style={thSt}>ผู้ซื้อ / ผู้ขาย</th>
-                    <th style={{ ...thSt, textAlign: "right" }}>ยอดรวม</th>
-                    <th style={{ ...thSt, textAlign: "center" }}>ชำระเงิน</th>
-                    <th style={{ ...thSt, textAlign: "center" }}>สถานะ</th>
-                    <th style={{ ...thSt, textAlign: "center" }}>จัดการ</th>
+                  <tr style={{ background: "#3b82f6" }}>
+                    <th style={{ ...thSt, color: "#fff", fontWeight: 700 }}>รหัสออเดอร์</th>
+                    <th style={{ ...thSt, color: "#fff", fontWeight: 700 }}>สินค้า</th>
+                    <th style={{ ...thSt, color: "#fff", fontWeight: 700 }}>ผู้ซื้อ / ผู้ขาย</th>
+                    <th style={{ ...thSt, textAlign: "right", color: "#fff", fontWeight: 700 }}>ยอดรวม</th>
+                    <th style={{ ...thSt, textAlign: "center", color: "#fff", fontWeight: 700 }}>ชำระเงิน</th>
+                    <th style={{ ...thSt, textAlign: "center", color: "#fff", fontWeight: 700 }}>สถานะ</th>
+                    <th style={{ ...thSt, textAlign: "center", color: "#fff", fontWeight: 700 }}>จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>

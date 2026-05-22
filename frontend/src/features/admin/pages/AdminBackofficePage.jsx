@@ -9,7 +9,33 @@ import { Icon } from "@iconify/react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+  AreaChart, Area, LineChart, Line, Legend,
 } from "recharts";
+
+/* ── Time filter options ────────────────────────────────────── */
+const TIME_FILTERS = [
+  { v: "today",   l: "วันนี้",   icon: "mdi:weather-sunny" },
+  { v: "month",   l: "เดือนนี้", icon: "mdi:calendar-month" },
+  { v: "3months", l: "3 เดือน",  icon: "mdi:calendar-range" },
+  { v: "6months", l: "6 เดือน",  icon: "mdi:calendar-range" },
+  { v: "year",    l: "1 ปี",     icon: "mdi:calendar-year" },
+];
+
+const PERIOD_LABEL_MAP = {
+  today: "วันนี้",
+  month: "เดือนนี้",
+  "3months": "ย้อนหลัง 3 เดือน",
+  "6months": "ย้อนหลัง 6 เดือน",
+  year: "ย้อนหลัง 1 ปี",
+  custom: "กำหนดเอง",
+};
+
+/* ── Chart type options ────────────────────────────────────── */
+const CHART_TYPES = [
+  { v: "bar",  l: "แท่ง",   icon: "mdi:chart-bar" },
+  { v: "area", l: "พื้นที่", icon: "mdi:chart-areaspline" },
+  { v: "line", l: "เส้น",   icon: "mdi:chart-line" },
+];
 
 const OVERVIEW_CARDS = [
   { key: "total_users",     pctKey: "pct_users",     label: "ยอดผู้ใช้งานรวม",      icon: "material-symbols:person-rounded", bg: "#bce3f6" },
@@ -60,7 +86,7 @@ const REGION_STYLE = {
   "กลาง":       { bg: "#eff6ff", color: "#1d4ed8", border: "#93c5fd" },
   "ตะวันออก":   { bg: "#fff7ed", color: "#c2410c", border: "#fdba74" },
   "ตะวันตก":    { bg: "#fff7ed", color: "#d97706", border: "#fbbf24" }, // ส้มเหลือง
-  "ใต้":        { bg: "#fdf4ff", color: "#7e22ce", border: "#d8b4fe" },
+  "ใต้":        { bg: "#ecfeff", color: "#0e7490", border: "#a5f3fc" },
   "อื่นๆ":      { bg: "#f8fafc", color: "#64748b", border: "#cbd5e1" },
 };
 
@@ -110,6 +136,7 @@ export default function AdminBackofficePage() {
   const [endDate, setEndDate]     = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const [chartMonths, setChartMonths] = useState(6);
+  const [chartType, setChartType] = useState("bar");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [projectModalStatus, setProjectModalStatus] = useState(null);
@@ -118,6 +145,9 @@ export default function AdminBackofficePage() {
   const [projectListErr, setProjectListErr] = useState("");
   const [expandedProvince, setExpandedProvince] = useState(null);
   const [campaignModalProvince, setCampaignModalProvince] = useState(null);
+  const [provinceSearch, setProvinceSearch] = useState("");
+  const [expandedRegion, setExpandedRegion] = useState(null);
+  const [allOpenProjects, setAllOpenProjects] = useState([]);
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
@@ -130,11 +160,12 @@ export default function AdminBackofficePage() {
       try {
         setErr("");
         setLoading(true);
-        const [ov, tk, ch, dm] = await Promise.all([
+        const [ov, tk, ch, dm, openProj] = await Promise.all([
           svc.getOverview(),
           svc.getPendingTasks(),
           svc.getChart(6),
           svc.getDemandInsight(),
+          svc.listProjectStatusProjects("open"),
         ]);
         if (cancelled) return;
         setStats({
@@ -156,6 +187,7 @@ export default function AdminBackofficePage() {
         });
         setChart(ch || {});
         setDemand(dm || { top3_types: [], open_projects: 0 });
+        setAllOpenProjects(Array.isArray(openProj?.rows) ? openProj.rows : []);
       } catch (e) {
         if (!cancelled) setErr(e?.data?.message || e.message || "โหลดข้อมูลไม่สำเร็จ");
       } finally {
@@ -221,6 +253,31 @@ export default function AdminBackofficePage() {
     ];
   }, [projectStatusCounts]);
 
+  // ── Province search + region grouping ──────────────────────────────────────
+  const filteredProvinces = useMemo(() => {
+    const all = demand.province_demand || [];
+    if (!provinceSearch.trim()) return all;
+    const q = provinceSearch.trim().toLowerCase();
+    return all.filter(p =>
+      p.province?.toLowerCase().includes(q) ||
+      p.region?.toLowerCase().includes(q)
+    );
+  }, [demand.province_demand, provinceSearch]);
+
+  const regionGroups = useMemo(() => {
+    const all = demand.province_demand || [];
+    const map = {};
+    all.forEach((p) => {
+      const r = p.region || "อื่นๆ";
+      if (!map[r]) map[r] = { region: r, count: 0, still_needed: 0, provinces: [] };
+      map[r].count += 1;
+      map[r].still_needed += p.still_needed || 0;
+      map[r].provinces.push(p);
+    });
+    // sort by still_needed desc
+    return Object.values(map).sort((a, b) => b.still_needed - a.still_needed);
+  }, [demand.province_demand]);
+
   const openProjectStatusModal = async (status) => {
     setProjectModalStatus(status);
     setProjectListErr("");
@@ -284,78 +341,16 @@ export default function AdminBackofficePage() {
         )}
 
         {/* ===== Advanced Time Filter ===== */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-          padding: "10px 0 16px", borderBottom: "1px solid #f1f5f9", marginBottom: 16,
-        }}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {[
-              { v: "today",   l: "วันนี้" },
-              { v: "month",   l: "เดือนนี้" },
-              { v: "3months", l: "3 เดือน" },
-              { v: "6months", l: "6 เดือน" },
-              { v: "year",    l: "1 ปี" },
-            ].map((t) => (
-              <button
-                key={t.v}
-                type="button"
-                onClick={() => { setPeriod(t.v); setShowPicker(false); }}
-                style={{
-                  padding: "7px 16px", borderRadius: 20, border: "1px solid",
-                  fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.15s",
-                  background: period === t.v && !showPicker ? "#1d4ed8" : "#f8fafc",
-                  color: period === t.v && !showPicker ? "#fff" : "#475569",
-                  borderColor: period === t.v && !showPicker ? "#1d4ed8" : "#e2e8f0",
-                }}
-              >
-                {t.l}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => { setShowPicker(!showPicker); if (!showPicker) setPeriod("custom"); }}
-              style={{
-                padding: "7px 16px", borderRadius: 20, border: "1px solid",
-                fontWeight: 700, fontSize: 13, cursor: "pointer",
-                background: showPicker ? "#7c3aed" : "#f8fafc",
-                color: showPicker ? "#fff" : "#475569",
-                borderColor: showPicker ? "#7c3aed" : "#e2e8f0",
-                display: "flex", alignItems: "center", gap: 6,
-              }}
-            >
-              <Icon icon="mdi:calendar-range" style={{ fontSize: 16 }} />
-              กำหนดเอง
-            </button>
-          </div>
-
-          {/* Custom date picker */}
-          {showPicker && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f5f3ff", borderRadius: 12, padding: "8px 14px", border: "1px solid #ddd6fe" }}>
-              <Icon icon="mdi:calendar-start" style={{ color: "#7c3aed", fontSize: 16 }} />
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                style={{ border: "1px solid #ddd6fe", borderRadius: 8, padding: "4px 8px", fontSize: 13, color: "#1e293b", background: "#fff", fontFamily: "inherit" }}
-              />
-              <span style={{ color: "#94a3b8", fontSize: 13 }}>ถึง</span>
-              <Icon icon="mdi:calendar-end" style={{ color: "#7c3aed", fontSize: 16 }} />
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                style={{ border: "1px solid #ddd6fe", borderRadius: 8, padding: "4px 8px", fontSize: 13, color: "#1e293b", background: "#fff", fontFamily: "inherit" }}
-              />
-            </div>
-          )}
-
-          {/* Period label */}
-          <div style={{ marginLeft: "auto", fontSize: 12, color: "#94a3b8" }}>
-            {period === "custom" && startDate && endDate
-              ? `${startDate} → ${endDate}`
-              : { today: "วันนี้", month: "เดือนนี้", "3months": "ย้อนหลัง 3 เดือน", "6months": "ย้อนหลัง 6 เดือน", year: "ย้อนหลัง 1 ปี" }[period]}
-          </div>
-        </div>
+        <AdminTimeFilter
+          period={period}
+          showPicker={showPicker}
+          startDate={startDate}
+          endDate={endDate}
+          onSelectPeriod={(v) => { setPeriod(v); setShowPicker(false); }}
+          onTogglePicker={() => { setShowPicker(!showPicker); if (!showPicker) setPeriod("custom"); }}
+          onChangeStart={setStartDate}
+          onChangeEnd={setEndDate}
+        />
 
         {/* ===== Revenue cards ===== */}
         <div className="boRevGrid3">
@@ -411,32 +406,91 @@ export default function AdminBackofficePage() {
         {/* ===== Chart + Pending tasks ===== */}
         <div className="boChartRow">
           <div className="boChartCard">
-            <div className="boChartCard__title">{`รายได้ค่าธรรมเนียมแพลตฟอร์ม — ย้อนหลัง ${chartMonths} เดือน`}</div>
-            <div className="boChartLegend">
-              <div className="boChartLegend__item">
-                <span className="boChartLegend__dot" style={{ background: "#1d4ed8" }} />
-                รายได้ค่าธรรมเนียม
+            {/* Chart header row */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <div className="boChartCard__title" style={{ marginBottom: 2 }}>
+                  รายได้ค่าธรรมเนียม — ย้อนหลัง {chartMonths} เดือน
+                </div>
+                <div style={{ fontSize: 12, color: "#94a3b8" }}>ค่าธรรมเนียมที่เก็บจากผู้ขาย (15% ขั้นต่ำ ฿20/ออเดอร์)</div>
+              </div>
+              {/* Chart type switcher */}
+              <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 10, padding: 3, gap: 2 }}>
+                {CHART_TYPES.map((ct) => (
+                  <button
+                    key={ct.v}
+                    type="button"
+                    onClick={() => setChartType(ct.v)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 5,
+                      padding: "5px 11px", borderRadius: 8, border: "none",
+                      fontWeight: 700, fontSize: 12, cursor: "pointer",
+                      transition: "all 0.15s",
+                      background: chartType === ct.v ? "#fff" : "transparent",
+                      color: chartType === ct.v ? "#1d4ed8" : "#64748b",
+                      boxShadow: chartType === ct.v ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
+                    }}
+                  >
+                    <Icon icon={ct.icon} style={{ fontSize: 14 }} />
+                    {ct.l}
+                  </button>
+                ))}
               </div>
             </div>
             <div style={{ width: "100%", height: 280 }}>
               <ResponsiveContainer>
-                <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barSize={28}>
-                  <defs>
-                    <linearGradient id="feeBarGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#2563eb" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#93c5fd" stopOpacity={0.8} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(1)}K` : v} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
-                    formatter={(v) => [formatBaht(v), "รายได้ค่าธรรมเนียม"]}
-                    cursor={{ fill: "rgba(29,78,216,0.06)" }}
-                  />
-                  <Bar dataKey="fees" fill="url(#feeBarGrad)" radius={[6, 6, 0, 0]} name="fees" />
-                </BarChart>
+                {chartType === "bar" ? (
+                  <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barSize={28}>
+                    <defs>
+                      <linearGradient id="feeBarGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#1d4ed8" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#93c5fd" stopOpacity={0.8} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `฿${(v/1000).toFixed(1)}K` : `฿${v}`} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: "1px solid #bfdbfe", boxShadow: "0 8px 24px rgba(0,0,0,0.10)", padding: "10px 14px" }}
+                      formatter={(v) => [formatBaht(v), "ค่าธรรมเนียม"]}
+                      labelStyle={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}
+                      cursor={{ fill: "rgba(29,78,216,0.05)" }}
+                    />
+                    <Bar dataKey="fees" fill="url(#feeBarGrad)" radius={[6, 6, 0, 0]} name="fees" />
+                  </BarChart>
+                ) : chartType === "area" ? (
+                  <AreaChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="areaFeeGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2563eb" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#2563eb" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `฿${(v/1000).toFixed(1)}K` : `฿${v}`} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: "1px solid #bfdbfe", boxShadow: "0 8px 24px rgba(0,0,0,0.10)", padding: "10px 14px" }}
+                      formatter={(v) => [formatBaht(v), "ค่าธรรมเนียม"]}
+                      labelStyle={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}
+                      cursor={{ stroke: "#bfdbfe", strokeWidth: 1 }}
+                    />
+                    <Area type="monotone" dataKey="fees" stroke="#2563eb" strokeWidth={2.5} fill="url(#areaFeeGrad)" name="fees" dot={{ fill: "#2563eb", r: 3 }} activeDot={{ r: 6 }} />
+                  </AreaChart>
+                ) : (
+                  <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `฿${(v/1000).toFixed(1)}K` : `฿${v}`} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: "1px solid #bfdbfe", boxShadow: "0 8px 24px rgba(0,0,0,0.10)", padding: "10px 14px" }}
+                      formatter={(v) => [formatBaht(v), "ค่าธรรมเนียม"]}
+                      labelStyle={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}
+                      cursor={{ stroke: "#bfdbfe", strokeWidth: 1 }}
+                    />
+                    <Line type="monotone" dataKey="fees" stroke="#2563eb" strokeWidth={2.5} dot={{ fill: "#2563eb", r: 4 }} activeDot={{ r: 7, fill: "#1d4ed8" }} name="fees" />
+                  </LineChart>
+                )}
               </ResponsiveContainer>
             </div>
           </div>
@@ -499,7 +553,7 @@ export default function AdminBackofficePage() {
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {demand.open_projects > 0 && (
-                  <span style={{ fontSize: 12, color: "#6366f1", background: "#ede9fe", borderRadius: 20, padding: "3px 12px", fontWeight: 600 }}>
+                  <span style={{ fontSize: 12, color: "#1d4ed8", background: "#dbeafe", borderRadius: 20, padding: "3px 12px", fontWeight: 600 }}>
                     📂 {demand.open_projects} โครงการเปิดอยู่
                   </span>
                 )}
@@ -650,79 +704,218 @@ export default function AdminBackofficePage() {
                   </div>
                 )}
 
-                {/* Province list */}
+                {/* Search + Region breakdown */}
                 {demand.province_demand.length === 0 ? (
                   <div style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 16 }}>ยังไม่มีข้อมูลจังหวัด</div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {demand.province_demand.map((p, pi) => {
-                      const rs = REGION_STYLE[p.region] || REGION_STYLE["อื่นๆ"];
-                      const isExpanded = expandedProvince === p.province;
-                      const barColor = pi === 0 ? "#1d4ed8" : pi < 3 ? "#3b82f6" : "#93c5fd";
-                      return (
-                        <div key={p.province} style={{ borderRadius: 12, border: `1px solid ${isExpanded ? "#bfdbfe" : "#f1f5f9"}`, background: isExpanded ? "#f8faff" : "#fff", overflow: "hidden", transition: "all 0.2s" }}>
-                          {/* Row */}
-                          <div
-                            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer" }}
-                            onClick={() => setExpandedProvince(isExpanded ? null : p.province)}
-                          >
-                            <span style={{ minWidth: 22, fontSize: 12, fontWeight: 700, textAlign: "center", color: pi < 3 ? "#1d4ed8" : "#94a3b8" }}>
-                              #{pi + 1}
-                            </span>
-                            <span style={{ minWidth: 40, fontSize: 10, fontWeight: 700, textAlign: "center", padding: "2px 5px", borderRadius: 7, background: rs.bg, color: rs.color, border: `1px solid ${rs.border}` }}>
-                              {p.region}
-                            </span>
-                            <span style={{ minWidth: 80, fontSize: 13, fontWeight: pi < 3 ? 700 : 500, color: pi < 3 ? "#1e293b" : "#475569" }}>
-                              {p.province}
-                            </span>
-                            <div style={{ flex: 1, minWidth: 0, background: "#e2e8f0", borderRadius: 6, height: 8, overflow: "hidden" }}>
-                              <div style={{ width: `${p.pct}%`, height: "100%", borderRadius: 6, background: barColor, transition: "width 0.5s ease" }} />
-                            </div>
-                            <span style={{ minWidth: 58, fontSize: 12, fontWeight: 700, textAlign: "right", color: pi < 3 ? "#1d4ed8" : "#64748b" }}>
-                              {p.still_needed.toLocaleString()} ชิ้น
-                            </span>
-                            <Icon icon={isExpanded ? "mdi:chevron-up" : "mdi:chevron-down"} style={{ fontSize: 16, color: "#94a3b8", flexShrink: 0 }} />
-                          </div>
+                  <>
+                    {/* Search box */}
+                    <div style={{ position: "relative", marginBottom: 12 }}>
+                      <Icon icon="mdi:magnify" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 16 }} />
+                      <input
+                        type="text"
+                        value={provinceSearch}
+                        onChange={(e) => setProvinceSearch(e.target.value)}
+                        placeholder="ค้นหาชื่อจังหวัด หรือภาค (เช่น เชียงใหม่, เหนือ)…"
+                        style={{
+                          width: "100%", boxSizing: "border-box",
+                          paddingLeft: 32, paddingRight: provinceSearch ? 32 : 12,
+                          paddingTop: 8, paddingBottom: 8,
+                          border: "1.5px solid #e2e8f0", borderRadius: 10,
+                          fontSize: 13, color: "#1e293b", background: "#f8fafc",
+                          fontFamily: "inherit", outline: "none",
+                          transition: "border-color 0.15s, box-shadow 0.15s",
+                        }}
+                        onFocus={(e) => { e.target.style.borderColor = "#1d4ed8"; e.target.style.boxShadow = "0 0 0 3px rgba(29,78,216,0.10)"; e.target.style.background = "#fff"; }}
+                        onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; e.target.style.background = "#f8fafc"; }}
+                      />
+                      {provinceSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setProvinceSearch("")}
+                          style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 16, display: "flex", alignItems: "center" }}
+                        >
+                          <Icon icon="mdi:close-circle" style={{ fontSize: 16 }} />
+                        </button>
+                      )}
+                    </div>
 
-                          {/* Expanded: item breakdown + campaign button */}
-                          {isExpanded && (
-                            <div style={{ borderTop: "1px solid #e0e7ff", padding: "10px 14px 12px", background: "#eff6ff" }}>
-                              {p.top_items && p.top_items.length > 0 ? (
-                                <div style={{ marginBottom: 10 }}>
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6 }}>
-                                    <Icon icon="mdi:tag-multiple-outline" style={{ fontSize: 12, marginRight: 4, verticalAlign: "middle" }} />
-                                    สิ่งของที่ขาดมากที่สุด
-                                  </div>
-                                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                    {p.top_items.map((item, ii) => (
-                                      <div key={ii} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: ii === 0 ? "#dbeafe" : "#f0f9ff", borderRadius: 8, padding: "5px 10px", border: `1px solid ${ii === 0 ? "#93c5fd" : "#e0f2fe"}` }}>
-                                        <span style={{ fontSize: 12, fontWeight: ii === 0 ? 700 : 500, color: ii === 0 ? "#1d4ed8" : "#0369a1" }}>
-                                          {ii === 0 ? "★ " : `${ii + 1}. `}{item.label}
-                                        </span>
-                                        <span style={{ fontSize: 12, fontWeight: 700, color: ii === 0 ? "#1d4ed8" : "#0284c7" }}>
-                                          {item.still_needed.toLocaleString()} ชิ้น
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>ไม่มีรายละเอียดสิ่งของ</div>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => setCampaignModalProvince(p)}
-                                style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(90deg,#1d4ed8,#2563eb)", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%" }}
-                              >
-                                <Icon icon="mdi:bullhorn-outline" style={{ fontSize: 14 }} />
-                                สร้างแคมเปญช่วยเหลือ{p.province}
-                              </button>
-                            </div>
-                          )}
+                    {/* Region accordion (show when not searching) */}
+                    {!provinceSearch && (
+                      <div style={{ marginBottom: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 2, display: "flex", alignItems: "center", gap: 5 }}>
+                          <Icon icon="mdi:map-legend" style={{ fontSize: 13 }} />
+                          จัดกลุ่มตามภาค — ไล่จากความต้องการมากสุด
                         </div>
-                      );
-                    })}
-                  </div>
+                        {regionGroups.map((rg) => {
+                          const rs = REGION_STYLE[rg.region] || REGION_STYLE["อื่นๆ"];
+                          const isOpen = expandedRegion === rg.region;
+                          const maxNeeded = Math.max(...regionGroups.map(r => r.still_needed), 1);
+                          const barW = Math.round((rg.still_needed / maxNeeded) * 100);
+                          return (
+                            <div key={rg.region} style={{ borderRadius: 10, border: `1px solid ${isOpen ? rs.border : "#e2e8f0"}`, background: isOpen ? rs.bg : "#fafafa", overflow: "hidden" }}>
+                              {/* Region row */}
+                              <div
+                                style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", cursor: "pointer" }}
+                                onClick={() => setExpandedRegion(isOpen ? null : rg.region)}
+                              >
+                                <span style={{ minWidth: 52, fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 20, background: rs.bg, color: rs.color, border: `1px solid ${rs.border}`, textAlign: "center" }}>
+                                  ภาค{rg.region}
+                                </span>
+                                <div style={{ flex: 1, minWidth: 0, background: "#e2e8f0", borderRadius: 4, height: 6, overflow: "hidden" }}>
+                                  <div style={{ width: `${barW}%`, height: "100%", borderRadius: 4, background: rs.color, opacity: 0.7, transition: "width 0.5s" }} />
+                                </div>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: rs.color, whiteSpace: "nowrap" }}>
+                                  {rg.still_needed.toLocaleString()} ชิ้น
+                                </span>
+                                <span style={{ fontSize: 10, fontWeight: 600, background: "#fff", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: 20, padding: "1px 7px", whiteSpace: "nowrap" }}>
+                                  {rg.count} จังหวัด
+                                </span>
+                                <Icon icon={isOpen ? "mdi:chevron-up" : "mdi:chevron-down"} style={{ fontSize: 14, color: "#94a3b8", flexShrink: 0 }} />
+                              </div>
+                              {/* Province sub-list inside region */}
+                              {isOpen && (
+                                <div style={{ borderTop: `1px solid ${rs.border}`, padding: "8px 10px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
+                                  {rg.provinces.sort((a, b) => b.still_needed - a.still_needed).map((p, pi) => (
+                                    <div
+                                      key={p.province}
+                                      style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, background: "#fff", border: "1px solid #f1f5f9", cursor: "pointer" }}
+                                      onClick={() => setExpandedProvince(expandedProvince === p.province ? null : p.province)}
+                                    >
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: pi === 0 ? rs.color : "#94a3b8", minWidth: 18 }}>#{pi + 1}</span>
+                                      <span style={{ fontSize: 13, fontWeight: pi === 0 ? 700 : 500, color: "#1e293b", flex: 1 }}>{p.province}</span>
+                                      <span style={{ fontSize: 12, fontWeight: 700, color: pi === 0 ? rs.color : "#64748b" }}>{p.still_needed.toLocaleString()} ชิ้น</span>
+                                      <Icon icon={expandedProvince === p.province ? "mdi:chevron-up" : "mdi:chevron-down"} style={{ fontSize: 14, color: "#94a3b8" }} />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Province flat list (shows always, or when searching) */}
+                    {(provinceSearch || !expandedRegion) && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {!provinceSearch && (
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 2, display: "flex", alignItems: "center", gap: 5 }}>
+                            <Icon icon="mdi:format-list-numbered" style={{ fontSize: 13 }} />
+                            รายชื่อจังหวัดทั้งหมด — ไล่จากขาดมากสุด
+                          </div>
+                        )}
+                        {filteredProvinces.length === 0 ? (
+                          <div style={{ textAlign: "center", padding: "16px 0", color: "#94a3b8", fontSize: 13 }}>ไม่พบจังหวัดที่ค้นหา</div>
+                        ) : filteredProvinces.map((p, pi) => {
+                          const rs = REGION_STYLE[p.region] || REGION_STYLE["อื่นๆ"];
+                          const isExpanded = expandedProvince === p.province;
+                          const barColor = pi === 0 ? "#1d4ed8" : pi < 3 ? "#3b82f6" : "#93c5fd";
+                          return (
+                            <div key={p.province} style={{ borderRadius: 12, border: `1px solid ${isExpanded ? "#bfdbfe" : "#f1f5f9"}`, background: isExpanded ? "#f8faff" : "#fff", overflow: "hidden", transition: "all 0.2s" }}>
+                              <div
+                                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer" }}
+                                onClick={() => setExpandedProvince(isExpanded ? null : p.province)}
+                              >
+                                <span style={{ minWidth: 22, fontSize: 12, fontWeight: 700, textAlign: "center", color: pi < 3 ? "#1d4ed8" : "#94a3b8" }}>
+                                  #{pi + 1}
+                                </span>
+                                <span style={{ minWidth: 40, fontSize: 10, fontWeight: 700, textAlign: "center", padding: "2px 5px", borderRadius: 7, background: rs.bg, color: rs.color, border: `1px solid ${rs.border}` }}>
+                                  {p.region}
+                                </span>
+                                <span style={{ minWidth: 80, fontSize: 13, fontWeight: pi < 3 ? 700 : 500, color: pi < 3 ? "#1e293b" : "#475569" }}>
+                                  {p.province}
+                                </span>
+                                <div style={{ flex: 1, minWidth: 0, background: "#e2e8f0", borderRadius: 6, height: 8, overflow: "hidden" }}>
+                                  <div style={{ width: `${p.pct}%`, height: "100%", borderRadius: 6, background: barColor, transition: "width 0.5s ease" }} />
+                                </div>
+                                <span style={{ minWidth: 58, fontSize: 12, fontWeight: 700, textAlign: "right", color: pi < 3 ? "#1d4ed8" : "#64748b" }}>
+                                  {p.still_needed.toLocaleString()} ชิ้น
+                                </span>
+                                <Icon icon={isExpanded ? "mdi:chevron-up" : "mdi:chevron-down"} style={{ fontSize: 16, color: "#94a3b8", flexShrink: 0 }} />
+                              </div>
+                              {isExpanded && (
+                                <div style={{ borderTop: "1px solid #e0e7ff", padding: "10px 14px 12px", background: "#eff6ff" }}>
+                                  {p.top_items && p.top_items.length > 0 ? (
+                                    <div style={{ marginBottom: 10 }}>
+                                      <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6 }}>
+                                        <Icon icon="mdi:tag-multiple-outline" style={{ fontSize: 12, marginRight: 4, verticalAlign: "middle" }} />
+                                        สิ่งของที่ขาดมากที่สุด
+                                      </div>
+                                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                        {p.top_items.map((item, ii) => (
+                                          <div key={ii} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: ii === 0 ? "#dbeafe" : "#f0f9ff", borderRadius: 8, padding: "5px 10px", border: `1px solid ${ii === 0 ? "#93c5fd" : "#e0f2fe"}` }}>
+                                            <span style={{ fontSize: 12, fontWeight: ii === 0 ? 700 : 500, color: ii === 0 ? "#1d4ed8" : "#0369a1" }}>
+                                              {ii === 0 ? "★ " : `${ii + 1}. `}{item.label}
+                                            </span>
+                                            <span style={{ fontSize: 12, fontWeight: 700, color: ii === 0 ? "#1d4ed8" : "#0284c7" }}>
+                                              {item.still_needed.toLocaleString()} ชิ้น
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>ไม่มีรายละเอียดสิ่งของ</div>
+                                  )}
+                                  {/* โครงการที่เปิดอยู่ในจังหวัดนี้ */}
+                                  {(() => {
+                                    const provProjects = allOpenProjects.filter(pr =>
+                                      (pr.school_province || "").includes(p.province) ||
+                                      p.province.includes(pr.school_province || "~~")
+                                    );
+                                    if (provProjects.length === 0) return null;
+                                    return (
+                                      <div style={{ marginBottom: 10 }}>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: "#1d4ed8", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                                          <Icon icon="mdi:folder-open-outline" style={{ fontSize: 13 }} />
+                                          โครงการที่เปิดอยู่ในจังหวัดนี้ ({provProjects.length})
+                                        </div>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                                          {provProjects.slice(0, 5).map((pr, pi) => {
+                                            const prog = pr.total_needed > 0 ? Math.min(100, Math.round((Number(pr.total_fulfilled||0)/Number(pr.total_needed||1))*100)) : 0;
+                                            return (
+                                              <div key={pr.request_id} style={{ background: "#fff", border: "1px solid #dbeafe", borderRadius: 9, padding: "8px 10px" }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+                                                  <div style={{ minWidth: 0 }}>
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 260 }}>{pr.request_title || "ไม่ระบุชื่อ"}</div>
+                                                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                                                      <Icon icon="teenyicons:school-outline" style={{ fontSize: 10, marginRight: 3, verticalAlign: "middle" }} />
+                                                      {pr.school_name || "-"}
+                                                    </div>
+                                                  </div>
+                                                  <span style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 20, padding: "2px 7px", whiteSpace: "nowrap", flexShrink: 0 }}>{prog}%</span>
+                                                </div>
+                                                <div style={{ marginTop: 6, background: "#e2e8f0", borderRadius: 6, height: 5, overflow: "hidden" }}>
+                                                  <div style={{ width: `${prog}%`, height: "100%", background: prog >= 70 ? "#22c55e" : prog >= 40 ? "#f59e0b" : "#3b82f6", borderRadius: 6, transition: "width 0.5s" }} />
+                                                </div>
+                                                <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>ส่งมอบ {formatNumber(pr.total_fulfilled||0)} / {formatNumber(pr.total_needed||0)} ชิ้น · {pr.student_count||0} นักเรียน</div>
+                                              </div>
+                                            );
+                                          })}
+                                          {provProjects.length > 5 && (
+                                            <div style={{ fontSize: 11, color: "#64748b", textAlign: "center", padding: "4px 0" }}>และอีก {provProjects.length - 5} โครงการ…</div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                  <button
+                                    type="button"
+                                    onClick={() => setCampaignModalProvince(p)}
+                                    style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(90deg,#1d4ed8,#2563eb)", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%" }}
+                                  >
+                                    <Icon icon="mdi:bullhorn-outline" style={{ fontSize: 14 }} />
+                                    สร้างแคมเปญช่วยเหลือ{p.province}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -847,6 +1040,139 @@ export default function AdminBackofficePage() {
           province={campaignModalProvince}
           onClose={() => setCampaignModalProvince(null)}
         />
+      )}
+    </div>
+  );
+}
+
+/* ─── AdminTimeFilter component ─────────────────────────────────────────── */
+function AdminTimeFilter({ period, showPicker, startDate, endDate, onSelectPeriod, onTogglePicker, onChangeStart, onChangeEnd }) {
+  const activeLabel = period === "custom" && startDate && endDate
+    ? `${startDate} → ${endDate}`
+    : PERIOD_LABEL_MAP[period] || "เดือนนี้";
+
+  return (
+    <div style={{
+      background: "#fff",
+      border: "1px solid #e2e8f0",
+      borderRadius: 16,
+      padding: "14px 18px",
+      marginBottom: 18,
+      boxShadow: "0 2px 8px rgba(15,23,42,0.05)",
+    }}>
+      {/* header row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+        {/* icon + title */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icon icon="mdi:clock-time-four-outline" style={{ color: "#fff", fontSize: 18 }} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1e293b" }}>ช่วงเวลา</div>
+            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>กรองข้อมูลรายได้ตามช่วงเวลาที่เลือก</div>
+          </div>
+        </div>
+
+        {/* active period badge */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20, padding: "5px 12px" }}>
+          <Icon icon="mdi:calendar-check" style={{ color: "#1d4ed8", fontSize: 14 }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8" }}>{activeLabel}</span>
+        </div>
+      </div>
+
+      {/* filter chips */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+        {TIME_FILTERS.map((t) => {
+          const isActive = period === t.v && !showPicker;
+          return (
+            <button
+              key={t.v}
+              type="button"
+              onClick={() => onSelectPeriod(t.v)}
+              style={{
+                display: "flex", alignItems: "center", gap: 5,
+                padding: "7px 14px", borderRadius: 20, border: "1.5px solid",
+                fontWeight: 700, fontSize: 13, cursor: "pointer",
+                transition: "all 0.15s ease",
+                background: isActive ? "#1d4ed8" : "#f8fafc",
+                color: isActive ? "#fff" : "#475569",
+                borderColor: isActive ? "#1d4ed8" : "#e2e8f0",
+                boxShadow: isActive ? "0 2px 8px rgba(29,78,216,0.22)" : "none",
+                transform: isActive ? "translateY(-1px)" : "none",
+              }}
+            >
+              <Icon icon={t.icon} style={{ fontSize: 13 }} />
+              {t.l}
+            </button>
+          );
+        })}
+        {/* Custom range button */}
+        <button
+          type="button"
+          onClick={onTogglePicker}
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "7px 14px", borderRadius: 20, border: "1.5px solid",
+            fontWeight: 700, fontSize: 13, cursor: "pointer",
+            transition: "all 0.15s ease",
+            background: showPicker ? "#2563eb" : "#f8fafc",
+            color: showPicker ? "#fff" : "#475569",
+            borderColor: showPicker ? "#2563eb" : "#e2e8f0",
+            boxShadow: showPicker ? "0 2px 8px rgba(37,99,235,0.22)" : "none",
+            transform: showPicker ? "translateY(-1px)" : "none",
+          }}
+        >
+          <Icon icon="mdi:calendar-edit" style={{ fontSize: 13 }} />
+          กำหนดเอง
+        </button>
+      </div>
+
+      {/* Custom date range picker */}
+      {showPicker && (
+        <div style={{
+          marginTop: 12, padding: "12px 16px",
+          background: "linear-gradient(135deg,#eff6ff,#f0f9ff)",
+          borderRadius: 12, border: "1px solid #bfdbfe",
+          display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon icon="mdi:calendar-start" style={{ color: "#fff", fontSize: 14 }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>วันเริ่มต้น</div>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => onChangeStart(e.target.value)}
+                style={{ border: "1.5px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 13, color: "#1e293b", background: "#fff", fontFamily: "inherit", cursor: "pointer" }}
+              />
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", paddingTop: 14 }}>
+            <Icon icon="mdi:arrow-right" style={{ color: "#2563eb", fontSize: 18 }} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon icon="mdi:calendar-end" style={{ color: "#fff", fontSize: 14 }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>วันสิ้นสุด</div>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => onChangeEnd(e.target.value)}
+                style={{ border: "1.5px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 13, color: "#1e293b", background: "#fff", fontFamily: "inherit", cursor: "pointer" }}
+              />
+            </div>
+          </div>
+          {startDate && endDate && (
+            <div style={{ marginLeft: "auto", background: "#2563eb", color: "#fff", borderRadius: 10, padding: "6px 12px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
+              <Icon icon="mdi:check-circle" style={{ fontSize: 14 }} />
+              {startDate} → {endDate}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

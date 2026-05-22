@@ -77,7 +77,7 @@ function EvidenceModal({ c, onClose }) {
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: .5 }}>วิธีการจัดส่ง</div>
                   {isDropoff ? (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#7c3aed", background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: 20, padding: "3px 10px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#0e7490", background: "#ecfeff", border: "1px solid #a5f3fc", borderRadius: 20, padding: "3px 10px", display: "inline-flex", alignItems: "center", gap: 4 }}>
                       <Icon icon="mdi:calendar-clock" width={13} />Drop-Off
                     </span>
                   ) : (
@@ -212,6 +212,33 @@ export default function AdminWrongItemPage() {
   const [evidenceCase, setEvidence] = useState(null);
   const [search, setSearch]       = useState("");
   const [filterTab, setFilterTab] = useState("all");
+  const [period, setPeriod]       = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate]     = useState("");
+  const [showPicker, setShowPicker] = useState(false);
+  const [wiPage, setWiPage]       = useState(1);
+  const WI_PAGE_SIZE = 10;
+
+  const WI_TIME_FILTERS = [
+    { v: "today",   l: "วันนี้",   icon: "mdi:weather-sunny" },
+    { v: "month",   l: "เดือนนี้", icon: "mdi:calendar-month" },
+    { v: "3months", l: "3 เดือน",  icon: "mdi:calendar-range" },
+    { v: "6months", l: "6 เดือน",  icon: "mdi:calendar-range" },
+    { v: "year",    l: "1 ปี",     icon: "mdi:calendar-year" },
+  ];
+
+  function isInWIRange(dateStr) {
+    if (!dateStr || period === "all") return true;
+    const d = new Date(dateStr);
+    const now = new Date();
+    if (period === "today")   { return d.toDateString() === now.toDateString(); }
+    if (period === "month")   { return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); }
+    if (period === "3months") { const c = new Date(now); c.setMonth(now.getMonth()-3); return d >= c; }
+    if (period === "6months") { const c = new Date(now); c.setMonth(now.getMonth()-6); return d >= c; }
+    if (period === "year")    { const c = new Date(now); c.setFullYear(now.getFullYear()-1); return d >= c; }
+    if (period === "custom" && startDate && endDate) { const s=new Date(startDate); const e=new Date(endDate); e.setHours(23,59,59); return d>=s && d<=e; }
+    return true;
+  }
   const [resetTarget, setResetTarget] = useState(null);
   const [removeStrikeTarget, setRemoveStrikeTarget] = useState(null); // { case, donor_name }
   const [removingStrike, setRemovingStrike] = useState(false);
@@ -288,7 +315,8 @@ export default function AdminWrongItemPage() {
 
   // ── Filtered ───────────────────────────────────────────────────────────────
   const bySearch = users.filter(u =>
-    !search || u.donor_name?.toLowerCase().includes(search.toLowerCase())
+    (!search || u.donor_name?.toLowerCase().includes(search.toLowerCase())) &&
+    isInWIRange(u.updated_at || u.created_at)
   );
 
   const tabCounts = {
@@ -305,9 +333,11 @@ export default function AdminWrongItemPage() {
     if (filterTab === "one")   return s === 1;
     return true;
   });
+  const wiTotalPages = Math.ceil(filtered.length / WI_PAGE_SIZE);
+  const pagedWI = filtered.slice((wiPage - 1) * WI_PAGE_SIZE, wiPage * WI_PAGE_SIZE);
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 920 }}>
+    <div style={{ padding: "28px 32px" }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="boTop" style={{ marginBottom: 24 }}>
@@ -340,6 +370,67 @@ export default function AdminWrongItemPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Time filter ── */}
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "14px 18px", marginBottom: 14, boxShadow: "0 2px 8px rgba(15,23,42,0.05)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon icon="mdi:clock-time-four-outline" style={{ color: "#fff", fontSize: 18 }} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#1e293b" }}>ช่วงเวลา</div>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>กรองรายการตามช่วงเวลาที่อัพเดท</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20, padding: "5px 12px" }}>
+            <Icon icon="mdi:calendar-check" style={{ color: "#1d4ed8", fontSize: 14 }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8" }}>
+              {period === "custom" && startDate && endDate ? `${startDate} → ${endDate}` : { all: "ทั้งหมด", today: "วันนี้", month: "เดือนนี้", "3months": "ย้อนหลัง 3 เดือน", "6months": "ย้อนหลัง 6 เดือน", year: "ย้อนหลัง 1 ปี" }[period] || "ทั้งหมด"}
+            </span>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+          {[{ v: "all", l: "ทั้งหมด", icon: "mdi:format-list-bulleted" }, ...WI_TIME_FILTERS].map((t) => {
+            const isActive = period === t.v && !showPicker;
+            return (
+              <button key={t.v} type="button"
+                onClick={() => { setPeriod(t.v); setShowPicker(false); }}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 20, border: "1.5px solid", fontWeight: 700, fontSize: 13, cursor: "pointer", background: isActive ? "#1d4ed8" : "#f8fafc", color: isActive ? "#fff" : "#475569", borderColor: isActive ? "#1d4ed8" : "#e2e8f0", boxShadow: isActive ? "0 2px 8px rgba(29,78,216,0.22)" : "none" }}>
+                <Icon icon={t.icon} style={{ fontSize: 13 }} />{t.l}
+              </button>
+            );
+          })}
+          <button type="button"
+            onClick={() => { setShowPicker(!showPicker); if (!showPicker) setPeriod("custom"); }}
+            style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 20, border: "1.5px solid", fontWeight: 700, fontSize: 13, cursor: "pointer", background: showPicker ? "#2563eb" : "#f8fafc", color: showPicker ? "#fff" : "#475569", borderColor: showPicker ? "#2563eb" : "#e2e8f0" }}>
+            <Icon icon="mdi:calendar-edit" style={{ fontSize: 13 }} />กำหนดเอง
+          </button>
+        </div>
+        {showPicker && (
+          <div style={{ marginTop: 12, padding: "12px 16px", background: "linear-gradient(135deg,#eff6ff,#f0f9ff)", borderRadius: 12, border: "1px solid #bfdbfe", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon icon="mdi:calendar-start" style={{ color: "#fff", fontSize: 14 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", marginBottom: 3 }}>วันเริ่มต้น</div>
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ border: "1.5px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 13, color: "#1e293b", background: "#fff", cursor: "pointer" }} />
+              </div>
+            </div>
+            <Icon icon="mdi:arrow-right" style={{ color: "#2563eb", fontSize: 18, paddingTop: 14 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon icon="mdi:calendar-end" style={{ color: "#fff", fontSize: 14 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", marginBottom: 3 }}>วันสิ้นสุด</div>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ border: "1.5px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 13, color: "#1e293b", background: "#fff", cursor: "pointer" }} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Search + Filter (one row) ────────────────────────────────────────── */}
@@ -375,7 +466,7 @@ export default function AdminWrongItemPage() {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {filtered.map(user => {
+          {pagedWI.map(user => {
             const isSuspended      = user.suspended_until && new Date(user.suspended_until) > now;
             const isExpanded       = expanded === user.donor_id;
             const strikeCount      = Number(user.strike_count);
@@ -449,7 +540,7 @@ export default function AdminWrongItemPage() {
                       onClick={() => openHistory(user)}
                       className="wi-action-btn"
                       title="ประวัติการระงับ"
-                      style={{ width: 38, height: 38, borderRadius: 9, border: "1.5px solid #ddd6fe", background: "#fff", color: "#7c3aed", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      style={{ width: 38, height: 38, borderRadius: 9, border: "1.5px solid #a5f3fc", background: "#fff", color: "#0e7490", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                     >
                       <Icon icon="mdi:clock-outline" width={35} />
                     </button>
@@ -574,6 +665,21 @@ export default function AdminWrongItemPage() {
         </div>
       )}
 
+      {/* ── Pagination ──────────────────────────────────────────────────────── */}
+      {!loading && filtered.length > 0 && wiTotalPages > 1 && (
+        <div className="admPager" style={{ marginTop: 16 }}>
+          <div className="admPagerNums">
+            {Array.from({ length: wiTotalPages }, (_, i) => i + 1).map((p) => (
+              <button key={p} className={`admPageNum ${p === wiPage ? "active" : ""}`} onClick={() => setWiPage(p)}>{p}</button>
+            ))}
+          </div>
+          <div className="admPagerBtns">
+            <button className="admPagerBtn" disabled={wiPage <= 1} onClick={() => setWiPage((p) => p - 1)}>{"< ก่อนหน้า"}</button>
+            <button className="admPagerBtn" disabled={wiPage >= wiTotalPages} onClick={() => setWiPage((p) => p + 1)}>{"ถัดไป >"}</button>
+          </div>
+        </div>
+      )}
+
       {/* ── Evidence Modal ─────────────────────────────────────────────────── */}
       {evidenceCase && <EvidenceModal c={evidenceCase} onClose={() => setEvidence(null)} />}
 
@@ -603,8 +709,8 @@ export default function AdminWrongItemPage() {
                     const isSuspend = item.type === "suspension";
                     const isReset   = item.type === "strike_reset";
                     const isAppeal  = item.type === "strike_appeal";
-                    const color  = isSuspend ? "#dc2626" : isReset ? "#16a34a" : "#7c3aed";
-                    const bgColor = isSuspend ? "#fff5f5" : isReset ? "#f0fdf4" : "#faf5ff";
+                    const color  = isSuspend ? "#dc2626" : isReset ? "#16a34a" : "#0e7490";
+                    const bgColor = isSuspend ? "#fff5f5" : isReset ? "#f0fdf4" : "#ecfeff";
                     const icon   = isSuspend ? "mdi:account-lock" : isReset ? "mdi:account-check" : "mdi:message-alert";
                     const label  = isSuspend ? "ระงับบัญชี" : isReset ? "ปลดระงับบัญชี" : "ยื่นอุทธรณ์";
                     return (
@@ -786,7 +892,7 @@ export default function AdminWrongItemPage() {
                     { label: "บริจาคทั้งหมด", value: donorProfile.stats?.total || 0, color: "#2563eb", bg: "#eff6ff" },
                     { label: "สำเร็จ", value: donorProfile.stats?.approved || 0, color: "#16a34a", bg: "#f0fdf4" },
                     { label: "ของไม่ตรง", value: donorProfile.stats?.wrongItem || 0, color: "#d97706", bg: "#fff7ed" },
-                    { label: "รอดำเนินการ", value: donorProfile.stats?.pending || 0, color: "#7c3aed", bg: "#faf5ff" },
+                    { label: "รอดำเนินการ", value: donorProfile.stats?.pending || 0, color: "#0e7490", bg: "#ecfeff" },
                   ].map(s => (
                     <div key={s.label} style={{ background: s.bg, borderRadius: 12, padding: "12px 14px", textAlign: "center" }}>
                       <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -804,7 +910,7 @@ export default function AdminWrongItemPage() {
                   {(donorProfile.donations || []).map(d => {
                     const statusMap = {
                       approved:  { label: "อนุมัติแล้ว", color: "#16a34a", bg: "#f0fdf4" },
-                      pending:   { label: "รอดำเนินการ", color: "#7c3aed", bg: "#faf5ff" },
+                      pending:   { label: "รอดำเนินการ", color: "#0e7490", bg: "#ecfeff" },
                       rejected:  { label: "ปฏิเสธ",      color: "#dc2626", bg: "#fff5f5" },
                     };
                     const condMap = {

@@ -34,13 +34,13 @@ export async function requireSeller(req, res, next) {
 export async function dashboard(req, res, next) {
   try {
     const sellerId = req.user.user_id;
-    const [stats, chart, tasks, fee] = await Promise.all([
+    const [stats, tasks, fee, income] = await Promise.all([
       svc.getDashboardStats(sellerId),
-      svc.getDashboardChart(sellerId),
       svc.getDashboardPendingTasks(sellerId),
       svc.getMonthFeeSummary(sellerId),
+      svc.getDashboardIncome(sellerId, req.query || {}),
     ]);
-    res.json({ is_seller: true, stats, chart, tasks, fee_summary: fee });
+    res.json({ is_seller: true, stats, tasks, fee_summary: fee, ...income });
   } catch (e) { next(e); }
 }
 

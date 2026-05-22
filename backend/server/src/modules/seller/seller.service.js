@@ -46,6 +46,135 @@ function safePage(page) {
   return Math.max(1, Number(page) || 1);
 }
 
+const DASHBOARD_PERIODS = new Set(["today", "month", "3months", "6months", "year", "custom"]);
+const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const pad2 = (value) => String(value).padStart(2, "0");
+
+function formatDbDateTime(date) {
+  return [
+    `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`,
+    `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`,
+  ].join(" ");
+}
+
+function formatDateKey(date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function parseDashboardDate(value, endOfDay = false) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return null;
+  const date = new Date(`${value}T${endOfDay ? "23:59:59" : "00:00:00"}`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getDashboardDateRange({ period = "month", start_date = null, end_date = null } = {}) {
+  const now = new Date();
+  let selectedPeriod = DASHBOARD_PERIODS.has(period) ? period : "month";
+  let from = null;
+  let to = new Date(now);
+
+  if (selectedPeriod === "custom") {
+    from = parseDashboardDate(start_date);
+    to = parseDashboardDate(end_date, true);
+    if (!from || !to || from > to) {
+      selectedPeriod = "month";
+      to = new Date(now);
+    }
+  }
+
+  if (!from) {
+    switch (selectedPeriod) {
+      case "today":
+        from = new Date(now);
+        from.setHours(0, 0, 0, 0);
+        break;
+      case "3months":
+        from = new Date(now);
+        from.setMonth(now.getMonth() - 3);
+        break;
+      case "6months":
+        from = new Date(now);
+        from.setMonth(now.getMonth() - 6);
+        break;
+      case "year":
+        from = new Date(now);
+        from.setFullYear(now.getFullYear() - 1);
+        break;
+      case "month":
+      default:
+        from = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+    }
+  }
+
+  return {
+    period: selectedPeriod,
+    from: formatDbDateTime(from),
+    to: formatDbDateTime(to),
+    fromDate: from,
+    toDate: to,
+    start_date: formatDateKey(from),
+    end_date: formatDateKey(to),
+  };
+}
+
+function getDashboardChartBucket(range) {
+  if (range.period === "today") return "hour";
+  const days = Math.ceil((range.toDate - range.fromDate) / DAY_MS) + 1;
+  return days <= 45 ? "day" : "month";
+}
+
+function formatDashboardBucketLabel(date, bucket) {
+  if (bucket === "hour") return `${pad2(date.getHours())}:00`;
+  if (bucket === "day") return `${date.getDate()} ${THAI_MONTHS_SHORT[date.getMonth()]}`;
+  return `${THAI_MONTHS_SHORT[date.getMonth()]} ${String(date.getFullYear() + 543).slice(-2)}`;
+}
+
+function buildDashboardBuckets(range, bucket) {
+  const buckets = [];
+
+  if (bucket === "hour") {
+    const cursor = new Date(range.fromDate);
+    cursor.setHours(0, 0, 0, 0);
+    for (let hour = 0; hour < 24; hour++) {
+      cursor.setHours(hour);
+      buckets.push({
+        key: `${formatDateKey(cursor)} ${pad2(hour)}`,
+        label: formatDashboardBucketLabel(cursor, bucket),
+      });
+    }
+    return buckets;
+  }
+
+  if (bucket === "day") {
+    const cursor = new Date(range.fromDate);
+    cursor.setHours(0, 0, 0, 0);
+    const until = new Date(range.toDate);
+    until.setHours(0, 0, 0, 0);
+    while (cursor <= until) {
+      buckets.push({
+        key: formatDateKey(cursor),
+        label: formatDashboardBucketLabel(cursor, bucket),
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return buckets;
+  }
+
+  const cursor = new Date(range.fromDate.getFullYear(), range.fromDate.getMonth(), 1);
+  const until = new Date(range.toDate.getFullYear(), range.toDate.getMonth(), 1);
+  while (cursor <= until) {
+    buckets.push({
+      key: `${cursor.getFullYear()}-${pad2(cursor.getMonth() + 1)}`,
+      label: formatDashboardBucketLabel(cursor, bucket),
+    });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return buckets;
+}
+
 const BANK_UPDATE_COOLDOWN_MS = 2000;
 const bankUpdateLastAt = new Map();
 let usersHasBankVerifiedColumn = null;
@@ -194,6 +323,201 @@ export async function getDashboardPendingTasks(sellerId) {
     });
   }
   return tasks;
+}
+
+async function getDashboardIncomeSummary(sellerId, range) {
+  const [[summary]] = await db.query(`
+    SELECT
+      COALESCE(SUM(o.total_price), 0)          AS gross,
+      COALESCE(SUM(o.platform_fee), 0)         AS fee_total,
+      COALESCE(SUM(o.seller_payout_amount), 0) AS net,
+      COUNT(*)                                 AS order_count,
+      COALESCE(SUM(CASE WHEN o.payout_status = 'paid' THEN o.seller_payout_amount ELSE 0 END), 0) AS paid_amount,
+      COUNT(CASE WHEN o.payout_status = 'paid' THEN 1 END) AS paid_count,
+      COALESCE(SUM(CASE WHEN o.payout_status <> 'paid' THEN o.seller_payout_amount ELSE 0 END), 0) AS pending_amount,
+      COUNT(CASE WHEN o.payout_status <> 'paid' THEN 1 END) AS pending_count
+    FROM orders o
+    WHERE o.seller_id = ?
+      AND o.payment_status = 'paid'
+      AND o.created_at BETWEEN ? AND ?
+  `, [sellerId, range.from, range.to]);
+
+  return {
+    gross:          Math.round(Number(summary?.gross || 0)),
+    fee_total:      Math.round(Number(summary?.fee_total || 0)),
+    net:            Math.round(Number(summary?.net || 0)),
+    order_count:    Number(summary?.order_count || 0),
+    pending_amount: Math.round(Number(summary?.pending_amount || 0)),
+    pending_count:  Number(summary?.pending_count || 0),
+    paid_amount:    Math.round(Number(summary?.paid_amount || 0)),
+    paid_count:     Number(summary?.paid_count || 0),
+  };
+}
+
+async function getDashboardIncomeChart(sellerId, range) {
+  const bucket = getDashboardChartBucket(range);
+  const bucketSql = {
+    hour: "DATE_FORMAT(o.created_at, '%Y-%m-%d %H')",
+    day: "DATE_FORMAT(o.created_at, '%Y-%m-%d')",
+    month: "DATE_FORMAT(o.created_at, '%Y-%m')",
+  }[bucket];
+
+  const [rows] = await db.query(`
+    SELECT
+      ${bucketSql} AS bucket_key,
+      COALESCE(SUM(o.total_price), 0) AS gross,
+      COALESCE(SUM(o.platform_fee), 0) AS fee,
+      COALESCE(SUM(o.seller_payout_amount), 0) AS net
+    FROM orders o
+    WHERE o.seller_id = ?
+      AND o.payment_status = 'paid'
+      AND o.created_at BETWEEN ? AND ?
+    GROUP BY bucket_key
+    ORDER BY bucket_key ASC
+  `, [sellerId, range.from, range.to]);
+
+  const byBucket = Object.fromEntries((rows || []).map((row) => [row.bucket_key, row]));
+  return {
+    bucket,
+    points: buildDashboardBuckets(range, bucket).map((item) => {
+      const row = byBucket[item.key] || {};
+      return {
+        ...item,
+        gross: Math.round(Number(row.gross || 0)),
+        fee:   Math.round(Number(row.fee || 0)),
+        net:   Math.round(Number(row.net || 0)),
+      };
+    }),
+  };
+}
+
+async function getDashboardTransactions(sellerId, range) {
+  const [rows] = await db.query(`
+    SELECT
+      o.order_id,
+      o.created_at,
+      o.completed_at,
+      o.payout_date,
+      o.order_status,
+      o.payout_status,
+      o.total_price AS gross_amount,
+      o.platform_fee AS fee_amount,
+      o.seller_payout_amount AS net_amount,
+      o.recipient_name,
+      o.shipping_address,
+      o.shipping_province,
+      o.shipping_postcode,
+      o.tracking_number,
+      o.order_type,
+      o.request_id,
+      s.school_name,
+      (
+        SELECT sp.name
+        FROM order_shipping os
+        LEFT JOIN shipping_provider sp ON sp.provider_id = os.provider_id
+        WHERE os.order_id = o.order_id AND os.seller_id = o.seller_id
+        LIMIT 1
+      ) AS shipping_provider_name,
+      COALESCE((
+        SELECT SUM(os.shipping_price)
+        FROM order_shipping os
+        WHERE os.order_id = o.order_id AND os.seller_id = o.seller_id
+      ), 0) AS shipping_price,
+      COALESCE((
+        SELECT JSON_ARRAYAGG(JSON_OBJECT(
+          'product_id', oi.product_id,
+          'title', p.product_title,
+          'qty', oi.quantity,
+          'price', oi.price_at_purchase
+        ))
+        FROM order_items oi
+        LEFT JOIN products p ON p.product_id = oi.product_id
+        WHERE oi.order_id = o.order_id
+      ), JSON_ARRAY()) AS items
+    FROM orders o
+    LEFT JOIN donation_request dr ON dr.request_id = o.request_id
+    LEFT JOIN schools s ON s.school_id = dr.school_id
+    WHERE o.seller_id = ?
+      AND o.payment_status = 'paid'
+      AND o.created_at BETWEEN ? AND ?
+    ORDER BY o.created_at DESC
+    LIMIT 30
+  `, [sellerId, range.from, range.to]);
+
+  return (rows || []).map((row) => ({
+    ...row,
+    gross_amount:   Math.round(Number(row.gross_amount || 0)),
+    fee_amount:     Math.round(Number(row.fee_amount || 0)),
+    net_amount:     Math.round(Number(row.net_amount || 0)),
+    shipping_price: Math.round(Number(row.shipping_price || 0)),
+  }));
+}
+
+async function getDashboardTransfers(sellerId, range) {
+  const [rows] = await db.query(`
+    SELECT
+      p.payout_id,
+      p.net_amount,
+      p.fee_amount,
+      p.order_count,
+      p.status,
+      p.omise_transfer_id,
+      p.slip_url,
+      p.created_at,
+      p.completed_at,
+      COUNT(DISTINCT o.order_id) AS selected_order_count,
+      COALESCE(SUM(o.seller_payout_amount), 0) AS selected_net_amount,
+      u.bank_code,
+      u.bank_account_number,
+      u.bank_account_name
+    FROM orders o
+    JOIN payouts p ON p.payout_id = o.payout_id
+    LEFT JOIN users u ON u.user_id = p.seller_id
+    WHERE o.seller_id = ?
+      AND o.payment_status = 'paid'
+      AND o.created_at BETWEEN ? AND ?
+    GROUP BY
+      p.payout_id, p.net_amount, p.fee_amount, p.order_count, p.status,
+      p.omise_transfer_id, p.slip_url, p.created_at, p.completed_at,
+      u.bank_code, u.bank_account_number, u.bank_account_name
+    ORDER BY COALESCE(p.completed_at, p.created_at) DESC
+    LIMIT 12
+  `, [sellerId, range.from, range.to]).catch(() => [[]]);
+
+  return (rows || []).map((row) => {
+    const bankNumber = decryptBankAccountNumber(row.bank_account_number);
+    return {
+      ...row,
+      net_amount:                 Math.round(Number(row.net_amount || 0)),
+      fee_amount:                 Math.round(Number(row.fee_amount || 0)),
+      order_count:                Number(row.order_count || 0),
+      selected_order_count:       Number(row.selected_order_count || 0),
+      selected_net_amount:        Math.round(Number(row.selected_net_amount || 0)),
+      bank_account_number_masked: maskBankAccountNumber(bankNumber),
+    };
+  });
+}
+
+export async function getDashboardIncome(sellerId, filters = {}) {
+  const range = getDashboardDateRange(filters);
+  const [incomeSummary, incomeChart, transactions, transfers] = await Promise.all([
+    getDashboardIncomeSummary(sellerId, range),
+    getDashboardIncomeChart(sellerId, range),
+    getDashboardTransactions(sellerId, range),
+    getDashboardTransfers(sellerId, range),
+  ]);
+
+  return {
+    dashboard_range: {
+      period: range.period,
+      start_date: range.start_date,
+      end_date: range.end_date,
+    },
+    income_summary: incomeSummary,
+    income_chart: incomeChart,
+    transactions,
+    transfers,
+  };
 }
 
 /**

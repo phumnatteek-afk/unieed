@@ -7,6 +7,38 @@ import NotificationBell from "../../../pages/NotificationBell.jsx";
 import "../styles/backoffice.css";
 import { Icon } from "@iconify/react";
 
+const SCHOOL_TIME_FILTERS = [
+  { v: "today",   l: "วันนี้",   icon: "mdi:weather-sunny" },
+  { v: "month",   l: "เดือนนี้", icon: "mdi:calendar-month" },
+  { v: "3months", l: "3 เดือน",  icon: "mdi:calendar-range" },
+  { v: "6months", l: "6 เดือน",  icon: "mdi:calendar-range" },
+  { v: "year",    l: "1 ปี",     icon: "mdi:calendar-year" },
+];
+
+function isInDateRange(dateStr, period, startDate, endDate) {
+  if (!dateStr) return true;
+  const d = new Date(dateStr);
+  const now = new Date();
+  if (period === "today") {
+    return d.toDateString() === now.toDateString();
+  } else if (period === "month") {
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  } else if (period === "3months") {
+    const cutoff = new Date(now); cutoff.setMonth(now.getMonth() - 3);
+    return d >= cutoff;
+  } else if (period === "6months") {
+    const cutoff = new Date(now); cutoff.setMonth(now.getMonth() - 6);
+    return d >= cutoff;
+  } else if (period === "year") {
+    const cutoff = new Date(now); cutoff.setFullYear(now.getFullYear() - 1);
+    return d >= cutoff;
+  } else if (period === "custom" && startDate && endDate) {
+    const s = new Date(startDate); const e = new Date(endDate); e.setHours(23,59,59);
+    return d >= s && d <= e;
+  }
+  return true;
+}
+
 export default function AdminSchoolsPage() {
   const { userName } = useAuth();
 
@@ -38,6 +70,11 @@ export default function AdminSchoolsPage() {
 
   // กันกดซ้ำ
   const [actionLoading, setActionLoading] = useState(false);
+
+  const [period, setPeriod]       = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate]     = useState("");
+  const [showPicker, setShowPicker] = useState(false);
 
   // ✅ school detail modal
   const [selectedSchool, setSelectedSchool] = useState(null);
@@ -123,7 +160,10 @@ export default function AdminSchoolsPage() {
     return <span className="admBadge">-</span>;
   };
 
-  const tableRows = useMemo(() => rows, [rows]);
+  const tableRows = useMemo(() => {
+    if (period === "all") return rows;
+    return rows.filter(r => isInDateRange(r.created_at, period, startDate, endDate));
+  }, [rows, period, startDate, endDate]);
   const totalPages = Math.max(1, Math.ceil(tableRows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
 
@@ -192,6 +232,67 @@ export default function AdminSchoolsPage() {
             <div className="admStatSub">โรงเรียน</div>
           </div>
         </section>
+
+        {/* Time filter */}
+        <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "14px 18px", marginBottom: 0, boxShadow: "0 2px 8px rgba(15,23,42,0.05)", marginTop: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon icon="mdi:clock-time-four-outline" style={{ color: "#fff", fontSize: 18 }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: "#1e293b" }}>ช่วงเวลา</div>
+                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>กรองโรงเรียนตามวันที่สมัคร</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20, padding: "5px 12px" }}>
+              <Icon icon="mdi:calendar-check" style={{ color: "#1d4ed8", fontSize: 14 }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8" }}>
+                {period === "custom" && startDate && endDate ? `${startDate} → ${endDate}` : { all: "ทั้งหมด", today: "วันนี้", month: "เดือนนี้", "3months": "ย้อนหลัง 3 เดือน", "6months": "ย้อนหลัง 6 เดือน", year: "ย้อนหลัง 1 ปี" }[period] || "ทั้งหมด"}
+              </span>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+            {[{ v: "all", l: "ทั้งหมด", icon: "mdi:format-list-bulleted" }, ...SCHOOL_TIME_FILTERS].map((t) => {
+              const isActive = period === t.v && !showPicker;
+              return (
+                <button key={t.v} type="button"
+                  onClick={() => { setPeriod(t.v); setShowPicker(false); setPage(1); }}
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 20, border: "1.5px solid", fontWeight: 700, fontSize: 13, cursor: "pointer", background: isActive ? "#1d4ed8" : "#f8fafc", color: isActive ? "#fff" : "#475569", borderColor: isActive ? "#1d4ed8" : "#e2e8f0", boxShadow: isActive ? "0 2px 8px rgba(29,78,216,0.22)" : "none" }}>
+                  <Icon icon={t.icon} style={{ fontSize: 13 }} />{t.l}
+                </button>
+              );
+            })}
+            <button type="button"
+              onClick={() => { setShowPicker(!showPicker); if (!showPicker) setPeriod("custom"); }}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 20, border: "1.5px solid", fontWeight: 700, fontSize: 13, cursor: "pointer", background: showPicker ? "#2563eb" : "#f8fafc", color: showPicker ? "#fff" : "#475569", borderColor: showPicker ? "#2563eb" : "#e2e8f0" }}>
+              <Icon icon="mdi:calendar-edit" style={{ fontSize: 13 }} />กำหนดเอง
+            </button>
+          </div>
+          {showPicker && (
+            <div style={{ marginTop: 12, padding: "12px 16px", background: "linear-gradient(135deg,#eff6ff,#f0f9ff)", borderRadius: 12, border: "1px solid #bfdbfe", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon icon="mdi:calendar-start" style={{ color: "#fff", fontSize: 14 }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", marginBottom: 3 }}>วันเริ่มต้น</div>
+                  <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1); }} style={{ border: "1.5px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 13, color: "#1e293b", background: "#fff", cursor: "pointer" }} />
+                </div>
+              </div>
+              <Icon icon="mdi:arrow-right" style={{ color: "#2563eb", fontSize: 18, paddingTop: 14 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon icon="mdi:calendar-end" style={{ color: "#fff", fontSize: 14 }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", marginBottom: 3 }}>วันสิ้นสุด</div>
+                  <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1); }} style={{ border: "1.5px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 13, color: "#1e293b", background: "#fff", cursor: "pointer" }} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Filters */}
         <section className="admFilters">
