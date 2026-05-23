@@ -273,33 +273,95 @@ function OrderCard({ row, tab, trackInput, onChangeTracking, onConfirmShip, onOp
 
 function SellerOrderDetailModal({ row, onClose }) {
   const items = Array.isArray(row.items) ? row.items : [];
+  const itemsSubtotal = items.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 0), 0);
+  const shippingCost  = Number(row.shipping_price || 0);
+  const fee           = Number(row.platform_fee || 0);
+  const net           = Number(row.seller_payout_amount || 0);
+
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(15,23,42,.45)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:60 }} onClick={onClose}>
-      <div className="slCard" style={{ width:"100%", maxWidth:680 }} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ marginTop:0 }}>รายละเอียดคำสั่งซื้อ {formatOrderNo(row.order_id)}</h3>
-        <div style={{ display:"grid", gap:8, fontSize:14, marginBottom:12 }}>
-          <div>ผู้รับ: {row.recipient_name || "-"}</div>
-          <div>ที่อยู่: {row.shipping_address || "-"} {row.shipping_province || ""} {row.shipping_postcode || ""}</div>
-          <div>Tracking: {row.tracking_number || "-"}</div>
-          <div>ขนส่ง: {row.shipping_provider_name || "-"}</div>
+      <div className="slCard" style={{ width:"100%", maxWidth:700, maxHeight:"90vh", overflowY:"auto" }} onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+          <div>
+            <h3 style={{ margin:0, fontSize:17 }}>รายละเอียดคำสั่งซื้อ</h3>
+            <div style={{ fontSize:13, color:"#64748b", marginTop:3 }}>{formatOrderNo(row.order_id)}</div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background:"none", border:"none", cursor:"pointer", color:"#94a3b8", fontSize:20, lineHeight:1 }}
+          >✕</button>
         </div>
-        <div className="slTable" style={{ borderRadius: 10, overflow: "hidden" }}>
-          <table className="slTable">
-            <thead><tr><th>สินค้า</th><th>ไซส์</th><th>จำนวน</th><th>ราคา/ชิ้น</th><th>รวม</th></tr></thead>
+
+        {/* Shipping info */}
+        <div style={{ background:"#f8fafc", borderRadius:10, padding:"12px 14px", marginBottom:14, fontSize:13 }}>
+          <div style={{ fontWeight:700, color:"#334155", marginBottom:8 }}>ข้อมูลการจัดส่ง</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px 16px" }}>
+            <div><span style={{ color:"#94a3b8" }}>ผู้รับ: </span><b>{row.recipient_name || "-"}</b></div>
+            <div><span style={{ color:"#94a3b8" }}>ขนส่ง: </span><b>{row.shipping_provider_name || "-"}</b></div>
+            <div style={{ gridColumn:"1/-1" }}>
+              <span style={{ color:"#94a3b8" }}>ที่อยู่: </span>
+              {row.shipping_address || "-"} {row.shipping_province || ""} {row.shipping_postcode || ""}
+            </div>
+            {row.tracking_number && (
+              <div style={{ gridColumn:"1/-1" }}>
+                <span style={{ color:"#94a3b8" }}>Tracking: </span>
+                <b style={{ color:"#1d4ed8" }}>{row.tracking_number}</b>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Items table */}
+        <div style={{ border:"1px solid #e2e8f0", borderRadius:10, overflow:"hidden", marginBottom:14 }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+            <thead>
+              <tr style={{ background:"#f1f5f9" }}>
+                <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:600, color:"#64748b" }}>สินค้า</th>
+                <th style={{ padding:"8px 12px", textAlign:"center", fontWeight:600, color:"#64748b" }}>ไซส์</th>
+                <th style={{ padding:"8px 12px", textAlign:"center", fontWeight:600, color:"#64748b" }}>จำนวน</th>
+                <th style={{ padding:"8px 12px", textAlign:"right", fontWeight:600, color:"#64748b" }}>ราคา/ชิ้น</th>
+                <th style={{ padding:"8px 12px", textAlign:"right", fontWeight:600, color:"#64748b" }}>รวม</th>
+              </tr>
+            </thead>
             <tbody>
               {items.map((it, idx) => (
-                <tr key={idx}>
-                  <td>{it.title || `สินค้า #${it.product_id}`}</td>
-                  <td>{getSizeText(it.size, it.category_id)}</td>
-                  <td>{it.qty}</td>
-                  <td>{fmtBaht(it.price)}</td>
-                  <td>{fmtBaht(Number(it.price) * Number(it.qty))}</td>
+                <tr key={idx} style={{ borderTop:"1px solid #f1f5f9" }}>
+                  <td style={{ padding:"10px 12px" }}>{it.title || `สินค้า #${it.product_id}`}</td>
+                  <td style={{ padding:"10px 12px", textAlign:"center", color:"#64748b" }}>{getSizeText(it.size, it.category_id)}</td>
+                  <td style={{ padding:"10px 12px", textAlign:"center", color:"#64748b" }}>{it.qty}</td>
+                  <td style={{ padding:"10px 12px", textAlign:"right", color:"#64748b" }}>{fmtBaht(it.price)}</td>
+                  <td style={{ padding:"10px 12px", textAlign:"right", fontWeight:700 }}>{fmtBaht(Number(it.price) * Number(it.qty))}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div style={{ display:"flex", justifyContent:"flex-end", marginTop:12 }}>
+
+        {/* Summary */}
+        <div style={{ background:"#f8fafc", borderRadius:10, padding:"12px 14px", marginBottom:14 }}>
+          <div style={{ fontWeight:700, color:"#334155", marginBottom:10, fontSize:13 }}>สรุปการเงิน</div>
+          {[
+            { label:"ยอดราคาสินค้า", val: fmtBaht(itemsSubtotal), color:"#0f172a" },
+            { label:"ค่าจัดส่ง",     val: `+${fmtBaht(shippingCost)}`, color:"#3b82f6" },
+            { label:"ค่าธรรมเนียมแพลตฟอร์ม (15%, ขั้นต่ำ ฿20)", val: `−${fmtBaht(fee)}`, color:"#f59e0b" },
+          ].map(r => (
+            <div key={r.label} style={{ display:"flex", justifyContent:"space-between", marginBottom:7, fontSize:13 }}>
+              <span style={{ color:"#64748b" }}>{r.label}</span>
+              <span style={{ fontWeight:600, color:r.color }}>{r.val}</span>
+            </div>
+          ))}
+          <div style={{ borderTop:"2px solid #e2e8f0", marginTop:10, paddingTop:10, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div>
+              <span style={{ fontWeight:700, color:"#0f172a" }}>รับสุทธิ</span>
+              <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>ยอดสินค้า + ค่าส่ง − ค่าธรรมเนียม</div>
+            </div>
+            <span style={{ fontWeight:800, fontSize:18, color:"#22c55e" }}>{fmtBaht(net)}</span>
+          </div>
+        </div>
+
+        <div style={{ display:"flex", justifyContent:"flex-end" }}>
           <button className="slBtnPrimary slBtn" onClick={onClose}>ปิด</button>
         </div>
       </div>

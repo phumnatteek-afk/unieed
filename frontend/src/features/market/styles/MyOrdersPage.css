@@ -1,13 +1,20 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800;900&display=swap');
 
-/* ── Design Tokens ──────────────────────────────────────── */
+/* ── Design Tokens — CI Unieed ──────────────────────────── */
 :root {
-  --blue-700: #1d4ed8;
-  --blue-600: #2563eb;
-  --blue-500: #3b82f6;
-  --blue-100: #dbeafe;
-  --blue-50:  #eff6ff;
+  /* Brand palette — ตรงกับ Homepage.css */
+  --brand-primary:  #5285E8;   /* สีน้ำเงินแบรนด์หลัก */
+  --brand-primary-dark: #3b6fd4;
+  --brand-primary-light: #87C7EB; /* สีฟ้าอ่อน (Navbar) */
+  --brand-orange:   #FC8D1F;   /* accent ส้ม */
+
+  /* Alias เดิม → ชี้ไปยัง brand palette */
+  --blue-700: #3b6fd4;
+  --blue-600: #5285E8;
+  --blue-500: #87C7EB;
+  --blue-100: #CCDEFF;
+  --blue-50:  #E0EBFF;
 
   --surface:    #ffffff;
   --surface-bg: #f4f6fb;
@@ -23,7 +30,7 @@
   --r-img:  12px;
 
   --sh-card: 0 1px 3px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.06);
-  --sh-hover: 0 2px 8px rgba(15,23,42,0.08), 0 8px 32px rgba(15,23,42,0.1);
+  --sh-hover: 0 2px 8px rgba(82,133,232,0.12), 0 8px 32px rgba(82,133,232,0.12);
 }
 
 /* ── Page Shell ─────────────────────────────────────────── */
@@ -36,11 +43,11 @@
 }
 
 .moHeader {
-  background: var(--blue-500);
+  background: var(--brand-primary-light); /* #87C7EB — ตรงกับ Navbar CI */
   position: sticky;
   top: 0;
   z-index: 30;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(82,133,232,0.15);
 }
 
 .moHeaderInner {
@@ -55,23 +62,22 @@
 }
 
 .moBack {
-   background: transparent; 
-  /* border: 1px solid var(--border-md); */
-  /* border-radius: 50%; */
+  background: transparent;
   width: 50px;
   height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--blue-100);
+  color: #fff;
   font-size: 40px;
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 0.15s, transform 0.12s;
+  transition: color 0.15s, background 0.15s, transform 0.12s;
+  border-radius: 50%;
 }
 .moBack:hover {
-  background: var(--blue-50);
-  color: var(--blue-600);
+  background: rgba(255,255,255,0.25);
+  color: #fff;
   transform: translateX(-1px);
 }
 
@@ -79,7 +85,7 @@
   flex: 1;
   font-size: 18px;
   font-weight: 800;
-  color: var(--blue-50);
+  color: #fff;
   letter-spacing: 0.3px;
 }
 
@@ -131,12 +137,12 @@
   color: var(--blue-600);
 }
 
-/* Active tab — pill สีน้ำเงิน */
+/* Active tab — pill สีแบรนด์ */
 .moTab--active {
-  background: var(--blue-600);
+  background: var(--brand-primary); /* #5285E8 */
   color: #fff;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.30);
+  box-shadow: 0 2px 8px rgba(82,133,232,0.35);
   transform: translateY(-1px);
 }
 
@@ -240,7 +246,7 @@
   align-items: center;
   gap: 6px;
   padding: 11px 24px;
-  background: var(--blue-600);
+  background: var(--brand-primary);
   color: #fff;
   border-radius: var(--r-btn);
   font-size: 13.5px;
@@ -248,7 +254,7 @@
   text-decoration: none;
   transition: opacity 0.15s, transform 0.12s;
 }
-.moShopBtn:hover { opacity: 0.88; }
+.moShopBtn:hover { opacity: 0.88; transform: translateY(-1px); }
 
 /* ════════════════════════════════════════════════════════
    Order Card
@@ -292,7 +298,7 @@
 
 .moCard--pending   .moCardHead::before,
 .moCard--confirmed .moCardHead::before { background: #f59e0b; }
-.moCard--shipping  .moCardHead::before { background: var(--blue-500); }
+.moCard--shipping  .moCardHead::before { background: var(--brand-primary); }
 .moCard--delivered .moCardHead::before { background: #22c55e; }
 .moCard--cancelled .moCardHead::before { background: #ef4444; }
 
@@ -332,7 +338,7 @@
 }
 
 .badge--pending   { background: #fef3c7; color: #b45309; }
-.badge--shipping  { background: var(--blue-50); color: var(--blue-600); }
+.badge--shipping  { background: var(--blue-50); color: var(--brand-primary); }
 .badge--delivered { background: #dcfce7; color: #15803d; }
 .badge--cancelled { background: #fee2e2; color: #dc2626; }
 
@@ -444,7 +450,8 @@
    ════════════════════════════════════════════════════════ */
 .moTracking {
   margin: 12px 14px;
-  background: linear-gradient(135deg, #0f1f5c 0%, #1d3a8a 55%, #1d4ed8 100%);
+  /* CI gradient — ใช้สีแบรนด์ #5285E8 แทน navy เข้ม */
+  background: linear-gradient(135deg, #2a5bc4 0%, #5285E8 55%, #87C7EB 100%);
   border-radius: 14px;
   padding: 16px 16px 14px;
   color: #fff;
@@ -511,24 +518,20 @@
 }
 
 .moTrackingCopy {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 8px;
-  width: 34px;
-  height: 34px;
+  background: none;
+  border: none;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(147,197,253,0.8);
-  font-size: 16px;
+  color: #fff;
+  font-size: 22px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: opacity 0.15s, color 0.15s;
   flex-shrink: 0;
 }
-.moTrackingCopy:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.moTrackingCopy:hover { opacity: 0.8; }
 .moTrackingCopy--done {
-  background: rgba(34,197,94,0.25);
-  border-color: rgba(34,197,94,0.4);
   color: #86efac;
 }
 
@@ -537,21 +540,18 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: rgba(255,255,255,0.95);
-  color: var(--blue-700);
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 800;
+  background: none;
+  color: #fff;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 700;
   text-decoration: none;
   font-family: 'Noto Sans Thai', sans-serif;
   white-space: nowrap;
-  transition: background 0.15s, transform 0.12s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  transition: opacity 0.15s;
 }
 .moTrackingLink:hover {
-  background: #fff;
-  transform: translateY(-1px);
+  opacity: 0.8;
 }
 
 /* ── Progress ── */
@@ -578,7 +578,7 @@
   background: rgba(255,255,255,0.12);
   z-index: 0;
 }
-.moProgressLine--done { background: rgba(96,165,250,0.7); }
+.moProgressLine--done { background: rgba(255,255,255,0.7); }
 
 .moProgressDot {
   width: 24px;
@@ -597,14 +597,14 @@
 }
 
 .moProgressDot--done {
-  background: var(--blue-500);
-  border-color: var(--blue-500);
-  color: #fff;
+  background: rgba(255,255,255,0.9);
+  border-color: rgba(255,255,255,0.9);
+  color: var(--brand-primary);
 }
 
 .moProgressDot--active {
   background: transparent;
-  border: 2px solid #93c5fd;
+  border: 2px solid rgba(255,255,255,0.8);
 }
 
 @keyframes moPulse {
@@ -615,7 +615,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #93c5fd;
+  background: rgba(255,255,255,0.9);
   animation: moPulse 1.4s ease-in-out infinite;
 }
 
@@ -766,7 +766,7 @@
 }
 .moDetailBtn:hover {
   background: var(--blue-50);
-  color: var(--blue-600);
+  color: var(--brand-primary);
   border-color: var(--blue-100);
   transform: translateY(-1px);
 }

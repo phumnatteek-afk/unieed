@@ -397,7 +397,11 @@ export default function AdminOrderPage() {
       {detail && (() => {
         const detailFee      = Number(detail.platform_fee || 0);
         const detailSubtotal = Number(detail.items_subtotal || 0);
-        const detailNet      = Math.max(0, detailSubtotal - detailFee);
+        const detailShipping = Number(detail.shipping_total || 0);
+        // ยอดโอนให้ผู้ขาย = ยอดสินค้า - ค่าธรรมเนียม + ค่าส่ง
+        const detailNet      = detail.seller_payout_amount != null
+          ? Number(detail.seller_payout_amount)
+          : Math.max(0, detailSubtotal - detailFee + detailShipping);
         const detailBadge    = STATUS_BADGE[detail.order_status] || STATUS_BADGE.pending;
         return (
           <div className="admModalOverlay" onClick={() => setDetail(null)}>
@@ -467,17 +471,20 @@ export default function AdminOrderPage() {
               <div style={{ background: "#f8fafc", borderRadius: 12, padding: "14px 16px", marginBottom: 18 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "#334155", marginBottom: 10 }}>สรุปการเงิน</div>
                 {[
-                  { label: "ยอดสินค้า", val: fmtBaht(detailSubtotal), color: "#0f172a" },
-                  { label: `ค่าธรรมเนียม (15%, ขั้นต่ำ ฿20)`, val: `− ${fmtBaht(detailFee)}`, color: "#f59e0b" },
-                  { label: "ค่าจัดส่ง", val: fmtBaht(detail.shipping_total || 0), color: "#64748b" },
+                  { label: "ยอดราคาสินค้า", val: fmtBaht(detailSubtotal), color: "#0f172a" },
+                  { label: "ค่าจัดส่ง", val: `+${fmtBaht(detailShipping)}`, color: "#3b82f6" },
+                  { label: `ค่าธรรมเนียมแพลตฟอร์ม (15%, ขั้นต่ำ ฿20)`, val: `−${fmtBaht(detailFee)}`, color: "#f59e0b" },
                 ].map(r => (
                   <div key={r.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, fontSize: 13 }}>
                     <span style={{ color: "#64748b" }}>{r.label}</span>
                     <span style={{ fontWeight: 600, color: r.color }}>{r.val}</span>
                   </div>
                 ))}
-                <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: 700, color: "#0f172a" }}>ยอดโอนให้ผู้ขาย</span>
+                <div style={{ borderTop: "2px solid #e2e8f0", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <span style={{ fontWeight: 700, color: "#0f172a" }}>ยอดโอนให้ผู้ขาย</span>
+                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>ยอดสินค้า + ค่าส่ง − ค่าธรรมเนียม</div>
+                  </div>
                   <span style={{ fontWeight: 800, fontSize: 17, color: "#22c55e" }}>{fmtBaht(detailNet)}</span>
                 </div>
               </div>

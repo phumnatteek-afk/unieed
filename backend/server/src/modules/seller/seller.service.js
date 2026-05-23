@@ -6,8 +6,13 @@
 //   - users.bank_account_number, users.bank_account_name, users.bank_code
 //   - payouts (net_amount, fee_amount, order_count, status, completed_at)
 import { sendNotification } from "../../lib/notify.js";
-
 import { db } from "../../config/db.js";
+
+/** คืนเวลาไทย (UTC+7) ในรูปแบบ YYYY-MM-DD HH:MM:SS สำหรับ INSERT/UPDATE */
+function thaiNow() {
+  const d = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  return d.toISOString().replace("T", " ").slice(0, 19);
+}
 import {
   decryptBankAccountNumber,
   encryptBankAccountNumber,
@@ -521,32 +526,34 @@ export async function getDashboardIncome(sellerId, filters = {}) {
 }
 
 /**
- * สรุปค่าธรรมเนียมเดือนนี้ — ใช้ทั้งหน้า Dashboard และหน้า "รายได้และการโอนเงิน"
+ * สรุปค่าธรรมเนียม — ใช้ทั้งหน้า Dashboard และหน้า "รายได้และการโอนเงิน"
+ * รับ period เพื่อ filter ตามช่วงเวลา (default: month)
  */
-export async function getMonthFeeSummary(sellerId) {
+export async function getMonthFeeSummary(sellerId, period = "month") {
+  const range = getDashboardDateRange({ period });
+
   const [[r]] = await db.query(`
     SELECT
       COALESCE(SUM(o.total_price), 0)                                 AS gross,
       COALESCE(SUM(o.platform_fee), 0)                                AS fee_total,
-      -- แยกเฉพาะค่าธรรมเนียม "ขั้นต่ำ 20 บาท" (เกิดเมื่อ items_subtotal <= 100)
+      -- แยกเฉพาะค่าธรรมเนียม "ขั้นต่ำ 20 บาท"
       COALESCE(SUM(CASE WHEN items_sub.items_subtotal <= 100 THEN o.platform_fee ELSE 0 END), 0)  AS fee_min,
-      -- ค่าธรรมเนียม 15% (เกิดเมื่อ items_subtotal > 100)
+      -- ค่าธรรมเนียม 15%
       COALESCE(SUM(CASE WHEN items_sub.items_subtotal >  100 THEN o.platform_fee ELSE 0 END), 0)  AS fee_pct,
-      COALESCE(SUM(items_sub.shipping_total), 0)                      AS shipping_total,
+      COALESCE(SUM(items_sub.items_subtotal), 0)                      AS items_gross,
       COALESCE(SUM(o.seller_payout_amount), 0)                        AS net
     FROM orders o
     LEFT JOIN (
       SELECT
         oi.order_id,
-        SUM(oi.price_at_purchase * oi.quantity) AS items_subtotal,
-        0 AS shipping_total
+        SUM(oi.price_at_purchase * oi.quantity) AS items_subtotal
       FROM order_items oi
       GROUP BY oi.order_id
     ) items_sub ON items_sub.order_id = o.order_id
     WHERE o.seller_id = ?
       AND o.payment_status = 'paid'
-      AND o.created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
-  `, [sellerId]);
+      AND o.created_at BETWEEN ? AND ?
+  `, [sellerId, range.from, range.to]);
 
   // shipping_total: รวมจาก order_shipping (ค่าส่งคืนผู้ขายเต็มจำนวน)
   const [[shipRow]] = await db.query(`
@@ -555,8 +562,8 @@ export async function getMonthFeeSummary(sellerId) {
     JOIN orders o ON o.order_id = os.order_id
     WHERE os.seller_id = ?
       AND o.payment_status = 'paid'
-      AND o.created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
-  `, [sellerId]).catch(() => [[{ shipping_total: 0 }]]);
+      AND o.created_at BETWEEN ? AND ?
+  `, [sellerId, range.from, range.to]).catch(() => [[{ shipping_total: 0 }]]);
 
   // ยอดรอโอน (delivered + payout_status=pending)
   const [[pendingRow]] = await db.query(`
@@ -576,12 +583,14 @@ export async function getMonthFeeSummary(sellerId) {
     WHERE seller_id = ? AND status = 'completed'
   `, [sellerId]).catch(() => [[{ paid_amount: 0, paid_count: 0 }]]);
 
+  const shippingTotal = Math.round(Number(shipRow?.shipping_total || 0));
   return {
     gross:           Math.round(Number(r.gross || 0)),
+    items_gross:     Math.round(Number(r.items_gross || 0)),  // ยอดราคาสินค้าเท่านั้น ไม่รวมค่าส่ง
     fee_min:         Math.round(Number(r.fee_min || 0)),
     fee_pct:         Math.round(Number(r.fee_pct || 0)),
     fee_total:       Math.round(Number(r.fee_total || 0)),
-    shipping_total:  Math.round(Number(shipRow?.shipping_total || 0)),
+    shipping_total:  shippingTotal,
     net:             Math.round(Number(r.net || 0)),
     // ยอดรอโอนและยอดโอนสำเร็จ (แสดงใน dashboard)
     pending_amount:  Math.round(Number(pendingRow?.pending_amount || 0)),
@@ -747,8 +756,8 @@ export async function confirmShipOrder(sellerId, orderId, { tracking_number, pro
     }
 
     await conn.query(
-      `UPDATE orders SET order_status='shipping', tracking_number=?, shipping_date=NOW() WHERE order_id=?`,
-      [String(tracking_number).trim(), orderId]
+      `UPDATE orders SET order_status='shipping', tracking_number=?, shipping_date=? WHERE order_id=?`,
+      [String(tracking_number).trim(), thaiNow(), orderId]
     );
 
     if (provider_id) {

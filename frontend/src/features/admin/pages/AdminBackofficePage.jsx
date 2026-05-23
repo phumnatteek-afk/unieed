@@ -9,7 +9,6 @@ import { Icon } from "@iconify/react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
-  AreaChart, Area, LineChart, Line, Legend,
 } from "recharts";
 
 /* ── Time filter options ────────────────────────────────────── */
@@ -30,12 +29,7 @@ const PERIOD_LABEL_MAP = {
   custom: "กำหนดเอง",
 };
 
-/* ── Chart type options ────────────────────────────────────── */
-const CHART_TYPES = [
-  { v: "bar",  l: "แท่ง",   icon: "mdi:chart-bar" },
-  { v: "area", l: "พื้นที่", icon: "mdi:chart-areaspline" },
-  { v: "line", l: "เส้น",   icon: "mdi:chart-line" },
-];
+/* ── Chart type options (bar only) ─────────────────────────── */
 
 const OVERVIEW_CARDS = [
   { key: "total_users",     pctKey: "pct_users",     label: "ยอดผู้ใช้งานรวม",      icon: "material-symbols:person-rounded", bg: "#bce3f6" },
@@ -136,7 +130,6 @@ export default function AdminBackofficePage() {
   const [endDate, setEndDate]     = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const [chartMonths, setChartMonths] = useState(6);
-  const [chartType, setChartType] = useState("bar");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [projectModalStatus, setProjectModalStatus] = useState(null);
@@ -414,83 +407,30 @@ export default function AdminBackofficePage() {
                 </div>
                 <div style={{ fontSize: 12, color: "#94a3b8" }}>ค่าธรรมเนียมที่เก็บจากผู้ขาย (15% ขั้นต่ำ ฿20/ออเดอร์)</div>
               </div>
-              {/* Chart type switcher */}
-              <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 10, padding: 3, gap: 2 }}>
-                {CHART_TYPES.map((ct) => (
-                  <button
-                    key={ct.v}
-                    type="button"
-                    onClick={() => setChartType(ct.v)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 5,
-                      padding: "5px 11px", borderRadius: 8, border: "none",
-                      fontWeight: 700, fontSize: 12, cursor: "pointer",
-                      transition: "all 0.15s",
-                      background: chartType === ct.v ? "#fff" : "transparent",
-                      color: chartType === ct.v ? "#1d4ed8" : "#64748b",
-                      boxShadow: chartType === ct.v ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
-                    }}
-                  >
-                    <Icon icon={ct.icon} style={{ fontSize: 14 }} />
-                    {ct.l}
-                  </button>
-                ))}
+              <div style={{ display:"flex", alignItems:"center", gap:6, background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:8, padding:"4px 10px", fontSize:12, color:"#1d4ed8", fontWeight:600 }}>
+                <Icon icon="mdi:chart-bar" style={{ fontSize:14 }} /> กราฟแท่ง
               </div>
             </div>
             <div style={{ width: "100%", height: 280 }}>
               <ResponsiveContainer>
-                {chartType === "bar" ? (
-                  <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barSize={28}>
-                    <defs>
-                      <linearGradient id="feeBarGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#1d4ed8" stopOpacity={1} />
-                        <stop offset="100%" stopColor="#93c5fd" stopOpacity={0.8} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `฿${(v/1000).toFixed(1)}K` : `฿${v}`} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 12, border: "1px solid #bfdbfe", boxShadow: "0 8px 24px rgba(0,0,0,0.10)", padding: "10px 14px" }}
-                      formatter={(v) => [formatBaht(v), "ค่าธรรมเนียม"]}
-                      labelStyle={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}
-                      cursor={{ fill: "rgba(29,78,216,0.05)" }}
-                    />
-                    <Bar dataKey="fees" fill="url(#feeBarGrad)" radius={[6, 6, 0, 0]} name="fees" />
-                  </BarChart>
-                ) : chartType === "area" ? (
-                  <AreaChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="areaFeeGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2563eb" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#2563eb" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `฿${(v/1000).toFixed(1)}K` : `฿${v}`} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 12, border: "1px solid #bfdbfe", boxShadow: "0 8px 24px rgba(0,0,0,0.10)", padding: "10px 14px" }}
-                      formatter={(v) => [formatBaht(v), "ค่าธรรมเนียม"]}
-                      labelStyle={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}
-                      cursor={{ stroke: "#bfdbfe", strokeWidth: 1 }}
-                    />
-                    <Area type="monotone" dataKey="fees" stroke="#2563eb" strokeWidth={2.5} fill="url(#areaFeeGrad)" name="fees" dot={{ fill: "#2563eb", r: 3 }} activeDot={{ r: 6 }} />
-                  </AreaChart>
-                ) : (
-                  <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `฿${(v/1000).toFixed(1)}K` : `฿${v}`} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 12, border: "1px solid #bfdbfe", boxShadow: "0 8px 24px rgba(0,0,0,0.10)", padding: "10px 14px" }}
-                      formatter={(v) => [formatBaht(v), "ค่าธรรมเนียม"]}
-                      labelStyle={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}
-                      cursor={{ stroke: "#bfdbfe", strokeWidth: 1 }}
-                    />
-                    <Line type="monotone" dataKey="fees" stroke="#2563eb" strokeWidth={2.5} dot={{ fill: "#2563eb", r: 4 }} activeDot={{ r: 7, fill: "#1d4ed8" }} name="fees" />
-                  </LineChart>
-                )}
+                <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barSize={28}>
+                  <defs>
+                    <linearGradient id="feeBarGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#1d4ed8" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#93c5fd" stopOpacity={0.8} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `฿${(v/1000).toFixed(1)}K` : `฿${v}`} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, border: "1px solid #bfdbfe", boxShadow: "0 8px 24px rgba(0,0,0,0.10)", padding: "10px 14px" }}
+                    formatter={(v) => [formatBaht(v), "ค่าธรรมเนียม"]}
+                    labelStyle={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}
+                    cursor={{ fill: "rgba(29,78,216,0.05)" }}
+                  />
+                  <Bar dataKey="fees" fill="url(#feeBarGrad)" radius={[6, 6, 0, 0]} name="fees" />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>

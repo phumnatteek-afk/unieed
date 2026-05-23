@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import {
-  ResponsiveContainer, BarChart, Bar, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip,
 } from "recharts";
 import { request } from "../../../api/http.js";
 import { formatOrderNo } from "../../../utils/orderNo.js";
@@ -90,7 +90,6 @@ export default function SellerDashboardPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [detailTab, setDetailTab] = useState("orders");
-  const [chartType, setChartType] = useState("bar");
   const detailRef = useRef(null);
 
   useEffect(() => {
@@ -253,75 +252,33 @@ export default function SellerDashboardPage() {
               <strong>แนวโน้มรายได้</strong>
               <div className="slStatSubtle">รายได้สุทธิและค่าบริการประกอบกันเป็นยอดขายรวมในแต่ละช่วง</div>
             </div>
-            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-              <div className="slChartTypeSwitch" role="group" aria-label="เลือกประเภทกราฟ">
-                <button type="button" className={chartType === "bar" ? "active" : ""} onClick={() => setChartType("bar")}>
-                  <Icon icon="mdi:chart-bar" /> แท่ง
-                </button>
-                <button type="button" className={chartType === "area" ? "active" : ""} onClick={() => setChartType("area")}>
-                  <Icon icon="mdi:chart-areaspline" /> พื้นที่
-                </button>
-              </div>
-              <div className="slChartLegend">
-                <span><i className="slChartLegend__net" /> รายได้สุทธิ</span>
-                <span><i className="slChartLegend__fee" /> ค่าบริการ</span>
-              </div>
+            <div className="slChartLegend">
+              <span><i className="slChartLegend__net" /> รายได้สุทธิ</span>
+              <span><i className="slChartLegend__fee" /> ค่าบริการ</span>
             </div>
           </div>
           <div className="slIncomeChartFrame">
             {hasChartValue ? (
               <ResponsiveContainer>
-                {chartType === "bar" ? (
-                  <BarChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                    <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis
-                      stroke="#94a3b8"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(value) => value >= 1000 ? `฿${(value / 1000).toFixed(1)}K` : `฿${value}`}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "rgba(59,130,246,0.08)" }}
-                      contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", boxShadow: "0 8px 24px rgba(15,23,42,0.08)" }}
-                      formatter={(value, name) => [fmtBaht(value), name === "net" ? "รายได้สุทธิ" : "ค่าบริการ"]}
-                      labelFormatter={(label) => `ช่วง ${label}`}
-                    />
-                    <Bar dataKey="net" stackId="income" fill="#2563eb" radius={[0, 0, 6, 6]} />
-                    <Bar dataKey="fee" stackId="income" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                ) : (
-                  <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="slGradNet" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2563eb" stopOpacity={0.45} />
-                        <stop offset="100%" stopColor="#2563eb" stopOpacity={0.02} />
-                      </linearGradient>
-                      <linearGradient id="slGradFee" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                    <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis
-                      stroke="#94a3b8"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(value) => value >= 1000 ? `฿${(value / 1000).toFixed(1)}K` : `฿${value}`}
-                    />
-                    <Tooltip
-                      cursor={{ stroke: "#bfdbfe", strokeWidth: 1 }}
-                      contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", boxShadow: "0 8px 24px rgba(15,23,42,0.08)" }}
-                      formatter={(value, name) => [fmtBaht(value), name === "net" ? "รายได้สุทธิ" : "ค่าบริการ"]}
-                      labelFormatter={(label) => `ช่วง ${label}`}
-                    />
-                    <Area type="monotone" dataKey="net" stroke="#2563eb" strokeWidth={2.5} fill="url(#slGradNet)" />
-                    <Area type="monotone" dataKey="fee" stroke="#f59e0b" strokeWidth={2.5} fill="url(#slGradFee)" />
-                  </AreaChart>
-                )}
+                <BarChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => value >= 1000 ? `฿${(value / 1000).toFixed(1)}K` : `฿${value}`}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(59,130,246,0.08)" }}
+                    contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", boxShadow: "0 8px 24px rgba(15,23,42,0.08)" }}
+                    formatter={(value, name) => [fmtBaht(value), name === "net" ? "รายได้สุทธิ" : "ค่าบริการ"]}
+                    labelFormatter={(label) => `ช่วง ${label}`}
+                  />
+                  <Bar dataKey="net" stackId="income" fill="#2563eb" radius={[0, 0, 6, 6]} />
+                  <Bar dataKey="fee" stackId="income" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             ) : (
               <div className="slChartEmpty">
@@ -581,7 +538,7 @@ function TransactionTable({ rows, total }) {
               <th>วันที่</th>
               <th>ปลายทาง</th>
               <th>การจัดส่ง</th>
-              <th>ยอดขาย</th>
+              <th>ยอดรวม<br/><span style={{fontWeight:400,fontSize:10,color:"#94a3b8",textTransform:"none"}}>รวมค่าส่ง</span></th>
               <th>ค่าบริการ</th>
               <th>สุทธิ</th>
               <th>การโอน</th>
@@ -663,6 +620,12 @@ function TransactionRow({ row }) {
                       </span>
                     ))}
                   </div>
+                  {Number(row.shipping_price || 0) > 0 && (
+                    <div style={{ display:"flex", gap:8, marginTop:6, alignItems:"center", fontSize:12, color:"#3b82f6" }}>
+                      <Icon icon="mdi:truck-delivery-outline" style={{ fontSize:14 }} />
+                      ค่าจัดส่ง: <b>{fmtBaht(row.shipping_price)}</b>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -796,35 +759,85 @@ function StatCard({ icon, label, value, subtle, pill, pillGreen }) {
   );
 }
 
-export function FeeSummary({ fee }) {
+const FEE_PERIOD_OPTIONS = [
+  { value: "today",    label: "วันนี้" },
+  { value: "month",   label: "เดือนนี้" },
+  { value: "3months", label: "3 เดือน" },
+  { value: "6months", label: "6 เดือน" },
+  { value: "year",    label: "1 ปี" },
+];
+
+export function FeeSummary({ fee, period = "month", onPeriodChange }) {
   if (!fee) return null;
+  const periodLabel = FEE_PERIOD_OPTIONS.find(o => o.value === period)?.label || "เดือนนี้";
   return (
     <div className="slCard slFeeTable">
-      <div style={{ padding: "14px 18px", fontWeight: 700, borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span>สรุปรายได้และค่าบริการ (เดือนนี้)</span>
-        <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>ค่าธรรมเนียม 15% (ขั้นต่ำ ฿20 ต่อออเดอร์)</span>
+      {/* Header + Period Filter */}
+      <div style={{ padding: "14px 18px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>สรุปรายได้และค่าบริการ</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>แสดงข้อมูลในช่วง: <b style={{ color: "#1d4ed8" }}>{periodLabel}</b></div>
+        </div>
+        {onPeriodChange && (
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {FEE_PERIOD_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onPeriodChange(opt.value)}
+                style={{
+                  padding: "4px 10px", borderRadius: 9999, border: "1px solid",
+                  fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  background: period === opt.value ? "#1d4ed8" : "#f8fafc",
+                  color: period === opt.value ? "#fff" : "#475569",
+                  borderColor: period === opt.value ? "#1d4ed8" : "#e2e8f0",
+                  transition: "all 0.15s",
+                }}
+              >{opt.label}</button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Row 1: ยอดราคาสินค้า (ไม่รวมค่าส่ง) */}
       <div className="slFeeTable__row">
-        <span>ยอดขายรวม (Gross)</span>
-        <span className="slBlue" style={{ fontWeight: 700 }}>{fmtBaht(fee.gross)}</span>
+        <span>
+          ยอดราคาสินค้า
+          <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: 6 }}>ราคาสินค้าที่ขายได้ ไม่รวมค่าจัดส่ง</span>
+        </span>
+        <span className="slBlue" style={{ fontWeight: 700 }}>{fmtBaht(fee.items_gross ?? fee.gross)}</span>
       </div>
+
+      {/* Row 2: ค่าจัดส่ง */}
+      <div className="slFeeTable__row">
+        <span>
+          ค่าจัดส่ง
+          <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: 6 }}>ได้รับเต็มจำนวน ไม่ถูกหักค่าธรรมเนียม</span>
+        </span>
+        <span style={{ fontWeight: 700, color: "#3b82f6" }}>+{fmtBaht(fee.shipping_total)}</span>
+      </div>
+
+      {/* Row 3: ค่าบริการแพลตฟอร์ม */}
       <div className="slFeeTable__row" style={{ background: "#fffbeb" }}>
         <span style={{ color: "#92400e" }}>
           ค่าบริการแพลตฟอร์มที่ถูกหัก
           <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: 6 }}>
-            (ที่ใช้ขั้นต่ำ ฿20: {fmtBaht(fee.fee_min)} / ที่คิด 15%: {fmtBaht(fee.fee_pct)})
+            (ขั้นต่ำ ฿20: {fmtBaht(fee.fee_min)} / คิด 15%: {fmtBaht(fee.fee_pct)})
           </span>
         </span>
         <span className="slAmber" style={{ fontWeight: 700 }}>-{fmtBaht(fee.fee_total)}</span>
       </div>
-      <div className="slFeeTable__row">
-        <span>ค่าจัดส่ง (ได้รับเต็มจำนวน)</span>
-        <span style={{ fontWeight: 700 }}>+{fmtBaht(fee.shipping_total)}</span>
-      </div>
-      <div className="slFeeTable__row" style={{ borderTop: "2px solid #e2e8f0" }}>
-        <span style={{ fontWeight: 700 }}>รายได้สุทธิเดือนนี้</span>
+
+      {/* Row 4: รายได้สุทธิ */}
+      <div className="slFeeTable__row" style={{ borderTop: "2px solid #e2e8f0", background: "#f0fdf4" }}>
+        <div>
+          <span style={{ fontWeight: 700, color: "#166534" }}>รายได้สุทธิ ({periodLabel})</span>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>ยอดสินค้า + ค่าส่ง − ค่าบริการ</div>
+        </div>
         <span className="slGreen" style={{ fontWeight: 700, fontSize: 15 }}>{fmtBaht(fee.net)}</span>
       </div>
+
+      {/* Row 5: รอโอน */}
       <div className="slFeeTable__row" style={{ background: "#fefce8" }}>
         <span style={{ color: "#92400e" }}>
           ยอดเงินระหว่างดำเนินการโอน
@@ -832,6 +845,8 @@ export function FeeSummary({ fee }) {
         </span>
         <span className="slAmber" style={{ fontWeight: 700 }}>{fmtBaht(fee.pending_amount)}</span>
       </div>
+
+      {/* Row 6: โอนแล้ว */}
       <div className="slFeeTable__row" style={{ background: "#f0fdf4" }}>
         <span style={{ color: "#166534" }}>
           ยอดเงินที่โอนสำเร็จแล้ว (ทั้งหมด)
@@ -839,6 +854,7 @@ export function FeeSummary({ fee }) {
         </span>
         <span className="slGreen" style={{ fontWeight: 700 }}>{fmtBaht(fee.paid_amount)}</span>
       </div>
+
       <div style={{ padding: "10px 18px", textAlign: "right" }}>
         <Link to="/seller/payouts" style={{ fontSize: 12, color: "#3b82f6", textDecoration: "none" }}>
           ดูรายละเอียดรายได้และประวัติการโอนทั้งหมด →

@@ -657,6 +657,11 @@
   border: 1.5px solid #e5e7eb; font-size: 14px; outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
   font-family: 'Mitr', 'Kanit', sans-serif; background: #fafafa;
+  color: #111827;
+}
+.coCardField input::placeholder {
+  color: #9ca3af;
+  opacity: 1;
 }
 .coCardField input:focus {
   border-color: #5285E8; background: #fff;

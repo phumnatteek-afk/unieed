@@ -34,10 +34,11 @@ export async function requireSeller(req, res, next) {
 export async function dashboard(req, res, next) {
   try {
     const sellerId = req.user.user_id;
+    const period = req.query.period || "month";
     const [stats, tasks, fee, income] = await Promise.all([
       svc.getDashboardStats(sellerId),
       svc.getDashboardPendingTasks(sellerId),
-      svc.getMonthFeeSummary(sellerId),
+      svc.getMonthFeeSummary(sellerId, period),
       svc.getDashboardIncome(sellerId, req.query || {}),
     ]);
     res.json({ is_seller: true, stats, tasks, fee_summary: fee, ...income });
@@ -65,11 +66,11 @@ export async function shipOrder(req, res, next) {
 /* ─── Payouts (รายได้และการโอนเงิน) ─── */
 export async function payouts(req, res, next) {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, fee_period = "month" } = req.query;
     const data = await svc.getSellerPayouts(req.user.user_id, {
       page: Number(page), limit: Number(limit),
     });
-    const fee = await svc.getMonthFeeSummary(req.user.user_id);
+    const fee = await svc.getMonthFeeSummary(req.user.user_id, fee_period);
     res.json({ is_seller: true, ...data, fee_summary: fee });
   } catch (e) { next(e); }
 }

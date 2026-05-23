@@ -327,7 +327,6 @@ function OrderCard({ order, index, actionLoading, onConfirm, onCancel }) {
       {/* ── Items ── */}
       <div className="moItems">
         {visibleItems.map((it, i) => {
-          // รองรับทั้ง product_title (จาก getMyOrders) และ title
           const displayTitle = it.product_title || it.title || `สินค้า #${it.product_id}`;
           const sizeStr = getSizeText(it.size, it.category_id);
           return (

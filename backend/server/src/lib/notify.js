@@ -28,6 +28,9 @@ export async function sendNotification(userId, { type, title, body = null, ref_i
   }
 
   // Push real-time via Socket.io (non-blocking)
+  // ใช้เวลาไทย (UTC+7) ให้ตรงกับที่ DB บันทึก
+  const thaiNow = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const thaiNowStr = thaiNow.toISOString().replace("Z", "+07:00");
   emitToUser(userId, "notification", {
     notification_id: notifId,
     user_id:  userId,
@@ -36,7 +39,7 @@ export async function sendNotification(userId, { type, title, body = null, ref_i
     body:     bodyStr,
     ref_id,
     is_read:  false,
-    created_at: new Date().toISOString(),
+    created_at: thaiNowStr,
   });
 
   return notifId;

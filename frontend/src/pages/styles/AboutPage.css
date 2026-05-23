@@ -23,6 +23,12 @@
   height: 100%;
   object-fit: cover;
   object-position: center 30%;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.ab-hero-img--active {
+  opacity: 1;
 }
 
 .ab-hero-overlay {
@@ -107,6 +113,11 @@
   margin-bottom: 16px;
 }
 
+.ab-story-body strong {
+  color: #e4691a;
+  font-weight: 700;
+}
+
 .ab-story-img-wrap {
   border-radius: 20px;
   overflow: hidden;
@@ -172,54 +183,163 @@
 }
 
 /* ── How It Works ───────────────────────────────────────────────────────────── */
-.ab-how { background: #f8faff; border-radius: 24px; }
+.ab-how-section {
+  background: linear-gradient(160deg, #f0f6ff 0%, #f8faff 40%, #fff7f0 100%);
+  padding: 90px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ab-how-section::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59,130,246,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.ab-how-section::after {
+  content: "";
+  position: absolute;
+  bottom: -100px;
+  left: -80px;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.ab-how-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.ab-how-subtitle {
+  text-align: center;
+  font-size: 15px;
+  color: #64748b;
+  margin-top: -24px;
+  margin-bottom: 52px;
+  line-height: 1.7;
+}
 
 .ab-how-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 28px;
+  position: relative;
 }
+
 
 .ab-how-card {
   background: #fff;
-  border-radius: 20px;
-  padding: 36px 28px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  border-radius: 22px;
+  padding: 0 0 32px 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
   border: 1px solid #f1f5f9;
-  transition: box-shadow 0.2s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
-.ab-how-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.ab-how-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+}
 
+/* top accent bar */
+.ab-how-accent {
+  height: 5px;
+  width: 100%;
+  border-radius: 22px 22px 0 0;
+  margin-bottom: 24px;
+}
 
-.ab-how-step {
-  font-size: 13px;
+.ab-how-step-badge {
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 1.5px;
-  margin-bottom: 16px;
-  opacity: 0.5;
+  letter-spacing: 2px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  width: fit-content;
+  margin: 0 28px 16px;
 }
 
 .ab-how-icon-wrap {
-  width: 68px;
-  height: 68px;
-  border-radius: 18px;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin: 0 28px 18px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
 }
 
 .ab-how-title {
   font-size: 18px;
   font-weight: 700;
   color: #0f172a;
-  margin-bottom: 10px;
+  margin: 0 28px 10px;
 }
 
 .ab-how-desc {
   font-size: 14px;
   color: #64748b;
-  line-height: 1.7;
+  line-height: 1.75;
+  margin: 0 28px 20px;
+  flex: 1;
+}
+
+/* tags */
+.ab-how-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 28px 20px;
+}
+
+.ab-how-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+
+/* CTA link */
+.ab-how-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 28px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cta-color);
+  text-decoration: none;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--cta-color) 8%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--cta-color) 25%, transparent);
+  transition: background 0.2s, gap 0.2s;
+  align-self: flex-start;
+}
+.ab-how-cta:hover {
+  background: color-mix(in srgb, var(--cta-color) 15%, transparent);
+  gap: 10px;
+}
+.ab-how-cta-arrow {
+  transition: transform 0.2s;
+}
+.ab-how-cta:hover .ab-how-cta-arrow {
+  transform: translateX(3px);
 }
 
 /* ── Values ─────────────────────────────────────────────────────────────────── */
@@ -465,4 +585,5 @@
 @media (max-width: 520px) {
   .ab-impact-grid { grid-template-columns: repeat(2, 1fr); }
   .ab-values-grid { grid-template-columns: 1fr 1fr; }
+  .ab-how-section { padding: 60px 16px; }
 }

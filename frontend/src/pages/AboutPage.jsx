@@ -36,12 +36,19 @@ function ImpactCard({ icon, value, label, color, started }) {
   );
 }
 
+const heroImages = [
+  "https://www.unicef.org/thailand/sites/unicef.org.thailand/files/styles/hero_extended/public/PF4C%20Technical%20Paper.webp?itok=Zswnoyta",
+  "/src/unieed_pic/PY-1-scaled.jpg",
+  "/src/unieed_pic/bannerabout.jpg",
+];
+
 export default function AboutPage() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [testimonials, setTestimonials] = useState([]);
   const [impactVisible, setImpactVisible] = useState(false);
   const [tIdx, setTIdx] = useState(0);
+  const [heroIdx, setHeroIdx] = useState(0);
   const impactRef = useRef(null);
 
   useEffect(() => {
@@ -67,6 +74,12 @@ export default function AboutPage() {
     return () => clearInterval(t);
   }, [testimonials.length]);
 
+  // hero background slideshow
+  useEffect(() => {
+    const t = setInterval(() => setHeroIdx(i => (i + 1) % heroImages.length), 5000);
+    return () => clearInterval(t);
+  }, []);
+
   const impactCards = [
     { icon: "mdi:tshirt-crew-outline", value: Number(stats?.uniforms_fulfilled || 0), label: "ชุดที่ส่งต่อแล้ว",        color: "#3b82f6" },
     { icon: "mdi:account-school",    value: Number(stats?.students_total     || 0), label: "นักเรียนในระบบ",          color: "#10b981" },
@@ -80,12 +93,21 @@ export default function AboutPage() {
 
       {/* ── 1. Hero ─────────────────────────────────────────────────────────── */}
       <section className="ab-hero">
-        <img src="https://www.unicef.org/thailand/sites/unicef.org.thailand/files/styles/hero_extended/public/PF4C%20Technical%20Paper.webp?itok=Zswnoyta" alt="เด็กนักเรียน" className="ab-hero-img" />
+        {heroImages.map((src, i) => (
+          <img
+            key={src}
+            src={src}
+            alt="เด็กนักเรียน"
+            className={`ab-hero-img${i === heroIdx ? " ab-hero-img--active" : ""}`}
+          />
+        ))}
         <div className="ab-hero-overlay" />
         <div className="ab-hero-content">
           <p className="ab-hero-eyebrow">เกี่ยวกับเรา</p>
           <h1 className="ab-hero-title">
-            เพราะชุดนักเรียนหนึ่งตัว<br />อาจเปลี่ยนอนาคตของเด็กคนหนึ่ง
+            เพราะชุดนักเรียนหนึ่งตัว<br />
+            <span style={{ color: "#e4691a" }}>อาจเปลี่ยนอนาคต</span><br />
+            ของเด็กคนหนึ่ง
           </h1>
           <p className="ab-hero-sub">
             Unieed เชื่อมชุดนักเรียนที่ไม่ได้ใช้แล้ว ไปสู่เด็กที่ต้องการ
@@ -97,7 +119,7 @@ export default function AboutPage() {
       <section className="ab-section ab-story">
         <div className="ab-story-text">
           <span className="ab-eyebrow">จุดเริ่มต้นของ Unieed</span>
-          <h2 className="ab-section-title">ปัญหาที่ซ่อนอยู่ในชุดนักเรียนทุกตัว</h2>
+          <h2 className="ab-section-title">ปัญหาที่ซ่อนอยู่<br />ในชุดนักเรียนทุกตัว</h2>
           <p className="ab-story-body">
             ในประเทศไทย การศึกษาคือสิทธิพื้นฐาน แต่ <strong>ชุดนักเรียนคือค่าใช้จ่าย</strong>ที่แพงกว่าที่หลายคนคิด
             ผู้ปกครองต้องจ่ายค่าเครื่องแบบหลักพันถึงหลักหมื่นบาทต่อปี
@@ -135,45 +157,75 @@ export default function AboutPage() {
       </section>
 
       {/* ── 4. How It Works ─────────────────────────────────────────────────── */}
-      <section className="ab-section ab-how">
-        <span className="ab-eyebrow ab-eyebrow-center">วิธีที่เราทำงาน</span>
-        <h2 className="ab-section-title ab-center">3 เส้นทางสู่การเปลี่ยนแปลง</h2>
-        <div className="ab-how-grid">
-          {[
-            {
-              icon: "mdi:gift-outline",
-              color: "#3b82f6",
-              bg: "#eff6ff",
-              title: "บริจาคชุดนักเรียน",
-              desc: "เลือกโครงการที่ต้องการ ส่งชุดตรงถึงโรงเรียน โดยไม่ผ่านคนกลาง ติดตามสถานะได้ทุกขั้นตอน",
-              step: "01",
-            },
-            {
-              icon: "mdi:store-outline",
-              color: "#10b981",
-              bg: "#f0fdf4",
-              title: "ซื้อขายชุดมือสอง",
-              desc: "ชุดนักเรียนสภาพดีในราคาที่จับต้องได้ คุ้มค่าสำหรับผู้ซื้อ มีรายได้สำหรับผู้ขาย",
-              step: "02",
-            },
-            {
-              icon: "mdi:school-outline",
-              color: "#f97316",
-              bg: "#fff7ed",
-              title: "โรงเรียนขอรับการสนับสนุน",
-              desc: "โรงเรียนลงทะเบียนและเปิดโครงการระบุจำนวนชุดที่ต้องการได้เอง ตรวจสอบของที่ได้รับ และยืนยันผลการบริจาคอย่างโปร่งใส",
-              step: "03",
-            },
-          ].map(h => (
-            <div key={h.step} className="ab-how-card">
-              <div className="ab-how-step" style={{ color: h.color }}>{h.step}</div>
-              <div className="ab-how-icon-wrap" style={{ background: h.bg, color: h.color }}>
-                <Icon icon={h.icon} width={36} />
+      <section className="ab-how-section">
+        <div className="ab-how-inner">
+          <span className="ab-eyebrow ab-eyebrow-center">วิธีที่เราทำงาน</span>
+          <h2 className="ab-section-title ab-center">3 เส้นทางสู่การเปลี่ยนแปลง</h2>
+          <p className="ab-how-subtitle">เราออกแบบให้ทุกขั้นตอนง่าย โปร่งใส และติดตามได้ตั้งแต่บ้านคุณถึงโรงเรียนปลายทาง</p>
+          <div className="ab-how-grid">
+            {[
+              {
+                icon: "mdi:gift-outline",
+                color: "#3b82f6",
+                gradientFrom: "#eff6ff",
+                gradientTo: "#dbeafe",
+                title: "บริจาคชุดนักเรียน",
+                desc: "เลือกโครงการที่ต้องการ ส่งชุดตรงถึงโรงเรียนโดยไม่ผ่านคนกลาง ติดตามสถานะได้ทุกขั้นตอน",
+                step: "01",
+                cta: "เริ่มบริจาค",
+                link: "/projects",
+                tags: ["ฟรี", "โปร่งใส", "ติดตามได้"],
+              },
+              {
+                icon: "mdi:shopping-outline",
+                color: "#10b981",
+                gradientFrom: "#f0fdf4",
+                gradientTo: "#dcfce7",
+                title: "ซื้อ-ขายชุดมือสอง",
+                desc: "ชุดนักเรียนสภาพดีในราคาที่จับต้องได้ คุ้มค่าสำหรับผู้ซื้อ มีรายได้สำหรับผู้ขาย",
+                step: "02",
+                cta: "ดูร้านค้า",
+                link: "/market",
+                tags: ["ราคาดี", "สภาพดี", "มีรายได้"],
+              },
+              {
+                icon: "mdi:school-outline",
+                color: "#f97316",
+                gradientFrom: "#fff7ed",
+                gradientTo: "#ffedd5",
+                title: "โรงเรียนขอรับการสนับสนุน",
+                desc: "โรงเรียนลงทะเบียนและเปิดโครงการระบุจำนวนชุดที่ต้องการได้เอง ตรวจสอบของที่ได้รับ และยืนยันผลการบริจาคโปร่งใส",
+                step: "03",
+                cta: "สำหรับโรงเรียน",
+                link: "/register/school",
+                tags: ["ลงทะเบียนฟรี", "ยืนยันผล", "ตรวจสอบได้"],
+              },
+            ].map((h, i) => (
+              <div key={h.step} className="ab-how-card" style={{ '--hw-color': h.color, '--hw-from': h.gradientFrom, '--hw-to': h.gradientTo }}>
+                {/* top accent bar */}
+                <div className="ab-how-accent" style={{ background: h.color }} />
+                {/* step badge */}
+                <div className="ab-how-step-badge" style={{ color: h.color, background: h.color + '14' }}>{h.step}</div>
+                {/* icon */}
+                <div className="ab-how-icon-wrap" style={{ background: `linear-gradient(135deg, ${h.gradientFrom}, ${h.gradientTo})`, color: h.color }}>
+                  <Icon icon={h.icon} width={34} />
+                </div>
+                <h3 className="ab-how-title">{h.title}</h3>
+                <p className="ab-how-desc">{h.desc}</p>
+                {/* tags */}
+                <div className="ab-how-tags">
+                  {h.tags.map(tag => (
+                    <span key={tag} className="ab-how-tag" style={{ color: h.color, background: h.color + '12', border: `1px solid ${h.color}28` }}>{tag}</span>
+                  ))}
+                </div>
+                {/* CTA */}
+                <Link to={h.link} className="ab-how-cta" style={{ '--cta-color': h.color }}>
+                  {h.cta}
+                  <Icon icon="mdi:arrow-right" width={16} className="ab-how-cta-arrow" />
+                </Link>
               </div>
-              <h3 className="ab-how-title">{h.title}</h3>
-              <p className="ab-how-desc">{h.desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 

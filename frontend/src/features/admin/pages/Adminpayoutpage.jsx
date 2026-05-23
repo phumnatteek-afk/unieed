@@ -1061,7 +1061,6 @@ export default function AdminPayoutPage() {
               { icon: "mdi:calendar-end", label: "วันตัดรอบ", value: payoutCycle?.cutoff_date || "สิ้นเดือนนี้" },
               { icon: "mdi:bank-transfer", label: "โอนเงินภายใน", value: payoutCycle?.payout_date ? `ภายใน ${payoutCycle.payout_date}` : "7 วันหลังสิ้นเดือน" },
               { icon: "mdi:check-decagram-outline", label: "เงื่อนไข", value: "เฉพาะออเดอร์ที่ลูกค้ายืนยันรับของแล้ว" },
-              { icon: "mdi:percent-circle-outline", label: "ค่าธรรมเนียม", value: "15% ขั้นต่ำ ฿20/ออเดอร์ (คิดจากยอดสินค้า)" },
             ].map((r) => (
               <div key={r.label} style={{ display: "flex", alignItems: "flex-start", gap: 8, minWidth: 160 }}>
                 <Icon icon={r.icon} style={{ fontSize: 16, color: "#3b82f6", marginTop: 1, flexShrink: 0 }} />
@@ -1111,7 +1110,7 @@ export default function AdminPayoutPage() {
             {/* ── ตารางรายการรอโอน ── */}
             <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 24, boxShadow: "0 4px 18px rgba(15,23,42,0.07)" }}>
               {/* card header */}
-              <div style={{ padding: "16px 22px", background: "linear-gradient(135deg,#fff 0%,#fafbff 100%)", borderBottom: "1px solid #eef2fb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ padding: "16px 22px", background: "#fff", borderBottom: "1px solid #eef2fb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 38, height: 38, borderRadius: 10, background: "#fff8e1", border: "1px solid #fde68a", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon icon="mdi:clock-time-eight-outline" style={{ color: "#d97706", fontSize: 20 }} />
@@ -1135,19 +1134,18 @@ export default function AdminPayoutPage() {
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ background: "linear-gradient(90deg,#1e3a8a 0%,#1d4ed8 100%)" }}>
+                    <tr style={{ background: "#1e40af" }}>
                       {[
-                        { label: "ผู้ขาย & บัญชี", sub: null },
-                        { label: "ออเดอร์", sub: null },
-                        { label: "ยอดขายรวม", sub: "สินค้า + ค่าส่ง" },
-                        { label: "ค่าธรรมเนียม", sub: "15% ขั้นต่ำ ฿20/ออเดอร์" },
-                        { label: "ยอดโอนสุทธิ", sub: null },
-                        { label: "สถานะ", sub: null },
-                        { label: "จัดการ", sub: null, center: true },
+                        { label: "ผู้ขาย & บัญชี" },
+                        { label: "ออเดอร์" },
+                        { label: "ยอดขายรวม" },
+                        { label: "ค่าธรรมเนียม" },
+                        { label: "ยอดโอนสุทธิ" },
+                        { label: "สถานะ" },
+                        { label: "จัดการ", center: true },
                       ].map((h, i) => (
-                        <th key={i} style={{ padding: "12px 16px", textAlign: h.center ? "center" : "left", color: "#fff", fontWeight: 700, fontSize: 12, letterSpacing: "0.03em", whiteSpace: "nowrap", borderBottom: "2px solid rgba(255,255,255,0.15)" }}>
-                          <div>{h.label}</div>
-                          {h.sub && <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>{h.sub}</div>}
+                        <th key={i} style={{ padding: "12px 16px", textAlign: h.center ? "center" : "left", color: "#fff", fontWeight: 700, fontSize: 12, letterSpacing: "0.03em", whiteSpace: "nowrap", verticalAlign: "middle", borderBottom: "2px solid rgba(255,255,255,0.15)" }}>
+                          {h.label}
                         </th>
                       ))}
                     </tr>
@@ -1192,7 +1190,6 @@ export default function AdminPayoutPage() {
                         <td style={{ padding: "13px 16px", fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{fmtBaht(row.total_sales)}</td>
                         <td style={{ padding: "13px 16px" }}>
                           <div style={{ fontWeight: 700, color: "#d97706", fontSize: 14 }}>{fmtBaht(row.fee_amount)}</div>
-                          <div style={{ fontSize: 10, color: "#a16207", marginTop: 2 }}>15% ขั้นต่ำ ฿20</div>
                         </td>
                         <td style={{ padding: "13px 16px" }}>
                           <div style={{ fontWeight: 900, color: "#16a34a", fontSize: 16 }}>{fmtBaht(row.net_amount)}</div>
@@ -1239,7 +1236,7 @@ export default function AdminPayoutPage() {
             {/* ── ตารางประวัติการโอน ── */}
             <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #e2e8f0", overflow: "hidden", boxShadow: "0 4px 18px rgba(15,23,42,0.07)" }}>
               {/* card header */}
-              <div style={{ padding: "16px 22px", background: "linear-gradient(135deg,#fff 0%,#fafbff 100%)", borderBottom: "1px solid #eef2fb", display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ padding: "16px 22px", background: "#fff", borderBottom: "1px solid #eef2fb", display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: "#dcfce7", border: "1px solid #86efac", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon icon="mdi:history" style={{ color: "#15803d", fontSize: 20 }} />
                 </div>
@@ -1255,19 +1252,18 @@ export default function AdminPayoutPage() {
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ background: "linear-gradient(90deg,#065f46 0%,#059669 100%)" }}>
+                    <tr style={{ background: "#15803d" }}>
                       {[
-                        { label: "วันที่โอน", sub: null },
-                        { label: "ผู้ขาย", sub: null },
-                        { label: "บัญชีปลายทาง", sub: null },
-                        { label: "ยอดโอนสุทธิ", sub: "ที่ผู้ขายได้รับจริง" },
-                        { label: "ค่าธรรมเนียม", sub: "รายได้แพลตฟอร์ม" },
-                        { label: "สถานะ", sub: null },
-                        { label: "รายละเอียด", sub: null, center: true },
+                        { label: "วันที่โอน" },
+                        { label: "ผู้ขาย" },
+                        { label: "บัญชีปลายทาง" },
+                        { label: "ยอดโอนสุทธิ" },
+                        { label: "ค่าธรรมเนียม" },
+                        { label: "สถานะ" },
+                        { label: "รายละเอียด", center: true },
                       ].map((h, i) => (
-                        <th key={i} style={{ padding: "12px 16px", textAlign: h.center ? "center" : "left", color: "#fff", fontWeight: 700, fontSize: 12, letterSpacing: "0.03em", whiteSpace: "nowrap", borderBottom: "2px solid rgba(255,255,255,0.15)" }}>
-                          <div>{h.label}</div>
-                          {h.sub && <div style={{ fontWeight: 400, fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>{h.sub}</div>}
+                        <th key={i} style={{ padding: "12px 16px", textAlign: h.center ? "center" : "left", color: "#fff", fontWeight: 700, fontSize: 12, letterSpacing: "0.03em", whiteSpace: "nowrap", verticalAlign: "middle", borderBottom: "2px solid rgba(255,255,255,0.15)" }}>
+                          {h.label}
                         </th>
                       ))}
                     </tr>

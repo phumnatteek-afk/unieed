@@ -1,4 +1,5 @@
 import { db } from "../../config/db.js";
+import { sendNotification } from "../../lib/notify.js";
 import {
   decryptBankAccountNumber,
   formatBankAccountNumber,
@@ -6,6 +7,12 @@ import {
   maskBankAccountNumber,
   sanitizeBankNumber,
 } from "../../utils/bankAccountSecurity.js";
+
+/** คืนเวลาไทย (UTC+7) ในรูปแบบ YYYY-MM-DD HH:MM:SS สำหรับส่งเข้า DB */
+function thaiNow() {
+  const d = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  return d.toISOString().replace("T", " ").slice(0, 19);
+}
 
 /* ────── helpers ────── */
 
@@ -464,8 +471,9 @@ export async function getPendingTasks() {
 
 /* ────── Orders ────── */
 
-export async function listOrders({ status = "", q = "", page = 1, limit = 10, seller_id = "" } = {}) {
-  const where = []; const params = [];
+export async function listOrders({ status = "", q = "", page = 1, limit = 10, seller_id = "", period = "month", start_date = "", end_date = "" } = {}) {
+  const { from, to } = periodToDateRange(period, start_date, end_date);
+  const where = ["o.created_at BETWEEN ? AND ?"]; const params = [from, to];
   if (status && ["pending", "confirmed", "shipping", "delivered", "cancelled"].includes(status)) {
     where.push("o.order_status = ?"); params.push(status);
   }
@@ -532,7 +540,7 @@ export async function listOrders({ status = "", q = "", page = 1, limit = 10, se
     ${whereSql}
   `, params);
 
-  // ── Stats ───────────────────────────────────────────────────────
+  // ── Stats (กรองตาม period เดียวกัน) ─────────────────────────────
   const [[stats]] = await db.query(`
     SELECT
       COUNT(*)                                              AS total,
@@ -541,7 +549,8 @@ export async function listOrders({ status = "", q = "", page = 1, limit = 10, se
       SUM(order_status = 'delivered')                       AS delivered,
       SUM(order_status = 'cancelled')                       AS cancelled
     FROM orders
-  `);
+    WHERE created_at BETWEEN ? AND ?
+  `, [from, to]);
 
   return {
     stats: {
@@ -641,16 +650,28 @@ export async function getOrderDetail(orderId) {
     (sum, it) => sum + Number(it.price_at_purchase || 0) * Number(it.quantity || 0),
     0
   );
+  const shippingTotal = (shipping || []).reduce(
+    (sum, s) => sum + Number(s.shipping_price || 0),
+    0
+  );
   const calculatedFee = itemsSubtotal >= 100
     ? Math.round(itemsSubtotal * 0.15 * 100) / 100
     : (itemsSubtotal > 0 ? 20 : 0);
+
+  // ยอดโอนให้ผู้ขาย = ยอดสินค้า - ค่าธรรมเนียม + ค่าส่ง
+  const platformFee = Number(order.platform_fee || calculatedFee);
+  const sellerPayout = Math.max(0, itemsSubtotal - platformFee + shippingTotal);
 
   return {
     ...order,
     items,
     shipping,
     items_subtotal: Math.round(itemsSubtotal),
+    shipping_total: Math.round(shippingTotal),
     calculated_fee: Math.round(calculatedFee),
+    seller_payout_amount: order.seller_payout_amount
+      ? Math.round(Number(order.seller_payout_amount))
+      : Math.round(sellerPayout),
   };
 }
 
@@ -838,24 +859,37 @@ export async function paySeller(seller_id, net_amount) {
       throw Object.assign(new Error("ไม่มีออเดอร์ที่รอจ่าย"), { status: 400 });
     }
 
-    // 2) บันทึก payout
+    // 2) บันทึก payout ด้วยเวลาไทย
+    const nowThai = thaiNow();
     const [ins] = await conn.query(
       `INSERT INTO payouts (seller_id, net_amount, fee_amount, order_count, status, created_at, completed_at)
-       VALUES (?, ?, ?, ?, 'completed', NOW(), NOW())`,
-      [seller_id, Math.round(Number(sum.net_total)), Math.round(Number(sum.fee_total)), sum.order_count]
+       VALUES (?, ?, ?, ?, 'completed', ?, ?)`,
+      [seller_id, Math.round(Number(sum.net_total)), Math.round(Number(sum.fee_total)), sum.order_count, nowThai, nowThai]
     );
     const payoutId = ins.insertId;
 
     // 3) อัปเดต orders -> payout_status='paid' + ผูก payout_id
     await conn.query(
       `UPDATE orders
-          SET payout_status='paid', payout_id=?, payout_date=NOW()
+          SET payout_status='paid', payout_id=?, payout_date=?
         WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
-      [payoutId, seller_id]
+      [payoutId, nowThai, seller_id]
     );
 
     await conn.commit();
-    return { message: "Paid", seller_id, payout_id: payoutId, net_amount: Math.round(Number(sum.net_total)) };
+
+    // 4) แจ้งเตือนผู้ขาย
+    const netAmount = Math.round(Number(sum.net_total));
+    try {
+      await sendNotification(seller_id, {
+        type:   "payout_completed",
+        title:  "โอนเงินเข้าบัญชีแล้ว",
+        body:   `ยอดโอน ฿${netAmount.toLocaleString()} (${Number(sum.order_count)} รายการ) ได้รับการโอนเข้าบัญชีของคุณแล้ว`,
+        ref_id: payoutId,
+      });
+    } catch (e) { console.warn("[notify] paySeller:", e.message); }
+
+    return { message: "Paid", seller_id, payout_id: payoutId, net_amount: netAmount };
   } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
 }
 
@@ -1328,17 +1362,25 @@ export async function payAllSellers() {
         continue;
       }
 
+      const nowThai = thaiNow();
       const [ins] = await conn.query(
         `INSERT INTO payouts (seller_id, net_amount, fee_amount, order_count, status, created_at, completed_at)
-         VALUES (?, ?, ?, ?, 'completed', NOW(), NOW())`,
-        [s.seller_id, Math.round(Number(s.net_amount)), Math.round(Number(s.fee_amount)), Number(s.order_count)]
+         VALUES (?, ?, ?, ?, 'completed', ?, ?)`,
+        [s.seller_id, Math.round(Number(s.net_amount)), Math.round(Number(s.fee_amount)), Number(s.order_count), nowThai, nowThai]
       );
       await conn.query(
         `UPDATE orders
-            SET payout_status='paid', payout_id=?, payout_date=NOW()
+            SET payout_status='paid', payout_id=?, payout_date=?
           WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
-        [ins.insertId, s.seller_id]
+        [ins.insertId, nowThai, s.seller_id]
       );
+      // แจ้งเตือนผู้ขาย (non-blocking)
+      sendNotification(s.seller_id, {
+        type:   "payout_completed",
+        title:  "โอนเงินเข้าบัญชีแล้ว",
+        body:   `ยอดโอน ฿${Math.round(Number(s.net_amount)).toLocaleString()} (${Number(s.order_count)} รายการ) ได้รับการโอนเข้าบัญชีของคุณแล้ว`,
+        ref_id: ins.insertId,
+      }).catch(e => console.warn("[notify] payAllSellers:", e.message));
       paidCount += 1;
     }
     await conn.commit();

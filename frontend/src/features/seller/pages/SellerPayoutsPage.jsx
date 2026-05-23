@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import { request } from "../../../api/http.js";
 import { NotSellerView } from "../layouts/SellerLayout.jsx";
@@ -52,16 +52,37 @@ export default function SellerPayoutsPage() {
   const [err, setErr] = useState("");
   const [editingBank, setEditingBank] = useState(false);
 
+  // Time filter for fee summary
+  const [feePeriod, setFeePeriod] = useState("month");
+
+  // History filter
+  const [historyFilterOpen, setHistoryFilterOpen] = useState(false);
+  const [historyStart, setHistoryStart] = useState("");
+  const [historyEnd, setHistoryEnd] = useState("");
+
   const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const d = await request("/seller/payouts");
+      const params = new URLSearchParams({ fee_period: feePeriod });
+      const d = await request(`/seller/payouts?${params}`);
       setData(d); setErr("");
     } catch (e) {
       setErr(e?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [feePeriod]);
+
+  const filteredHistory = useMemo(() => {
+    if (!data?.history) return [];
+    if (!historyStart && !historyEnd) return data.history;
+    return data.history.filter(p => {
+      const d = new Date(p.created_at);
+      if (historyStart && d < new Date(historyStart)) return false;
+      if (historyEnd && d > new Date(historyEnd + "T23:59:59")) return false;
+      return true;
+    });
+  }, [data?.history, historyStart, historyEnd]);
   useEffect(() => {
     let cancel = false;
     (async () => { if (!cancel) await load(); })();
@@ -91,12 +112,40 @@ export default function SellerPayoutsPage() {
       <div className="slIncomeColumns">
         {/* History */}
         <div className="slCard">
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: historyFilterOpen ? 10 : 14 }}>
             <strong>ประวัติการโอนเงิน</strong>
+            <button
+              type="button"
+              className={`slFilterBtn${historyFilterOpen ? " active" : ""}`}
+              onClick={() => setHistoryFilterOpen(o => !o)}
+            >
+              <Icon icon="mdi:filter-variant" />
+              กรองช่วงเวลา
+              {(historyStart || historyEnd) && (
+                <span style={{ background:"#1d4ed8", color:"#fff", borderRadius:9999, fontSize:10, padding:"1px 6px", marginLeft:3 }}>✓</span>
+              )}
+            </button>
           </div>
-          {data.history?.length === 0
+          {historyFilterOpen && (
+            <div className="slHistoryFilter">
+              <label>
+                ตั้งแต่
+                <input type="date" value={historyStart} onChange={e => setHistoryStart(e.target.value)} />
+              </label>
+              <label>
+                ถึงวันที่
+                <input type="date" value={historyEnd} onChange={e => setHistoryEnd(e.target.value)} />
+              </label>
+              {(historyStart || historyEnd) && (
+                <button type="button" className="slFilterBtn" onClick={() => { setHistoryStart(""); setHistoryEnd(""); }}>
+                  <Icon icon="mdi:close" /> ล้างตัวกรอง
+                </button>
+              )}
+            </div>
+          )}
+          {filteredHistory.length === 0
             ? <div style={{ color:"#94a3b8", padding:20, textAlign:"center" }}>ยังไม่มีประวัติการโอน</div>
-            : data.history.map(p => (
+            : filteredHistory.map(p => (
                 <PayoutRow key={p.payout_id} p={p} />
               ))
           }
@@ -153,7 +202,11 @@ export default function SellerPayoutsPage() {
       </div>
 
       <div style={{ marginTop:18 }}>
-        <FeeSummary fee={data.fee_summary} />
+        <FeeSummary
+          fee={data.fee_summary}
+          period={feePeriod}
+          onPeriodChange={(p) => setFeePeriod(p)}
+        />
       </div>
 
       {editingBank && (

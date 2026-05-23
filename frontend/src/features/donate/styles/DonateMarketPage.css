@@ -1,334 +1,473 @@
 /* ═══════════════════════════════════════════════════════
-   DonateMarketPage.css — ธีม Unieed (น้ำเงิน + ส้มทอง)
+   DonateMarketPage.css — Unieed CI (ฟ้าเหลืองอบอุ่น)
+   Redesigned to match Figma mockup
 ═══════════════════════════════════════════════════════ */
 
-/* ── Hero Banner with image background ── */
-.dmHero {
-  position: relative;
-  background-color: #0a6fb5;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  padding: 48px 24px 44px;
-  color: #fff;
-  overflow: hidden;
-}
-
-/* Overlay เข้มเพื่อให้ข้อความเด่น */
-.dmHeroBgOverlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(5, 63, 130, 0.60) 0%,
-    rgba(21, 101, 167, 0.45) 50%,
-    rgba(14, 165, 233, 0.32) 100%
+/* ── Page background (warm gradient) ── */
+.dmPageBg {
+  background: linear-gradient(160deg,
+    #dff0fb 0%,
+    #cce5f7 18%,
+    #e8f5fb 38%,
+    #fdf5e4 65%,
+    #fef0d0 100%
   );
-  pointer-events: none;
-  z-index: 0;
-}
-/* Subtle decorative blobs */
-.dmHeroBgOverlay::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 5% 85%, rgba(250,204,21,0.18) 0%, transparent 45%),
-    radial-gradient(ellipse at 90% 15%, rgba(56,189,248,0.22) 0%, transparent 40%),
-    radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.06) 0%, transparent 60%);
-  pointer-events: none;
+  min-height: 100vh;
 }
 
-.dmHeroContent {
-  position: relative;
-  z-index: 1;
+/* ── Page inner wrapper (max-width + padding) ── */
+.dmPageInner {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 24px 48px;
 }
 
-/* ── Body layout ── */
-.dmHeroBody {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 32px;
-  align-items: start;
-}
-
-/* ── Left: project info ── */
-.dmHeroLeft {
+/* ═══════════════════════════════════════════════════════
+   Breadcrumb
+═══════════════════════════════════════════════════════ */
+.dmBreadcrumb {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 0 14px;
+  font-size: 0.81rem;
+  color: #6b93b8;
+  flex-wrap: wrap;
 }
+.dmBreadcrumb a {
+  color: #6b93b8;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.dmBreadcrumb a:hover { color: #2178c4; }
+.dmBreadcrumb span { color: #2c4f72; font-weight: 500; }
+.dmBreadcrumb .iconify { font-size: 0.9rem; color: #a0bcd8; }
 
+/* ═══════════════════════════════════════════════════════
+   School Badge (above title)
+═══════════════════════════════════════════════════════ */
 .dmHeroSchoolBadge {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255,255,255,0.22);
-  border: 1px solid rgba(255,255,255,0.28);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.80);
+  border: 1.5px solid rgba(33, 120, 196, 0.22);
+  color: #2178c4;
   border-radius: 999px;
-  padding: 5px 16px;
-  font-size: 0.83rem;
-  font-weight: 500;
-  width: fit-content;
-  backdrop-filter: blur(6px);
-}
-
-.dmHeroTitle {
-  font-size: clamp(1.15rem, 2.8vw, 1.65rem);
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.45;
-  margin: 0;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.3);
-}
-
-.dmHeroAddress,
-.dmHeroPhone {
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  color: rgba(255,255,255,0.8);
-  font-size: 0.87rem;
-  line-height: 1.5;
-}
-
-/* ── Progress bar ── */
-.dmHeroProgress {
-  margin-top: 6px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 14px;
-  padding: 14px 18px;
-  border: 1px solid rgba(255,255,255,0.18);
-  backdrop-filter: blur(6px);
-}
-.dmHeroProgressTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding: 6px 18px;
   font-size: 0.84rem;
-  color: rgba(255,255,255,0.85);
-  margin-bottom: 8px;
-}
-.dmHeroProgressPct {
-  font-weight: 700;
-  font-size: 1rem;
-  color: #fde68a;
-}
-.dmHeroProgressTrack {
-  height: 8px;
-  background: rgba(255,255,255,0.2);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.dmHeroProgressFill {
-  height: 100%;
-  background: linear-gradient(90deg, #fbbf24, #f59e0b);
-  border-radius: 99px;
-  transition: width 0.6s ease;
-}
-.dmHeroProgressSub {
-  margin: 6px 0 0;
-  font-size: 0.77rem;
-  color: rgba(255,255,255,0.6);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(33, 120, 196, 0.10);
+  margin-bottom: 14px;
 }
 
-/* ── Right column ── */
-.dmHeroRight {
+/* ═══════════════════════════════════════════════════════
+   Hero Section
+═══════════════════════════════════════════════════════ */
+.dmHero {
+  padding: 0 0 36px;
+}
+
+.dmHeroBody {
+  display: grid;
+  grid-template-columns: 1fr 370px;
+  gap: 40px;
+  align-items: start;
+}
+
+/* ── Left column ── */
+.dmHeroLeft {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-/* ── Dashboard ── */
-.dmDashboard {
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 16px;
-  padding: 16px;
-  backdrop-filter: blur(12px);
-  display: flex;
-  gap: 12px;
-  flex-direction: column;
-  transition: background 0.2s, transform 0.15s;
-}
-.dmDashboard:hover {
-  background: rgba(0,0,0,0.32);
-}
-.dmDashboard > div:not(.dmDashHint) {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.dmDashCard {
-  border-radius: 14px;
-  padding: 18px 16px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.dmDashCardBlue {
-  background: linear-gradient(135deg, #1565a7, #0d8fe8);
-  border: none;
-  box-shadow: 0 4px 14px rgba(21,101,167,0.45);
-}
-.dmDashCardOrange {
-  background: #f7ad19;
-  border: none;
-  box-shadow: 0 4px 14px rgba(247,173,25,0.4);
-}
-.dmDashCardOrange .dmDashLabel { color: rgba(0,0,0,0.55); }
-.dmDashCardOrange .dmDashVal   { color: #fff; }
-.dmDashCardOrange .dmDashIcon  { color: rgba(255,255,255,0.85); }
-.dmDashIcon { font-size: 1.5rem; color: rgba(255,255,255,0.85); }
-.dmDashVal {
-  font-size: 2.4rem;
+/* Title */
+.dmHeroTitle {
+  font-size: clamp(1.5rem, 3.2vw, 2.15rem);
   font-weight: 800;
-  color: #fff;
-  line-height: 1;
-  letter-spacing: -0.5px;
+  color: #1a3a5c;
+  line-height: 1.3;
+  margin: 0;
+  letter-spacing: -0.2px;
 }
-.dmDashLabel {
-  font-size: 0.78rem;
-  color: rgba(255,255,255,0.82);
-  font-weight: 500;
-}
-.dmDashHint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 0.82rem;
-  color: rgba(255,255,255,0.75);
-  padding-top: 6px;
-  border-top: 1px solid rgba(255,255,255,0.15);
+.dmTitleHighlight {
+  color: #f7ad19;
 }
 
-/* ── Needs card ── */
-.dmHeroNeeds {
-  background: rgba(255,255,255,0.11);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 16px;
-  padding: 14px 16px;
-  backdrop-filter: blur(10px);
+/* Info pills */
+.dmHeroInfoPills {
   display: flex;
-  flex-direction: column;
-  max-height: 220px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
-.dmHeroNeedsTitle {
-  display: flex;
+.dmInfoPill {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.79rem;
-  font-weight: 600;
-  color: #9de8df;
-  letter-spacing: 0.04em;
-  margin-bottom: 10px;
-  text-transform: uppercase;
-  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(33, 120, 196, 0.18);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.82rem;
+  color: #3d5a7a;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(33, 120, 196, 0.07);
 }
-.dmNeedsCount {
-  margin-left: auto;
-  background: rgba(255,255,255,0.18);
-  border-radius: 20px;
-  padding: 1px 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #fff;
-  text-transform: none;
+.dmInfoPill .iconify { color: #5a9ecf; }
+.dmInfoPillVerified {
+  border-color: rgba(34, 197, 94, 0.30);
+  color: #15803d;
+  background: rgba(240, 253, 244, 0.85);
 }
-.dmHeroNeedsList {
+.dmInfoPillVerified .iconify { color: #22c55e; }
+
+/* ── Progress Card ── */
+.dmProgressCard {
+  background: rgba(255, 255, 255, 0.90);
+  border-radius: 18px;
+  padding: 20px 22px 16px;
+  border: 1px solid rgba(33, 120, 196, 0.12);
+  box-shadow: 0 4px 24px rgba(33, 120, 196, 0.09);
+}
+
+.dmProgressCardHeader {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow-y: auto;
-  flex: 1;
-  padding-right: 4px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.25) transparent;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
 }
-.dmHeroNeedsList::-webkit-scrollbar       { width: 4px; }
-.dmHeroNeedsList::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.25);
-  border-radius: 4px;
-}
-.dmNeedItem {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  background: rgba(255,255,255,0.09);
-  border-radius: 10px;
-  padding: 7px 10px;
-}
-.dmNeedGenderIcon       { font-size: 1.25rem; flex-shrink: 0; }
-.dmNeedGenderIcon.male  { color: #90caf9; }
-.dmNeedGenderIcon.female { color: #f48fb1; }
-.dmNeedInfo {
+
+.dmProgressLeft {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1;
-  min-width: 0;
 }
-.dmNeedTypeName {
-  font-size: 0.83rem;
+
+.dmProgressLabelText {
+  font-size: 0.78rem;
+  color: #7a9fc0;
+  font-weight: 500;
+}
+
+.dmProgressNumbers {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  line-height: 1;
+}
+
+.dmProgressReceived {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #1a3a5c;
+  line-height: 1;
+}
+
+.dmProgressSep {
+  font-size: 1.1rem;
+  color: #b8d0e8;
+  margin: 0 4px;
+}
+
+.dmProgressTotal {
+  font-size: 1rem;
+  color: #4d7a9f;
   font-weight: 600;
-  color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.dmNeedMeta {
+
+.dmProgressGoal {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dmProgressGoalLabel {
+  font-size: 0.78rem;
+  color: #7a9fc0;
+  font-weight: 500;
+}
+
+.dmProgressGoalPct {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #f7ad19;
+  line-height: 1;
+}
+
+.dmProgressTrack {
+  height: 10px;
+  background: #deeaf5;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.dmProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #f7ad19 0%, #fbbf24 100%);
+  border-radius: 99px;
+  transition: width 0.7s ease;
+}
+
+.dmProgressCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.79rem;
+  color: #7a9fc0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dmProgressDonors {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.73rem;
-  color: rgba(255,255,255,0.65);
-  flex-wrap: wrap;
+  gap: 8px;
+  color: #4d7a9f;
 }
-.dmNeedQty {
-  background: rgba(255,213,79,0.22);
-  color: #ffe082;
-  border-radius: 6px;
-  padding: 1px 6px;
+
+.dmProgressDonors strong { color: #2c5980; }
+
+.dmDonorAvatars {
+  display: flex;
+  align-items: center;
+}
+
+.dmDonorAvatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  margin-left: -7px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.dmDonorAvatar:first-child { margin-left: 0; }
+
+.dmDonorAvatar-blue   { background: #4fa8e8; }
+.dmDonorAvatar-amber  { background: #f7ad19; }
+.dmDonorAvatar-teal   { background: #5bbcb8; }
+.dmDonorAvatar-rose   { background: #fb7185; }
+.dmDonorAvatar-violet { background: #a78bfa; }
+
+.dmDonorAvatarMore {
+  background: #dbeafe;
+  color: #2178c4;
+  font-size: 0.62rem;
   font-weight: 700;
-  font-size: 0.71rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  margin-left: -7px;
+}
+
+.dmProgressStartDate {
+  font-size: 0.78rem;
+  color: #7a9fc0;
+  white-space: nowrap;
 }
 
 /* Loading */
 .dmHeroLoading {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: rgba(255,255,255,0.7);
+  gap: 10px;
+  color: #5a90b8;
   font-size: 0.95rem;
-  padding: 24px 0;
-  position: relative;
-  z-index: 1;
+  padding: 32px 0;
 }
 
 /* ═══════════════════════════════════════════════════════
-   Filter Tabs
+   Right column
 ═══════════════════════════════════════════════════════ */
+.dmHeroRight {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Image Card ── */
+.dmImageCard {
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border: 1px solid rgba(33, 120, 196, 0.13);
+  box-shadow: 0 4px 20px rgba(33, 120, 196, 0.10);
+  background: linear-gradient(135deg, #cce4f7 0%, #ddf0fd 40%, #fef6e4 70%, #fdebc0 100%);
+}
+
+.dmImageCardImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Diagonal stripe placeholder (matches Figma pattern) */
+.dmImageCardPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(33, 120, 196, 0.07) 0px,
+      rgba(33, 120, 196, 0.07) 1px,
+      transparent 1px,
+      transparent 16px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(247, 173, 25, 0.06) 0px,
+      rgba(247, 173, 25, 0.06) 1px,
+      transparent 1px,
+      transparent 16px
+    );
+}
+
+.dmImageCardPlaceholder span {
+  font-size: 0.82rem;
+  color: #7a9fc0;
+  text-align: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.78);
+  border-radius: 12px;
+  border: 1px solid rgba(33, 120, 196, 0.12);
+  max-width: 80%;
+}
+
+/* Active badge at bottom of image */
+.dmImageCardBadge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 99px;
+  padding: 7px 16px;
+  font-size: 0.8rem;
+  color: #2c4f72;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.09);
+}
+
+.dmActiveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.20);
+}
+
+/* ── Stat Cards ── */
+.dmStatCards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dmStatCard {
+  border-radius: 16px;
+  padding: 18px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dmStatCardBlue {
+  background: linear-gradient(135deg, #2178c4 0%, #4baee8 100%);
+  box-shadow: 0 5px 18px rgba(33, 120, 196, 0.32);
+}
+
+.dmStatCardOrange {
+  background: linear-gradient(135deg, #f7ad19 0%, #fbbf24 100%);
+  box-shadow: 0 5px 18px rgba(247, 173, 25, 0.35);
+}
+
+.dmStatIcon {
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.dmStatVal {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.dmStatLabel {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 500;
+}
+
+.dmStatCardOrange .dmStatLabel { color: rgba(100, 58, 0, 0.72); }
+
+/* ── Detail Button ── */
+.dmDetailBtn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #2178c4;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 2px;
+  font-family: inherit;
+  transition: color 0.18s, gap 0.18s;
+}
+.dmDetailBtn:hover {
+  color: #1a6db5;
+  gap: 9px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Products Section
+═══════════════════════════════════════════════════════ */
+.dmMain {
+  padding-top: 32px;
+  border-top: 1px solid rgba(33, 120, 196, 0.10);
+  margin-top: 8px;
+}
+
+/* Filter Tabs */
 .dmFilterTabs {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
+
 .dmFilterTab {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 8px 18px;
   border-radius: 999px;
-  border: 1.5px solid #e2e8f0;
-  background: #fff;
-  color: #374151;
-  font-size: 0.86rem;
+  border: 1.5px solid #dde8f5;
+  background: rgba(255, 255, 255, 0.85);
+  color: #4d7a9f;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.18s;
@@ -336,22 +475,22 @@
   white-space: nowrap;
 }
 .dmFilterTab:hover {
-  border-color: #1565a7;
-  color: #1565a7;
-  background: #eff6ff;
+  border-color: #2178c4;
+  color: #2178c4;
+  background: rgba(255, 255, 255, 0.95);
 }
 .dmFilterTabActive {
-  background: #1565a7;
-  border-color: #1565a7;
+  background: linear-gradient(135deg, #2178c4, #4baee8);
+  border-color: #2178c4;
   color: #fff;
-  box-shadow: 0 3px 10px rgba(21,101,167,0.28);
+  box-shadow: 0 3px 12px rgba(33, 120, 196, 0.30);
 }
 .dmFilterTabActive:hover {
-  background: #0d47a1;
+  background: linear-gradient(135deg, #1a6db5, #3d9cd9);
   color: #fff;
 }
 .dmFilterTabCount {
-  background: rgba(255,255,255,0.28);
+  background: rgba(255, 255, 255, 0.25);
   color: inherit;
   border-radius: 99px;
   padding: 1px 7px;
@@ -360,7 +499,7 @@
   line-height: 1.4;
 }
 .dmFilterTabActive .dmFilterTabCount {
-  background: rgba(255,255,255,0.25);
+  background: rgba(255, 255, 255, 0.28);
   color: #fff;
 }
 
@@ -371,7 +510,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  background: linear-gradient(90deg, #1565a7, #aed7ff);
+  background: linear-gradient(90deg, #2178c4, #5ab8f5);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 600;
@@ -381,13 +520,13 @@
 }
 
 .mkCard:has(.dmMatchBadge) {
-  border: 1.5px solid #1976d2;
-  box-shadow: 0 4px 18px rgba(21,101,167,0.12);
+  border: 1.5px solid #4baee8;
+  box-shadow: 0 4px 18px rgba(33, 120, 196, 0.11);
   border-radius: 12px;
   overflow: hidden;
 }
 .mkCard:has(.dmMatchBadge):hover {
-  box-shadow: 0 8px 28px rgba(21,101,167,0.22);
+  box-shadow: 0 8px 28px rgba(33, 120, 196, 0.20);
   transform: translateY(-2px);
   transition: all 0.2s ease;
 }
@@ -408,7 +547,7 @@
 }
 .dmNeedCountBadge strong { color: #b45309; }
 
-/* ── Buy button ── */
+/* Buy button */
 .dmBuyBtnInline {
   display: inline-flex;
   align-items: center;
@@ -426,8 +565,8 @@
   white-space: nowrap;
 }
 .dmBuyBtnInline:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0d47a1, #1565a7);
-  box-shadow: 0 3px 10px rgba(21,101,167,0.35);
+  background: #e8a016;
+  box-shadow: 0 3px 10px rgba(247, 173, 25, 0.40);
 }
 .dmBuyBtnInline:disabled {
   background: #bdbdbd;
@@ -444,7 +583,7 @@
   margin: 2px 0 4px;
 }
 
-/* ── No match note ── */
+/* No match note */
 .dmNoMatchNote {
   display: flex;
   align-items: center;
@@ -458,7 +597,7 @@
   margin-top: 8px;
 }
 
-/* ── Error ── */
+/* Error */
 .dmErrorWrap {
   display: flex;
   flex-direction: column;
@@ -469,24 +608,31 @@
   text-align: center;
 }
 
-/* ── Main override ── */
-.dmMain { padding-top: 28px; }
-
 /* ═══════════════════════════════════════════════════════
    Responsive
 ═══════════════════════════════════════════════════════ */
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .dmHeroBody {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 28px;
   }
-  .dmHeroRight { max-width: 100%; }
+  .dmHeroRight {
+    max-width: 480px;
+  }
+  .dmImageCard {
+    aspect-ratio: 16 / 7;
+  }
 }
+
 @media (max-width: 600px) {
-  .dmHero { padding: 28px 16px 24px; }
-  .dmHeroTitle { font-size: 1.1rem; }
+  .dmPageInner { padding: 0 16px 36px; }
+  .dmHeroTitle { font-size: 1.35rem; }
+  .dmHeroInfoPills { gap: 6px; }
+  .dmInfoPill { font-size: 0.78rem; padding: 5px 12px; }
+  .dmProgressReceived { font-size: 1.7rem; }
+  .dmProgressGoalPct { font-size: 1.3rem; }
+  .dmStatVal { font-size: 1.8rem; }
   .dmFilterTabs { gap: 6px; }
   .dmFilterTab { padding: 6px 12px; font-size: 0.8rem; }
-  .mkListHeader { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .dmNoMatchNote { width: 100%; box-sizing: border-box; }
+  .dmImageCard { aspect-ratio: 4 / 3; }
 }

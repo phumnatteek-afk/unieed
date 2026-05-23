@@ -574,14 +574,26 @@ function DonationAddressBlock({ shippingAddress, projectTitle }) {
 // ── Omise Card Form ───────────────────────────────────────
 const OMISE_PUBLIC_KEY = import.meta.env.VITE_OMISE_PUBLIC_KEY || "pkey_test_xxxxxxxx";
 
+/* ── Card-type detection ─────────────────────────────────── */
+const detectCardType = (num) => {
+  const d = num.replace(/\s/g, "");
+  if (/^4/.test(d)) return { type: "visa", icon: "logos:visa", label: "Visa", cvcLen: 3 };
+  if (/^5[1-5]/.test(d) || /^2[2-7]/.test(d)) return { type: "mastercard", icon: "logos:mastercard", label: "Mastercard", cvcLen: 3 };
+  if (/^35/.test(d)) return { type: "jcb", icon: "simple-icons:jcb", label: "JCB", cvcLen: 3 };
+  if (/^3[47]/.test(d)) return { type: "amex", icon: "logos:amex", label: "Amex", cvcLen: 4 };
+  return null;
+};
+
 function OmiseCardForm({ amount, onToken, onError, disabled }) {
   const [cardNum,  setCardNum]  = useState("");
-  const [expMonth, setExpMonth] = useState("");
-  const [expYear,  setExpYear]  = useState("");
+  const [expiry,   setExpiry]   = useState("");   // "MM/YY"
   const [cvc,      setCvc]      = useState("");
   const [name,     setName]     = useState("");
   const [loading,  setLoading]  = useState(false);
   const omiseRef = useRef(null);
+
+  const cardType = detectCardType(cardNum);
+  const cvcLen   = cardType?.cvcLen || 3;
 
   useEffect(() => {
     if (window.Omise) { omiseRef.current = window.Omise; return; }
@@ -600,17 +612,26 @@ function OmiseCardForm({ amount, onToken, onError, disabled }) {
     return digits.replace(/(.{4})/g, "$1 ").trim();
   };
 
+  const formatExpiry = (val) => {
+    const digits = val.replace(/\D/g, "").slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  };
+
   const handleSubmit = async () => {
     if (!omiseRef.current) { onError("ระบบชำระเงินยังโหลดไม่สำเร็จ กรุณารอสักครู่"); return; }
-    if (!name || !cardNum || !expMonth || !expYear || !cvc) {
+    const [mm, yy] = expiry.split("/");
+    if (!name || !cardNum || !mm || !yy || !cvc) {
       onError("กรุณากรอกข้อมูลบัตรให้ครบถ้วน"); return;
     }
+    if (cardNum.replace(/\s/g, "").length < 13) { onError("หมายเลขบัตรไม่ถูกต้อง"); return; }
+    if (Number(mm) < 1 || Number(mm) > 12) { onError("เดือนหมดอายุไม่ถูกต้อง (01–12)"); return; }
     setLoading(true);
     omiseRef.current.createToken("card", {
       name,
       number:           cardNum.replace(/\s/g, ""),
-      expiration_month: Number(expMonth),
-      expiration_year:  Number(expYear),
+      expiration_month: Number(mm),
+      expiration_year:  Number(`20${yy}`),
       security_code:    cvc,
     }, (statusCode, response) => {
       setLoading(false);
@@ -628,34 +649,69 @@ function OmiseCardForm({ amount, onToken, onError, disabled }) {
         <Icon icon="mdi:credit-card-outline" />
         <span>ชำระด้วยบัตรเครดิต/เดบิต</span>
         <div className="coCardBrands">
-          <Icon icon="logos:visa" style={{ fontSize: 32 }} />
-          <Icon icon="logos:mastercard" style={{ fontSize: 32 }} />
-          <Icon icon="simple-icons:jcb" style={{ fontSize: 28, color: "#005BAC" }} />
+          <Icon icon="logos:visa" style={{ fontSize: 32, opacity: !cardType || cardType.type === "visa" ? 1 : 0.3, transition: "opacity 0.2s" }} />
+          <Icon icon="logos:mastercard" style={{ fontSize: 32, opacity: !cardType || cardType.type === "mastercard" ? 1 : 0.3, transition: "opacity 0.2s" }} />
+          <Icon icon="simple-icons:jcb" style={{ fontSize: 28, color: "#005BAC", opacity: !cardType || cardType.type === "jcb" ? 1 : 0.3, transition: "opacity 0.2s" }} />
         </div>
       </div>
       <div className="coCardFormBody">
         <div className="coCardField coSpan2">
-          <label>ชื่อบนบัตร</label>
-          <input value={name} onChange={e => setName(e.target.value.toUpperCase())} placeholder="FIRSTNAME LASTNAME" autoComplete="cc-name" disabled={disabled || loading} />
+          <label>ชื่อบนบัตร (ภาษาอังกฤษ)</label>
+          <input value={name} onChange={e => setName(e.target.value.toUpperCase().replace(/[^A-Z\s]/g, ""))} placeholder="FIRSTNAME LASTNAME" autoComplete="cc-name" disabled={disabled || loading} />
         </div>
         <div className="coCardField coSpan2">
-          <label>หมายเลขบัตร</label>
+          <label>
+            หมายเลขบัตร
+            {cardType && (
+              <span style={{ marginLeft: 8, fontSize: 11, color: "#64748b", fontWeight: 400 }}>— {cardType.label}</span>
+            )}
+          </label>
           <div className="coCardNumWrap">
-            <Icon icon="mdi:credit-card-outline" className="coCardNumIcon" />
-            <input value={cardNum} onChange={e => setCardNum(formatCardNum(e.target.value))} placeholder="0000 0000 0000 0000" autoComplete="cc-number" inputMode="numeric" maxLength={19} disabled={disabled || loading} />
+            {cardType
+              ? <Icon icon={cardType.icon} className="coCardNumIcon" style={{ fontSize: 22 }} />
+              : <Icon icon="mdi:credit-card-outline" className="coCardNumIcon" />
+            }
+            <input
+              value={cardNum}
+              onChange={e => setCardNum(formatCardNum(e.target.value))}
+              placeholder="0000 0000 0000 0000"
+              autoComplete="cc-number"
+              inputMode="numeric"
+              maxLength={19}
+              disabled={disabled || loading}
+            />
           </div>
         </div>
         <div className="coCardField">
           <label>วันหมดอายุ</label>
-          <div className="coCardExpRow">
-            <input value={expMonth} onChange={e => setExpMonth(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="MM" inputMode="numeric" maxLength={2} disabled={disabled || loading} className="coCardExpInput" />
-            <span>/</span>
-            <input value={expYear} onChange={e => setExpYear(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="YYYY" inputMode="numeric" maxLength={4} disabled={disabled || loading} className="coCardExpInput" />
-          </div>
+          <input
+            value={expiry}
+            onChange={e => setExpiry(formatExpiry(e.target.value))}
+            placeholder="MM/YY"
+            inputMode="numeric"
+            maxLength={5}
+            autoComplete="cc-exp"
+            disabled={disabled || loading}
+            style={{ letterSpacing: "0.1em" }}
+          />
         </div>
         <div className="coCardField">
-          <label>CVV / CVC</label>
-          <input value={cvc} onChange={e => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="•••" inputMode="numeric" maxLength={4} type="password" disabled={disabled || loading} />
+          <label>
+            {cvcLen === 4 ? "CID (4 หลัก)" : "CVV / CVC"}
+            <span style={{ marginLeft: 6, fontSize: 10, color: "#94a3b8", fontWeight: 400 }}>
+              {cvcLen === 4 ? "(ด้านหน้าบัตร)" : "(หลังบัตร)"}
+            </span>
+          </label>
+          <input
+            value={cvc}
+            onChange={e => setCvc(e.target.value.replace(/\D/g, "").slice(0, cvcLen))}
+            placeholder={"•".repeat(cvcLen)}
+            inputMode="numeric"
+            maxLength={cvcLen}
+            type="password"
+            autoComplete="cc-csc"
+            disabled={disabled || loading}
+          />
         </div>
       </div>
       <div className="coCardTotal">

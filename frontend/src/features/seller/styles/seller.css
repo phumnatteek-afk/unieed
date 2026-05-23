@@ -101,6 +101,7 @@
   width:100%; padding:10px 14px 10px 38px; border-radius:9999px; border:1px solid #e5e7eb;
   font-size:14px; background:#f8fafc;
 }
+.slSearch input::placeholder { color: #64748b; }
 .slSearch__icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; }
 .slSelect { padding:8px 14px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; font-size:14px; }
 
@@ -173,7 +174,17 @@ table.slTable { width:100%; border-collapse: collapse; }
   position:sticky;
   top:0;
   z-index:1;
+  white-space:nowrap;
+  vertical-align:middle;
 }
+/* Transfer table — solid dark blue header, no gradient */
+.slTransferTable th {
+  background:#1e40af !important;
+  color:#fff !important;
+  white-space:nowrap;
+  vertical-align:middle;
+}
+.slTransferTable .slGreen { color:#16a34a; }
 .slTable tbody tr { transition:background 0.12s ease; }
 .slTable tbody tr:hover { background:#f8fafc; }
 .slTxnExpandRow:hover { background:transparent !important; }
@@ -611,7 +622,7 @@ table.slTable { width:100%; border-collapse: collapse; }
   display:flex;
   flex-direction:column;
   min-width:0;
-  background:linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background:#fff;
   border:1px solid #e2e8f0;
 }
 .slTransferCard__header {
@@ -949,4 +960,120 @@ table.slTable { width:100%; border-collapse: collapse; }
   .slTimeFilter__range input { flex:1; }
   .slTxnExpand__meta,
   .slStatGrid--dashboard { grid-template-columns:1fr; }
+}
+
+/* ─── History filter (SellerPayoutsPage) ─────────────────── */
+.slFilterBtn {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 12px;
+  border:1px solid #e2e8f0;
+  border-radius:8px;
+  background:#f8fafc;
+  color:#475569;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  transition:background 0.15s, border-color 0.15s, color 0.15s;
+}
+.slFilterBtn:hover { background:#dbeafe; border-color:#93c5fd; color:#1d4ed8; }
+.slFilterBtn.active { background:#dbeafe; border-color:#93c5fd; color:#1d4ed8; }
+.slHistoryFilter {
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  padding:10px 14px;
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+.slHistoryFilter label {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  font-weight:600;
+  color:#475569;
+}
+.slHistoryFilter input {
+  border:1px solid #bfdbfe;
+  border-radius:8px;
+  padding:5px 9px;
+  font-size:13px;
+  background:#fff;
+  color:#0f172a;
+}
+/* ─── Payouts page time filter strip ─────────────────────── */
+.slPayoutsTimeFilter {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:10px 14px;
+  margin-bottom:18px;
+  background:rgba(255,255,255,0.94);
+  border:1px solid #e2e8f0;
+  border-radius:12px;
+}
+.slPayoutsTimeFilter__chips {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  flex:1;
+}
+.slPayoutsTimeFilter__chips button {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-height:32px;
+  padding:5px 12px;
+  border:1px solid #e2e8f0;
+  border-radius:9999px;
+  background:#f8fafc;
+  color:#475569;
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  transition:background 0.15s, border-color 0.15s, color 0.15s;
+}
+.slPayoutsTimeFilter__chips button:hover {
+  background:#fff;
+  border-color:#bfdbfe;
+  color:#1d4ed8;
+}
+.slPayoutsTimeFilter__chips button.active {
+  background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);
+  border-color:#1d4ed8;
+  color:#fff;
+}
+.slPayoutsTimeFilter__chips button.custom.active {
+  background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);
+  border-color:#0f766e;
+}
+.slPayoutsTimeFilter__range {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.slPayoutsTimeFilter__range label {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  font-weight:600;
+  color:#475569;
+}
+.slPayoutsTimeFilter__range input {
+  border:1px solid #bfdbfe;
+  border-radius:8px;
+  padding:5px 9px;
+  font-size:13px;
+  background:#fff;
+  color:#0f172a;
 }
