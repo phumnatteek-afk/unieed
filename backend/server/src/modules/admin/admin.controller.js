@@ -52,6 +52,12 @@ export async function getSchoolDetail(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function getSchoolAdminsList(req, res, next) {
+  try {
+    res.json(await svc.getSchoolAdminsList(req.params.id));
+  } catch (e) { next(e); }
+}
+
 export async function updateSchool(req, res, next) {
   try {
     res.json(await svc.updateSchool(req.params.id, req.body));

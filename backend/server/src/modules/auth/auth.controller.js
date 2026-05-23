@@ -153,6 +153,16 @@ export async function removeSchoolAdmin(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function setSchoolAdminPrimary(req, res, next) {
+  try {
+    const schoolId = req.user.school_id;
+    const targetUserId = req.params.userId;
+    const requesterId = req.user.user_id;
+    if (!schoolId) return res.status(400).json({ message: "ไม่พบข้อมูลโรงเรียน" });
+    res.json(await svc.setPrimaryAdmin(schoolId, targetUserId, requesterId));
+  } catch (e) { next(e); }
+}
+
 export async function inviteSchoolAdmin(req, res, next) {
   try {
     const schoolId = req.user.school_id;

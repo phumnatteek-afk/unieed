@@ -67,7 +67,7 @@ export async function listSchools({ status = "", q = "", sort = "latest" } = {})
     LEFT JOIN users u ON u.user_id = (
       SELECT user_id FROM users
       WHERE school_id = s.school_id AND role = 'school_admin'
-      ORDER BY user_id ASC LIMIT 1
+      ORDER BY is_primary DESC, joined_school_at ASC LIMIT 1
     )
     ${whereSql} ${orderSql}
   `, params);
@@ -149,11 +149,28 @@ export async function getSchoolDetail(school_id) {
   const [rows] = await db.query(`
     SELECT s.*, u.user_name AS coordinator_name, u.user_email AS coordinator_email
     FROM schools s
-    LEFT JOIN users u ON u.school_id = s.school_id AND u.role = 'school_admin'
-    WHERE s.school_id = ? LIMIT 1
+    LEFT JOIN users u ON u.user_id = (
+      SELECT user_id FROM users
+      WHERE school_id = s.school_id AND role = 'school_admin'
+      ORDER BY is_primary DESC, joined_school_at ASC LIMIT 1
+    )
+    WHERE s.school_id = ?
   `, [id]);
   if (!rows.length) throw Object.assign(new Error("ไม่พบโรงเรียน"), { status: 404 });
   return rows[0];
+}
+
+export async function getSchoolAdminsList(school_id) {
+  const id = Number(school_id);
+  if (!Number.isFinite(id)) throw Object.assign(new Error("school_id ไม่ถูกต้อง"), { status: 400 });
+  const [rows] = await db.query(
+    `SELECT user_id, user_name, user_email, is_primary, joined_school_at, created_at
+     FROM users
+     WHERE school_id = ? AND role = 'school_admin'
+     ORDER BY is_primary DESC, joined_school_at ASC`,
+    [id]
+  );
+  return rows;
 }
 
 export async function updateSchool(school_id, payload = {}) {

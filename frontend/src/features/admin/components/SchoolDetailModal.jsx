@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "../styles/schoolDetailModal.css";
 import { Icon } from "@iconify/react";
+import * as svc from "../services/admin.service.js";
 
 export default function SchoolDetailModal({
   open,
@@ -26,6 +27,12 @@ export default function SchoolDetailModal({
 
   const [editMode, setEditMode] = useState(false);
   const [e, setE] = useState("");
+  const [schoolAdmins, setSchoolAdmins] = useState([]);
+
+  useEffect(() => {
+    if (!open || !s.school_id) return;
+    svc.getSchoolAdmins(s.school_id).then(setSchoolAdmins).catch(() => setSchoolAdmins([]));
+  }, [open, s.school_id]);
 
   // ✅ เพิ่มฟิลด์ผู้ประสานงาน + แอดมินโรงเรียน
   const [f, setF] = useState({
@@ -294,32 +301,27 @@ export default function SchoolDetailModal({
                 </div>
               </div>
 
-              {/* ===== ผู้ประสานงาน ===== */}
-              <div className="sdSectionTitle" style={{ marginTop: 12 }}>ผู้ประสานงาน</div>
-
-              <div className="sdInfoRow">
-                <div className="sdKey">ชื่อ</div>
-                <div className="sdVal">
-                  {editMode ? (
-                    <input className="sdInput" name="coordinator_name" value={f.coordinator_name} onChange={onChange} disabled={busy} />
-                  ) : (
-                    school.coordinator_name || "-"
-                  )}
-                </div>
-              </div>
-
-              <div className="sdInfoRow">
-                <div className="sdKey">อีเมล</div>
-                <div className="sdVal">
-                  {editMode ? (
-                    <input className="sdInput" name="coordinator_email" value={f.coordinator_email} onChange={onChange} disabled={busy} />
-                  ) : (
-                    school.coordinator_email || "-"
-                  )}
-                </div>
-              </div>
 
 
+
+              {/* ===== ผู้ดูแลระบบโรงเรียน ===== */}
+              {schoolAdmins.length > 0 && (
+                <>
+                  <div className="sdSectionTitle" style={{ marginTop: 12 }}>ผู้ดูแลระบบโรงเรียน</div>
+                  {schoolAdmins.map((a, i) => (
+                    <div key={a.user_id} className="sdInfoRow" style={{ alignItems: "center" }}>
+                      <div className="sdKey" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <Icon icon="mdi:account-circle" style={{ fontSize: 16, color: "#64748b" }} />
+                        {(a.is_primary || i === 0) ? "แอดมินหลัก" : `แอดมิน ${i + 1}`}
+                      </div>
+                      <div className="sdVal" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span style={{ fontWeight: 600 }}>{a.user_name}</span>
+                        <span style={{ fontSize: 12, color: "#64748b" }}>{a.user_email}</span>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
 
               {/* ===== เอกสาร/หมายเหตุ ===== */}
               <div className="sdInfoRow">

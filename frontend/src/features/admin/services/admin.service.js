@@ -1,5 +1,10 @@
 import { request } from "../../../api/http.js";
 
+/** GET /admin/schools/:id/admins */
+export function getSchoolAdmins(id) {
+  return request(`/admin/schools/${id}/admins`, { method: "GET", auth: true });
+}
+
 /** GET /admin/schools?q=&status=&sort= */
 export function listSchools({ q = "", status = "", sort = "latest" } = {}) {
   const params = new URLSearchParams();

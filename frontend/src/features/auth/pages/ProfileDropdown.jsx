@@ -345,6 +345,8 @@ function ManageAdminsModal({ onClose, currentUserId }) {
   const [err, setErr] = useState("");
   const [success, setSuccess] = useState("");
   const [pendingRemove, setPendingRemove] = useState(null);
+  const [pendingSetPrimary, setPendingSetPrimary] = useState(null);
+  const [setPrimaryLoading, setSetPrimaryLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -389,6 +391,22 @@ const handleAdd = async (e) => {
       setPendingRemove(null);
     } catch (e) { setErr(e?.message || "ลบไม่สำเร็จ"); setPendingRemove(null); }
   };
+
+  const confirmSetPrimary = async () => {
+    if (!pendingSetPrimary || setPrimaryLoading) return;
+    try {
+      setSetPrimaryLoading(true);
+      await request(`/auth/school-admins/${pendingSetPrimary.userId}/set-primary`, { method: "PATCH", auth: true });
+      const data = await request("/auth/school-admins", { auth: true });
+      setAdmins(data);
+      setSuccess(`โอนตำแหน่งแอดมินหลักให้ "${pendingSetPrimary.name}" สำเร็จ`);
+      setTimeout(() => setSuccess(""), 5000);
+      setPendingSetPrimary(null);
+    } catch (e) { setErr(e?.message || "โอนตำแหน่งไม่สำเร็จ"); setPendingSetPrimary(null); }
+    finally { setSetPrimaryLoading(false); }
+  };
+
+  const iAmPrimary = admins.length > 0 && Number(admins[0].user_id) === Number(currentUserId);
 
   return (
     <>
@@ -487,13 +505,24 @@ const handleAdd = async (e) => {
       <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{a.user_email}</div>
     </div>
     {Number(a.user_id) !== Number(currentUserId) && index !== 0 && (
-  <button onClick={() => handleRemove(a.user_id, a.user_name)} style={{
-    background: "#FEF2F2", border: "none", borderRadius: 8,
-    padding: "7px", cursor: "pointer", color: "#DC2626",
-    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-  }}>
-    <Icon icon="mdi:trash-can-outline" width="18"/>
-  </button>
+  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+    {iAmPrimary && (
+      <button onClick={() => setPendingSetPrimary({ userId: a.user_id, name: a.user_name })} title="ตั้งเป็นแอดมินหลัก" style={{
+        background: "#FFFBEB", border: "none", borderRadius: 8,
+        padding: "7px", cursor: "pointer", color: "#B45309",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <Icon icon="mdi:crown-outline" width="18"/>
+      </button>
+    )}
+    <button onClick={() => handleRemove(a.user_id, a.user_name)} style={{
+      background: "#FEF2F2", border: "none", borderRadius: 8,
+      padding: "7px", cursor: "pointer", color: "#DC2626",
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <Icon icon="mdi:trash-can-outline" width="18"/>
+    </button>
+  </div>
 )}
   </div>
 ))}
@@ -550,6 +579,48 @@ const handleAdd = async (e) => {
         </div>
       </div>
     </div>
+
+    {/* ── Confirm โอนตำแหน่งแอดมินหลัก ── */}
+    {pendingSetPrimary && (
+      <div onClick={() => { if (!setPrimaryLoading) setPendingSetPrimary(null); }} style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 10000, padding: 20,
+      }}>
+        <div onClick={e => e.stopPropagation()} style={{
+          background: "#fff", borderRadius: 16, padding: 28,
+          maxWidth: 380, width: "100%",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.2)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#FFFBEB", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icon icon="mdi:crown" width="22" color="#B45309"/>
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a2e" }}>โอนตำแหน่งแอดมินหลัก?</div>
+          </div>
+          <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7, marginBottom: 20 }}>
+            <strong style={{ color: "#1a1a2e" }}>"{pendingSetPrimary.name}"</strong> จะกลายเป็นแอดมินหลักของโรงเรียน
+            <br/>คุณจะกลายเป็นแอดมินรองและไม่สามารถโอนตำแหน่งคืนเองได้
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={() => setPendingSetPrimary(null)}
+              disabled={setPrimaryLoading}
+              style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            >
+              ยกเลิก
+            </button>
+            <button
+              onClick={confirmSetPrimary}
+              disabled={setPrimaryLoading}
+              style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: "#B45309", color: "#fff", fontSize: 13, fontWeight: 700, cursor: setPrimaryLoading ? "not-allowed" : "pointer", opacity: setPrimaryLoading ? 0.7 : 1 }}
+            >
+              {setPrimaryLoading ? "กำลังโอน..." : "ยืนยันโอนตำแหน่ง"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* ── Confirm ลบผู้ดูแล ── */}
     {pendingRemove && (
