@@ -17,6 +17,7 @@ import checkoutRoutes from "./modules/checkout/checkout.routes.js";
 
 import autocheckRoutes from "./modules/autocheck/autocheck.routes.js";
 import { runProjectLifecycleCron } from "./cron/projectLifecycle.js";
+import { runOrderLifecycleCron }   from "./cron/orderLifecycle.js";
 import orderRoutes from "./modules/orders/order.routes.js";
 import sellerRoutes from "./modules/seller/seller.routes.js";
 import aiRoutes     from "./modules/ai/ai.routes.js";
@@ -64,5 +65,10 @@ app.use((err, req, res, next) => {
 // รัน cron ทันทีตอน server start แล้วตั้ง interval ทุก 24 ชั่วโมง
 runProjectLifecycleCron();
 setInterval(runProjectLifecycleCron, 24 * 60 * 60 * 1000);
+
+// order lifecycle: auto-cancel (3 วัน), warn seller (2 วัน), auto-confirm (7 วัน)
+// รันทุก 1 ชั่วโมงเพื่อให้ timing แม่นยำ
+runOrderLifecycleCron();
+setInterval(runOrderLifecycleCron, 60 * 60 * 1000);
 
 export default app;
