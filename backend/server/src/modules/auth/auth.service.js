@@ -522,13 +522,42 @@ export async function updateProfile(userId, { user_name }) {
 // ดึงรายชื่อแอดมินทั้งหมดของโรงเรียนนี้
 export async function getSchoolAdmins(schoolId) {
   const [rows] = await db.query(
-    `SELECT user_id, user_name, user_email, created_at
+    `SELECT user_id, user_name, user_email, is_primary, joined_school_at, created_at
      FROM users
      WHERE school_id = ? AND role = 'school_admin'
      ORDER BY is_primary DESC, joined_school_at ASC`,
     [schoolId]
   );
   return rows;
+}
+
+export async function setPrimaryAdmin(schoolId, targetUserId, requesterId) {
+  const [[requester]] = await db.query(
+    `SELECT is_primary FROM users WHERE user_id = ? AND school_id = ? AND role = 'school_admin'`,
+    [requesterId, schoolId]
+  );
+  if (!requester?.is_primary) {
+    throw Object.assign(new Error("เฉพาะแอดมินหลักเท่านั้นที่โอนตำแหน่งได้"), { status: 403 });
+  }
+  if (Number(targetUserId) === Number(requesterId)) {
+    throw Object.assign(new Error("คุณเป็นแอดมินหลักอยู่แล้ว"), { status: 400 });
+  }
+  const [[target]] = await db.query(
+    `SELECT user_id FROM users WHERE user_id = ? AND school_id = ? AND role = 'school_admin'`,
+    [targetUserId, schoolId]
+  );
+  if (!target) {
+    throw Object.assign(new Error("ไม่พบผู้ดูแลคนนี้"), { status: 404 });
+  }
+  await db.query(
+    `UPDATE users SET is_primary = 0 WHERE school_id = ? AND role = 'school_admin'`,
+    [schoolId]
+  );
+  await db.query(
+    `UPDATE users SET is_primary = 1 WHERE user_id = ?`,
+    [targetUserId]
+  );
+  return { success: true };
 }
 
 // เพิ่มแอดมินใหม่

@@ -16,8 +16,9 @@ import {
   getSchoolAdmins,
   addSchoolAdmin,
   removeSchoolAdmin,
-  inviteSchoolAdmin,       
-  acceptSchoolAdminInvite,  
+  setSchoolAdminPrimary,
+  inviteSchoolAdmin,
+  acceptSchoolAdminInvite,
   checkInviteToken,
 } from "./auth.controller.js";
 
@@ -53,6 +54,7 @@ r.patch("/profile", auth, updateProfile);
 r.get("/school-admins", auth, getSchoolAdmins);
 r.post("/school-admins", auth, addSchoolAdmin);
 r.delete("/school-admins/:userId", auth, removeSchoolAdmin);
+r.patch("/school-admins/:userId/set-primary", auth, setSchoolAdminPrimary);
 
 //invite school admin flow:
 r.post("/school-admins/invite", auth, inviteSchoolAdmin);

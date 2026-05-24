@@ -19,7 +19,7 @@
 .dbTimeFilter__icon {
   width: 36px; height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg,#29b6e8,#0284c7);
+  background: #5285e8;
   display: flex; align-items: center; justify-content: center;
   color: #fff; flex-shrink: 0;
 }
@@ -30,6 +30,7 @@
   background: #eff6ff; border: 1px solid #bfdbfe;
   border-radius: 20px; padding: 5px 12px;
   font-size: 12px; font-weight: 700; color: #1d4ed8;
+  display: flex; align-items: center; gap: 4px;
 }
 .dbTimeFilter__chips {
   display: flex; gap: 6px; flex-wrap: wrap;
@@ -41,14 +42,14 @@
   color: #475569; transition: all 0.15s ease; font-family: inherit;
 }
 .dbTimeChip--active {
-  background: #29b6e8; color: #fff; border-color: #29b6e8;
-  box-shadow: 0 2px 8px rgba(41,182,232,0.3);
+  background: #5285e8; color: #fff; border-color: #5285e8;
+  box-shadow: 0 2px 8px rgba(82,133,232,0.3);
   transform: translateY(-1px);
 }
 .dbTimeChip--custom { border-color: #e2e8f0; }
 .dbTimeChip--customActive {
-  background: #7c3aed; color: #fff; border-color: #7c3aed;
-  box-shadow: 0 2px 8px rgba(124,58,237,0.3);
+  background: #5285e8; color: #fff; border-color: #5285e8;
+  box-shadow: 0 2px 8px rgba(82,133,232,0.3);
 }
 .dbTimeFilter__range {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
@@ -59,18 +60,18 @@
 .dbTimeFilter__rangeGroup { display: flex; align-items: center; gap: 8px; }
 .dbTimeFilter__rangeIcon {
   width: 28px; height: 28px; border-radius: 8px;
-  background: #7c3aed; color: #fff; display: flex;
+  background: #5285e8; color: #fff; display: flex;
   align-items: center; justify-content: center; font-size: 12px;
 }
-.dbTimeFilter__rangeLabel { font-size: 10px; font-weight: 700; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
-.dbTimeFilter__arrow { font-size: 18px; color: #7c3aed; padding-top: 14px; }
+.dbTimeFilter__rangeLabel { font-size: 10px; font-weight: 700; color: #5285e8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+.dbTimeFilter__arrow { font-size: 18px; color: #5285e8; padding-top: 14px; }
 .dbTimeFilter__dateInput {
   border: 1.5px solid #ddd6fe; border-radius: 8px;
   padding: 5px 10px; font-size: 13px; color: #1e293b;
   background: #fff; font-family: inherit; cursor: pointer;
   transition: border-color 0.15s;
 }
-.dbTimeFilter__dateInput:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+.dbTimeFilter__dateInput:focus { outline: none; border-color: #5285e8; box-shadow: 0 0 0 3px rgba(82,133,232,0.2); }
 
 /* ── Project banner ── */
 .dbProjectCard {

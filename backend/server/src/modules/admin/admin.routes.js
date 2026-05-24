@@ -10,6 +10,7 @@ import {
   adminUnsuspendSchool,
   adminOverview,
   getSchoolDetail,
+  getSchoolAdminsList,
   updateSchool,
   adminUpdateSchool,
   adminRevenue,
@@ -33,6 +34,7 @@ const r = Router();
 /* ─── Schools ─── */
 r.get("/schools",             auth, requireRole(["admin"]), adminListSchools);
 r.get("/schools/:id",         auth, requireRole(["admin"]), getSchoolDetail);
+r.get("/schools/:id/admins",  auth, requireRole(["admin"]), getSchoolAdminsList);
 r.put("/schools/:id",         auth, requireRole(["admin"]), updateSchool);
 r.patch("/schools/:id",       auth, requireRole(["admin"]), adminUpdateSchool);
 r.post("/schools/:id/approve",   auth, requireRole(["admin"]), adminApproveSchool);
