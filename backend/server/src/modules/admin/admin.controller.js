@@ -102,8 +102,10 @@ export async function adminPendingTasks(req, res, next) {
 
 export async function adminListOrders(req, res, next) {
   try {
-    const { status = "", q = "", page = 1, limit = 10, seller_id = "", period = "month", start_date = "", end_date = "" } = req.query;
-    res.json(await svc.listOrders({ status, q, page: Number(page), limit: Number(limit), seller_id, period, start_date, end_date }));
+    const { status = "", q = "", page = 1, limit = 10, seller_id = "", period = "month", start_date = "", end_date = "", payout_status = "" } = req.query;
+    res.json(await svc.listOrders({
+      status, q, page: Number(page), limit: Number(limit), seller_id, period, start_date, end_date, payout_status,
+    }));
   } catch (e) { next(e); }
 }
 
@@ -132,8 +134,28 @@ export async function adminCancelOrder(req, res, next) {
 
 export async function adminListPayouts(req, res, next) {
   try {
-    const { period = "week", page = 1, limit = 10 } = req.query;
-    res.json(await svc.listPayouts({ period, page: Number(page), limit: Number(limit) }));
+    const {
+      period = "week",
+      page = 1,
+      limit = 10,
+      pending_page = page,
+      pending_limit = limit,
+      history_page = page,
+      history_limit = limit,
+      start_date = "",
+      end_date = "",
+    } = req.query;
+    res.json(await svc.listPayouts({
+      period,
+      page: Number(page),
+      limit: Number(limit),
+      pending_page: Number(pending_page),
+      pending_limit: Number(pending_limit),
+      history_page: Number(history_page),
+      history_limit: Number(history_limit),
+      start_date,
+      end_date,
+    }));
   } catch (e) { next(e); }
 }
 

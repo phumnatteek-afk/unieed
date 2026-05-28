@@ -4,6 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import { getSocket } from "../lib/socket.js";
+import {
+  getNotifAction,
+  parseNotifBody,
+  NOTIF_ICONS,
+  NOTIF_ICON_CLASS,
+} from "../utils/notificationActions.js";
 import "./styles/NotificationBell.css";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
@@ -275,7 +281,7 @@ function StrikeAppealPopup({ notif, onClose }) {
 }
 
 // ── Suspension Popup ───────────────────────────────────────────────
-function SuspensionPopup({ notif, onClose, isAdmin, onAppeal, hasPendingAppeal, onViewAppeal }) {
+function SuspensionPopup({ notif, onClose, isAdmin, onAppeal, hasPendingAppeal, onViewAppeal, onAdminReview }) {
   let body = {};
   try { body = JSON.parse(notif.body); } catch { /* noop */ }
 
@@ -309,6 +315,15 @@ function SuspensionPopup({ notif, onClose, isAdmin, onAppeal, hasPendingAppeal, 
             </div>
           )}
           <div className="nb-cert-actions">
+            {isAdmin && onAdminReview && (
+              <button
+                className="nb-cert-btn"
+                onClick={onAdminReview}
+                style={{ background: "#2563eb", color: "#fff", border: "none" }}
+              >
+                ไปตรวจสอบ →
+              </button>
+            )}
             {!isAdmin && (
               hasPendingAppeal ? (
                 <button
@@ -526,7 +541,7 @@ function DonationIssuePopup({ notif, onClose, onNavigate, token, isSuspended, on
 }
 
 // ── Certificate Popup ──────────────────────────────────────────────
-function CertificatePopup({ notif, onClose }) {
+function CertificatePopup({ notif, onClose, onViewAll }) {
   const [confetti, setConfetti] = useState(true);
 
   useEffect(() => {
@@ -650,6 +665,14 @@ function CertificatePopup({ notif, onClose }) {
                 ⬇ ดาวน์โหลด PDF
               </a>
             )}
+            <button
+              type="button"
+              className="nb-cert-btn"
+              style={{ background: "#29B6E8", color: "#fff", border: "none" }}
+              onClick={() => { onClose(); onViewAll?.(); }}
+            >
+              ดูใบประกาศทั้งหมด →
+            </button>
             <button className="nb-cert-btn nb-cert-btn--close" onClick={onClose}>
               ปิด
             </button>
@@ -815,6 +838,41 @@ export default function NotificationBell() {
     } catch { /* silent */ }
   };
 
+  const openNotifPopup = (notif) => {
+    switch (notif.type) {
+      case "certificate":
+        setCertPopup(notif);
+        break;
+      case "donation_issue":
+        setIssuePopup(notif);
+        break;
+      case "suspension":
+        setSuspensionPopup(notif);
+        fetch(`${BASE}/donations/my-suspension`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : null)
+          .then(d => {
+            if (d) {
+              setHasPendingAppeal(!!d.has_pending_appeal);
+              if (d.appeal_reason) setAppealViewReason(d.appeal_reason);
+            }
+          })
+          .catch(() => {});
+        break;
+      case "strike_reset":
+        setStrikeResetPopup(notif);
+        break;
+      case "strike_appeal":
+        setStrikeAppealPopup(notif);
+        break;
+      case "wrong_item_report":
+      case "donation_clarify":
+        setWrongItemPopup(notif);
+        break;
+      default:
+        break;
+    }
+  };
+
   const handleNotifClick = async (notif) => {
     if (!notif.is_read) {
       if (notif.notification_id === "synthetic_suspension") {
@@ -824,36 +882,17 @@ export default function NotificationBell() {
         await markRead(notif.notification_id);
       }
     }
-    if (notif.type === "certificate") {
-      setOpen(false);
-      setCertPopup(notif);
-    } else if (notif.type === "donation_issue") {
-      setOpen(false);
-      setIssuePopup(notif);
-    } else if (notif.type === "suspension") {
-      setOpen(false);
-      setSuspensionPopup(notif);
-      fetch(`${BASE}/donations/my-suspension`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : null)
-        .then(d => {
-          if (d) {
-            setHasPendingAppeal(!!d.has_pending_appeal);
-            if (d.appeal_reason) setAppealViewReason(d.appeal_reason);
-          }
-        })
-        .catch(() => {});
-    } else if (notif.type === "admin_approved") {
-      setOpen(false);
-      navigate("/school/donations");
-    } else if (notif.type === "strike_reset") {
-      setOpen(false);
-      setStrikeResetPopup(notif);
-    } else if (notif.type === "strike_appeal") {
-      setOpen(false);
-      setStrikeAppealPopup(notif);
-    } else if (notif.type === "wrong_item_report" || notif.type === "donation_clarify") {
-      setOpen(false);
-      setWrongItemPopup(notif);
+
+    setOpen(false);
+    const action = getNotifAction(notif, role);
+
+    if (action.mode === "popup") {
+      openNotifPopup(notif);
+      return;
+    }
+    if (action.mode === "navigate" && action.path) {
+      navigate(action.path, action.state ? { state: action.state } : undefined);
+      return;
     }
   };
 
@@ -908,36 +947,35 @@ export default function NotificationBell() {
                   <div className="nb-empty-text">ยังไม่มีการแจ้งเตือน</div>
                 </div>
               ) : displayNotifs.map(notif => {
-                const isCert          = notif.type === "certificate";
-                const isSuspension    = notif.type === "suspension";
-                const isAdminApproved = notif.type === "admin_approved";
-                let body = {};
-                try { body = JSON.parse(notif.body); } catch { /* noop */ }
+                const body   = parseNotifBody(notif);
+                const action = getNotifAction(notif, role);
+                const iconCls = NOTIF_ICON_CLASS[notif.type] || NOTIF_ICON_CLASS.default;
+                const iconName = NOTIF_ICONS[notif.type] || NOTIF_ICONS.default;
+                const preview = body.message || (typeof notif.body === "string" && !notif.body.startsWith("{") ? notif.body : null);
 
                 return (
                   <div
                     key={notif.notification_id}
                     className={`nb-item ${!notif.is_read ? "nb-item--unread" : ""}`}
                     onClick={() => handleNotifClick(notif)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNotifClick(notif); } }}
                   >
-                    <div className={`nb-item-icon ${isCert ? "nb-item-icon--cert" : isSuspension ? "nb-item-icon--suspension" : isAdminApproved ? "nb-item-icon--approved" : "nb-item-icon--default"}`}>
-                      <Icon
-                        icon={isCert ? "mdi:certificate-outline" : isSuspension ? "mdi:account-cancel" : isAdminApproved ? "mdi:check-circle-outline" : "mdi:bell"}
-                        width="18"
-                        style={{ color: "#fff" }}
-                      />
+                    <div className={`nb-item-icon ${iconCls}`}>
+                      <Icon icon={iconName} width="18" style={{ color: "#fff" }} />
                     </div>
                     <div className="nb-item-body">
                       <div className={`nb-item-title ${!notif.is_read ? "nb-item-title--bold" : "nb-item-title--normal"}`}>
                         {notif.title}
                       </div>
-                      {(isCert || isAdminApproved) && body.message && (
-                        <div className="nb-item-preview">"{body.message}"</div>
+                      {preview && (
+                        <div className="nb-item-preview">"{preview}"</div>
                       )}
-                      {isCert && (
+                      {action.chip && (
                         <div className="nb-item-chip">
-                          <Icon icon="mdi:download" width="11" />
-                          รับใบประกาศนียบัตร
+                          <Icon icon="mdi:arrow-right-circle-outline" width="11" />
+                          {action.chip}
                         </div>
                       )}
                       <div className="nb-item-time">{timeAgo(notif.created_at)}</div>
@@ -951,7 +989,26 @@ export default function NotificationBell() {
             {/* Footer */}
             {notifs.length > 0 && (
               <div className="nb-footer">
-                <a href="/donations/history">ดูประวัติการบริจาคทั้งหมด →</a>
+                {role === "school_admin" && (
+                  <button type="button" className="nb-footer-link" onClick={() => { setOpen(false); navigate("/school/donations"); }}>
+                    ดูรายการบริจาคทั้งหมด →
+                  </button>
+                )}
+                {role === "seller" && (
+                  <button type="button" className="nb-footer-link" onClick={() => { setOpen(false); navigate("/seller/orders"); }}>
+                    ดูออเดอร์ทั้งหมด →
+                  </button>
+                )}
+                {(!role || role === "donor" || role === "user") && (
+                  <button type="button" className="nb-footer-link" onClick={() => { setOpen(false); navigate("/donations/history"); }}>
+                    ดูประวัติการบริจาคทั้งหมด →
+                  </button>
+                )}
+                {role === "admin" && (
+                  <button type="button" className="nb-footer-link" onClick={() => { setOpen(false); navigate("/admin/wrong-items"); }}>
+                    ไปหน้าตรวจสอบ →
+                  </button>
+                )}
               </div>
             )}
 
@@ -964,6 +1021,7 @@ export default function NotificationBell() {
         <CertificatePopup
           notif={certPopup}
           onClose={() => setCertPopup(null)}
+          onViewAll={() => navigate("/profile/certificates")}
         />
       )}
 
@@ -992,6 +1050,7 @@ export default function NotificationBell() {
           hasPendingAppeal={hasPendingAppeal}
           onAppeal={() => { setSuspensionPopup(null); setAppealModal(true); }}
           onViewAppeal={() => { setSuspensionPopup(null); setAppealViewModal(true); }}
+          onAdminReview={isAdmin ? () => { setSuspensionPopup(null); navigate("/admin/wrong-items"); } : undefined}
         />
       )}
 

@@ -42,6 +42,41 @@ function translateGenderInText(text) {
     .replace(/\bmale\b/g, "ชาย")
     .replace(/\bfemale\b/g, "หญิง");
 }
+/** Normalize student codes so "00001" and "1" compare equal */
+function normStudentCode(code) {
+  const s = String(code ?? "").trim();
+  if (!s) return "";
+  if (/^\d+$/.test(s)) return String(parseInt(s, 10));
+  return s;
+}
+function needsHash(ns) {
+  return JSON.stringify(
+    (ns || []).map(n => `${n.uniform_type_id}:${JSON.stringify(normalizeSize(n.size))}:${n.quantity_needed}`).sort()
+  );
+}
+function needMatchKeyFromNeed(n) {
+  return `${n.uniform_type_id}:${JSON.stringify(normalizeSize(n.size))}`;
+}
+/** สรุปผล merge สำหรับแสดงใน preview */
+function summarizeNeedsMerge(existingNeeds, incomingNeeds) {
+  const byKey = new Map();
+  for (const ex of existingNeeds || []) byKey.set(needMatchKeyFromNeed(ex), ex);
+  let newItems = 0, qtyUpdates = 0;
+  for (const inc of incomingNeeds || []) {
+    const key = needMatchKeyFromNeed(inc);
+    const ex = byKey.get(key);
+    if (!ex) newItems++;
+    else if (Number(inc.quantity_needed) > Number(ex.quantity_needed)) qtyUpdates++;
+  }
+  return { newItems, qtyUpdates };
+}
+function mergeActionLabel(existingStudent, incomingNeeds) {
+  const { newItems, qtyUpdates } = summarizeNeedsMerge(existingStudent?.needs, incomingNeeds);
+  const parts = [];
+  if (newItems > 0) parts.push(`+${newItems} ชุดใหม่`);
+  if (qtyUpdates > 0) parts.push(`อัปเดตจำนวน ${qtyUpdates} รายการ`);
+  return parts.length ? parts.join(", ") : "อัปเดตข้อมูล";
+}
 function needsToUniforms(needs) {
   const u = { 1: { size: "", qty: 0 }, 2: { size: "", qty: 0 }, 3: { size: "", qty: 0 }, 4: { size: "", qty: 0 } };
   for (const n of (needs || [])) {
@@ -198,19 +233,23 @@ function buildRowIssues(rows, existing) {
   // Code dup within file
   const codeToIdx = new Map();
   rows.forEach((s, i) => {
-    if (!s.student_code || !/^\d+$/.test(s.student_code)) return;
-    if (codeToIdx.has(s.student_code)) {
-      const prevIdx = codeToIdx.get(s.student_code);
+    if (!s.student_code || !/^\d+$/.test(String(s.student_code).trim())) return;
+    const nc = normStudentCode(s.student_code);
+    if (codeToIdx.has(nc)) {
+      const prevIdx = codeToIdx.get(nc);
       addErr(i,       `รหัสนักเรียน ${s.student_code} ซ้ำกับแถวที่ ${rows[prevIdx]._rowNum} ในไฟล์`);
-      addErr(prevIdx, `รหัสนักเรียน ${s.student_code} ซ้ำกับแถวที่ s._rowNum ในไฟล์`);
-    } else codeToIdx.set(s.student_code, i);
+      addErr(prevIdx, `รหัสนักเรียน ${s.student_code} ซ้ำกับแถวที่ ${s._rowNum} ในไฟล์`);
+    } else codeToIdx.set(nc, i);
   });
 
-  // Code dup in system
-  const sysCodeSet = new Set(existing.map(e => e.student_code).filter(Boolean));
+  // Code dup in system → soft warning (import จะอัปเดตผ่าน detectSimilarity ไม่ block)
+  const sysCodeSet = new Set(
+    existing.map(e => normStudentCode(e.student_code)).filter(Boolean)
+  );
   rows.forEach((s, i) => {
-    if (s.student_code && /^\d+$/.test(s.student_code) && sysCodeSet.has(s.student_code))
-      addErr(i, `รหัสนักเรียน ${s.student_code} มีในระบบแล้ว`);
+    const nc = normStudentCode(s.student_code);
+    if (nc && /^\d+$/.test(String(s.student_code).trim()) && sysCodeSet.has(nc))
+      addErr(i, `รหัสนักเรียน ${s.student_code} มีในระบบแล้ว — จะอัปเดตข้อมูล`, true);
   });
 
   // Code format inconsistency (soft)
@@ -229,15 +268,41 @@ function buildRowIssues(rows, existing) {
 }
 
 // ─── detectSimilarity — name vs existing DB ───────────────────────────────────
+function normalizeSize(size) {
+  if (!size) return {};
+  if (typeof size === "string") { try { return JSON.parse(size); } catch { return {}; } }
+  return size;
+}
+
 function detectSimilarity(rows, existing) {
   const result = new Map();
+  const codeToExisting = new Map();
+  for (const ex of existing) {
+    const nc = normStudentCode(ex.student_code);
+    if (nc) codeToExisting.set(nc, ex);
+  }
+
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
+    const nc = normStudentCode(r.student_code);
+
+    // จับคู่ด้วยรหัสนักเรียนก่อน (กรณี import แถวที่มีรหัสซ้ำในระบบ)
+    if (nc && codeToExisting.has(nc)) {
+      const ex = codeToExisting.get(nc);
+      const coreMatch = r.gender === ex.gender && r.education_level === ex.education_level && r.urgency === ex.urgency;
+      const sameName = r.student_name.trim().toLowerCase() === (ex.student_name || "").trim().toLowerCase();
+      const needsSame = needsHash(r.needs) === needsHash(ex.needs || ex.uniform_needs);
+      if (needsSame && coreMatch && sameName)
+        result.set(i, { type: "exact", existingStudent: ex, matchFields: ["รหัสนักเรียน", "ทุกข้อมูล"] });
+      else
+        result.set(i, { type: "update", existingStudent: ex, matchFields: ["รหัสนักเรียน"] });
+      continue;
+    }
+
     const nm = r.student_name.trim().toLowerCase();
     for (const ex of existing) {
       if (nm !== (ex.student_name || "").trim().toLowerCase()) continue;
       const coreMatch = r.gender === ex.gender && r.education_level === ex.education_level && r.urgency === ex.urgency;
-      const needsHash = ns => JSON.stringify((ns || []).map(n => `${n.uniform_type_id}:${n.size}:${n.quantity_needed}`).sort());
       const needsSame = needsHash(r.needs) === needsHash(ex.needs || ex.uniform_needs);
       if (coreMatch && needsSame)     result.set(i, { type: "exact",   existingStudent: ex, matchFields: ["ทุกข้อมูล"] });
       else if (coreMatch)             result.set(i, { type: "update",  existingStudent: ex, matchFields: ["ชื่อ-นามสกุล", "เพศ", "ระดับ"] });
@@ -250,6 +315,7 @@ function detectSimilarity(rows, existing) {
 
 // ─── RowEditDrawer ────────────────────────────────────────────────────────────
 function RowEditDrawer({ student, onSave, onCancel }) {
+  const [saveHint, setSaveHint] = useState("");
   const [draft, setDraft] = useState(() => ({
     student_code:    student.student_code ?? "",
     student_name:    student.student_name ?? "",
@@ -267,7 +333,7 @@ function RowEditDrawer({ student, onSave, onCancel }) {
   const handleSave = () => {
     const sm    = draft.support_mode;
     const years = sm === "recurring" ? (parseInt(draft.support_years) || 1) : null;
-    onSave({
+    const updated = {
       ...student,
       student_code:    draft.student_code.trim() || null,
       student_name:    draft.student_name.trim(),
@@ -277,7 +343,14 @@ function RowEditDrawer({ student, onSave, onCancel }) {
       support_mode:    sm,
       support_years:   years,
       needs:           uniformsToNeeds(draft.uniforms, sm, years),
-    });
+    };
+    const { hard } = validateRow(updated);
+    if (hard.length > 0) {
+      setSaveHint(hard.join(" · "));
+      return;
+    }
+    setSaveHint("");
+    onSave(updated);
   };
 
   return (
@@ -366,6 +439,7 @@ function RowEditDrawer({ student, onSave, onCancel }) {
         </div>
       </div>
 
+      {saveHint && <div className="eiErr" style={{ marginTop: 8 }}>{saveHint}</div>}
       <div className="eiEditActions">
         <button className="eiBtnGhost" type="button" onClick={onCancel}>ยกเลิก</button>
         <button className="eiBtnSave"  type="button" onClick={handleSave}>✓  บันทึกการแก้ไข</button>
@@ -462,7 +536,8 @@ function IssuePanel({ students, rowIssues, dupMap, editingIdx, onEdit, onCancelE
 
               {isEditing && (
                 <RowEditDrawer
-                  student={s}
+                  key={`edit-${item.idx}-${s._rowNum}`}
+                  student={students[item.idx]}
                   onSave={(updated) => onSave(item.idx, updated)}
                   onCancel={onCancelEdit}
                 />
@@ -545,10 +620,13 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
   // ── Edit row ──────────────────────────────────────────
   const handleSaveEdit = (idx, updated) => {
     const newStudents = students.map((s, i) => i === idx ? updated : s);
+    const newIssues   = buildRowIssues(newStudents, existingStudents);
+    const newDup      = detectSimilarity(newStudents, existingStudents);
     setStudents(newStudents);
-    setRowIssues(buildRowIssues(newStudents, existingStudents));
-    setDupMap(detectSimilarity(newStudents, existingStudents));
-    setEditingIdx(null);
+    setRowIssues(newIssues);
+    setDupMap(newDup);
+    // ปิดฟอร์มเมื่อแก้ครบแล้ว; คงเปิดไว้ถ้ายังมี hard error
+    setEditingIdx(newIssues.get(idx)?.hard?.length > 0 ? idx : null);
   };
 
   // ── Import ────────────────────────────────────────────
@@ -569,10 +647,14 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
       try {
         if (dup?.type === "exact") {
           skipped++;
-        } else if (dup?.type === "update" && dup.existingStudent?.student_id) {
+        } else if ((dup?.type === "update" || dup?.type === "similar") && dup.existingStudent?.student_id) {
+          // "similar" = ชื่อซ้ำแต่ข้อมูล core ต่าง → ก็ต้อง update ไม่ใช่ create ใหม่
+          // (createStudent จะ fail ถ้า backend มี unique constraint บน student_name)
           await schoolRequestSvc.updateStudent(requestId, dup.existingStudent.student_id, {
             student_name: s.student_name, student_code: s.student_code || undefined,
-            gender: s.gender, education_level: s.education_level, urgency: s.urgency, needs: s.needs,
+            gender: s.gender, education_level: s.education_level, urgency: s.urgency,
+            needs: s.needs,
+            merge_needs: true,
           });
           updated++;
         } else {
@@ -599,7 +681,11 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
   const dupExact     = [...dupMap.values()].filter(d => d.type === "exact").length;
   const dupUpdate    = [...dupMap.values()].filter(d => d.type === "update").length;
   const dupSimilar   = [...dupMap.values()].filter(d => d.type === "similar").length;
-  const validCount   = students.length - hardErrCount;
+  const importableCount = students.reduce((n, _s, i) => {
+    if (rowIssues.get(i)?.hard?.length > 0) return n;
+    if (dupMap.get(i)?.type === "exact") return n;
+    return n + 1;
+  }, 0);
 
   return (
     <div className="eiOverlay" onMouseDown={handleClose}>
@@ -652,7 +738,7 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
               {/* Summary bar */}
               <div className="eiSummaryBar">
                 <span className="eiSumBadge eiSumOk">
-                  <span className="eiSumBadgeNum">{validCount}</span> พร้อม import
+                  <span className="eiSumBadgeNum">{importableCount}</span> พร้อม import
                 </span>
                 {dupUpdate > 0 && (
                   <span className="eiSumBadge eiSumUpdate">
@@ -742,7 +828,9 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                             ) : dup?.type === "exact" ? (
                               <span className="eiStatusSkip">ข้าม</span>
                             ) : dup?.type === "update" ? (
-                              <span className="eiStatusUpdate">อัปเดต</span>
+                              <span className="eiStatusUpdate" title={mergeActionLabel(dup.existingStudent, s.needs)}>
+                                {mergeActionLabel(dup.existingStudent, s.needs)}
+                              </span>
                             ) : (
                               <span className="eiStatusOk">เพิ่มใหม่</span>
                             )}
@@ -817,8 +905,8 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
           {step === "preview" && (
             <>
               <button className="eiBtnGhost" onClick={reset} type="button">← เลือกไฟล์ใหม่</button>
-              <button className="eiBtnPrimary" onClick={doImport} disabled={validCount === 0} type="button">
-                นำเข้า {validCount} คน
+              <button className="eiBtnPrimary" onClick={doImport} disabled={importableCount === 0} type="button">
+                นำเข้า {importableCount} คน
               </button>
             </>
           )}

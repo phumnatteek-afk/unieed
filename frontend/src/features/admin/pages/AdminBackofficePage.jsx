@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as svc from "../services/admin.service.js";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import NotificationBell from "../../../pages/NotificationBell.jsx";
@@ -108,6 +108,27 @@ function fmtProjectDate(value) {
   return d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function normalizeProvinceName(name) {
+  return String(name || "").replace(/^จังหวัด/, "").trim().toLowerCase();
+}
+
+function provinceMatchesProject(provinceName, schoolProvince) {
+  const a = normalizeProvinceName(provinceName);
+  const b = normalizeProvinceName(schoolProvince);
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+function getProjectsForProvince(projects, provinceName) {
+  return (projects || []).filter((pr) => provinceMatchesProject(provinceName, pr.school_province));
+}
+
+function projectProgress(project) {
+  const needed = Number(project.total_needed || 0);
+  if (needed <= 0) return 0;
+  return Math.min(100, Math.round((Number(project.total_fulfilled || 0) / needed) * 100));
+}
+
 export default function AdminBackofficePage() {
   const [stats, setStats] = useState({
     total_users: 0, total_schools: 0, total_donations: 0, total_products: 0, total_orders: 0,
@@ -138,9 +159,11 @@ export default function AdminBackofficePage() {
   const [projectListErr, setProjectListErr] = useState("");
   const [expandedProvince, setExpandedProvince] = useState(null);
   const [campaignModalProvince, setCampaignModalProvince] = useState(null);
-  const [provinceSearch, setProvinceSearch] = useState("");
-  const [expandedRegion, setExpandedRegion] = useState(null);
+  const [provinceRegionFilter, setProvinceRegionFilter] = useState("all");
+  const [provinceProjectsModal, setProvinceProjectsModal] = useState(null);
   const [allOpenProjects, setAllOpenProjects] = useState([]);
+  const provinceCardRefs = useRef({});
+  const provinceListRef = useRef(null);
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
@@ -246,30 +269,58 @@ export default function AdminBackofficePage() {
     ];
   }, [projectStatusCounts]);
 
-  // ── Province search + region grouping ──────────────────────────────────────
-  const filteredProvinces = useMemo(() => {
-    const all = demand.province_demand || [];
-    if (!provinceSearch.trim()) return all;
-    const q = provinceSearch.trim().toLowerCase();
-    return all.filter(p =>
-      p.province?.toLowerCase().includes(q) ||
-      p.region?.toLowerCase().includes(q)
-    );
-  }, [demand.province_demand, provinceSearch]);
-
   const regionGroups = useMemo(() => {
     const all = demand.province_demand || [];
     const map = {};
     all.forEach((p) => {
       const r = p.region || "อื่นๆ";
-      if (!map[r]) map[r] = { region: r, count: 0, still_needed: 0, provinces: [] };
+      if (!map[r]) map[r] = { region: r, count: 0, still_needed: 0 };
       map[r].count += 1;
       map[r].still_needed += p.still_needed || 0;
-      map[r].provinces.push(p);
     });
-    // sort by still_needed desc
     return Object.values(map).sort((a, b) => b.still_needed - a.still_needed);
   }, [demand.province_demand]);
+
+  const displayedProvinces = useMemo(() => {
+    const sorted = [...(demand.province_demand || [])].sort((a, b) => (b.still_needed || 0) - (a.still_needed || 0));
+    if (provinceRegionFilter === "all") return sorted;
+    return sorted.filter((p) => (p.region || "อื่นๆ") === provinceRegionFilter);
+  }, [demand.province_demand, provinceRegionFilter]);
+
+  const provinceListMaxNeeded = useMemo(
+    () => Math.max(...displayedProvinces.map((p) => p.still_needed || 0), 1),
+    [displayedProvinces],
+  );
+
+  const scrollProvinceCardIntoView = (provinceName) => {
+    const card = provinceCardRefs.current[provinceName];
+    const list = provinceListRef.current;
+    if (!card || !list) return;
+
+    const listRect = list.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    let nextScroll = list.scrollTop;
+
+    if (cardRect.top < listRect.top + 8) {
+      nextScroll += cardRect.top - listRect.top - 8;
+    }
+    if (cardRect.bottom > listRect.bottom - 8) {
+      nextScroll += cardRect.bottom - listRect.bottom + 12;
+    }
+
+    if (nextScroll !== list.scrollTop) {
+      list.scrollTo({ top: nextScroll, behavior: "smooth" });
+    }
+  };
+
+  const toggleProvinceExpand = (provinceName) => {
+    const willExpand = expandedProvince !== provinceName;
+    setExpandedProvince(willExpand ? provinceName : null);
+    if (!willExpand) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => scrollProvinceCardIntoView(provinceName));
+    });
+  };
 
   const openProjectStatusModal = async (status) => {
     setProjectModalStatus(status);
@@ -614,238 +665,183 @@ export default function AdminBackofficePage() {
             {/* ── Province + Donut + Completed — 2-col layout ── */}
             <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 16, marginBottom: 8 }}>
 
-              {/* LEFT — Province demand (full height) */}
-              <div className="boDonutCard" style={{ margin: 0 }}>
-                {/* Card header */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Icon icon="mdi:map-marker-multiple" style={{ color: "#1d4ed8", fontSize: 20 }} />
+              {/* LEFT — Province demand */}
+              <div className="boDonutCard boProvinceDemand" style={{ margin: 0 }}>
+                <div className="boProvinceDemand__header">
+                  <div className="boProvinceDemand__iconWrap">
+                    <Icon icon="mdi:map-marker-multiple" />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>พื้นที่ที่ต้องการชุดมากที่สุด</div>
-                    <div style={{ fontSize: 11, color: "#94a3b8" }}>จัดอันดับตามจำนวนชุดที่ยังขาด</div>
+                    <div className="boProvinceDemand__title">พื้นที่ที่ต้องการชุดมากที่สุด</div>
+                    <div className="boProvinceDemand__sub">เลือกภาค → เลือกจังหวัด → ดูโครงการที่เปิดอยู่</div>
                   </div>
                 </div>
 
-                {/* Region summary pills — 2-col grid */}
                 {demand.region_demand.length > 0 && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16, paddingBottom: 14, borderBottom: "1px solid #f1f5f9" }}>
+                  <div className="boProvinceDemand__regionGrid">
                     {demand.region_demand.map((r) => {
                       const rs = REGION_STYLE[r.region] || REGION_STYLE["อื่นๆ"];
                       return (
-                        <div key={r.region} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: rs.bg, border: `1px solid ${rs.border}`, borderRadius: 10, padding: "7px 12px" }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: rs.color }}>ภาค{r.region}</span>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: rs.color }}>
-                            {r.still_needed.toLocaleString()} <span style={{ fontSize: 10, fontWeight: 500, color: rs.color + "bb" }}>ชิ้น</span>
-                          </span>
+                        <div key={r.region} className="boProvinceDemand__regionStat" style={{ background: rs.bg, borderColor: rs.border }}>
+                          <span style={{ color: rs.color }}>ภาค{r.region}</span>
+                          <strong style={{ color: rs.color }}>{r.still_needed.toLocaleString()} <small>ชิ้น</small></strong>
                         </div>
                       );
                     })}
                   </div>
                 )}
 
-                {/* Search + Region breakdown */}
                 {demand.province_demand.length === 0 ? (
-                  <div style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 16 }}>ยังไม่มีข้อมูลจังหวัด</div>
+                  <div className="boProvinceDemand__empty">ยังไม่มีข้อมูลจังหวัด</div>
                 ) : (
                   <>
-                    {/* Search box */}
-                    <div style={{ position: "relative", marginBottom: 12 }}>
-                      <Icon icon="mdi:magnify" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 16 }} />
-                      <input
-                        type="text"
-                        value={provinceSearch}
-                        onChange={(e) => setProvinceSearch(e.target.value)}
-                        placeholder="ค้นหาชื่อจังหวัด หรือภาค (เช่น เชียงใหม่, เหนือ)…"
-                        style={{
-                          width: "100%", boxSizing: "border-box",
-                          paddingLeft: 32, paddingRight: provinceSearch ? 32 : 12,
-                          paddingTop: 8, paddingBottom: 8,
-                          border: "1.5px solid #e2e8f0", borderRadius: 10,
-                          fontSize: 13, color: "#1e293b", background: "#f8fafc",
-                          fontFamily: "inherit", outline: "none",
-                          transition: "border-color 0.15s, box-shadow 0.15s",
-                        }}
-                        onFocus={(e) => { e.target.style.borderColor = "#1d4ed8"; e.target.style.boxShadow = "0 0 0 3px rgba(29,78,216,0.10)"; e.target.style.background = "#fff"; }}
-                        onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; e.target.style.background = "#f8fafc"; }}
-                      />
-                      {provinceSearch && (
-                        <button
-                          type="button"
-                          onClick={() => setProvinceSearch("")}
-                          style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 16, display: "flex", alignItems: "center" }}
-                        >
-                          <Icon icon="mdi:close-circle" style={{ fontSize: 16 }} />
-                        </button>
-                      )}
+                    <div className="boProvinceDemand__filterLabel">
+                      <Icon icon="mdi:filter-variant" />
+                      เลือกภาคเพื่อดูจังหวัด
+                    </div>
+                    <div className="boProvinceDemand__filters" role="tablist" aria-label="กรองตามภาค">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={provinceRegionFilter === "all"}
+                        className={`boProvinceDemand__filterBtn${provinceRegionFilter === "all" ? " is-active" : ""}`}
+                        onClick={() => { setProvinceRegionFilter("all"); setExpandedProvince(null); }}
+                      >
+                        ทั้งประเทศ
+                      </button>
+                      {regionGroups.map((rg) => {
+                        const rs = REGION_STYLE[rg.region] || REGION_STYLE["อื่นๆ"];
+                        const active = provinceRegionFilter === rg.region;
+                        return (
+                          <button
+                            key={rg.region}
+                            type="button"
+                            role="tab"
+                            aria-selected={active}
+                            className={`boProvinceDemand__filterBtn${active ? " is-active" : ""}`}
+                            style={active ? { background: rs.bg, borderColor: rs.border, color: rs.color } : undefined}
+                            onClick={() => { setProvinceRegionFilter(rg.region); setExpandedProvince(null); }}
+                          >
+                            ภาค{rg.region}
+                            <span className="boProvinceDemand__filterCount">{rg.count}</span>
+                          </button>
+                        );
+                      })}
                     </div>
 
-                    {/* Region accordion (show when not searching) */}
-                    {!provinceSearch && (
-                      <div style={{ marginBottom: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 2, display: "flex", alignItems: "center", gap: 5 }}>
-                          <Icon icon="mdi:map-legend" style={{ fontSize: 13 }} />
-                          จัดกลุ่มตามภาค — ไล่จากความต้องการมากสุด
-                        </div>
-                        {regionGroups.map((rg) => {
-                          const rs = REGION_STYLE[rg.region] || REGION_STYLE["อื่นๆ"];
-                          const isOpen = expandedRegion === rg.region;
-                          const maxNeeded = Math.max(...regionGroups.map(r => r.still_needed), 1);
-                          const barW = Math.round((rg.still_needed / maxNeeded) * 100);
-                          return (
-                            <div key={rg.region} style={{ borderRadius: 10, border: `1px solid ${isOpen ? rs.border : "#e2e8f0"}`, background: isOpen ? rs.bg : "#fafafa", overflow: "hidden" }}>
-                              {/* Region row */}
-                              <div
-                                style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", cursor: "pointer" }}
-                                onClick={() => setExpandedRegion(isOpen ? null : rg.region)}
-                              >
-                                <span style={{ minWidth: 52, fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 20, background: rs.bg, color: rs.color, border: `1px solid ${rs.border}`, textAlign: "center" }}>
-                                  ภาค{rg.region}
-                                </span>
-                                <div style={{ flex: 1, minWidth: 0, background: "#e2e8f0", borderRadius: 4, height: 6, overflow: "hidden" }}>
-                                  <div style={{ width: `${barW}%`, height: "100%", borderRadius: 4, background: rs.color, opacity: 0.7, transition: "width 0.5s" }} />
-                                </div>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: rs.color, whiteSpace: "nowrap" }}>
-                                  {rg.still_needed.toLocaleString()} ชิ้น
-                                </span>
-                                <span style={{ fontSize: 10, fontWeight: 600, background: "#fff", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: 20, padding: "1px 7px", whiteSpace: "nowrap" }}>
-                                  {rg.count} จังหวัด
-                                </span>
-                                <Icon icon={isOpen ? "mdi:chevron-up" : "mdi:chevron-down"} style={{ fontSize: 14, color: "#94a3b8", flexShrink: 0 }} />
-                              </div>
-                              {/* Province sub-list inside region */}
-                              {isOpen && (
-                                <div style={{ borderTop: `1px solid ${rs.border}`, padding: "8px 10px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
-                                  {rg.provinces.sort((a, b) => b.still_needed - a.still_needed).map((p, pi) => (
-                                    <div
-                                      key={p.province}
-                                      style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, background: "#fff", border: "1px solid #f1f5f9", cursor: "pointer" }}
-                                      onClick={() => setExpandedProvince(expandedProvince === p.province ? null : p.province)}
-                                    >
-                                      <span style={{ fontSize: 11, fontWeight: 700, color: pi === 0 ? rs.color : "#94a3b8", minWidth: 18 }}>#{pi + 1}</span>
-                                      <span style={{ fontSize: 13, fontWeight: pi === 0 ? 700 : 500, color: "#1e293b", flex: 1 }}>{p.province}</span>
-                                      <span style={{ fontSize: 12, fontWeight: 700, color: pi === 0 ? rs.color : "#64748b" }}>{p.still_needed.toLocaleString()} ชิ้น</span>
-                                      <Icon icon={expandedProvince === p.province ? "mdi:chevron-up" : "mdi:chevron-down"} style={{ fontSize: 14, color: "#94a3b8" }} />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <div className="boProvinceDemand__listHint">
+                      {provinceRegionFilter === "all"
+                        ? `จังหวัดที่ขาดมากสุดทั่วประเทศ · ${displayedProvinces.length} จังหวัด`
+                        : `จังหวัดในภาค${provinceRegionFilter} · ${displayedProvinces.length} จังหวัด`}
+                    </div>
 
-                    {/* Province flat list (shows always, or when searching) */}
-                    {(provinceSearch || !expandedRegion) && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        {!provinceSearch && (
-                          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 2, display: "flex", alignItems: "center", gap: 5 }}>
-                            <Icon icon="mdi:format-list-numbered" style={{ fontSize: 13 }} />
-                            รายชื่อจังหวัดทั้งหมด — ไล่จากขาดมากสุด
-                          </div>
-                        )}
-                        {filteredProvinces.length === 0 ? (
-                          <div style={{ textAlign: "center", padding: "16px 0", color: "#94a3b8", fontSize: 13 }}>ไม่พบจังหวัดที่ค้นหา</div>
-                        ) : filteredProvinces.map((p, pi) => {
+                    {displayedProvinces.length === 0 ? (
+                      <div className="boProvinceDemand__empty">ไม่มีจังหวัดในภาคนี้</div>
+                    ) : (
+                      <div className="boProvinceDemand__list" ref={provinceListRef}>
+                        {displayedProvinces.map((p, pi) => {
                           const rs = REGION_STYLE[p.region] || REGION_STYLE["อื่นๆ"];
                           const isExpanded = expandedProvince === p.province;
-                          const barColor = pi === 0 ? "#1d4ed8" : pi < 3 ? "#3b82f6" : "#93c5fd";
+                          const barW = Math.round(((p.still_needed || 0) / provinceListMaxNeeded) * 100);
+                          const provProjects = getProjectsForProvince(allOpenProjects, p.province);
+                          const previewProjects = provProjects.slice(0, 2);
+
                           return (
-                            <div key={p.province} style={{ borderRadius: 12, border: `1px solid ${isExpanded ? "#bfdbfe" : "#f1f5f9"}`, background: isExpanded ? "#f8faff" : "#fff", overflow: "hidden", transition: "all 0.2s" }}>
-                              <div
-                                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer" }}
-                                onClick={() => setExpandedProvince(isExpanded ? null : p.province)}
+                            <div
+                              key={p.province}
+                              ref={(el) => { provinceCardRefs.current[p.province] = el; }}
+                              className={`boProvinceCard${isExpanded ? " is-expanded" : ""}`}
+                            >
+                              <button
+                                type="button"
+                                className="boProvinceCard__row"
+                                aria-expanded={isExpanded}
+                                onClick={() => toggleProvinceExpand(p.province)}
                               >
-                                <span style={{ minWidth: 22, fontSize: 12, fontWeight: 700, textAlign: "center", color: pi < 3 ? "#1d4ed8" : "#94a3b8" }}>
-                                  #{pi + 1}
-                                </span>
-                                <span style={{ minWidth: 40, fontSize: 10, fontWeight: 700, textAlign: "center", padding: "2px 5px", borderRadius: 7, background: rs.bg, color: rs.color, border: `1px solid ${rs.border}` }}>
-                                  {p.region}
-                                </span>
-                                <span style={{ minWidth: 80, fontSize: 13, fontWeight: pi < 3 ? 700 : 500, color: pi < 3 ? "#1e293b" : "#475569" }}>
-                                  {p.province}
-                                </span>
-                                <div style={{ flex: 1, minWidth: 0, background: "#e2e8f0", borderRadius: 6, height: 8, overflow: "hidden" }}>
-                                  <div style={{ width: `${p.pct}%`, height: "100%", borderRadius: 6, background: barColor, transition: "width 0.5s ease" }} />
+                                <span className={`boProvinceCard__rank${pi < 3 ? " is-top" : ""}`}>{pi + 1}</span>
+                                <div className="boProvinceCard__main">
+                                  <div className="boProvinceCard__titleRow">
+                                    <span className="boProvinceCard__name">{p.province}</span>
+                                    <span className="boProvinceCard__region" style={{ background: rs.bg, color: rs.color, borderColor: rs.border }}>
+                                      ภาค{p.region}
+                                    </span>
+                                  </div>
+                                  <div className="boProvinceCard__bar">
+                                    <span style={{ width: `${barW}%`, background: rs.color }} />
+                                  </div>
                                 </div>
-                                <span style={{ minWidth: 58, fontSize: 12, fontWeight: 700, textAlign: "right", color: pi < 3 ? "#1d4ed8" : "#64748b" }}>
-                                  {p.still_needed.toLocaleString()} ชิ้น
-                                </span>
-                                <Icon icon={isExpanded ? "mdi:chevron-up" : "mdi:chevron-down"} style={{ fontSize: 16, color: "#94a3b8", flexShrink: 0 }} />
-                              </div>
+                                <div className="boProvinceCard__stat">
+                                  <strong>{p.still_needed.toLocaleString()}</strong>
+                                  <span>ชิ้นที่ยังขาด</span>
+                                  {provProjects.length > 0 && (
+                                    <em>{provProjects.length} โครงการเปิดอยู่</em>
+                                  )}
+                                </div>
+                                <Icon icon={isExpanded ? "mdi:chevron-up" : "mdi:chevron-down"} className="boProvinceCard__chev" />
+                              </button>
+
                               {isExpanded && (
-                                <div style={{ borderTop: "1px solid #e0e7ff", padding: "10px 14px 12px", background: "#eff6ff" }}>
-                                  {p.top_items && p.top_items.length > 0 ? (
-                                    <div style={{ marginBottom: 10 }}>
-                                      <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6 }}>
-                                        <Icon icon="mdi:tag-multiple-outline" style={{ fontSize: 12, marginRight: 4, verticalAlign: "middle" }} />
-                                        สิ่งของที่ขาดมากที่สุด
-                                      </div>
-                                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <div className="boProvinceCard__detail">
+                                  {p.top_items?.length > 0 && (
+                                    <div className="boProvinceCard__section">
+                                      <div className="boProvinceCard__sectionTitle">สิ่งของที่ขาดมาก</div>
+                                      <div className="boProvinceCard__tags">
                                         {p.top_items.map((item, ii) => (
-                                          <div key={ii} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: ii === 0 ? "#dbeafe" : "#f0f9ff", borderRadius: 8, padding: "5px 10px", border: `1px solid ${ii === 0 ? "#93c5fd" : "#e0f2fe"}` }}>
-                                            <span style={{ fontSize: 12, fontWeight: ii === 0 ? 700 : 500, color: ii === 0 ? "#1d4ed8" : "#0369a1" }}>
-                                              {ii === 0 ? "★ " : `${ii + 1}. `}{item.label}
-                                            </span>
-                                            <span style={{ fontSize: 12, fontWeight: 700, color: ii === 0 ? "#1d4ed8" : "#0284c7" }}>
-                                              {item.still_needed.toLocaleString()} ชิ้น
-                                            </span>
-                                          </div>
+                                          <span key={ii} className={`boProvinceCard__tag${ii === 0 ? " is-primary" : ""}`}>
+                                            {item.label}
+                                            <b>{item.still_needed.toLocaleString()}</b>
+                                          </span>
                                         ))}
                                       </div>
                                     </div>
-                                  ) : (
-                                    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>ไม่มีรายละเอียดสิ่งของ</div>
                                   )}
-                                  {/* โครงการที่เปิดอยู่ในจังหวัดนี้ */}
-                                  {(() => {
-                                    const provProjects = allOpenProjects.filter(pr =>
-                                      (pr.school_province || "").includes(p.province) ||
-                                      p.province.includes(pr.school_province || "~~")
-                                    );
-                                    if (provProjects.length === 0) return null;
-                                    return (
-                                      <div style={{ marginBottom: 10 }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: "#1d4ed8", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
-                                          <Icon icon="mdi:folder-open-outline" style={{ fontSize: 13 }} />
-                                          โครงการที่เปิดอยู่ในจังหวัดนี้ ({provProjects.length})
-                                        </div>
-                                        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                                          {provProjects.slice(0, 5).map((pr, pi) => {
-                                            const prog = pr.total_needed > 0 ? Math.min(100, Math.round((Number(pr.total_fulfilled||0)/Number(pr.total_needed||1))*100)) : 0;
+
+                                  <div className="boProvinceCard__section">
+                                    <div className="boProvinceCard__sectionTitle">
+                                      <Icon icon="mdi:folder-open-outline" />
+                                      โครงการที่เปิดอยู่
+                                    </div>
+                                    {provProjects.length === 0 ? (
+                                      <p className="boProvinceCard__noProject">ยังไม่มีโครงการเปิดในจังหวัดนี้</p>
+                                    ) : (
+                                      <>
+                                        <div className="boProvinceCard__projects">
+                                          {previewProjects.map((pr) => {
+                                            const prog = projectProgress(pr);
                                             return (
-                                              <div key={pr.request_id} style={{ background: "#fff", border: "1px solid #dbeafe", borderRadius: 9, padding: "8px 10px" }}>
-                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-                                                  <div style={{ minWidth: 0 }}>
-                                                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 260 }}>{pr.request_title || "ไม่ระบุชื่อ"}</div>
-                                                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                                                      <Icon icon="teenyicons:school-outline" style={{ fontSize: 10, marginRight: 3, verticalAlign: "middle" }} />
-                                                      {pr.school_name || "-"}
-                                                    </div>
+                                              <div key={pr.request_id} className="boProvinceCard__project">
+                                                <div className="boProvinceCard__projectTop">
+                                                  <div className="boProvinceCard__projectText">
+                                                    <strong>{pr.request_title || "ไม่ระบุชื่อโครงการ"}</strong>
+                                                    <span>{pr.school_name || "ไม่ระบุโรงเรียน"}</span>
                                                   </div>
-                                                  <span style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 20, padding: "2px 7px", whiteSpace: "nowrap", flexShrink: 0 }}>{prog}%</span>
+                                                  <span className="boProvinceCard__projectPct">{prog}%</span>
                                                 </div>
-                                                <div style={{ marginTop: 6, background: "#e2e8f0", borderRadius: 6, height: 5, overflow: "hidden" }}>
-                                                  <div style={{ width: `${prog}%`, height: "100%", background: prog >= 70 ? "#22c55e" : prog >= 40 ? "#f59e0b" : "#3b82f6", borderRadius: 6, transition: "width 0.5s" }} />
+                                                <div className="boProvinceCard__projectBar">
+                                                  <span style={{ width: `${prog}%` }} />
                                                 </div>
-                                                <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>ส่งมอบ {formatNumber(pr.total_fulfilled||0)} / {formatNumber(pr.total_needed||0)} ชิ้น · {pr.student_count||0} นักเรียน</div>
                                               </div>
                                             );
                                           })}
-                                          {provProjects.length > 5 && (
-                                            <div style={{ fontSize: 11, color: "#64748b", textAlign: "center", padding: "4px 0" }}>และอีก {provProjects.length - 5} โครงการ…</div>
-                                          )}
                                         </div>
-                                      </div>
-                                    );
-                                  })()}
+                                        <button
+                                          type="button"
+                                          className="boProvinceCard__viewAll"
+                                          onClick={() => setProvinceProjectsModal({ province: p, projects: provProjects })}
+                                        >
+                                          ดูโครงการทั้งหมด {provProjects.length} รายการ
+                                          <Icon icon="mdi:arrow-right" />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+
                                   <button
                                     type="button"
+                                    className="boProvinceCard__campaign"
                                     onClick={() => setCampaignModalProvince(p)}
-                                    style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(90deg,#1d4ed8,#2563eb)", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%" }}
                                   >
-                                    <Icon icon="mdi:bullhorn-outline" style={{ fontSize: 14 }} />
+                                    <Icon icon="mdi:bullhorn-outline" />
                                     สร้างแคมเปญช่วยเหลือ{p.province}
                                   </button>
                                 </div>
@@ -979,6 +975,13 @@ export default function AdminBackofficePage() {
         <CampaignModal
           province={campaignModalProvince}
           onClose={() => setCampaignModalProvince(null)}
+        />
+      )}
+      {provinceProjectsModal && (
+        <ProvinceProjectsModal
+          province={provinceProjectsModal.province}
+          projects={provinceProjectsModal.projects}
+          onClose={() => setProvinceProjectsModal(null)}
         />
       )}
     </div>
@@ -1128,6 +1131,80 @@ function PendingItem({ label, count, link, bg, labelColor, btnLabel }) {
       <a href={link} className="boPendingItem__btn">
         {btnLabel} <Icon icon="material-symbols:arrow-outward" />
       </a>
+    </div>
+  );
+}
+
+function ProvinceProjectsModal({ province, projects, onClose }) {
+  const rs = REGION_STYLE[province.region] || REGION_STYLE["อื่นๆ"];
+
+  return (
+    <div className="boProjectModalOverlay" onClick={onClose}>
+      <div className="boProjectModal boProvinceProjectsModal" onClick={(e) => e.stopPropagation()}>
+        <div className="boProjectModal__header">
+          <div className="boProjectModal__titleWrap">
+            <div className="boProjectModal__icon" style={{ background: rs.bg, color: rs.color, borderColor: rs.border }}>
+              <Icon icon="mdi:map-marker-radius" />
+            </div>
+            <div>
+              <div className="boProjectModal__title">โครงการเปิดอยู่ · {province.province}</div>
+              <div className="boProjectModal__sub">
+                ภาค{province.region} · ขาด {province.still_needed.toLocaleString()} ชิ้น · {projects.length} โครงการ
+              </div>
+            </div>
+          </div>
+          <button type="button" className="boProjectModal__close" onClick={onClose} aria-label="ปิด">
+            <Icon icon="mdi:close" />
+          </button>
+        </div>
+
+        {projects.length === 0 ? (
+          <div className="boProjectModal__state">ไม่มีโครงการที่เปิดอยู่ในจังหวัดนี้</div>
+        ) : (
+          <div className="boProjectModal__list">
+            {projects.map((project) => {
+              const progress = projectProgress(project);
+              return (
+                <div key={project.request_id} className="boProjectModalItem">
+                  <div className="boProjectModalItem__thumb">
+                    {project.request_image_url ? (
+                      <img src={project.request_image_url} alt={project.request_title || "โครงการ"} />
+                    ) : (
+                      <Icon icon="mdi:image-off-outline" />
+                    )}
+                  </div>
+                  <div className="boProjectModalItem__main">
+                    <div className="boProjectModalItem__top">
+                      <div>
+                        <div className="boProjectModalItem__title">{project.request_title || "ไม่ระบุชื่อโครงการ"}</div>
+                        <div className="boProjectModalItem__school">
+                          <Icon icon="teenyicons:school-outline" />
+                          {project.school_name || "ไม่ระบุโรงเรียน"}
+                        </div>
+                      </div>
+                      <span className="boProjectModalItem__badge" style={{ background: "#f0fdf4", color: "#16a34a", borderColor: "#bbf7d0" }}>
+                        {progress}%
+                      </span>
+                    </div>
+                    <div className="boProjectModalItem__meta">
+                      <span>เริ่ม {fmtProjectDate(project.start_date || project.created_at)}</span>
+                      <span>{formatNumber(project.student_count)} นักเรียน</span>
+                      <span>ส่งมอบ {formatNumber(project.total_fulfilled)} / {formatNumber(project.total_needed)} ชิ้น</span>
+                    </div>
+                    <div className="boProjectModalItem__bar">
+                      <span style={{ width: `${progress}%`, background: "#16a34a" }} />
+                    </div>
+                  </div>
+                  <a className="boProjectModalItem__link" href={`/projects/${project.request_id}`} target="_blank" rel="noreferrer">
+                    เปิดดู
+                    <Icon icon="mdi:open-in-new" />
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

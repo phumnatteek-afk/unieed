@@ -31,12 +31,36 @@ const TABS = [
   { key: "cancelled", label: "ยกเลิก"     },
 ];
 
-// คำนวณว่า order นี้รอจัดส่งเกิน 3 วันแล้วหรือยัง
-const isOverdue3Days = (createdAt) => {
-  if (!createdAt) return false;
-  const diff = Date.now() - new Date(createdAt).getTime();
-  return diff > 3 * 24 * 60 * 60 * 1000;
+// แปลง datetime จาก MySQL ให้เป็น JS Date ที่ถูกต้อง
+// รองรับทุกรูปแบบ: Date object, ISO string, MySQL string "2024-01-15 14:30:00"
+const parseThaiDate = (val) => {
+  if (!val) return null;
+  // เป็น Date object อยู่แล้ว
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  const s = String(val).trim();
+  // ISO format ที่มี timezone แล้ว (มี Z หรือ +/-)
+  if (/Z$|[+-]\d{2}:\d{2}$/.test(s)) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // MySQL format "2024-01-15 14:30:00" หรือ "2024-01-15T14:30:00" — บอกว่าเป็น +07:00
+  const normalized = s.replace(" ", "T") + "+07:00";
+  const d = new Date(normalized);
+  return isNaN(d.getTime()) ? null : d;
 };
+
+// คำนวณวันที่ deadline การจัดส่ง
+const getDeadlineDate = (createdAt, days) => {
+  const d = parseThaiDate(createdAt);
+  if (!d) return null;
+  return new Date(d.getTime() + days * 24 * 60 * 60 * 1000);
+};
+
+// format วันที่ด้วย timezone ไทยเสมอ
+const fmtThaiDate = (date, opts = {}) =>
+  date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok", ...opts });
+
+const OVERDUE_DAYS = 3;
 
 export default function SellerOrdersPage() {
   const [params, setParams] = useSearchParams();
@@ -111,31 +135,6 @@ export default function SellerOrdersPage() {
               </select>
             </div>
 
-            {/* แจ้งเตือนออเดอร์รอจัดส่งเกิน 3 วัน */}
-            {tab === "to_ship" && !loading && (() => {
-              const overdue = (data?.rows || []).filter(r => isOverdue3Days(r.created_at));
-              if (overdue.length === 0) return null;
-              return (
-                <div style={{
-                  margin: "12px 0 4px",
-                  padding: "10px 16px",
-                  background: "#fef9c3",
-                  border: "1px solid #fde047",
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 13,
-                  color: "#854d0e",
-                }}>
-                  <Icon icon="mdi:alert-outline" style={{ fontSize: 18, flexShrink: 0 }} />
-                  <span>
-                    มี <b>{overdue.length}</b> รายการที่รอจัดส่งเกิน 3 วันแล้ว กรุณาดำเนินการโดยเร็ว
-                  </span>
-                </div>
-              );
-            })()}
-
             {loading && <div style={{ padding:30 }}>กำลังโหลด...</div>}
             {err && <div style={{ color:"#b91c1c" }}>{err}</div>}
             {!loading && data?.rows?.length === 0 && (
@@ -147,6 +146,7 @@ export default function SellerOrdersPage() {
                 key={row.order_id}
                 row={row}
                 tab={tab}
+                overdueDays={OVERDUE_DAYS}
                 trackInput={edits[row.order_id]?.tracking_number || row.tracking_number || ""}
                 onChangeTracking={(v) => setEdits(s => ({ ...s, [row.order_id]: { tracking_number: v } }))}
                 onConfirmShip={() => handleConfirmShip(row.order_id)}
@@ -161,7 +161,7 @@ export default function SellerOrdersPage() {
   );
 }
 
-function OrderCard({ row, tab, trackInput, onChangeTracking, onConfirmShip, onOpenDetail }) {
+function OrderCard({ row, tab, overdueDays, trackInput, onChangeTracking, onConfirmShip, onOpenDetail }) {
   const items = Array.isArray(row.items) ? row.items : (row.items ? JSON.parse(row.items) : []);
   const ship  = Number(row.shipping_price || 0);
   const fee   = Number(row.platform_fee   || 0);
@@ -174,9 +174,42 @@ function OrderCard({ row, tab, trackInput, onChangeTracking, onConfirmShip, onOp
     cancelled: { label: "ยกเลิก",       color: "#fee2e2", text: "#b91c1c" },
   }[tab] || {};
 
-  const dateStr = new Date(row.created_at).toLocaleString("th-TH", {
-    day:"2-digit", month:"short", year:"2-digit", hour:"2-digit", minute:"2-digit",
-  });
+  // แสดงวันที่สั่งซื้อด้วย timezone ไทยเสมอ
+  const createdDate = parseThaiDate(row.created_at);
+  const dateStr = createdDate
+    ? fmtThaiDate(createdDate, { day:"2-digit", month:"short", year:"2-digit", hour:"2-digit", minute:"2-digit" })
+    : "-";
+
+  // คำนวณ deadline และสถานะของ order นี้
+  const deadline = tab === "to_ship" ? getDeadlineDate(row.created_at, overdueDays) : null;
+  const now = Date.now();
+  const msLeft = deadline ? deadline.getTime() - now : null;
+  const hoursLeft = msLeft !== null ? msLeft / (1000 * 60 * 60) : null;
+  const isExpired  = hoursLeft !== null && hoursLeft <= 0;
+  const isUrgent   = hoursLeft !== null && hoursLeft > 0 && hoursLeft <= 24;
+
+  const deadlineDateStr = deadline
+    ? fmtThaiDate(deadline, { day:"numeric", month:"short", year:"numeric" })
+    : null;
+
+  // สีและข้อความแจ้งเตือน deadline
+  const deadlineAlert = deadline ? (() => {
+    if (isExpired) return {
+      bg: "#fee2e2", border: "#fca5a5", text: "#991b1b",
+      icon: "mdi:alert-circle-outline",
+      msg: `เลยกำหนดส่งวันที่ ${deadlineDateStr} แล้ว — ออเดอร์จะถูกยกเลิกอัตโนมัติเร็วๆ นี้`,
+    };
+    if (isUrgent) return {
+      bg: "#fff7ed", border: "#fdba74", text: "#9a3412",
+      icon: "mdi:clock-fast",
+      msg: `กรุณาจัดส่งภายในวันที่ ${deadlineDateStr} มิฉะนั้นออเดอร์จะถูกยกเลิกอัตโนมัติ`,
+    };
+    return {
+      bg: "#fefce8", border: "#fde047", text: "#854d0e",
+      icon: "mdi:truck-delivery-outline",
+      msg: `กรุณาจัดส่งภายใน ${overdueDays} วัน ภายในวันที่ ${deadlineDateStr} มิฉะนั้นออเดอร์จะถูกยกเลิกอัตโนมัติ`,
+    };
+  })() : null;
 
   return (
     <div className="slOrderCard slCard">
@@ -189,6 +222,26 @@ function OrderCard({ row, tab, trackInput, onChangeTracking, onConfirmShip, onOp
           {STATUS_BADGE.label}
         </span>
       </div>
+
+      {/* แจ้งเตือนกำหนดจัดส่ง (แสดงเฉพาะแถบ to_ship) */}
+      {deadlineAlert && (
+        <div style={{
+          margin: "8px 0 4px",
+          padding: "8px 14px",
+          background: deadlineAlert.bg,
+          border: `1px solid ${deadlineAlert.border}`,
+          borderRadius: 8,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 8,
+          fontSize: 12.5,
+          color: deadlineAlert.text,
+          lineHeight: 1.5,
+        }}>
+          <Icon icon={deadlineAlert.icon} style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }} />
+          <span>{deadlineAlert.msg}</span>
+        </div>
+      )}
 
       <div className="slOrderBody">
         <div>

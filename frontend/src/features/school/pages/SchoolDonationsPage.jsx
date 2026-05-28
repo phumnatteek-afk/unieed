@@ -7,6 +7,7 @@
 //   4. แสดง warning banner เมื่อมีรายการที่เกิน 7 วันและยังไม่ confirmed
 // ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import "../styles/Schooldonationpage.css";
@@ -245,6 +246,7 @@ function MiniCalendar({ markedDate }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SchoolDonationPage() {
   const { token } = useAuth();
+  const location = useLocation();
  
   const [donations,    setDonations]    = useState([]);
   const [loading,      setLoading]      = useState(true);
@@ -289,7 +291,7 @@ export default function SchoolDonationPage() {
   };
  
   useEffect(() => { loadDonations(); }, []);
- 
+
   const summary = useMemo(() => ({
     usable_qty: projectFulfilled,
     wrong_item: donations.filter(d => d.condition_status === "wrong_item").length,
@@ -331,6 +333,17 @@ export default function SchoolDonationPage() {
 
   const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated   = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // เปิดจากการแจ้งเตือน (คลิก donation_received / admin_approved)
+  useEffect(() => {
+    const openId = location.state?.openDonationId;
+    if (!openId || !donations.length) return;
+    const target = donations.find(d => Number(d.donation_id) === Number(openId));
+    if (!target) return;
+    setExpandedRow(target.donation_id);
+    const pageIdx = filtered.findIndex(d => d.donation_id === target.donation_id);
+    if (pageIdx >= 0) setCurrentPage(Math.floor(pageIdx / PAGE_SIZE) + 1);
+  }, [location.state, donations, filtered]);
  
   const openTracking = (carrier, trackingNo) => {
     window.open(getTrackingUrl(carrier, trackingNo), "_blank");

@@ -529,6 +529,28 @@ function resolveGroup(edu) {
   if (/มัธยมตอนต้น|มัธยม|secondary|^ม\.|^[Mm]\d/i.test(s)) return "มัธยมตอนต้น";
   return null;
 }
+
+function normalizeNeedSize(size) {
+  if (!size) return {};
+  if (typeof size === "string") {
+    try { return JSON.parse(size); } catch { return {}; }
+  }
+  return typeof size === "object" ? size : {};
+}
+
+function needMatchKey(uniform_type_id, size) {
+  return `${Number(uniform_type_id)}:${JSON.stringify(normalizeNeedSize(size))}`;
+}
+
+function needFulfillStatus(needQty, recvQty) {
+  const need = Number(needQty) || 0;
+  const recv = Math.max(0, Math.min(Number(recvQty) || 0, need));
+  const status =
+    need > 0 && recv >= need ? "fulfilled" :
+      recv > 0 ? "partial" :
+        "pending";
+  return { need, recv, status };
+}
 export async function createStudentWithNeeds(req, res) {
   const request_id = Number(req.params.request_id);
   const school_id = req.user.school_id;
@@ -680,7 +702,7 @@ export async function updateStudentWithNeeds(req, res) {
   const request_id = Number(req.params.request_id);
   const school_id = req.user.school_id;
   const student_id = Number(req.params.student_id);
-  const { student_name, education_level, gender, urgency, needs, student_code: bodyCode } = req.body;
+  const { student_name, education_level, gender, urgency, needs, student_code: bodyCode, merge_needs } = req.body;
  
   const genderDb =
     gender === "ชาย" ? "male" :
@@ -727,44 +749,114 @@ export async function updateStudentWithNeeds(req, res) {
         : [student_name, education_level, resolveGroup(education_level), genderDb, urgency, student_id, school_id]
     );
  
-    // strategy: ลบ needs เดิม แล้ว insert ใหม่ (ง่าย + กัน mismatch)
-    await conn.query(
-      `DELETE FROM student_need WHERE student_id=? AND school_id=?`,
-      [student_id, school_id]
-    );
- 
- 
     if (!Array.isArray(needs) || needs.length === 0) {
       throw Object.assign(new Error("ต้องมีอย่างน้อย 1 รายการความต้องการ"), { status: 400 });
     }
-    for (const n of needs) {
- 
-      const needQty = Number(n.quantity_needed);
-      const recvQty = Math.max(0, Math.min(Number(n.quantity_received || 0), needQty));
- 
-      const status =
-        recvQty >= needQty ? "fulfilled" :
-          recvQty > 0 ? "partial" :
-            "pending";
- 
-      await conn.query(
-        `INSERT INTO student_need
-      (school_id, student_id, uniform_type_id, size,
-       quantity_needed, quantity_received,
-       status, support_mode, support_years, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [
-          school_id,
-          student_id,
-          n.uniform_type_id,
-          n.size,
-          needQty,
-          recvQty,
-          status,
-          n.support_mode || "one_time",
-          n.support_mode === "recurring" ? Number(n.support_years || 1) : null,
-        ]
+
+    if (merge_needs) {
+      // Excel import: รวมรายการชุด — ประเภท+ขนาดซ้ำ → อัปเดตจำนวน, ไม่ซ้ำ → เพิ่มรายการใหม่, ไม่ลบของเดิม
+      const [existingNeeds] = await conn.query(
+        `SELECT student_need_id, uniform_type_id, size,
+                quantity_needed, quantity_received, status,
+                support_mode, support_years
+         FROM student_need
+         WHERE student_id = ? AND school_id = ?`,
+        [student_id, school_id]
       );
+      const byKey = new Map(
+        existingNeeds.map((ex) => [needMatchKey(ex.uniform_type_id, ex.size), ex])
+      );
+
+      for (const n of needs) {
+        if (!n.uniform_type_id || !n.size || !n.quantity_needed) continue;
+        const key = needMatchKey(n.uniform_type_id, n.size);
+        const incQty = Number(n.quantity_needed) || 0;
+        const match = byKey.get(key);
+
+        if (match) {
+          const { need, recv, status } = needFulfillStatus(
+            Math.max(Number(match.quantity_needed), incQty),
+            match.quantity_received
+          );
+          await conn.query(
+            `UPDATE student_need
+             SET quantity_needed = ?, quantity_received = ?, status = ?,
+                 support_mode = ?, support_years = ?, updated_at = NOW()
+             WHERE student_need_id = ? AND school_id = ?`,
+            [
+              need,
+              recv,
+              status,
+              n.support_mode || match.support_mode || "one_time",
+              (n.support_mode || match.support_mode) === "recurring"
+                ? Number(n.support_years || match.support_years || 1)
+                : null,
+              match.student_need_id,
+              school_id,
+            ]
+          );
+          byKey.set(key, { ...match, quantity_needed: need, quantity_received: recv, status });
+        } else {
+          const { need, recv, status } = needFulfillStatus(incQty, 0);
+          const [ins] = await conn.query(
+            `INSERT INTO student_need
+               (school_id, student_id, uniform_type_id, size,
+                quantity_needed, quantity_received,
+                status, support_mode, support_years, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            [
+              school_id,
+              student_id,
+              n.uniform_type_id,
+              typeof n.size === "string" ? n.size : JSON.stringify(n.size || {}),
+              need,
+              recv,
+              status,
+              n.support_mode || "one_time",
+              n.support_mode === "recurring" ? Number(n.support_years || 1) : null,
+            ]
+          );
+          byKey.set(key, {
+            student_need_id: ins.insertId,
+            uniform_type_id: n.uniform_type_id,
+            size: n.size,
+            quantity_needed: need,
+            quantity_received: recv,
+          });
+        }
+      }
+    } else {
+      // แก้ไขจากฟอร์ม: แทนที่รายการชุดทั้งหมดตามที่ส่งมา
+      await conn.query(
+        `DELETE FROM student_need WHERE student_id=? AND school_id=?`,
+        [student_id, school_id]
+      );
+
+      for (const n of needs) {
+        const { need, recv, status } = needFulfillStatus(
+          n.quantity_needed,
+          n.quantity_received
+        );
+
+        await conn.query(
+          `INSERT INTO student_need
+             (school_id, student_id, uniform_type_id, size,
+              quantity_needed, quantity_received,
+              status, support_mode, support_years, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          [
+            school_id,
+            student_id,
+            n.uniform_type_id,
+            typeof n.size === "string" ? n.size : JSON.stringify(n.size || {}),
+            need,
+            recv,
+            status,
+            n.support_mode || "one_time",
+            n.support_mode === "recurring" ? Number(n.support_years || 1) : null,
+          ]
+        );
+      }
     }
  
  
