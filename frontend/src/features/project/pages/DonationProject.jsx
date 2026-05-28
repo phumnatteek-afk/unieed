@@ -542,7 +542,7 @@ useEffect(() => {
   const fairProjects = useMemo(() => {
     if (!projects.length) return [];
     const today = new Date();
-    return [...projects]
+    const top80 = [...projects]
       .filter(p => {
         const totalNeeded    = Number(p.total_needed)    || 0;
         const totalFulfilled = Number(p.total_fulfilled) || 0;
@@ -595,7 +595,12 @@ useEffect(() => {
         return { ...p, _fairScore: score };
       })
       .sort((a, b) => b._fairScore - a._fairScore)
-      .slice(0, 6);
+      .slice(0, 80);
+
+    const groupA = shuffle(top80.filter(p => p._fairScore >= 0.7));
+    const groupB = shuffle(top80.filter(p => p._fairScore >= 0.4 && p._fairScore < 0.7));
+    const groupC = shuffle(top80.filter(p => p._fairScore < 0.4));
+    return [...groupA, ...groupB, ...groupC];
   }, [projects]);
 
   // ===== collection membership per project (all collections a project belongs to) =====
@@ -766,7 +771,10 @@ useEffect(() => {
     }
   }
 
-  return list;
+  if (selCollections.includes("ปิดโครงการ") || sortBy === "most_needed") {
+    return list;
+  }
+  return shuffle(list);
 }, [projects, closedProjects, projectDetails, searchQ, autoQuery, meiliHits, selType, selGender, selLevel, selSize, selProvince, selCollections, fairProjects, sortBy, projectAllCollections]);
 
   // ===== reset size เมื่อเปลี่ยนประเภท/ระดับ =====

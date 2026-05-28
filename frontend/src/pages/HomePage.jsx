@@ -17,6 +17,8 @@ import { Icon } from "@iconify/react";
   href="https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css"
 ></link>;
 
+const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
 // ── helper: จัดกลุ่ม items ตามประเภท (name) รวมจำนวน + เก็บรูปแรก
 function groupItems(items = []) {
   const map = {};
@@ -488,7 +490,7 @@ export default function HomePage() {
     if (!projects.length) return;
     const today = new Date();
 
-    const top6 = [...projects]
+    const top80scored = [...projects]
       .filter(p => {
         const totalNeeded   = Number(p.total_needed)  || 0;
         const totalReceived = Number(p.total_received) || 0;
@@ -528,7 +530,12 @@ export default function HomePage() {
         return { ...p, _fairScore };
       })
       .sort((a, b) => b._fairScore - a._fairScore)
-      .slice(0, 6);
+      .slice(0, 80);
+
+    const groupA = shuffle(top80scored.filter(p => p._fairScore >= 0.7));
+    const groupB = shuffle(top80scored.filter(p => p._fairScore >= 0.4 && p._fairScore < 0.7));
+    const groupC = shuffle(top80scored.filter(p => p._fairScore < 0.4));
+    const top20scored = [...groupA, ...groupB, ...groupC];
 
     // คอลเลคชัน priority สูงกว่า "แนะนำ"
     const closingIds = new Set(
@@ -553,14 +560,16 @@ export default function HomePage() {
       }).map(p => p.request_id)
     );
 
-    // เหลือเฉพาะโครงการที่ badge จริงๆ คือ "แนะนำ" (ไม่มี priority สูงกว่า)
-    const urgentOnly = top6.filter(p =>
-      !closingIds.has(p.request_id) &&
-      !nearGoalIds.has(p.request_id) &&
-      !newestIds.has(p.request_id)
-    );
+    // filter badge อื่นออกก่อน แล้วค่อย slice(0,6) — ให้ได้ 6 เสมอ
+    const urgentOnly = top20scored
+      .filter(p =>
+        !closingIds.has(p.request_id) &&
+        !nearGoalIds.has(p.request_id) &&
+        !newestIds.has(p.request_id)
+      )
+      .slice(0, 6);
 
-    setUrgentProjects([...urgentOnly].sort(() => Math.random() - 0.5));
+    setUrgentProjects(urgentOnly);
   }, [projects]);
 
   // badge priority map — เหมือน DonationProject
@@ -602,6 +611,9 @@ export default function HomePage() {
     return map;
   }, [projects, urgentProjects]);
 
+  // shuffle urgentProjects สำหรับ render อย่างเดียว — ไม่กระทบ badge assignment
+  const displayUrgentProjects = useMemo(() => shuffle(urgentProjects), [urgentProjects]);
+
   // แถวล่าง: ตาม homeTab
   const displayProjects = useMemo(() => {
     if (homeTab === NEARBY_TAB) return nearbyProjects.slice(0, 3);
@@ -610,25 +622,27 @@ export default function HomePage() {
     const urgentIds = new Set(urgentProjects.map(p => p.request_id));
 
     if (homeTab === "ใหม่ล่าสุด") {
-      return projects.filter(p => {
+      const top10 = projects.filter(p => {
         if (urgentIds.has(p.request_id)) return false;
         const ref = p.start_date || p.created_at;
         if (!ref) return false;
         return Math.ceil((today - new Date(ref)) / 86400000) <= 30;
-      }).sort((a, b) => new Date(b.start_date || b.created_at) - new Date(a.start_date || a.created_at)).slice(0, 3);
+      }).sort((a, b) => new Date(b.start_date || b.created_at) - new Date(a.start_date || a.created_at)).slice(0, 10);
+      return shuffle(top10).slice(0, 3);
     }
 
     if (homeTab === "ใกล้เวลาปิด") {
-      return projects.filter(p => {
+      const top10 = projects.filter(p => {
         if (urgentIds.has(p.request_id)) return false;
         if (!p.end_date) return false;
         const d = Math.ceil((new Date(p.end_date) - today) / 86400000);
         return d >= 0 && d <= 7;
-      }).sort((a, b) => new Date(a.end_date) - new Date(b.end_date)).slice(0, 3);
+      }).sort((a, b) => new Date(a.end_date) - new Date(b.end_date)).slice(0, 10);
+      return shuffle(top10).slice(0, 3);
     }
 
     if (homeTab === "ใกล้ถึงเป้าหมาย") {
-      return [...projects]
+      const top10 = [...projects]
         .filter(p => {
           if (urgentIds.has(p.request_id)) return false;
           const needed = Number(p.total_needed);
@@ -636,7 +650,8 @@ export default function HomePage() {
           return needed > 0 && fulfilled / needed >= 0.7;
         })
         .sort((a, b) => (Number(b.total_fulfilled) / Number(b.total_needed)) - (Number(a.total_fulfilled) / Number(a.total_needed)))
-        .slice(0, 3);
+        .slice(0, 10);
+      return shuffle(top10).slice(0, 3);
     }
 
     return projects.filter(p => !urgentIds.has(p.request_id)).slice(0, 3);
@@ -1177,7 +1192,7 @@ export default function HomePage() {
               <Link to="/projects" state={{ collection: "แนะนำ" }} className="projRowSeeAll">ดูทั้งหมด →</Link>
             </div>
             <div className="projGrid">
-              {urgentProjects.length ? urgentProjects.map(p => (
+              {displayUrgentProjects.length ? displayUrgentProjects.map(p => (
                 <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel="แนะนำ" />
               )) : (
                 <div className="muted" style={{ gridColumn: "1/-1", padding: "32px 0", textAlign: "center" }}>ไม่มีโครงการในขณะนี้</div>
