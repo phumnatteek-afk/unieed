@@ -488,11 +488,14 @@ export async function getPendingTasks() {
 
 /* ────── Orders ────── */
 
-export async function listOrders({ status = "", q = "", page = 1, limit = 10, seller_id = "", period = "month", start_date = "", end_date = "" } = {}) {
+export async function listOrders({ status = "", q = "", page = 1, limit = 10, seller_id = "", period = "month", start_date = "", end_date = "", payout_status = "" } = {}) {
   const { from, to } = periodToDateRange(period, start_date, end_date);
   const where = ["o.created_at BETWEEN ? AND ?"]; const params = [from, to];
   if (status && ["pending", "confirmed", "shipping", "delivered", "cancelled"].includes(status)) {
     where.push("o.order_status = ?"); params.push(status);
+  }
+  if (payout_status && ["pending", "paid"].includes(payout_status)) {
+    where.push("o.payout_status = ?"); params.push(payout_status);
   }
   if (q) {
     where.push("(buyer.user_name LIKE ? OR seller.user_name LIKE ? OR p.product_title LIKE ?)");
@@ -717,12 +720,28 @@ export async function cancelOrder(order_id) {
  *   - users.bank_account_number, users.bank_account_name, users.bank_code
  *   - payouts (ตารางใหม่)
  */
-export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}) {
-  const safeLimit = Math.min(100, Math.max(1, Number(limit) || 10));
-  const safePage  = Math.max(1, Number(page) || 1);
-  const offset    = (safePage - 1) * safeLimit;
+export async function listPayouts({
+  period = "week",
+  page = 1,
+  limit = 10,
+  pending_page,
+  pending_limit,
+  history_page,
+  history_limit,
+  start_date = "",
+  end_date = "",
+} = {}) {
+  const { from, to } = periodToDateRange(period, start_date, end_date);
+  const fallbackLimit = Math.min(100, Math.max(1, Number(limit) || 10));
+  const fallbackPage  = Math.max(1, Number(page) || 1);
+  const pendingSafeLimit = Math.min(100, Math.max(1, Number(pending_limit) || fallbackLimit));
+  const historySafeLimit = Math.min(100, Math.max(1, Number(history_limit) || fallbackLimit));
+  const pendingSafePage  = Math.max(1, Number(pending_page) || fallbackPage);
+  const historySafePage  = Math.max(1, Number(history_page) || fallbackPage);
+  const pendingOffset    = (pendingSafePage - 1) * pendingSafeLimit;
+  const historyOffset    = (historySafePage - 1) * historySafeLimit;
 
-  // ผู้ขายที่มีออเดอร์ delivered + ยังไม่ได้จ่าย
+  // ผู้ขายที่มีออเดอร์ delivered + ยังไม่ได้จ่าย (กรองตามวันที่สั่งซื้อของออเดอร์)
   const [pendingRows] = await db.query(`
     SELECT
       u.user_id                                      AS seller_id,
@@ -734,7 +753,8 @@ export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}
       COALESCE(SUM(o.total_price), 0)                AS total_sales,
       COALESCE(SUM(o.platform_fee), 0)               AS fee_amount,
       COALESCE(SUM(o.seller_payout_amount), 0)       AS net_amount,
-      COALESCE(SUM(ship_agg.ship_sum), 0)            AS shipping_total
+      COALESCE(SUM(ship_agg.ship_sum), 0)            AS shipping_total,
+      MIN(o.created_at)                              AS first_order_at
     FROM orders o
     LEFT JOIN users u ON u.user_id = o.seller_id
     LEFT JOIN (
@@ -744,12 +764,14 @@ export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}
     ) AS ship_agg ON ship_agg.order_id = o.order_id
     WHERE o.order_status  = 'delivered'
       AND o.payout_status = 'pending'
+      AND o.created_at BETWEEN ? AND ?
     GROUP BY u.user_id, u.user_name, u.bank_account_number, u.bank_account_name, u.bank_code
-    ORDER BY total_sales DESC
+    HAVING COUNT(o.order_id) > 0
+    ORDER BY first_order_at ASC, u.user_id ASC
     LIMIT ? OFFSET ?
-  `, [safeLimit, offset]).catch(() => [[]]);
+  `, [from, to, pendingSafeLimit, pendingOffset]).catch(() => [[]]);
 
-  // ประวัติการโอน (JOIN bank info จาก users)
+  // ประวัติการโอน — กรองตามวันที่โอนสำเร็จ
   const [historyRows] = await db.query(`
     SELECT p.payout_id, p.seller_id, p.net_amount, p.fee_amount, p.order_count,
            p.status, p.omise_transfer_id, p.created_at, p.completed_at,
@@ -759,37 +781,50 @@ export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}
            u.bank_code          AS bank_code
     FROM payouts p
     LEFT JOIN users u ON u.user_id = p.seller_id
-    ORDER BY p.created_at DESC
+    WHERE p.status = 'completed'
+      AND p.completed_at BETWEEN ? AND ?
+    ORDER BY p.completed_at DESC
     LIMIT ? OFFSET ?
-  `, [safeLimit, offset]).catch(() => [[]]);
+  `, [from, to, historySafeLimit, historyOffset]).catch(() => [[]]);
 
   const [[countRow]] = await db.query(`
     SELECT COUNT(DISTINCT seller_id) AS c
     FROM orders
     WHERE order_status='delivered' AND payout_status='pending'
-  `).catch(() => [[{ c: 0 }]]);
+      AND created_at BETWEEN ? AND ?
+  `, [from, to]).catch(() => [[{ c: 0 }]]);
 
-  // Summary stats
+  const [[histCountRow]] = await db.query(`
+    SELECT COUNT(*) AS c
+    FROM payouts
+    WHERE status='completed' AND completed_at BETWEEN ? AND ?
+  `, [from, to]).catch(() => [[{ c: 0 }]]);
+
+  // Summary stats (ตามช่วงเวลาเดียวกัน)
   const [[pendStats]] = await db.query(`
     SELECT COALESCE(SUM(seller_payout_amount), 0) AS pending_total, COUNT(*) AS pending_count
     FROM orders
     WHERE order_status='delivered' AND payout_status='pending'
-  `).catch(() => [[{ pending_total: 0, pending_count: 0 }]]);
+      AND created_at BETWEEN ? AND ?
+  `, [from, to]).catch(() => [[{ pending_total: 0, pending_count: 0 }]]);
 
   const [[paidStats]] = await db.query(`
     SELECT COALESCE(SUM(net_amount), 0) AS paid_total, COUNT(*) AS paid_count
-    FROM payouts WHERE status='completed'
-  `).catch(() => [[{ paid_total: 0, paid_count: 0 }]]);
+    FROM payouts
+    WHERE status='completed' AND completed_at BETWEEN ? AND ?
+  `, [from, to]).catch(() => [[{ paid_total: 0, paid_count: 0 }]]);
 
   const [[feeStats]] = await db.query(`
     SELECT COALESCE(SUM(platform_fee), 0) AS fee_total
-    FROM orders WHERE order_status='delivered'
-  `).catch(() => [[{ fee_total: 0 }]]);
+    FROM orders
+    WHERE order_status='delivered' AND created_at BETWEEN ? AND ?
+  `, [from, to]).catch(() => [[{ fee_total: 0 }]]);
 
   return {
     stats: {
       pending_total: Math.round(Number(pendStats?.pending_total || 0)),
       pending_count: Number(pendStats?.pending_count || 0),
+      pending_seller_count: Number(countRow?.c || 0),
       paid_total:    Math.round(Number(paidStats?.paid_total    || 0)),
       paid_count:    Number(paidStats?.paid_count    || 0),
       fee_total:     Math.round(Number(feeStats?.fee_total      || 0)),
@@ -823,7 +858,8 @@ export async function listPayouts({ period = "week", page = 1, limit = 10 } = {}
         order_count: Number(r.order_count || 0),
       };
     }),
-    total_pages: Math.max(1, Math.ceil(Number(countRow?.c || 0) / safeLimit)),
+    total_pages: Math.max(1, Math.ceil(Number(histCountRow?.c || 0) / historySafeLimit)),
+    pending_total_pages: Math.max(1, Math.ceil(Number(countRow?.c || 0) / pendingSafeLimit)),
     payout_cycle: (() => {
       const now = new Date();
       // วันสุดท้ายของเดือนนี้ (cutoff)

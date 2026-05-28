@@ -225,13 +225,20 @@
   text-align: center;
 }
 
-.nb-footer a {
+.nb-footer a,
+.nb-footer-link {
   font-size: 12px;
   color: #29B6E8;
   text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
 }
 
-.nb-footer a:hover {
+.nb-footer a:hover,
+.nb-footer-link:hover {
   text-decoration: underline;
 }
 
