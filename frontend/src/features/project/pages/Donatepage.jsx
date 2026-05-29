@@ -278,7 +278,7 @@ export default function DonatePage() {
   // Drop-off
   const [appointDate, setAppointDate] = useState(""); // "YYYY-MM-DD"
   const [appointTime, setAppointTime] = useState(""); // "HH:MM"
-  const [donorPhone, setDonorPhone] = useState("");
+  const [donorPhone, setDonorPhone] = useState(() => localStorage.getItem("lastDonorPhone") || "");
 
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -351,7 +351,9 @@ export default function DonatePage() {
       let item;
       if (d.uniform_type_id) {
         item = uniformItems.find(
-          u => u.uniform_type_id === d.uniform_type_id && u.education_level === d.education_level
+          u => u.uniform_type_id === d.uniform_type_id &&
+               u.education_level === d.education_level &&
+               JSON.stringify(u.size) === JSON.stringify(d.size)
         );
       } else if (d.key) {
         const idx = parseInt(d.key.replace("item_", ""), 10);
@@ -428,6 +430,7 @@ export default function DonatePage() {
       // ✨ ไม่ออก cert ที่นี่อีกต่อไป — แสดง success
       // จำชื่อผู้บริจาคสำหรับครั้งต่อไป
       if (donorName.trim()) localStorage.setItem("savedDonorName", donorName.trim());
+      if (donorPhone.trim()) localStorage.setItem("lastDonorPhone", donorPhone.trim());
       setRealDonationId(data.donation_id);
       setStep("qr_label");
     } catch (e) {
@@ -493,7 +496,9 @@ export default function DonatePage() {
                 let item;
                 if (d.uniform_type_id) {
                   item = uniformItems.find(
-                    u => u.uniform_type_id === d.uniform_type_id && u.education_level === d.education_level
+                    u => u.uniform_type_id === d.uniform_type_id &&
+                         u.education_level === d.education_level &&
+                         JSON.stringify(u.size) === JSON.stringify(d.size)
                   );
                 } else if (d.key) {
                   item = uniformItems[parseInt(d.key.replace("item_", ""), 10)];
