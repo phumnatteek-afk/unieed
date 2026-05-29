@@ -139,6 +139,62 @@ if (item.shipping_provider_ids?.length) {
   }
 };
 
+const donationMatchSql = (productAlias = "p") => `
+  EXISTS (
+    SELECT 1
+    FROM student_need sn
+    JOIN students st ON st.student_id = sn.student_id
+    JOIN donation_request dr ON dr.request_id = st.request_id
+    JOIN schools s ON s.school_id = dr.school_id
+    JOIN uniform_type need_ut ON need_ut.uniform_type_id = sn.uniform_type_id
+    LEFT JOIN uniform_type prod_ut ON prod_ut.uniform_type_id = ${productAlias}.uniform_type_id
+    LEFT JOIN uniform_type_images uti
+      ON uti.uniform_type_id = sn.uniform_type_id
+      AND uti.school_id = dr.school_id
+      AND (uti.request_id = dr.request_id OR uti.request_id IS NULL)
+    WHERE dr.status = 'open'
+      AND (dr.start_date IS NULL OR dr.start_date <= CURDATE())
+      AND s.verification_status = 'approved'
+      AND sn.status = 'pending'
+      AND sn.quantity_needed > COALESCE(sn.quantity_received, 0)
+      AND ${productAlias}.quantity > 0
+      AND COALESCE(${productAlias}.category_id, prod_ut.category_id) = need_ut.category_id
+      AND (
+        need_ut.gender IS NULL
+        OR COALESCE(${productAlias}.gender, prod_ut.gender) IS NULL
+        OR COALESCE(${productAlias}.gender, prod_ut.gender) = need_ut.gender
+      )
+      AND (
+        ${productAlias}.level IS NULL
+        OR ${productAlias}.level = ''
+        OR st.education_level_group IS NULL
+        OR st.education_level_group = ''
+        OR ${productAlias}.level = st.education_level_group
+        OR (st.education_level_group = 'อนุบาล' AND ${productAlias}.level LIKE '%อนุบาล%')
+        OR (st.education_level_group = 'ประถมศึกษา' AND ${productAlias}.level LIKE '%ประถม%')
+        OR (st.education_level_group = 'มัธยมต้น' AND (${productAlias}.level LIKE '%มัธยมต้น%' OR ${productAlias}.level LIKE '%ม.1%' OR ${productAlias}.level LIKE '%ม.2%' OR ${productAlias}.level LIKE '%ม.3%'))
+        OR (st.education_level_group = 'มัธยมปลาย' AND (${productAlias}.level LIKE '%มัธยมปลาย%' OR ${productAlias}.level LIKE '%ม.4%' OR ${productAlias}.level LIKE '%ม.5%' OR ${productAlias}.level LIKE '%ม.6%'))
+      )
+      AND (
+        ${productAlias}.uniform_type_id = sn.uniform_type_id
+        OR (
+          uti.uniform_subtype_name IS NOT NULL
+          AND ${productAlias}.custom_type_name IS NOT NULL
+          AND LOWER(TRIM(uti.uniform_subtype_name)) = LOWER(TRIM(${productAlias}.custom_type_name))
+        )
+        OR (
+          need_ut.type_name IS NOT NULL
+          AND (
+            prod_ut.type_name LIKE CONCAT('%', need_ut.type_name, '%')
+            OR ${productAlias}.custom_type_name LIKE CONCAT('%', need_ut.type_name, '%')
+            OR ${productAlias}.product_title LIKE CONCAT('%', need_ut.type_name, '%')
+          )
+        )
+      )
+    LIMIT 1
+  )
+`;
+
 const getProducts = async ({ search, ids, category_id, gender, uniform_type_id, level, min_price, max_price, school_id, sort, page, limit }) => {
   const pageNum = parseInt(page) || 1;
   const limitNum = parseInt(limit) || 12;
@@ -189,6 +245,7 @@ const getProducts = async ({ search, ids, category_id, gender, uniform_type_id, 
   };
   const orderBy = ORDER_MAP[sort] || 'p.created_at DESC';
   const whereSQL = `WHERE ${where.join(' AND ')}`;
+  const donationMatchExpr = donationMatchSql("p");
 
   // Clone params เพราะต้องใช้ 2 ครั้ง (COUNT + SELECT)
   const countParams = [...params];
@@ -212,6 +269,7 @@ const getProducts = async ({ search, ids, category_id, gender, uniform_type_id, 
        ut.uniform_type_id,
        ci.category_name,
        u.user_name AS seller_name,
+       ${donationMatchExpr} AS is_donation_match,
        GROUP_CONCAT(pi.image_url ORDER BY pi.sort_order SEPARATOR '|||') AS image_urls
      FROM products p
      LEFT JOIN users          u  ON u.user_id          = p.seller_id
@@ -224,7 +282,7 @@ const getProducts = async ({ search, ids, category_id, gender, uniform_type_id, 
               p.quantity, p.category_id, p.gender, p.school_name, p.custom_type_name,
               p.weight, ut.type_name, ut.uniform_type_id, ut.category_id,
               ci.category_name, ci.category_id, u.user_name
-     ORDER BY ${orderBy}
+     ORDER BY is_donation_match DESC, ${orderBy}
      LIMIT ${limitNum} OFFSET ${offset}`,
     params
   );
@@ -233,6 +291,7 @@ const getProducts = async ({ search, ids, category_id, gender, uniform_type_id, 
     products: rows.map(row => ({
       ...row,
       shipping_providers: [],
+      is_donation_match: Boolean(row.is_donation_match),
       images: row.image_urls
         ? row.image_urls.split('|||').map(url => ({ image_url: url }))
         : [],
