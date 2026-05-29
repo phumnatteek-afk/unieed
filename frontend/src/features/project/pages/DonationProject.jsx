@@ -552,45 +552,40 @@ useEffect(() => {
       .map(p => {
         const totalNeeded    = Number(p.total_needed)    || 0;
         const totalFulfilled = Number(p.total_fulfilled) || 0;
-        const refDate = p.start_date || p.created_at;
-        const daysWaiting = refDate ? Math.ceil((today - new Date(refDate)) / 86400000) : 0;
 
+        // ปัจจัย 1: สัดส่วนความต้องการที่ยังไม่ได้รับการช่วยเหลือ (35%)
         const deficitRatio = totalNeeded > 0
           ? Math.max((totalNeeded - totalFulfilled) / totalNeeded, 0)
           : 0;
 
-        const waitScore = Math.min(daysWaiting / 60, 1);
+        // ปัจจัย 2: จำนวนชุดที่ยังขาด (25%)
+        const remaining = totalNeeded - totalFulfilled;
+        const absoluteDeficit = remaining > 40 ? 1.0 : remaining >= 10 ? 0.5 : 0;
 
+        // ปัจจัย 3: ระยะเวลาคงเหลือก่อนปิดโครงการ (20%) — binary
         let deadlineScore = 0;
         if (p.end_date) {
           const daysLeft = Math.ceil((new Date(p.end_date) - today) / 86400000);
-          if (daysLeft <= 7)       deadlineScore = 1.0;
-          else if (daysLeft <= 14) deadlineScore = 0.6;
-          else if (daysLeft <= 30) deadlineScore = 0.3;
+          if (daysLeft >= 0 && daysLeft <= 7) deadlineScore = 1.0;
         }
 
-        let completionBonus = 0;
-        if (totalNeeded > 0) {
-          const ratio = totalFulfilled / totalNeeded;
-          if (ratio >= 0.8)      completionBonus = 1.0;
-          else if (ratio >= 0.6) completionBonus = 0.5;
-        }
-
-        let neglectModifier = 0;
+        // ปัจจัย 4: ระยะเวลาที่ไม่มีการบริจาค (10%)
+        let neglectScore = 0;
         if (p.last_donation_at) {
           const daysSince = Math.ceil((today - new Date(p.last_donation_at)) / 86400000);
-          if (daysSince > 14)      neglectModifier = 1.0;
-          else if (daysSince > 7)  neglectModifier = 0.5;
-          else if (daysSince <= 3) neglectModifier = -1.0;
-        } else {
-          neglectModifier = 0.8;
+          if (daysSince > 14)     neglectScore = 1.0;
+          else if (daysSince >= 7) neglectScore = 0.5;
         }
 
-        const score = (deficitRatio * 0.40)
-          + (waitScore * 0.25)
-          + (deadlineScore * 0.20)
-          + (completionBonus * 0.10)
-          + (neglectModifier * 0.05);
+        // ปัจจัย 5: จำนวนนักเรียนที่ต้องการชุด (10%)
+        const studentCount = Number(p.student_count) || 0;
+        const studentScore = studentCount > 30 ? 1.0 : studentCount >= 10 ? 0.5 : 0;
+
+        const score = (deficitRatio    * 0.35)
+          + (absoluteDeficit * 0.25)
+          + (deadlineScore   * 0.20)
+          + (neglectScore    * 0.10)
+          + (studentScore    * 0.10);
 
         return { ...p, _fairScore: score };
       })
