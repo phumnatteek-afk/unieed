@@ -584,8 +584,12 @@ export default function DonatePage() {
                 }}
                 onViewProject={null}
                 onClose={() => {
-                  setStep("form");
-                  if (donateMethod === "dropoff") setSubmitSuccess(true);
+                  if (donateMethod === "dropoff") {
+                    setStep("form");
+                    setSubmitSuccess(true);
+                  } else {
+                    navigate("/donations/history");
+                  }
                 }}
                 onTrackingSaved={() => { setStep("form"); setSubmitSuccess(true); }}
               />
@@ -594,7 +598,7 @@ export default function DonatePage() {
         )}
 
         {/* RIGHT */}
-        <div className="dnRight">
+        <div className="dnRight" style={step !== "form" ? { visibility: "hidden" } : undefined}>
           {/* Draft banner */}
           {localStorage.getItem(`donateDraft_${requestId}`) && (
             <div style={{
