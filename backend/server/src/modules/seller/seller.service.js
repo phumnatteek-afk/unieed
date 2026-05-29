@@ -125,6 +125,74 @@ function getDashboardDateRange({ period = "month", start_date = null, end_date =
   };
 }
 
+function addMonthsClamped(date, delta) {
+  const day = date.getDate();
+  const next = new Date(date);
+  next.setDate(1);
+  next.setMonth(next.getMonth() + delta);
+  const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+  next.setDate(Math.min(day, lastDay));
+  next.setHours(date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds());
+  return next;
+}
+
+function getPreviousDashboardDateRange(range) {
+  let from;
+  let to;
+
+  switch (range.period) {
+    case "today":
+      from = new Date(range.fromDate);
+      to = new Date(range.toDate);
+      from.setDate(from.getDate() - 1);
+      to.setDate(to.getDate() - 1);
+      break;
+    case "month":
+      from = addMonthsClamped(range.fromDate, -1);
+      to = addMonthsClamped(range.toDate, -1);
+      break;
+    case "3months":
+      from = addMonthsClamped(range.fromDate, -3);
+      to = addMonthsClamped(range.toDate, -3);
+      break;
+    case "6months":
+      from = addMonthsClamped(range.fromDate, -6);
+      to = addMonthsClamped(range.toDate, -6);
+      break;
+    case "year":
+      from = addMonthsClamped(range.fromDate, -12);
+      to = addMonthsClamped(range.toDate, -12);
+      break;
+    case "custom":
+    default: {
+      const duration = Math.max(0, range.toDate.getTime() - range.fromDate.getTime());
+      to = new Date(range.fromDate.getTime() - 1000);
+      from = new Date(to.getTime() - duration);
+      break;
+    }
+  }
+
+  if (to >= range.fromDate) to = new Date(range.fromDate.getTime() - 1000);
+
+  return {
+    period: range.period,
+    from: formatDbDateTime(from),
+    to: formatDbDateTime(to),
+    fromDate: from,
+    toDate: to,
+    start_date: formatDateKey(from),
+    end_date: formatDateKey(to),
+  };
+}
+
+function pctChangeOrNull(current, previous) {
+  const cur = Number(current || 0);
+  const prev = Number(previous || 0);
+  if (!Number.isFinite(cur) || !Number.isFinite(prev)) return null;
+  if (prev === 0) return cur === 0 ? 0 : null;
+  return Math.round(((cur - prev) / prev) * 1000) / 10;
+}
+
 function getDashboardChartBucket(range) {
   if (range.period === "today") return "hour";
   const days = Math.ceil((range.toDate - range.fromDate) / DAY_MS) + 1;
@@ -505,8 +573,10 @@ async function getDashboardTransfers(sellerId, range) {
 
 export async function getDashboardIncome(sellerId, filters = {}) {
   const range = getDashboardDateRange(filters);
-  const [incomeSummary, incomeChart, transactions, transfers] = await Promise.all([
+  const previousRange = getPreviousDashboardDateRange(range);
+  const [incomeSummary, previousIncomeSummary, incomeChart, transactions, transfers] = await Promise.all([
     getDashboardIncomeSummary(sellerId, range),
+    getDashboardIncomeSummary(sellerId, previousRange),
     getDashboardIncomeChart(sellerId, range),
     getDashboardTransactions(sellerId, range),
     getDashboardTransfers(sellerId, range),
@@ -518,7 +588,17 @@ export async function getDashboardIncome(sellerId, filters = {}) {
       start_date: range.start_date,
       end_date: range.end_date,
     },
+    previous_range: {
+      period: previousRange.period,
+      start_date: previousRange.start_date,
+      end_date: previousRange.end_date,
+    },
     income_summary: incomeSummary,
+    trends: {
+      gross: pctChangeOrNull(incomeSummary.gross, previousIncomeSummary.gross),
+      fee:   pctChangeOrNull(incomeSummary.fee_total, previousIncomeSummary.fee_total),
+      net:   pctChangeOrNull(incomeSummary.net, previousIncomeSummary.net),
+    },
     income_chart: incomeChart,
     transactions,
     transfers,

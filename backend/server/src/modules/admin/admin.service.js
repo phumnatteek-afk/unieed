@@ -16,6 +16,11 @@ function thaiNow() {
 
 /* ────── helpers ────── */
 
+function formatSqlDateTime(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 function normalizeThaiPhone(input) {
   if (!input) return null;
   let raw = String(input).replace(/\D/g, "");
@@ -28,9 +33,10 @@ function normalizeThaiPhone(input) {
 function periodToDateRange(period, startDate = null, endDate = null) {
   const now = new Date();
   if (period === "custom" && startDate && endDate) {
-    const f = new Date(startDate); f.setHours(0, 0, 0, 0);
-    const t = new Date(endDate);   t.setHours(23, 59, 59, 999);
-    return { from: f.toISOString().slice(0, 19), to: t.toISOString().slice(0, 19) };
+    let f = new Date(startDate); f.setHours(0, 0, 0, 0);
+    let t = new Date(endDate);   t.setHours(23, 59, 59, 999);
+    if (f > t) [f, t] = [t, f];
+    return { from: formatSqlDateTime(f), to: formatSqlDateTime(t) };
   }
   let from;
   switch (period) {
@@ -41,7 +47,11 @@ function periodToDateRange(period, startDate = null, endDate = null) {
     case "year":    from = new Date(now); from.setFullYear(now.getFullYear() - 1); break;
     default:        from = new Date(now); from.setDate(now.getDate() - 7);
   }
-  return { from: from.toISOString().slice(0, 19), to: now.toISOString().slice(0, 19) };
+  return { from: formatSqlDateTime(from), to: formatSqlDateTime(now) };
+}
+
+function parseSqlDateTime(value) {
+  return new Date(String(value).replace(" ", "T"));
 }
 
 /* ────── Schools ────── */
@@ -335,11 +345,11 @@ export async function getRevenueStats({ period = "month", start_date = null, end
   const { from, to } = periodToDateRange(period, start_date, end_date);
 
   // คำนวณ "ช่วงก่อนหน้า" ที่ยาวเท่ากัน สำหรับ % เปลี่ยนแปลง
-  const fromDate = new Date(from);
-  const toDate   = new Date(to);
+  const fromDate = parseSqlDateTime(from);
+  const toDate   = parseSqlDateTime(to);
   const diffMs   = toDate - fromDate;
-  const prevTo   = new Date(fromDate - 1).toISOString().slice(0, 19);
-  const prevFrom = new Date(fromDate - diffMs - 1).toISOString().slice(0, 19);
+  const prevTo   = formatSqlDateTime(new Date(fromDate - 1));
+  const prevFrom = formatSqlDateTime(new Date(fromDate - diffMs - 1));
 
   // Query รายได้ + แยกประเภทค่าธรรมเนียม
   // ใช้ logic ใหม่: max(subtotal * 15%, ฿20) ต่อออเดอร์
@@ -396,42 +406,106 @@ export async function getRevenueStats({ period = "month", start_date = null, end
   };
 }
 
+function chartGrainForRange(period, from, to) {
+  if (period === "today") return "hour";
+  if (period === "month") return "day";
+  if (period === "custom") {
+    const diffDays = Math.ceil((parseSqlDateTime(to) - parseSqlDateTime(from)) / (24 * 60 * 60 * 1000));
+    if (diffDays <= 1) return "hour";
+    if (diffDays <= 62) return "day";
+  }
+  return "month";
+}
+
+function addChartUnit(d, grain) {
+  const next = new Date(d);
+  if (grain === "hour") next.setHours(next.getHours() + 1);
+  else if (grain === "day") next.setDate(next.getDate() + 1);
+  else next.setMonth(next.getMonth() + 1);
+  return next;
+}
+
+function startOfChartBucket(d, grain) {
+  const next = new Date(d);
+  next.setMilliseconds(0);
+  next.setSeconds(0);
+  if (grain === "month") {
+    next.setDate(1);
+    next.setHours(0, 0, 0, 0);
+  } else if (grain === "day") {
+    next.setHours(0, 0, 0, 0);
+  } else {
+    next.setMinutes(0, 0, 0);
+  }
+  return next;
+}
+
+function chartBucketKey(d, grain) {
+  const pad = (n) => String(n).padStart(2, "0");
+  if (grain === "hour") {
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:00`;
+  }
+  if (grain === "day") {
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+}
+
+function chartBucketLabel(d, grain) {
+  const MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const pad = (n) => String(n).padStart(2, "0");
+  if (grain === "hour") return `${pad(d.getHours())}:00`;
+  if (grain === "day") return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  return `${MONTHS[d.getMonth()]} ${String(d.getFullYear() + 543).slice(-2)}`;
+}
+
 /**
- * ข้อมูลกราฟ "ยอดขายรวม vs ค่าธรรมเนียม" ย้อนหลัง N เดือน
+ * ข้อมูลกราฟ "ยอดขายรวม vs ค่าธรรมเนียม"
+ * - ใช้ช่วงเวลาเดียวกับการ์ดรายได้ เพื่อให้ filter กับกราฟตรงกัน
  * - กรองด้วย payment_status = 'paid' (ครอบคลุม confirmed/shipping/delivered)
- *   ไม่ filter เฉพาะ delivered เพื่อให้ chart มีข้อมูลทันทีหลัง buyer จ่ายเงิน
- * - ใช้ 1 query เดียวต่อ N เดือน (เร็วกว่า loop)
  */
-export async function getChartData(months = 6) {
-  const N = Math.max(1, Math.min(24, Number(months) || 6));
+export async function getChartData(options = {}) {
+  const opts = typeof options === "number" ? { months: options } : options;
+  const { period = null, start_date = null, end_date = null, months = null } = opts || {};
+  const legacyMonths = Math.max(1, Math.min(24, Number(months) || 6));
+  const now = new Date();
+  const range = period
+    ? periodToDateRange(period, start_date, end_date)
+    : {
+        from: formatSqlDateTime(new Date(now.getFullYear(), now.getMonth() - Math.max(legacyMonths - 1, 0), 1, 0, 0, 0)),
+        to: formatSqlDateTime(now),
+      };
+  const grain = period ? chartGrainForRange(period, range.from, range.to) : "month";
+  const sqlBucket = grain === "hour"
+    ? "DATE_FORMAT(o.created_at, '%Y-%m-%d %H:00')"
+    : grain === "day"
+      ? "DATE_FORMAT(o.created_at, '%Y-%m-%d')"
+      : "DATE_FORMAT(o.created_at, '%Y-%m')";
 
   const [rows] = await db.query(`
     SELECT
-      DATE_FORMAT(o.created_at, '%Y-%m')              AS ym,
-      COALESCE(SUM(o.total_price), 0)                 AS sales,
-      COALESCE(SUM(o.platform_fee), 0)                AS fees
+      ${sqlBucket} AS bucket,
+      COALESCE(SUM(o.total_price), 0)  AS sales,
+      COALESCE(SUM(o.platform_fee), 0) AS fees
     FROM orders o
     WHERE o.payment_status = 'paid'
-      AND o.created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL ? MONTH), '%Y-%m-01')
-    GROUP BY ym
-  `, [N - 1]);
+      AND o.created_at BETWEEN ? AND ?
+    GROUP BY bucket
+    ORDER BY bucket ASC
+  `, [range.from, range.to]);
 
-  // map ปี-เดือน -> {sales, fees}
-  const byYm = Object.fromEntries(rows.map(r => [r.ym, r]));
-
-  // เติมเดือนที่ไม่มีข้อมูลให้เป็น 0 (เพื่อให้ chart ลากเส้นเรียงต่อกัน N จุด)
-  const MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const byBucket = Object.fromEntries(rows.map(r => [r.bucket, r]));
   const labels = [];
   const salesArr = [];
   const feesArr  = [];
-  const now = new Date();
-  for (let i = N - 1; i >= 0; i--) {
-    const d  = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const r  = byYm[ym] || { sales: 0, fees: 0 };
-    labels.push(MONTHS[d.getMonth()]);
+  const toDate = parseSqlDateTime(range.to);
+
+  for (let d = startOfChartBucket(parseSqlDateTime(range.from), grain); d <= toDate; d = addChartUnit(d, grain)) {
+    const key = chartBucketKey(d, grain);
+    const r = byBucket[key] || { sales: 0, fees: 0 };
+    labels.push(chartBucketLabel(d, grain));
     salesArr.push(Math.round(Number(r.sales || 0)));
-    feesArr.push(Math.round(Number(r.fees  || 0)));
+    feesArr.push(Math.round(Number(r.fees || 0)));
   }
 
   // Donation status (donation_request)
@@ -446,6 +520,9 @@ export async function getChartData(months = 6) {
     sales:             salesArr,
     fees:              feesArr,
     donation_open_pct: openPct,
+    granularity:       grain,
+    from:              range.from,
+    to:                range.to,
   };
 }
 

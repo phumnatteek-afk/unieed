@@ -73,7 +73,8 @@ const parseItems = (items) => {
 };
 
 const fmtTrend = (value) => {
-  const n = Number(value || 0);
+  if (value === null || value === undefined) return null;
+  const n = Number(value);
   if (!Number.isFinite(n)) return null;
   if (Math.abs(n) < 0.05) return { label: "0.0%", tone: "flat", icon: "mdi:minus" };
   if (n > 0) return { label: `+${n.toFixed(1)}%`, tone: "up", icon: "mdi:arrow-top-right-thin" };

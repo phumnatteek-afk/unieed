@@ -45,8 +45,8 @@ r.delete("/schools/:id",         auth, requireRole(["admin"]), adminRemoveSchool
 
 /* ─── Dashboard ─── */
 r.get("/overview",            auth, requireRole(["admin"]), adminOverview);
-r.get("/revenue",             auth, requireRole(["admin"]), adminRevenue);       // ?period=week|month|year
-r.get("/chart",               auth, requireRole(["admin"]), adminChart);         // ?months=6
+r.get("/revenue",             auth, requireRole(["admin"]), adminRevenue);       // ?period=&start_date=&end_date=
+r.get("/chart",               auth, requireRole(["admin"]), adminChart);         // ?period=&start_date=&end_date=
 r.get("/pending-tasks",       auth, requireRole(["admin"]), adminPendingTasks);
 r.get("/demand-insight",      auth, requireRole(["admin"]), adminDemandInsight); // Demand Insight
 r.get("/project-status",      auth, requireRole(["admin"]), adminProjectStatusProjects); // ?status=open|closed

@@ -67,12 +67,6 @@ function pctLabel(pct) {
 }
 
 // ── Demand Insight helpers ──────────────────────────────────────────────────
-const RANK_MEDAL   = ["🥇", "🥈", "🥉"];
-const CARD_THEMES  = [
-  { grad: "linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%)", light: "#dbeafe", accent: "#1d4ed8", border: "#93c5fd" },
-  { grad: "linear-gradient(135deg,#0369a1 0%,#38bdf8 100%)", light: "#e0f2fe", accent: "#0284c7", border: "#7dd3fc" },
-  { grad: "linear-gradient(135deg,#0f766e 0%,#2dd4bf 100%)", light: "#ccfbf1", accent: "#0d9488", border: "#5eead4" },
-];
 // สีประจำภาค — รวม yellow สำหรับอีสาน
 const REGION_STYLE = {
   "เหนือ":      { bg: "#ecfdf5", color: "#059669", border: "#6ee7b7" },
@@ -83,23 +77,6 @@ const REGION_STYLE = {
   "ใต้":        { bg: "#ecfeff", color: "#0e7490", border: "#a5f3fc" },
   "อื่นๆ":      { bg: "#f8fafc", color: "#64748b", border: "#cbd5e1" },
 };
-
-function sizeLabel(sz) {
-  if (!sz) return null;
-  const p = [];
-  if (sz.chest && sz.chest !== "0") p.push(`อก ${sz.chest}`);
-  if (sz.waist && sz.waist !== "0") p.push(`เอว ${sz.waist}`);
-  if (!p.length && sz.length && sz.length !== "0") p.push(`ยาว ${sz.length}`);
-  return p.length ? p.join(" / ") : null;
-}
-
-function urgencyMeta(stillNeeded, totalNeeded) {
-  const pct = totalNeeded > 0 ? Math.round((stillNeeded / totalNeeded) * 100) : 0;
-  // ใช้สีธีมหลัก (blue) สำหรับ label — เก็บ accent สีแดงไว้เฉพาะ % text
-  if (pct >= 70) return { label: "ขาดมาก",     pctColor: "#dc2626", badgeBg: "rgba(255,255,255,0.22)", badgeColor: "#fff" };
-  if (pct >= 40) return { label: "ขาดปานกลาง", pctColor: "#ea580c", badgeBg: "rgba(255,255,255,0.22)", badgeColor: "#fff" };
-  return              { label: "ขาดน้อย",      pctColor: "#16a34a", badgeBg: "rgba(255,255,255,0.22)", badgeColor: "#fff" };
-}
 
 function fmtProjectDate(value) {
   if (!value) return "-";
@@ -150,7 +127,6 @@ export default function AdminBackofficePage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate]     = useState("");
   const [showPicker, setShowPicker] = useState(false);
-  const [chartMonths, setChartMonths] = useState(6);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [projectModalStatus, setProjectModalStatus] = useState(null);
@@ -179,7 +155,7 @@ export default function AdminBackofficePage() {
         const [ov, tk, ch, dm, openProj] = await Promise.all([
           svc.getOverview(),
           svc.getPendingTasks(),
-          svc.getChart(6),
+          svc.getChart({ period: "month" }),
           svc.getDemandInsight(),
           svc.listProjectStatusProjects("open"),
         ]);
@@ -215,6 +191,7 @@ export default function AdminBackofficePage() {
 
   // โหลด revenue ตาม period ที่เลือก
   useEffect(() => {
+    if (period === "custom" && (!startDate || !endDate)) return;
     let cancelled = false;
     svc.getRevenue({ period, start_date: period === "custom" ? startDate : null, end_date: period === "custom" ? endDate : null })
       .then((r) => {
@@ -238,11 +215,17 @@ export default function AdminBackofficePage() {
   }, [period, startDate, endDate]);
 
   useEffect(() => {
-    const map = { today: 3, month: 3, "3months": 3, "6months": 6, year: 12, custom: 6 };
-    const m = map[period] || 6;
-    setChartMonths(m);
-    svc.getChart(m).then((ch) => setChart(ch || {})).catch(() => {});
-  }, [period]);
+    if (period === "custom" && (!startDate || !endDate)) return;
+    svc.getChart({
+      period,
+      start_date: period === "custom" ? startDate : null,
+      end_date: period === "custom" ? endDate : null,
+    }).then((ch) => setChart(ch || {})).catch(() => {});
+  }, [period, startDate, endDate]);
+
+  const chartRangeLabel = period === "custom" && startDate && endDate
+    ? `${startDate} → ${endDate}`
+    : PERIOD_LABEL_MAP[period] || "เดือนนี้";
 
   const chartData = useMemo(
     () => (chart.months || []).map((m, i) => ({
@@ -454,12 +437,9 @@ export default function AdminBackofficePage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
               <div>
                 <div className="boChartCard__title" style={{ marginBottom: 2 }}>
-                  รายได้ค่าธรรมเนียม — ย้อนหลัง {chartMonths} เดือน
+                  รายได้ค่าธรรมเนียม — {chartRangeLabel}
                 </div>
                 <div style={{ fontSize: 12, color: "#94a3b8" }}>ค่าธรรมเนียมที่เก็บจากผู้ขาย (15% ขั้นต่ำ ฿20/ออเดอร์)</div>
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:6, background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:8, padding:"4px 10px", fontSize:12, color:"#1d4ed8", fontWeight:600 }}>
-                <Icon icon="mdi:chart-bar" style={{ fontSize:14 }} /> กราฟแท่ง
               </div>
             </div>
             <div style={{ width: "100%", height: 280 }}>
@@ -545,122 +525,11 @@ export default function AdminBackofficePage() {
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {demand.open_projects > 0 && (
                   <span style={{ fontSize: 12, color: "#1d4ed8", background: "#dbeafe", borderRadius: 20, padding: "3px 12px", fontWeight: 600 }}>
-                    📂 {demand.open_projects} โครงการเปิดอยู่
+                    {demand.open_projects} โครงการเปิดอยู่
                   </span>
                 )}
-                {/* Legend — % bar colors only */}
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {[["#fca5a5","ขาดมาก ≥70%"],["#fed7aa","ปานกลาง 40–70%"],["#bbf7d0","น้อย <40%"]].map(([c,l]) => (
-                    <div key={l} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#64748b" }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: c, border: "1px solid #e2e8f0", display: "inline-block" }} />{l}
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
-
-            {/* ── Top 3 cards (horizontal) ── */}
-            {demand.top3_types.length === 0 ? (
-              <div className="boDonutCard" style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 24 }}>
-                ไม่มีโครงการที่เปิดอยู่ หรือยังไม่มีข้อมูลความต้องการ
-              </div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 20 }}>
-                {demand.top3_types.map((item) => {
-                  const theme  = CARD_THEMES[item.rank - 1];
-                  const meta   = urgencyMeta(item.still_needed, item.total_needed);
-                  const pct    = item.total_needed > 0 ? Math.round((item.still_needed / item.total_needed) * 100) : 0;
-                  return (
-                    <div key={item.uniform_type_id} style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(30,58,138,0.10)", border: `1px solid ${theme.border}` }}>
-
-                      {/* Gradient header */}
-                      <div style={{ background: theme.grad, padding: "16px 18px 14px", position: "relative" }}>
-                        <div style={{ position: "absolute", top: 12, right: 14, fontSize: 22, lineHeight: 1 }}>
-                          {RANK_MEDAL[item.rank - 1]}
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, background: "rgba(255,255,255,0.22)", color: "#fff", padding: "2px 9px", borderRadius: 20 }}>
-                            {item.category_name}
-                          </span>
-                          {item.gender_label && (
-                            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.75)" }}>({item.gender_label})</span>
-                          )}
-                        </div>
-                        <div style={{ fontWeight: 800, fontSize: 16, color: "#fff", paddingRight: 36, marginBottom: 8, lineHeight: 1.3 }}>
-                          {item.type_name}
-                        </div>
-                        {/* Progress inside header */}
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "rgba(255,255,255,0.85)", marginBottom: 4 }}>
-                          <span>ยังขาด {item.still_needed} / {item.total_needed} ชิ้น</span>
-                          <span style={{ fontWeight: 800, color: pct >= 70 ? "#fca5a5" : pct >= 40 ? "#fed7aa" : "#bbf7d0" }}>{pct}%</span>
-                        </div>
-                        <div style={{ background: "rgba(255,255,255,0.2)", borderRadius: 4, height: 6, overflow: "hidden" }}>
-                          <div style={{ width: `${pct}%`, height: "100%", background: "#fff", borderRadius: 4, opacity: 0.9 }} />
-                        </div>
-                      </div>
-
-                      {/* White body */}
-                      <div style={{ background: "#fff", padding: "14px 16px 16px" }}>
-
-                        {/* Sizes */}
-                        {item.top_sizes.filter(sz => sizeLabel(sz)).length > 0 && (
-                          <div style={{ marginBottom: 12 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
-                              <Icon icon="mdi:ruler" style={{ fontSize: 13, color: theme.accent }} />
-                              ไซส์ที่ขาดมากที่สุด
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                              {item.top_sizes.map((sz, si) => {
-                                const lbl = sizeLabel(sz);
-                                if (!lbl) return null;
-                                return (
-                                  <div key={si} style={{
-                                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                                    background: si === 0 ? theme.light : "#f8fafc",
-                                    borderRadius: 8, padding: "5px 10px", fontSize: 12,
-                                    border: `1px solid ${si === 0 ? theme.border : "#f1f5f9"}`,
-                                  }}>
-                                    <span style={{ fontWeight: si === 0 ? 700 : 500, color: si === 0 ? theme.accent : "#475569" }}>
-                                      {si === 0 ? "★ " : "  "}{lbl}
-                                    </span>
-                                    <span style={{ fontWeight: 700, color: si === 0 ? theme.accent : "#94a3b8", fontSize: 11 }}>
-                                      {sz.count} ชิ้น
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Education levels */}
-                        {item.levels && item.levels.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
-                              <Icon icon="mdi:school-outline" style={{ fontSize: 13, color: theme.accent }} />
-                              ระดับชั้นที่ขาด
-                            </div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                              {item.levels.slice(0, 5).map((lv, li) => (
-                                <span key={li} style={{
-                                  fontSize: 11, borderRadius: 20, padding: "2px 10px",
-                                  background: li === 0 ? theme.light : "#f1f5f9",
-                                  border: `1px solid ${li === 0 ? theme.border : "#e2e8f0"}`,
-                                  color: li === 0 ? theme.accent : "#475569",
-                                  fontWeight: li === 0 ? 700 : 500,
-                                }}>
-                                  {lv.level} <span style={{ color: li === 0 ? theme.accent : "#94a3b8", fontWeight: 700 }}>{lv.count}</span>
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
 
             {/* ── Province + Donut + Completed — 2-col layout ── */}
             <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 16, marginBottom: 8 }}>

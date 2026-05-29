@@ -83,9 +83,13 @@ export function getRevenue({ period = "month", start_date = null, end_date = nul
   return request(`/admin/revenue?${params.toString()}`, { method: "GET", auth: true });
 }
 
-/** GET /admin/chart?months=6 */
-export function getChart(months = 6) {
-  return request(`/admin/chart?months=${months}`, { method: "GET", auth: true });
+/** GET /admin/chart?period=today|month|3months|6months|year|custom&start_date=&end_date= */
+export function getChart({ period = "month", start_date = null, end_date = null } = {}) {
+  const params = new URLSearchParams();
+  params.set("period", period);
+  if (start_date) params.set("start_date", start_date);
+  if (end_date) params.set("end_date", end_date);
+  return request(`/admin/chart?${params.toString()}`, { method: "GET", auth: true });
 }
 
 /** GET /admin/pending-tasks */
