@@ -738,6 +738,24 @@
   border: 1px solid #fde68a;
 }
 
+.admPayoutStatus--cycle {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.admPayoutStatus--ready {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.admPayoutStatus--overdue {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
 .admPayoutStatus--paid {
   background: #f0fdf4;
   color: #15803d;
@@ -804,6 +822,14 @@
 
 .admPayoutBtn:active {
   transform: scale(0.97);
+}
+
+.admPayoutBtn:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+  opacity: 0.58;
+  transform: none;
+  box-shadow: none;
 }
 
 .admPayoutBtn--transfer {

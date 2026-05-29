@@ -294,7 +294,7 @@ export default function AdminOrderPage() {
                     <th style={{ ...thSt, textAlign: "right", color: "#fff", fontWeight: 700 }}>ยอดรวม</th>
                     <th style={{ ...thSt, textAlign: "center", color: "#fff", fontWeight: 700 }}>ชำระเงิน</th>
                     <th style={{ ...thSt, textAlign: "center", color: "#fff", fontWeight: 700 }}>สถานะ</th>
-                    <th style={{ ...thSt, textAlign: "center", color: "#fff", fontWeight: 700 }}>จัดการ</th>
+                    <th style={{ ...thSt, textAlign: "left", color: "#fff", fontWeight: 700 }}>จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -357,8 +357,8 @@ export default function AdminOrderPage() {
                           </span>
                         </td>
 
-                        <td style={{ ...tdSt, textAlign: "center" }}>
-                          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                        <td style={{ ...tdSt, textAlign: "left" }}>
+                          <div style={{ display: "flex", gap: 6, justifyContent: "flex-start" }}>
                             <button type="button" style={btnSt("#3b82f6")} onClick={() => openDetail(row.order_id)}>
                               รายละเอียด
                             </button>

@@ -604,6 +604,47 @@ table.slTable { width:100%; border-collapse: collapse; }
   width:100%;
   height:320px;
 }
+.slIncomeTooltip {
+  min-width:190px;
+  padding:11px 12px;
+  border:1px solid #dbeafe;
+  border-radius:10px;
+  background:#fff;
+  box-shadow:0 16px 36px -20px rgba(15,23,42,0.45);
+  color:#0f172a;
+  font-size:12px;
+}
+.slIncomeTooltip__label {
+  margin-bottom:8px;
+  color:#1d4ed8;
+  font-weight:800;
+}
+.slIncomeTooltip div:not(.slIncomeTooltip__label):not(.slIncomeTooltip__total) {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:5px;
+}
+.slIncomeTooltip__total {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:9px;
+  padding-top:9px;
+  border-top:1px solid #e2e8f0;
+  font-weight:800;
+}
+.slTooltipDot {
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  display:inline-block;
+  margin-right:6px;
+}
+.slTooltipDot--net { background:#2563eb; }
+.slTooltipDot--fee { background:#f59e0b; }
 .slChartEmpty,
 .slRevenueEmpty {
   display:flex;
@@ -788,6 +829,53 @@ table.slTable { width:100%; border-collapse: collapse; }
   overflow:auto;
   border:1px solid #e2e8f0;
   border-radius:10px;
+}
+.slTablePagination {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:12px;
+  color:#64748b;
+  font-size:12px;
+  flex-wrap:wrap;
+}
+.slTablePagination__buttons {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.slTablePagination__buttons span {
+  min-width:76px;
+  text-align:center;
+  color:#334155;
+  font-weight:700;
+}
+.slTablePagination button {
+  min-height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:7px 10px;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  background:#fff;
+  color:#1d4ed8;
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+  transition:background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.slTablePagination button:hover:not(:disabled) {
+  background:#eff6ff;
+  border-color:#93c5fd;
+}
+.slTablePagination button:disabled {
+  cursor:not-allowed;
+  color:#94a3b8;
+  background:#f8fafc;
 }
 .slTxnTable,
 .slTransferTable {

@@ -128,6 +128,7 @@ export default function AdminBackofficePage() {
   const [endDate, setEndDate]     = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(false);
   const [err, setErr] = useState("");
   const [projectModalStatus, setProjectModalStatus] = useState(null);
   const [projectLists, setProjectLists] = useState({ open: null, closed: null });
@@ -145,17 +146,16 @@ export default function AdminBackofficePage() {
   const dateStr = now.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
   const timeStr = now.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
 
-  // โหลด overview / chart / tasks ครั้งแรก
+  // โหลด overview / tasks ครั้งแรก
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         setErr("");
         setLoading(true);
-        const [ov, tk, ch, dm, openProj] = await Promise.all([
+        const [ov, tk, dm, openProj] = await Promise.all([
           svc.getOverview(),
           svc.getPendingTasks(),
-          svc.getChart({ period: "month" }),
           svc.getDemandInsight(),
           svc.listProjectStatusProjects("open"),
         ]);
@@ -177,7 +177,6 @@ export default function AdminBackofficePage() {
           pending_shipments: Number(tk?.pending_shipments || 0),
           pending_donations: Number(tk?.pending_donations || 0),
         });
-        setChart(ch || {});
         setDemand(dm || { top3_types: [], open_projects: 0 });
         setAllOpenProjects(Array.isArray(openProj?.rows) ? openProj.rows : []);
       } catch (e) {
@@ -189,12 +188,21 @@ export default function AdminBackofficePage() {
     return () => { cancelled = true; };
   }, []);
 
-  // โหลด revenue ตาม period ที่เลือก
+  // โหลด revenue และ chart ตาม period ที่เลือก
   useEffect(() => {
     if (period === "custom" && (!startDate || !endDate)) return;
     let cancelled = false;
-    svc.getRevenue({ period, start_date: period === "custom" ? startDate : null, end_date: period === "custom" ? endDate : null })
-      .then((r) => {
+    const params = {
+      period,
+      start_date: period === "custom" ? startDate : null,
+      end_date: period === "custom" ? endDate : null,
+    };
+    setChartLoading(true);
+    Promise.all([
+      svc.getRevenue(params),
+      svc.getChart(params),
+    ])
+      .then(([r, ch]) => {
         if (cancelled) return;
         setRevenue({
           platform_revenue:     Number(r?.platform_revenue  || 0),
@@ -209,18 +217,13 @@ export default function AdminBackofficePage() {
           pct_fee_15:           r?.pct_fee_15           ?? null,
           pct_fee_min:          r?.pct_fee_min          ?? null,
         });
+        setChart(ch || {});
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setChartLoading(false);
+      });
     return () => { cancelled = true; };
-  }, [period, startDate, endDate]);
-
-  useEffect(() => {
-    if (period === "custom" && (!startDate || !endDate)) return;
-    svc.getChart({
-      period,
-      start_date: period === "custom" ? startDate : null,
-      end_date: period === "custom" ? endDate : null,
-    }).then((ch) => setChart(ch || {})).catch(() => {});
   }, [period, startDate, endDate]);
 
   const chartRangeLabel = period === "custom" && startDate && endDate
@@ -442,27 +445,40 @@ export default function AdminBackofficePage() {
                 <div style={{ fontSize: 12, color: "#94a3b8" }}>ค่าธรรมเนียมที่เก็บจากผู้ขาย (15% ขั้นต่ำ ฿20/ออเดอร์)</div>
               </div>
             </div>
-            <div style={{ width: "100%", height: 280 }}>
-              <ResponsiveContainer>
-                <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barSize={28}>
-                  <defs>
-                    <linearGradient id="feeBarGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#1d4ed8" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#93c5fd" stopOpacity={0.8} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `฿${(v/1000).toFixed(1)}K` : `฿${v}`} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, border: "1px solid #bfdbfe", boxShadow: "0 8px 24px rgba(0,0,0,0.10)", padding: "10px 14px" }}
-                    formatter={(v) => [formatBaht(v), "ค่าธรรมเนียม"]}
-                    labelStyle={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}
-                    cursor={{ fill: "rgba(29,78,216,0.05)" }}
-                  />
-                  <Bar dataKey="fees" fill="url(#feeBarGrad)" radius={[6, 6, 0, 0]} name="fees" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div style={{ width: "100%", height: 280, position: "relative" }}>
+              {chartLoading && (
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.62)", zIndex: 2, color: "#1d4ed8", fontWeight: 700, fontSize: 13 }}>
+                  <Icon icon="mdi:loading" style={{ marginRight: 6, animation: "spin 0.8s linear infinite" }} /> กำลังอัปเดตกราฟ
+                </div>
+              )}
+              {chartData.some((row) => row.fees > 0) ? (
+                <ResponsiveContainer>
+                  <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barSize={28}>
+                    <defs>
+                      <linearGradient id="feeBarGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#1d4ed8" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#93c5fd" stopOpacity={0.8} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v >= 1000 ? `฿${(v/1000).toFixed(1)}K` : `฿${v}`} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: "1px solid #bfdbfe", boxShadow: "0 8px 24px rgba(0,0,0,0.10)", padding: "10px 14px" }}
+                      formatter={(v) => [formatBaht(v), "ค่าธรรมเนียม"]}
+                      labelStyle={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}
+                      cursor={{ fill: "rgba(29,78,216,0.05)" }}
+                    />
+                    <Bar dataKey="fees" fill="url(#feeBarGrad)" radius={[6, 6, 0, 0]} name="fees" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#94a3b8", border: "1px dashed #cbd5e1", borderRadius: 12, background: "#f8fafc", gap: 6 }}>
+                  <Icon icon="mdi:chart-bar" style={{ fontSize: 32 }} />
+                  <strong style={{ color: "#64748b", fontSize: 13 }}>ไม่มีค่าธรรมเนียมในช่วงเวลานี้</strong>
+                  <span style={{ fontSize: 12 }}>ลองเลือกช่วงเวลาอื่นเพื่อดูข้อมูล</span>
+                </div>
+              )}
             </div>
           </div>
 

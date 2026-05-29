@@ -87,8 +87,13 @@ export async function adminRevenue(req, res, next) {
 
 export async function adminChart(req, res, next) {
   try {
-    const months = Number(req.query.months) || 6;
-    res.json(await svc.getChartData(months));
+    const { period = "", start_date = "", end_date = "", months = "" } = req.query;
+    res.json(await svc.getChartData({
+      period: period || null,
+      start_date,
+      end_date,
+      months: months ? Number(months) : null,
+    }));
   } catch (e) { next(e); }
 }
 

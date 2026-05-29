@@ -10,6 +10,7 @@ import { NotSellerView } from "../layouts/SellerLayout.jsx";
 
 const fmtBaht = (n) => "฿" + Number(n || 0).toLocaleString();
 const fmtCount = (n) => Number(n || 0).toLocaleString();
+const TABLE_PAGE_SIZE = 10;
 
 const PERIOD_OPTIONS = [
   { value: "today", label: "วันนี้" },
@@ -262,23 +263,32 @@ export default function SellerDashboardPage() {
             {hasChartValue ? (
               <ResponsiveContainer>
                 <BarChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <defs>
+                    <linearGradient id="slNetBarGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563eb" />
+                      <stop offset="100%" stopColor="#93c5fd" />
+                    </linearGradient>
+                    <linearGradient id="slFeeBarGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f59e0b" />
+                      <stop offset="100%" stopColor="#fde68a" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 8" stroke="#e2e8f0" vertical={false} />
                   <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis
                     stroke="#94a3b8"
                     fontSize={11}
                     tickLine={false}
                     axisLine={false}
+                    width={52}
                     tickFormatter={(value) => value >= 1000 ? `฿${(value / 1000).toFixed(1)}K` : `฿${value}`}
                   />
                   <Tooltip
                     cursor={{ fill: "rgba(59,130,246,0.08)" }}
-                    contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", boxShadow: "0 8px 24px rgba(15,23,42,0.08)" }}
-                    formatter={(value, name) => [fmtBaht(value), name === "net" ? "รายได้สุทธิ" : "ค่าบริการ"]}
-                    labelFormatter={(label) => `ช่วง ${label}`}
+                    content={<IncomeTooltip />}
                   />
-                  <Bar dataKey="net" stackId="income" fill="#2563eb" radius={[0, 0, 6, 6]} />
-                  <Bar dataKey="fee" stackId="income" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="net" stackId="income" fill="url(#slNetBarGradient)" radius={[0, 0, 8, 8]} maxBarSize={38} />
+                  <Bar dataKey="fee" stackId="income" fill="url(#slFeeBarGradient)" radius={[8, 8, 0, 0]} maxBarSize={38} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -523,13 +533,57 @@ function TransferStatusCard({ income, rangeLabel, onOpen }) {
   );
 }
 
+function IncomeTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const byKey = Object.fromEntries(payload.map((item) => [item.dataKey, Number(item.value || 0)]));
+  const net = byKey.net || 0;
+  const fee = byKey.fee || 0;
+  return (
+    <div className="slIncomeTooltip">
+      <div className="slIncomeTooltip__label">ช่วง {label}</div>
+      <div><span className="slTooltipDot slTooltipDot--net" /> รายได้สุทธิ <strong>{fmtBaht(net)}</strong></div>
+      <div><span className="slTooltipDot slTooltipDot--fee" /> ค่าบริการ <strong>{fmtBaht(fee)}</strong></div>
+      <div className="slIncomeTooltip__total">ยอดขายรวม <strong>{fmtBaht(net + fee)}</strong></div>
+    </div>
+  );
+}
+
+function PaginationControls({ page, totalPages, totalRows, pageSize, onPageChange }) {
+  if (totalPages <= 1) return null;
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalRows);
+  return (
+    <div className="slTablePagination">
+      <div>แสดง {fmtCount(start)}-{fmtCount(end)} จาก {fmtCount(totalRows)} รายการ</div>
+      <div className="slTablePagination__buttons">
+        <button type="button" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+          <Icon icon="mdi:chevron-left" /> ก่อนหน้า
+        </button>
+        <span>หน้า {page} / {totalPages}</span>
+        <button type="button" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+          ถัดไป <Icon icon="mdi:chevron-right" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TransactionTable({ rows, total }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(rows.length / TABLE_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = rows.slice((currentPage - 1) * TABLE_PAGE_SIZE, currentPage * TABLE_PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [rows]);
+
   if (!rows.length) return <div className="slRevenueEmpty">ยังไม่มีคำสั่งซื้อที่ชำระเงินในช่วงเวลานี้</div>;
 
   return (
     <>
       <div className="slRevenueTableNote">
-        แสดง {fmtCount(rows.length)} จาก {fmtCount(total)} รายการล่าสุดในช่วงที่เลือก
+        โหลดมา {fmtCount(rows.length)} จาก {fmtCount(total)} รายการในช่วงที่เลือก
       </div>
       <div className="slTableScroll">
         <table className="slTable slTxnTable">
@@ -546,10 +600,17 @@ function TransactionTable({ rows, total }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => <TransactionRow key={row.order_id} row={row} />)}
+            {pageRows.map((row) => <TransactionRow key={row.order_id} row={row} />)}
           </tbody>
         </table>
       </div>
+      <PaginationControls
+        page={currentPage}
+        pageSize={TABLE_PAGE_SIZE}
+        totalPages={totalPages}
+        totalRows={rows.length}
+        onPageChange={setPage}
+      />
     </>
   );
 }
@@ -638,6 +699,15 @@ function TransactionRow({ row }) {
 }
 
 function TransferTable({ rows, income }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(rows.length / TABLE_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = rows.slice((currentPage - 1) * TABLE_PAGE_SIZE, currentPage * TABLE_PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [rows]);
+
   if (!rows.length) {
     return (
       <div className="slRevenueEmpty">
@@ -649,56 +719,66 @@ function TransferTable({ rows, income }) {
   }
 
   return (
-    <div className="slTableScroll">
-      <table className="slTable slTransferTable">
-        <thead>
-          <tr>
-            <th>รอบโอน</th>
-            <th>ธนาคารรับเงิน</th>
-            <th>วันที่โอน</th>
-            <th>ยอดจากช่วงที่เลือก</th>
-            <th>หลักฐาน</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.payout_id}>
-              <td>
-                <strong>#{row.payout_id}</strong>
-                <div className="slTableSubtle">
-                  {getTransferStatusLabel(row.status)} · {fmtCount(row.selected_order_count)} จาก {fmtCount(row.order_count)} ออเดอร์
-                </div>
-              </td>
-              <td>
-                <strong>{BANK_LABELS[row.bank_code] || row.bank_code?.toUpperCase() || "ยังไม่ระบุธนาคาร"}</strong>
-                <div className="slTableSubtle">
-                  {row.bank_account_name || "-"} · {row.bank_account_number_masked || "ไม่พบเลขบัญชี"}
-                </div>
-              </td>
-              <td>
-                <strong>{row.completed_at ? fmtDateTime(row.completed_at) : "รอดำเนินการ"}</strong>
-                <div className="slTableSubtle">สร้างรอบ {fmtDate(row.created_at)}</div>
-              </td>
-              <td>
-                <strong className="slGreen">{fmtBaht(row.selected_net_amount)}</strong>
-                <div className="slTableSubtle">ยอดรวมรอบโอน {fmtBaht(row.net_amount)}</div>
-              </td>
-              <td>
-                {row.slip_url ? (
-                  <a className="slInlineLink" href={row.slip_url} target="_blank" rel="noreferrer">
-                    ดูหลักฐาน <Icon icon="mdi:open-in-new" />
-                  </a>
-                ) : (
-                  <div className="slTableSubtle">
-                    {row.omise_transfer_id ? `อ้างอิง ${row.omise_transfer_id}` : "ยังไม่มีหลักฐานแนบ"}
-                  </div>
-                )}
-              </td>
+    <>
+      <div className="slRevenueTableNote">แสดงรอบโอน {fmtCount(rows.length)} รายการในช่วงที่เลือก</div>
+      <div className="slTableScroll">
+        <table className="slTable slTransferTable">
+          <thead>
+            <tr>
+              <th>รอบโอน</th>
+              <th>ธนาคารรับเงิน</th>
+              <th>วันที่โอน</th>
+              <th>ยอดจากช่วงที่เลือก</th>
+              <th>หลักฐาน</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {pageRows.map((row) => (
+              <tr key={row.payout_id}>
+                <td>
+                  <strong>#{row.payout_id}</strong>
+                  <div className="slTableSubtle">
+                    {getTransferStatusLabel(row.status)} · {fmtCount(row.selected_order_count)} จาก {fmtCount(row.order_count)} ออเดอร์
+                  </div>
+                </td>
+                <td>
+                  <strong>{BANK_LABELS[row.bank_code] || row.bank_code?.toUpperCase() || "ยังไม่ระบุธนาคาร"}</strong>
+                  <div className="slTableSubtle">
+                    {row.bank_account_name || "-"} · {row.bank_account_number_masked || "ไม่พบเลขบัญชี"}
+                  </div>
+                </td>
+                <td>
+                  <strong>{row.completed_at ? fmtDateTime(row.completed_at) : "รอดำเนินการ"}</strong>
+                  <div className="slTableSubtle">สร้างรอบ {fmtDate(row.created_at)}</div>
+                </td>
+                <td>
+                  <strong className="slGreen">{fmtBaht(row.selected_net_amount)}</strong>
+                  <div className="slTableSubtle">ยอดรวมรอบโอน {fmtBaht(row.net_amount)}</div>
+                </td>
+                <td>
+                  {row.slip_url ? (
+                    <a className="slInlineLink" href={row.slip_url} target="_blank" rel="noreferrer">
+                      ดูหลักฐาน <Icon icon="mdi:open-in-new" />
+                    </a>
+                  ) : (
+                    <div className="slTableSubtle">
+                      {row.omise_transfer_id ? `อ้างอิง ${row.omise_transfer_id}` : "ยังไม่มีหลักฐานแนบ"}
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <PaginationControls
+        page={currentPage}
+        pageSize={TABLE_PAGE_SIZE}
+        totalPages={totalPages}
+        totalRows={rows.length}
+        onPageChange={setPage}
+      />
+    </>
   );
 }
 

@@ -54,6 +54,10 @@ function parseSqlDateTime(value) {
   return new Date(String(value).replace(" ", "T"));
 }
 
+const PAYOUT_READY_SQL = `LAST_DAY(o.created_at) < CURDATE()`;
+const PAYOUT_OVERDUE_SQL = `DATE_ADD(LAST_DAY(o.created_at), INTERVAL 7 DAY) < CURDATE()`;
+const PAYOUT_CURRENT_CYCLE_SQL = `LAST_DAY(o.created_at) >= CURDATE()`;
+
 /* ────── Schools ────── */
 
 export async function listSchools({ status = "", q = "", sort = "latest" } = {}) {
@@ -831,6 +835,19 @@ export async function listPayouts({
       COALESCE(SUM(o.platform_fee), 0)               AS fee_amount,
       COALESCE(SUM(o.seller_payout_amount), 0)       AS net_amount,
       COALESCE(SUM(ship_agg.ship_sum), 0)            AS shipping_total,
+      COUNT(CASE WHEN ${PAYOUT_CURRENT_CYCLE_SQL} THEN 1 END) AS cycle_pending_count,
+      COUNT(CASE WHEN ${PAYOUT_READY_SQL} AND NOT (${PAYOUT_OVERDUE_SQL}) THEN 1 END) AS ready_count,
+      COUNT(CASE WHEN ${PAYOUT_OVERDUE_SQL} THEN 1 END) AS overdue_count,
+      COALESCE(SUM(CASE WHEN ${PAYOUT_CURRENT_CYCLE_SQL} THEN o.seller_payout_amount ELSE 0 END), 0) AS cycle_pending_amount,
+      COALESCE(SUM(CASE WHEN ${PAYOUT_READY_SQL} THEN o.seller_payout_amount ELSE 0 END), 0) AS payable_amount,
+      COALESCE(SUM(CASE WHEN ${PAYOUT_READY_SQL} THEN o.total_price ELSE 0 END), 0) AS payable_total_sales,
+      COALESCE(SUM(CASE WHEN ${PAYOUT_READY_SQL} THEN o.platform_fee ELSE 0 END), 0) AS payable_fee_amount,
+      COALESCE(SUM(CASE WHEN ${PAYOUT_READY_SQL} THEN COALESCE(ship_agg.ship_sum, 0) ELSE 0 END), 0) AS payable_shipping_total,
+      COALESCE(SUM(CASE WHEN ${PAYOUT_OVERDUE_SQL} THEN o.seller_payout_amount ELSE 0 END), 0) AS overdue_amount,
+      MIN(DATE_FORMAT(o.created_at, '%Y-%m'))        AS first_cycle_month,
+      MIN(LAST_DAY(o.created_at))                    AS next_cutoff_date,
+      MIN(DATE_ADD(LAST_DAY(o.created_at), INTERVAL 7 DAY)) AS next_due_date,
+      GROUP_CONCAT(DISTINCT DATE_FORMAT(o.created_at, '%Y-%m') ORDER BY o.created_at SEPARATOR ', ') AS payout_cycle_months,
       MIN(o.created_at)                              AS first_order_at
     FROM orders o
     LEFT JOIN users u ON u.user_id = o.seller_id
@@ -865,11 +882,14 @@ export async function listPayouts({
   `, [from, to, historySafeLimit, historyOffset]).catch(() => [[]]);
 
   const [[countRow]] = await db.query(`
-    SELECT COUNT(DISTINCT seller_id) AS c
+    SELECT
+      COUNT(DISTINCT seller_id) AS c,
+      COUNT(DISTINCT CASE WHEN LAST_DAY(created_at) < CURDATE() THEN seller_id END) AS payable_c
     FROM orders
-    WHERE order_status='delivered' AND payout_status='pending'
+    WHERE order_status='delivered'
+      AND payout_status='pending'
       AND created_at BETWEEN ? AND ?
-  `, [from, to]).catch(() => [[{ c: 0 }]]);
+  `, [from, to]).catch(() => [[{ c: 0, payable_c: 0 }]]);
 
   const [[histCountRow]] = await db.query(`
     SELECT COUNT(*) AS c
@@ -879,7 +899,15 @@ export async function listPayouts({
 
   // Summary stats (ตามช่วงเวลาเดียวกัน)
   const [[pendStats]] = await db.query(`
-    SELECT COALESCE(SUM(seller_payout_amount), 0) AS pending_total, COUNT(*) AS pending_count
+    SELECT
+      COALESCE(SUM(seller_payout_amount), 0) AS pending_total,
+      COUNT(*) AS pending_count,
+      COALESCE(SUM(CASE WHEN LAST_DAY(created_at) >= CURDATE() THEN seller_payout_amount ELSE 0 END), 0) AS cycle_pending_total,
+      COUNT(CASE WHEN LAST_DAY(created_at) >= CURDATE() THEN 1 END) AS cycle_pending_count,
+      COALESCE(SUM(CASE WHEN LAST_DAY(created_at) < CURDATE() THEN seller_payout_amount ELSE 0 END), 0) AS payable_total,
+      COUNT(CASE WHEN LAST_DAY(created_at) < CURDATE() THEN 1 END) AS payable_count,
+      COALESCE(SUM(CASE WHEN DATE_ADD(LAST_DAY(created_at), INTERVAL 7 DAY) < CURDATE() THEN seller_payout_amount ELSE 0 END), 0) AS overdue_total,
+      COUNT(CASE WHEN DATE_ADD(LAST_DAY(created_at), INTERVAL 7 DAY) < CURDATE() THEN 1 END) AS overdue_count
     FROM orders
     WHERE order_status='delivered' AND payout_status='pending'
       AND created_at BETWEEN ? AND ?
@@ -902,6 +930,13 @@ export async function listPayouts({
       pending_total: Math.round(Number(pendStats?.pending_total || 0)),
       pending_count: Number(pendStats?.pending_count || 0),
       pending_seller_count: Number(countRow?.c || 0),
+      payable_seller_count: Number(countRow?.payable_c || 0),
+      cycle_pending_total: Math.round(Number(pendStats?.cycle_pending_total || 0)),
+      cycle_pending_count: Number(pendStats?.cycle_pending_count || 0),
+      payable_total: Math.round(Number(pendStats?.payable_total || 0)),
+      payable_count: Number(pendStats?.payable_count || 0),
+      overdue_total: Math.round(Number(pendStats?.overdue_total || 0)),
+      overdue_count: Number(pendStats?.overdue_count || 0),
       paid_total:    Math.round(Number(paidStats?.paid_total    || 0)),
       paid_count:    Number(paidStats?.paid_count    || 0),
       fee_total:     Math.round(Number(feeStats?.fee_total      || 0)),
@@ -918,6 +953,21 @@ export async function listPayouts({
         net_amount:     Math.round(Number(r.net_amount     || 0)),
         shipping_total: Math.round(Number(r.shipping_total || 0)),
         order_count:    Number(r.order_count || 0),
+        cycle_pending_count:  Number(r.cycle_pending_count || 0),
+        ready_count:          Number(r.ready_count || 0),
+        overdue_count:        Number(r.overdue_count || 0),
+        cycle_pending_amount: Math.round(Number(r.cycle_pending_amount || 0)),
+        payable_amount:       Math.round(Number(r.payable_amount || 0)),
+        payable_total_sales:  Math.round(Number(r.payable_total_sales || 0)),
+        payable_fee_amount:   Math.round(Number(r.payable_fee_amount || 0)),
+        payable_shipping_total: Math.round(Number(r.payable_shipping_total || 0)),
+        overdue_amount:       Math.round(Number(r.overdue_amount || 0)),
+        payout_stage:         Number(r.overdue_count || 0) > 0 ? "overdue" : (Number(r.ready_count || 0) > 0 ? "ready" : "cycle_pending"),
+        can_pay:              Number(r.payable_amount || 0) > 0,
+        first_cycle_month:    r.first_cycle_month,
+        payout_cycle_months:  r.payout_cycle_months || "",
+        next_cutoff_date:     r.next_cutoff_date,
+        next_due_date:        r.next_due_date,
       };
     }),
     history: (historyRows || []).map(r => {
@@ -982,7 +1032,10 @@ export async function paySeller(seller_id, net_amount) {
          COALESCE(SUM(seller_payout_amount), 0)    AS net_total,
          COALESCE(SUM(platform_fee), 0)            AS fee_total
        FROM orders
-       WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
+       WHERE seller_id=?
+         AND order_status='delivered'
+         AND payout_status='pending'
+         AND LAST_DAY(created_at) < CURDATE()`,
       [seller_id]
     );
     if (Number(sum.order_count) === 0) {
@@ -1002,7 +1055,10 @@ export async function paySeller(seller_id, net_amount) {
     await conn.query(
       `UPDATE orders
           SET payout_status='paid', payout_id=?, payout_date=?
-        WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
+        WHERE seller_id=?
+          AND order_status='delivered'
+          AND payout_status='pending'
+          AND LAST_DAY(created_at) < CURDATE()`,
       [payoutId, nowThai, seller_id]
     );
 
@@ -1501,7 +1557,10 @@ export async function payAllSellers() {
       await conn.query(
         `UPDATE orders
             SET payout_status='paid', payout_id=?, payout_date=?
-          WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
+          WHERE seller_id=?
+            AND order_status='delivered'
+            AND payout_status='pending'
+            AND LAST_DAY(created_at) < CURDATE()`,
         [ins.insertId, nowThai, s.seller_id]
       );
       // แจ้งเตือนผู้ขาย (non-blocking)

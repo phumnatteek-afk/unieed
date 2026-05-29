@@ -514,7 +514,7 @@ async function getDashboardTransactions(sellerId, range) {
       AND o.payment_status = 'paid'
       AND o.created_at BETWEEN ? AND ?
     ORDER BY o.created_at DESC
-    LIMIT 30
+    LIMIT 200
   `, [sellerId, range.from, range.to]);
 
   return (rows || []).map((row) => ({
@@ -554,7 +554,7 @@ async function getDashboardTransfers(sellerId, range) {
       p.omise_transfer_id, p.slip_url, p.created_at, p.completed_at,
       u.bank_code, u.bank_account_number, u.bank_account_name
     ORDER BY COALESCE(p.completed_at, p.created_at) DESC
-    LIMIT 12
+    LIMIT 60
   `, [sellerId, range.from, range.to]).catch(() => [[]]);
 
   return (rows || []).map((row) => {
