@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
+import { getJson } from "../../../api/http.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass, faFilter } from "@fortawesome/free-solid-svg-icons";
 import Navbar from "../../../pages/Navbar.jsx";
@@ -165,7 +166,7 @@ function SizeDisplay({ size, categoryId }) {
   }
 }
 
-function ProductCard({ product }) {
+function ProductCard({ product, donationNeededLabels }) {
   const navigate = useNavigate();
    const { addToCart, loadingId } = useAddToCart();
   const isLoading            = loadingId === product.product_id;
@@ -189,7 +190,7 @@ const displayTitle = typePart
   ? `${categoryLabel}: ${typePart}`
   : categoryLabel;
 
-  const isDonationMatch = Boolean(product.is_donation_match);
+   const isDonationMatch = donationNeededLabels?.size > 0 && donationNeededLabels.has(product.product_id);
 
   return (
     <div className="mkCard" style={{ position: 'relative' }}>
@@ -282,6 +283,7 @@ export default function MarketPage() {
   const [page,          setPage]          = useState(1);
   const [totalPages,    setTotalPages]    = useState(1);
   const [totalCount,    setTotalCount]    = useState(0);
+  const [donationNeededLabels, setDonationNeededLabels] = useState(new Set());
 
   const [displaySearch, setDisplaySearch] = useState("");
   const [typedKeyword,  setTypedKeyword]  = useState("");
@@ -437,6 +439,30 @@ const fetchProducts = useCallback((...args) => fetchProductsRef.current(...args)
 
   useEffect(() => { fetchProducts(1); }, []);
 
+
+  // ดึง product_id ทั้งหมดที่ backend match กับโครงการ (ใช้เกณฑ์เดียวกับ DonateMarketPage)
+  useEffect(() => {
+    const fetchMatchedIds = async () => {
+      try {
+        // ใช้ getJson เพื่อให้ request ไปที่ BASE_URL (localhost:3000) โดยตรง
+        // ไม่ใช้ fetch("/home") เพราะ Vite proxy ไม่ได้ map /home
+        const data = await getJson("/home", false);
+        const projectList = Array.isArray(data?.projects) ? data.projects : [];
+        if (!projectList.length) return;
+
+        const ids = new Set();
+        await Promise.all(projectList.map(async (p) => {
+          try {
+            const detail = await getJson(`/api/market/matched?project_id=${p.request_id}`, false);
+            (detail?.products || []).forEach(prod => ids.add(prod.product_id));
+          } catch (e) { /* ignore per-project errors */ }
+        }));
+        if (ids.size > 0) setDonationNeededLabels(ids);
+      } catch (e) { /* graceful degradation */ }
+    };
+    fetchMatchedIds();
+  }, []);
+
   const debounceRef = useRef(null);
   const normalizeStr = (s) => (s || '').replace(/\s+/g, '').toLowerCase();
 
@@ -493,12 +519,11 @@ const displayedProducts = useMemo(() => {
     list = [...ranked, ...rest];
   }
 
-  // Donation-matched products are already prioritized by the API; this keeps
-  // Meilisearch re-rank results consistent after local merging.
-  const donationFirst = list.filter(p => p.is_donation_match);
-  const others        = list.filter(p => !p.is_donation_match);
+    // Donation-matched products (from meili is_donation OR from donationNeededLabels) always first
+  const donationFirst = list.filter(p => donationNeededLabels.has(p.product_id));
+  const others        = list.filter(p => !donationNeededLabels.has(p.product_id));
   return [...donationFirst, ...others];
-}, [products, search, meiliHits]);
+}, [products, search, meiliHits, donationNeededLabels]);
 
 
   return (
@@ -657,7 +682,7 @@ const displayedProducts = useMemo(() => {
           </div>
         ) : (
           <div className="mkGrid">
-            {displayedProducts.map(p => <ProductCard key={p.product_id} product={p} />)}
+                        {displayedProducts.map(p => <ProductCard key={p.product_id} product={p} donationNeededLabels={donationNeededLabels} />)}
           </div>
         )}
 
