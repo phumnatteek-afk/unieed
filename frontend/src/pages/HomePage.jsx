@@ -25,17 +25,11 @@ function groupItems(items = []) {
   items.forEach(item => {
     const key = item.name || "อื่นๆ";
     if (!map[key]) {
-      map[key] = {
-        name: key,
-        total: 0,
-        image_url: item.image_url || item.uniform_image_url || null,
-      };
+      map[key] = { name: key, total: 0, needed: 0, image_url: item.image_url || item.uniform_image_url || null };
     }
-    map[key].total += Number(item.quantity_remaining ?? item.quantity_needed ?? item.quantity ?? 0);
-    // ถ้ายังไม่มีรูป ลองอัปเดต
-    if (!map[key].image_url) {
-      map[key].image_url = item.image_url || item.uniform_image_url || null;
-    }
+    map[key].total  += Number(item.quantity_remaining ?? item.quantity_needed ?? item.quantity ?? 0);
+    map[key].needed += Number(item.quantity_needed ?? item.quantity ?? 0);
+    if (!map[key].image_url) map[key].image_url = item.image_url || item.uniform_image_url || null;
   });
   return Object.values(map);
 }
@@ -59,17 +53,17 @@ function ProjCard({ p, navigate, details, collectionLabel }) {
 }, []);
 
   const items    = details || [];
-  const grouped  = useMemo(() => groupItems(items).slice(0, 3), [items]);
+  const grouped  = useMemo(() => groupItems(items).filter(g => g.total > 0).slice(0, 3), [items]);
   const itemRows = useMemo(() => items.slice(0, 3), [items]);
   const hasMore  = items.length > 3;
 
-  const totalFulfilled    = Number(p.total_fulfilled || 0);
   const itemsTotalNeeded  = items.length > 0
-    ? items.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0)
+    ? items.reduce((sum, item) => sum + Number(item.quantity_needed ?? item.quantity ?? 0), 0)
     : Number(p.total_needed || 0);
   const totalNeeded = items.length > 0
     ? items.reduce((sum, item) => sum + Number(item.quantity_remaining ?? item.quantity_needed ?? item.quantity ?? 0), 0)
-    : Math.max(Number(p.total_needed || 0) - totalFulfilled, 0);
+    : Math.max(Number(p.total_needed || 0) - Number(p.total_fulfilled || 0), 0);
+  const totalFulfilled = itemsTotalNeeded - totalNeeded;
   const goalMet = items.length > 0 && totalNeeded === 0 && itemsTotalNeeded > 0;
 
   const handleMouseEnter = () => {
@@ -177,9 +171,11 @@ function ProjCard({ p, navigate, details, collectionLabel }) {
           <div className="dpHoverHeader">
             <div className="dpHoverSchool">{p.school_name}</div>
             <div className="dpHoverMeta">
-              <span className="dpHoverNeed">ต้องการ {totalNeeded}</span>
-              <span className="dpHoverSep">|</span>
-              <span className="dpHoverGot">ได้ {totalFulfilled} ชิ้น</span>
+              <span className="dpHoverNeed">ต้องการอีก {totalNeeded} ชิ้น</span>
+              <span className="dpHoverSep">·</span>
+              <span className="dpHoverGot">ได้รับแล้ว {totalFulfilled} ชิ้น</span>
+              <span className="dpHoverSep">·</span>
+              <span style={{ color: "#64748b" }}>ทั้งหมด {itemsTotalNeeded} ชิ้น</span>
             </div>
           </div>
           <div className="dpHoverLine" />
@@ -193,7 +189,7 @@ function ProjCard({ p, navigate, details, collectionLabel }) {
                     : <div className="dpHoverImgPlaceholder">{g.name?.charAt(0)}</div>}
                 </div>
                 <div className="dpHoverImgName">{g.name}</div>
-                <div className="dpHoverImgQty">{g.total} ชิ้น</div>
+                <div className="dpHoverImgQty">{g.needed - g.total}/{g.needed} ชิ้น</div>
               </div>
             )) : <div className="dpHoverEmpty">ยังไม่มีข้อมูล</div>}
           </div>

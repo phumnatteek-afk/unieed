@@ -430,8 +430,15 @@ export async function verifyAndIssueCertificate(req, res, next) {
                 })
                 .map(it => {
                     const k = `${it.uniform_type_id}__${JSON.stringify(it.size ?? "")}__${it.name ?? ""}`;
+                    const base = String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim();
+                    let sizeSuffix = "";
+                    try {
+                        const s = typeof it.size === "string" ? JSON.parse(it.size) : it.size;
+                        if (s?.chest) sizeSuffix = ` (อก ${s.chest}")`;
+                        else if (s?.waist) sizeSuffix = ` (เอว ${s.waist}")`;
+                    } catch { /* noop */ }
                     return {
-                        name:   String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim(),
+                        name:   `${base}${sizeSuffix}`,
                         reason: reasonMapNotif[k] || null,
                         note:   noteMapNotif[k]   || null,
                     };

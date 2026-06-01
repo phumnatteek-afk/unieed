@@ -374,7 +374,7 @@ export default function SchoolDonationPage() {
     const issueNeedReason = snapItems.filter(it =>
       checkedSet.has(itemKey(it)) &&
       itemConditions[itemKey(it)] === "issue" &&
-      !itemReasons[itemKey(it)]
+      !(itemReasons[itemKey(it)]?.length > 0)
     );
     if (issueNeedReason.length > 0) return alert("กรุณาระบุสาเหตุของรายการที่ไม่ตรงให้ครบ");
     try {
@@ -389,7 +389,7 @@ export default function SchoolDonationPage() {
           size: it.size ?? null,
           qty_received: isChecked ? it.quantity : 0,
           item_condition: resolved,
-          ...(resolved === "wrong_item" && itemReasons[key] ? { reason: itemReasons[key], note: itemNotes[key] || "" } : {}),
+          ...(resolved === "wrong_item" && itemReasons[key]?.length > 0 ? { reason: itemReasons[key].join(", "), note: itemNotes[key] || "" } : {}),
         };
       });
       const resolvedConditions = Object.fromEntries(
@@ -1013,12 +1013,18 @@ export default function SchoolDonationPage() {
                                   <div style={{ marginTop:8, padding:"8px 10px", background:"#fffbeb", border:"1px dashed #fcd34d", borderRadius:8 }}>
                                     <div style={{ fontSize:10, color:"#92400e", fontWeight:600, marginBottom:6 }}>สาเหตุ <span style={{ color:"#dc2626" }}>*</span></div>
                                     <div style={{ display:"flex", gap:5, marginBottom:8 }}>
-                                      {["ผิดไซส์", "ผิดประเภท"].map(r => (
-                                        <button key={r} type="button"
-                                          onClick={() => setItemReasons(p => ({ ...p, [uid]: r }))}
-                                          style={{ padding:"4px 10px", borderRadius:20, fontSize:11, fontWeight:600, cursor:"pointer", border:`1.5px solid ${itemReasons[uid]===r ? "#d97706" : "#e5e7eb"}`, background: itemReasons[uid]===r ? "#fef3c7" : "#fff", color: itemReasons[uid]===r ? "#92400e" : "#9ca3af" }}
-                                        >{r}</button>
-                                      ))}
+                                      {["ผิดไซส์", "ผิดประเภท"].map(r => {
+                                        const selected = (itemReasons[uid] || []).includes(r);
+                                        return (
+                                          <button key={r} type="button"
+                                            onClick={() => setItemReasons(p => {
+                                              const cur = p[uid] || [];
+                                              return { ...p, [uid]: cur.includes(r) ? cur.filter(x => x !== r) : [...cur, r] };
+                                            })}
+                                            style={{ padding:"4px 10px", borderRadius:20, fontSize:11, fontWeight:600, cursor:"pointer", border:`1.5px solid ${selected ? "#d97706" : "#e5e7eb"}`, background: selected ? "#fef3c7" : "#fff", color: selected ? "#92400e" : "#9ca3af" }}
+                                          >{r}</button>
+                                        );
+                                      })}
                                     </div>
                                     <textarea
                                       rows={2}

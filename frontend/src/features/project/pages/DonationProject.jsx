@@ -130,17 +130,11 @@ function groupItems(items = []) {
   items.forEach(item => {
     const key = item.name || "อื่นๆ";
     if (!map[key]) {
-      map[key] = {
-        name: key,
-        total: 0,
-        image_url: item.image_url || item.uniform_image_url || null,
-      };
+      map[key] = { name: key, total: 0, needed: 0, image_url: item.image_url || item.uniform_image_url || null };
     }
-    map[key].total += Number(item.quantity_remaining ?? item.quantity_needed ?? item.quantity ?? 0);
-    // ถ้ายังไม่มีรูป ลองอัปเดต
-    if (!map[key].image_url) {
-      map[key].image_url = item.image_url || item.uniform_image_url || null;
-    }
+    map[key].total  += Number(item.quantity_remaining ?? item.quantity_needed ?? item.quantity ?? 0);
+    map[key].needed += Number(item.quantity_needed ?? item.quantity ?? 0);
+    if (!map[key].image_url) map[key].image_url = item.image_url || item.uniform_image_url || null;
   });
   return Object.values(map);
 }
@@ -165,7 +159,7 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
 }, []);
 
   const items    = details || [];
-  const grouped  = useMemo(() => groupItems(items).slice(0, 3), [items]);
+  const grouped  = useMemo(() => groupItems(items).filter(g => g.total > 0).slice(0, 3), [items]);
 
   const itemsTotalNeeded = items.length > 0
     ? items.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0)
@@ -287,9 +281,11 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
                 </span>
               ) : (
                 <>
-                  <span className="dpHoverNeed">ต้องการอีก {totalNeeded}</span>
-                  <span className="dpHoverSep">|</span>
-                  <span className="dpHoverGot">ได้ {totalFulfilled} ชิ้น</span>
+                  <span className="dpHoverNeed">ต้องการอีก {totalNeeded} ชิ้น</span>
+                  <span className="dpHoverSep">·</span>
+                  <span className="dpHoverGot">ได้รับแล้ว {totalFulfilled} ชิ้น</span>
+                  <span className="dpHoverSep">·</span>
+                  <span style={{ color: "#64748b" }}>ทั้งหมด {itemsTotalNeeded} ชิ้น</span>
                 </>
               )}
             </div>
@@ -305,7 +301,7 @@ function ProjectCard({ p, navigate, details, style, collectionLabel }) {
                     : <div className="dpHoverImgPlaceholder">{g.name?.charAt(0)}</div>}
                 </div>
                 <div className="dpHoverImgName">{g.name}</div>
-                <div className="dpHoverImgQty">{g.total} ชิ้น</div>
+                <div className="dpHoverImgQty">{g.needed - g.total}/{g.needed} ชิ้น</div>
               </div>
             )) : <div className="dpHoverEmpty">ยังไม่มีข้อมูล</div>}
           </div>

@@ -211,6 +211,9 @@ function FilterTab({ label, count, active, onClick }) {
 
 export default function AdminWrongItemPage() {
   const { token } = useAuth();
+  const [mainView, setMainView]   = useState("list"); // "list" | "history"
+  const [resetHistory, setResetHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [users, setUsers]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [resetting, setResetting]   = useState(null);
@@ -250,7 +253,6 @@ export default function AdminWrongItemPage() {
   const [removingStrike, setRemovingStrike] = useState(false);
   const [historyTarget, setHistoryTarget] = useState(null);
   const [historyLog, setHistoryLog] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
   const [donorProfile, setDonorProfile] = useState(null);
   const [donorProfileLoading, setDonorProfileLoading] = useState(false);
 
@@ -267,6 +269,21 @@ export default function AdminWrongItemPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`${BASE}/donations/wrong-items/reset-history`, { headers });
+      const data = await res.json();
+      setResetHistory(Array.isArray(data) ? data : []);
+    } catch (e) { console.error(e); }
+    finally { setHistoryLoading(false); }
+  };
+
+  const handleMainViewChange = (view) => {
+    setMainView(view);
+    if (view === "history") loadHistory();
+  };
 
   const openDonorProfile = async (user) => {
     setDonorProfile({ loading: true, user_name: user.donor_name });
@@ -308,6 +325,7 @@ export default function AdminWrongItemPage() {
     try {
       await fetch(`${BASE}/donations/${removeStrikeTarget.case.donation_id}/remove-strike`, { method: "PATCH", headers });
       setRemoveStrikeTarget(null);
+      setFilterTab("all");
       load();
     } catch (e) { console.error(e); }
     finally { setRemovingStrike(false); }
@@ -357,6 +375,20 @@ export default function AdminWrongItemPage() {
           <NotificationBell />
           <div className="boAdminText"><ProfileDropdown /></div>
         </div>
+      </div>
+
+      {/* ── Main Tab ─────────────────────────────────────────────────────── */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {[
+          { key: "list",    label: "ตรวจสอบของไม่ตรง",      icon: "mdi:swap-horizontal-circle-outline" },
+          { key: "history", label: "ประวัติการระงับบัญชี", icon: "mdi:history" },
+        ].map(t => (
+          <button key={t.key} type="button"
+            onClick={() => handleMainViewChange(t.key)}
+            style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 20px", borderRadius: 10, border: "1.5px solid", fontWeight: 700, fontSize: 13, cursor: "pointer", background: mainView === t.key ? "#1d4ed8" : "#fff", color: mainView === t.key ? "#fff" : "#475569", borderColor: mainView === t.key ? "#1d4ed8" : "#e2e8f0" }}>
+            <Icon icon={t.icon} width={16} />{t.label}
+          </button>
+        ))}
       </div>
 
       {/* ── Stat Cards ─────────────────────────────────────────────────────── */}
@@ -439,7 +471,103 @@ export default function AdminWrongItemPage() {
         )}
       </div>
 
+      {/* ── History View ─────────────────────────────────────────────────────── */}
+      {mainView === "history" && (
+        <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "20px", boxShadow: "0 2px 8px rgba(15,23,42,0.05)" }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b", marginBottom: 14 }}>ประวัติการปลดระงับบัญชี</div>
+          {historyLoading ? (
+            <div style={{ color: "#94a3b8", textAlign: "center", padding: 32 }}>กำลังโหลด...</div>
+          ) : resetHistory.length === 0 ? (
+            <div style={{ color: "#94a3b8", textAlign: "center", padding: 32 }}>ยังไม่มีประวัติ</div>
+          ) : (() => {
+            // group by donor_id
+            const grouped = {};
+            resetHistory.forEach(r => {
+              if (!grouped[r.donor_id]) grouped[r.donor_id] = { donor_name: r.donor_name, donor_id: r.donor_id, events: [] };
+              grouped[r.donor_id].events.push(r);
+            });
+            const donors = Object.values(grouped);
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {donors.map(d => {
+                  const isOpen = expanded === `hist_${d.donor_id}`;
+                  return (
+                    <div key={d.donor_id} style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
+                      <div
+                        onClick={() => setExpanded(isOpen ? null : `hist_${d.donor_id}`)}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "#f8fafc", cursor: "pointer" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: 10, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Icon icon="mdi:account-check" width={18} color="#16a34a" />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: "#1e293b" }}>{d.donor_name}</div>
+                            <div style={{ fontSize: 11, color: "#64748b" }}>ถูกปลด {d.events.length} ครั้ง</div>
+                          </div>
+                        </div>
+                        <Icon icon={isOpen ? "mdi:chevron-up" : "mdi:chevron-down"} width={18} color="#94a3b8" />
+                      </div>
+                      {isOpen && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                          {d.events.map((e, i) => (
+                            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "10px 16px", borderTop: "1px solid #f1f5f9", background: "#fff" }}>
+                              <div style={{ fontSize: 12, color: "#475569" }}>
+                                <div>
+                                  คำเตือนก่อนปลด: <strong>{e.previous_strike != null ? `${e.previous_strike}/3` : "-"}</strong>
+                                  {e.was_suspended && <span style={{ marginLeft: 8, color: "#dc2626" }}>· เคยถูกระงับ</span>}
+                                  {e.action === "remove_single" && <span style={{ marginLeft: 8, fontSize: 11, color: "#7c3aed", background: "#f5f3ff", border: "1px solid #c4b5fd", borderRadius: 8, padding: "1px 7px" }}>ยกเว้นรายการเดียว</span>}
+                                </div>
+                                {e.school_name && (
+                                  <div style={{ marginTop: 3, color: "#64748b" }}>
+                                    {e.school_name}{e.request_title ? ` · ${e.request_title}` : ""}
+                                  </div>
+                                )}
+                                {e.action === "full_reset" && (
+                                  <div style={{ marginTop: 3, fontSize: 11 }}>
+                                    {e.cases_summary?.length > 0
+                                      ? e.cases_summary.map((c, j) => (
+                                          <div key={j} style={{ color: "#64748b" }}>
+                                            {c.school_name || "โรงเรียนไม่ระบุ"}
+                                            {c.request_title ? ` · ${c.request_title}` : ""}
+                                          </div>
+                                        ))
+                                      : <span style={{ color: "#94a3b8" }}>รีเซ็ต {e.previous_strike ?? "-"} คำเตือน</span>
+                                    }
+                                  </div>
+                                )}
+                                {e.wrong_items?.length > 0 && (
+                                  <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
+                                    {e.wrong_items.map((it, j) => (
+                                      <div key={j} style={{ fontSize: 11, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: "2px 10px", display: "inline-flex", alignItems: "center", gap: 6, width: "fit-content" }}>
+                                        <Icon icon="mdi:swap-horizontal" width={12} />
+                                        {it.name}
+                                        {it.reason && <span style={{ fontWeight: 700 }}>· {it.reason}</span>}
+                                        {it.note && <span style={{ color: "#78350f" }}>({it.note})</span>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                                <div style={{ fontSize: 12, color: "#64748b" }}>ปลดโดย: <strong>{e.reset_by_admin_name || "-"}</strong></div>
+                                <div style={{ fontSize: 11, color: "#94a3b8" }}>{formatDate(e.created_at)}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       {/* ── Search + Filter (one row) ────────────────────────────────────────── */}
+      {mainView === "list" && <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 9, padding: "7px 12px", flex: "1 1 0" }}>
           <Icon icon="mdi:magnify" width={16} color="#94a3b8" />
@@ -479,7 +607,7 @@ export default function AdminWrongItemPage() {
             const resetCount       = Number(user.strike_reset_count || 0);
             const hasPendingAppeal = !!user.has_pending_appeal;
             const allCases         = parseJson(user.cases).filter(Boolean).sort((a, b) => new Date(a.updated_at) - new Date(b.updated_at));
-            const cases            = allCases.filter(c => c.condition_status === "wrong_item");
+            const cases            = allCases.filter(c => c.condition_status === "wrong_item" && Number(c.strike_issued) === 1);
 
             const strikeBadgeColor  = strikeCount >= 3 ? "#dc2626" : strikeCount === 2 ? "#d97706" : "#2563eb";
             const strikeBadgeBg     = strikeCount >= 3 ? "#fee2e2" : strikeCount === 2 ? "#fff7ed" : "#eff6ff";
@@ -558,7 +686,7 @@ export default function AdminWrongItemPage() {
                       style={{ fontSize: 12, fontWeight: 600, color: "#dc2626", background: "#fff", border: "1.5px solid #fca5a5", borderRadius: 9, padding: "6px 13px", cursor: resetting === user.donor_id ? "not-allowed" : "pointer", opacity: resetting === user.donor_id ? 0.5 : 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}
                     >
                       <Icon icon="mdi:refresh" width={14} />
-                      {resetting === user.donor_id ? "กำลังดำเนินการ..." : isSuspended ? "ปลดระงับ" : "ล้างคำเตือน"}
+                      {resetting === user.donor_id ? "กำลังดำเนินการ..." : "ปลดระงับบัญชี"}
                     </button>
                     {/* Primary — ดูรายการ */}
                     <button
@@ -696,6 +824,8 @@ export default function AdminWrongItemPage() {
         </div>
       )}
 
+      </>}
+
       {/* ── Evidence Modal ─────────────────────────────────────────────────── */}
       {evidenceCase && <EvidenceModal c={evidenceCase} onClose={() => setEvidence(null)} />}
 
@@ -818,7 +948,7 @@ export default function AdminWrongItemPage() {
               </div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>
-                  {resetTarget.is_suspended ? "ปลดระงับบัญชี" : "ล้างคำเตือน"}
+                  ปลดระงับบัญชี
                 </div>
                 <div style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}>{resetTarget.donor_name}</div>
               </div>
@@ -866,7 +996,7 @@ export default function AdminWrongItemPage() {
                 className="wi-action-btn"
                 style={{ padding: "9px 20px", borderRadius: 10, border: "none", background: "#2563eb", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
               >
-                {resetTarget.is_suspended ? "ยืนยันปลดระงับ" : "ยืนยันล้างคำเตือน"}
+                ยืนยันปลดระงับบัญชี
               </button>
             </div>
           </div>

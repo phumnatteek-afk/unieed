@@ -245,9 +245,30 @@ r.patch("/users/:userId/reset-strike", auth, requireRole(["admin"]), async (req,
       [userId]
     );
     const wasSuspended = before?.suspended_until && new Date(before.suspended_until) > new Date();
+    const [[adminUser]] = await db.query(`SELECT user_name FROM users WHERE user_id = ?`, [req.user.user_id]);
+    const adminName = adminUser?.user_name || "-";
+
+    // ดึง active cases ก่อน reset เพื่อเก็บประวัติ
+    const [activeCases] = await db.query(
+      `SELECT dr.donation_id, dr.items_snapshot, dr.items_condition_snapshot,
+              req.request_title, s.school_name
+       FROM donation_record dr
+       LEFT JOIN donation_request req ON req.request_id = dr.request_id
+       LEFT JOIN schools s ON s.school_id = req.school_id
+       WHERE dr.donor_id = ? AND dr.strike_issued = 1`,
+      [userId]
+    );
+    const casesSummary = activeCases.map(c => ({
+      school_name:   c.school_name   || null,
+      request_title: c.request_title || null,
+    }));
 
     await db.query(
       `UPDATE users SET strike_count = 0, suspended_until = NULL, strike_reset_count = strike_reset_count + 1 WHERE user_id = ?`,
+      [userId]
+    );
+    await db.query(
+      `UPDATE donation_record SET strike_issued = 0 WHERE donor_id = ? AND strike_issued = 1`,
       [userId]
     );
     await db.query(
@@ -265,9 +286,52 @@ r.patch("/users/:userId/reset-strike", auth, requireRole(["admin"]), async (req,
     await db.query(
       `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
        VALUES (?, 'strike_reset', ?, ?, ?, 0, NOW())`,
-      [userId, title, JSON.stringify({ message }), userId]
+      [userId, title, JSON.stringify({
+        message,
+        reset_by_admin_id:   req.user.user_id,
+        reset_by_admin_name: adminName,
+        previous_strike:     before?.strike_count ?? 0,
+        was_suspended:       wasSuspended,
+        donor_id:            Number(userId),
+        action:              "full_reset",
+        cases_summary:       casesSummary,
+      }), userId]
     );
     res.json({ message: "reset เรียบร้อย" });
+  } catch (err) { next(err); }
+});
+
+// ── Admin: ประวัติการปลดระงับบัญชีทั้งหมด ──────────────────────────────────────
+r.get("/wrong-items/reset-history", auth, requireRole(["admin"]), async (req, res, next) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT n.notification_id, n.user_id AS donor_id, u.user_name AS donor_name,
+              n.body, n.created_at
+       FROM notifications n
+       LEFT JOIN users u ON u.user_id = n.user_id
+       WHERE n.type = 'strike_reset'
+       ORDER BY n.created_at DESC
+       LIMIT 200`
+    );
+    const result = rows.map(r => {
+      let body = {};
+      try { body = typeof r.body === "string" ? JSON.parse(r.body) : r.body; } catch { /* noop */ }
+      return {
+        notification_id:     r.notification_id,
+        donor_id:            r.donor_id,
+        donor_name:          r.donor_name,
+        reset_by_admin_name: body.reset_by_admin_name || null,
+        previous_strike:     body.previous_strike ?? null,
+        was_suspended:       !!body.was_suspended,
+        request_title:       body.request_title  || null,
+        school_name:         body.school_name    || null,
+        action:              body.action         || "full_reset",
+        wrong_items:         body.wrong_items    || [],
+        cases_summary:       body.cases_summary  || [],
+        created_at:          r.created_at,
+      };
+    });
+    res.json(result);
   } catch (err) { next(err); }
 });
 
@@ -278,6 +342,7 @@ r.patch("/:donationId/remove-strike", auth, requireRole(["admin"]), async (req, 
 
     const [[dr]] = await db.query(
       `SELECT dr.donation_id, dr.donor_id, dr.strike_issued,
+              dr.items_snapshot, dr.items_condition_snapshot,
               req.request_title, s.school_name
        FROM donation_record dr
        LEFT JOIN donation_request req ON req.request_id = dr.request_id
@@ -302,6 +367,37 @@ r.patch("/:donationId/remove-strike", auth, requireRole(["admin"]), async (req, 
     if (donor.strike_count < 3 && donor.suspended_until) {
       await db.query(`UPDATE users SET suspended_until = NULL WHERE user_id = ?`, [dr.donor_id]);
     }
+    const [[adminUser2]] = await db.query(`SELECT user_name FROM users WHERE user_id = ?`, [req.user.user_id]);
+    const adminName = adminUser2?.user_name || "-";
+
+    // สรุป wrong items จาก snapshot
+    let wrongItemsSummary = [];
+    try {
+      const snap = typeof dr.items_snapshot === "string" ? JSON.parse(dr.items_snapshot) : (dr.items_snapshot || []);
+      const condSnap = typeof dr.items_condition_snapshot === "string" ? JSON.parse(dr.items_condition_snapshot) : (dr.items_condition_snapshot || []);
+      const condMap = {};
+      for (const c of condSnap) {
+        const k = `${c.uniform_type_id}__${JSON.stringify(c.size ?? "")}`;
+        condMap[k] = c;
+      }
+      wrongItemsSummary = snap
+        .filter(it => {
+          const k = `${it.uniform_type_id}__${JSON.stringify(it.size ?? "")}`;
+          return (condMap[k]?.item_condition || "usable") === "wrong_item";
+        })
+        .map(it => {
+          const k = `${it.uniform_type_id}__${JSON.stringify(it.size ?? "")}`;
+          const cond = condMap[k];
+          const base = String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim();
+          let sizeSuffix = "";
+          try {
+            const s = typeof it.size === "string" ? JSON.parse(it.size) : it.size;
+            if (s?.chest) sizeSuffix = ` (อก ${s.chest}")`;
+            else if (s?.waist) sizeSuffix = ` (เอว ${s.waist}")`;
+          } catch { /* noop */ }
+          return { name: `${base}${sizeSuffix}`, reason: cond?.reason || null, note: cond?.note || null };
+        });
+    } catch { /* noop */ }
 
     await db.query(
       `INSERT INTO notifications (user_id, type, title, body, ref_id, is_read, created_at)
@@ -311,6 +407,16 @@ r.patch("/:donationId/remove-strike", auth, requireRole(["admin"]), async (req, 
         "ทีมงานได้ยกเว้นคำเตือนจากรายการบริจาคของท่าน",
         JSON.stringify({
           message: `ทีมงานตรวจสอบและยกเว้นคำเตือนจากโครงการ "${dr.request_title}" ของ ${dr.school_name} คำเตือนปัจจุบันของท่านคือ ${donor.strike_count}/3`,
+          reset_by_admin_id:   req.user.user_id,
+          reset_by_admin_name: adminName,
+          previous_strike:     donor.strike_count + 1,
+          was_suspended:       false,
+          donor_id:            dr.donor_id,
+          action:              "remove_single",
+          request_title:       dr.request_title  || null,
+          school_name:         dr.school_name    || null,
+          donation_id:         dr.donation_id,
+          wrong_items:         wrongItemsSummary,
         }),
         donationId,
       ]
@@ -359,7 +465,8 @@ r.get("/wrong-items", auth, requireRole(["admin"]), async (req, res, next) => {
              'request_title',            req.request_title,
              'school_name',              s.school_name,
              'clarification_text',       dr.clarification_text,
-             'clarified_at',             dr.clarified_at
+             'clarified_at',             dr.clarified_at,
+             'strike_issued',            dr.strike_issued
            )
            ELSE NULL END
          ) AS cases
