@@ -642,7 +642,26 @@
   border-bottom: 1px solid #f0f0f0;
   font-size: 15px; font-weight: 600; color: #111827;
 }
-.coCardBrands { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.coCardBrands { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+
+.coCardBrandChip {
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 28px; border-radius: 6px;
+  border: 1.5px solid #e5e7eb; background: #fff;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+.coCardBrandChip.coCardBrandDim {
+  opacity: 0.25;
+  filter: grayscale(0.5);
+  border-color: #f0f0f0;
+}
+.coCardBrandChip.coCardBrandDetected {
+  border-color: #5285E8;
+  box-shadow: 0 0 0 2px rgba(82,133,232,0.18);
+  background: #f0f6ff;
+  transform: scale(1.08);
+}
 
 .coCardFormBody {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
@@ -671,9 +690,25 @@
 .coCardNumWrap { position: relative; }
 .coCardNumIcon {
   position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-  color: #aaa; font-size: 18px; pointer-events: none;
+  color: #aaa; font-size: 20px; pointer-events: none;
+  z-index: 1;
 }
-.coCardNumWrap input { padding-left: 40px !important; letter-spacing: 2px; }
+.coCardNumWrap input { padding-left: 40px !important; padding-right: 52px !important; letter-spacing: 2px; }
+
+/* brand badge ด้านขวาของ input */
+.coCardNumBrandBadge {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 24px; border-radius: 5px;
+  background: #fff; border: 1px solid #e5e7eb;
+  pointer-events: none; overflow: hidden;
+  animation: cardBrandIn 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+@keyframes cardBrandIn {
+  from { opacity: 0; transform: translateY(-50%) scale(0.85); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1); }
+}
 
 .coCardExpRow { display: flex; align-items: center; gap: 8px; }
 .coCardExpRow span { color: #aaa; font-size: 16px; flex-shrink: 0; }

@@ -649,9 +649,19 @@ function OmiseCardForm({ amount, onToken, onError, disabled }) {
         <Icon icon="mdi:credit-card-outline" />
         <span>ชำระด้วยบัตรเครดิต/เดบิต</span>
         <div className="coCardBrands">
-          <Icon icon="logos:visa" style={{ fontSize: 32, opacity: !cardType || cardType.type === "visa" ? 1 : 0.3, transition: "opacity 0.2s" }} />
-          <Icon icon="logos:mastercard" style={{ fontSize: 32, opacity: !cardType || cardType.type === "mastercard" ? 1 : 0.3, transition: "opacity 0.2s" }} />
-          <Icon icon="simple-icons:jcb" style={{ fontSize: 28, color: "#005BAC", opacity: !cardType || cardType.type === "jcb" ? 1 : 0.3, transition: "opacity 0.2s" }} />
+          {[
+            { type: "visa",       icon: "logos:visa",        color: "#1a1f71", size: 28 },
+            { type: "mastercard", icon: "logos:mastercard",  color: "#eb001b", size: 28 },
+            { type: "jcb",        icon: "simple-icons:jcb",  color: "#005BAC", size: 22 },
+          ].map(b => {
+            const active = !cardType || cardType.type === b.type;
+            const detected = cardType?.type === b.type;
+            return (
+              <div key={b.type} className={`coCardBrandChip${detected ? " coCardBrandDetected" : active ? "" : " coCardBrandDim"}`}>
+                <Icon icon={b.icon} style={{ fontSize: b.size, color: b.type === "jcb" ? b.color : undefined }} />
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className="coCardFormBody">
@@ -667,10 +677,17 @@ function OmiseCardForm({ amount, onToken, onError, disabled }) {
             )}
           </label>
           <div className="coCardNumWrap">
-            {cardType
-              ? <Icon icon={cardType.icon} className="coCardNumIcon" style={{ fontSize: 22 }} />
-              : <Icon icon="mdi:credit-card-outline" className="coCardNumIcon" />
-            }
+            <Icon
+              icon="mdi:credit-card-outline"
+              className="coCardNumIcon"
+              style={{
+                fontSize: 20,
+                color: cardType ? {
+                  visa: "#1a1f71", mastercard: "#eb001b", jcb: "#005BAC", amex: "#016FD0"
+                }[cardType.type] || "#aaa" : "#aaa",
+                transition: "color 0.25s",
+              }}
+            />
             <input
               value={cardNum}
               onChange={e => setCardNum(formatCardNum(e.target.value))}
@@ -680,6 +697,13 @@ function OmiseCardForm({ amount, onToken, onError, disabled }) {
               maxLength={19}
               disabled={disabled || loading}
             />
+            {cardType && (
+              <div className="coCardNumBrandBadge">
+                <Icon icon={cardType.icon}
+                  style={{ fontSize: cardType.type === "jcb" ? 18 : 24, color: cardType.type === "jcb" ? "#005BAC" : undefined }}
+                />
+              </div>
+            )}
           </div>
         </div>
         <div className="coCardField">

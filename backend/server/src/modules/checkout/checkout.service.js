@@ -18,8 +18,21 @@ const getAddresses = async (userId) => {
   return rows;
 };
 
+const validateAddressData = ({ recipient_name, phone, address_line, district, province, postcode }) => {
+  if (!recipient_name?.trim()) throw Object.assign(new Error("กรุณากรอกชื่อผู้รับ"), { status: 400 });
+  const cleanPhone = String(phone || "").replace(/[-\s]/g, "");
+  if (!cleanPhone) throw Object.assign(new Error("กรุณากรอกเบอร์โทร"), { status: 400 });
+  if (!/^0[0-9]{9}$/.test(cleanPhone)) throw Object.assign(new Error("เบอร์โทรต้องเป็นตัวเลข 10 หลัก ขึ้นต้นด้วย 0"), { status: 400 });
+  if (!address_line?.trim()) throw Object.assign(new Error("กรุณากรอกที่อยู่"), { status: 400 });
+  if (!district?.trim()) throw Object.assign(new Error("กรุณากรอกตำบล/แขวง"), { status: 400 });
+  if (!province?.trim()) throw Object.assign(new Error("กรุณากรอกจังหวัด"), { status: 400 });
+  if (!postcode || String(postcode).length !== 5) throw Object.assign(new Error("รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก"), { status: 400 });
+  return cleanPhone;
+};
+
 const createAddress = async (userId, data) => {
-  const { recipient_name, phone, address_line, district, amphoe, province, postcode, is_default = 0 } = data;
+  const { recipient_name, address_line, district, amphoe, province, postcode, is_default = 0 } = data;
+  const cleanPhone = validateAddressData(data);
   if (is_default) {
     await db.execute("UPDATE address SET is_default = 0 WHERE user_id = ?", [userId]);
   }
@@ -30,21 +43,22 @@ const createAddress = async (userId, data) => {
   const [result] = await db.execute(
     `INSERT INTO address (user_id, recipient_name, phone, address_line, district, amphoe, province, postcode, is_default)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [userId, recipient_name, phone, address_line, district, amphoe || null, province, postcode, setDefault]
+    [userId, recipient_name, cleanPhone, address_line, district, amphoe || null, province, postcode, setDefault]
   );
   const [[address]] = await db.execute("SELECT * FROM address WHERE address_id = ?", [result.insertId]);
   return address;
 };
 
 const updateAddress = async (userId, addressId, data) => {
-  const { recipient_name, phone, address_line, district, amphoe, province, postcode, is_default } = data;
+  const { recipient_name, address_line, district, amphoe, province, postcode, is_default } = data;
+  const cleanPhone = validateAddressData(data);
   if (is_default) {
     await db.execute("UPDATE address SET is_default = 0 WHERE user_id = ?", [userId]);
   }
   await db.execute(
     `UPDATE address SET recipient_name=?, phone=?, address_line=?, district=?, amphoe=?, province=?, postcode=?, is_default=?
      WHERE address_id = ? AND user_id = ?`,
-    [recipient_name, phone, address_line, district, amphoe || null, province, postcode, is_default ? 1 : 0, addressId, userId]
+    [recipient_name, cleanPhone, address_line, district, amphoe || null, province, postcode, is_default ? 1 : 0, addressId, userId]
   );
   const [[address]] = await db.execute("SELECT * FROM address WHERE address_id = ?", [addressId]);
   return address;

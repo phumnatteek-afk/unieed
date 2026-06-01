@@ -1354,7 +1354,11 @@ export default function HomePage() {
                           ) : (
                             <div className="projGrid">
                               {demandFallbackProjects.map(p => (
-                                <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel="แนะนำ" />
+                                <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel={(() => {
+                                  const cols = projectAllCollections[p.request_id];
+                                  if (cols?.length) return BADGE_PRIORITY.find(b => cols.includes(b)) || "แนะนำ";
+                                  return nearbyBadgeMap[p.request_id] || "แนะนำ";
+                                })()} />
                               ))}
                             </div>
                           )}
@@ -1369,7 +1373,11 @@ export default function HomePage() {
                   )}
                 </div>
               ) : displayProjects.map(p => (
-                <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel={homeTab === NEARBY_TAB ? (nearbyBadgeMap[p.request_id] || null) : homeTab} />
+                <ProjCard key={p.request_id} p={p} navigate={navigate} details={projectDetails[p.request_id]} collectionLabel={homeTab === NEARBY_TAB ? (() => {
+                    const cols = projectAllCollections[p.request_id];
+                    if (cols?.length) return BADGE_PRIORITY.find(b => cols.includes(b)) || "แนะนำ";
+                    return nearbyBadgeMap[p.request_id] || null;
+                  })() : homeTab} />
               ))}
             </div>
             {homeTab !== NEARBY_TAB && (

@@ -319,10 +319,10 @@ function RowEditDrawer({ student, onSave, onCancel }) {
   const [draft, setDraft] = useState(() => ({
     student_code:    student.student_code ?? "",
     student_name:    student.student_name ?? "",
-    gender:          ["male","female"].includes(student.gender) ? student.gender : "male",
-    education_level: VALID_LEVELS.includes(student.education_level) ? student.education_level : VALID_LEVELS[0],
-    urgency:         ["very_urgent","urgent","can_wait"].includes(student.urgency) ? student.urgency : "urgent",
-    support_mode:    ["one_time","recurring"].includes(student.support_mode) ? student.support_mode : "one_time",
+    gender:          ["male","female"].includes(student.gender) ? student.gender : "",
+    education_level: VALID_LEVELS.includes(student.education_level) ? student.education_level : "",
+    urgency:         ["very_urgent","urgent","can_wait"].includes(student.urgency) ? student.urgency : "",
+    support_mode:    ["one_time","recurring"].includes(student.support_mode) ? student.support_mode : "",
     support_years:   student.support_years ?? 1,
     uniforms:        needsToUniforms(student.needs),
   }));
@@ -371,6 +371,7 @@ function RowEditDrawer({ student, onSave, onCancel }) {
           <div className="eiEditField">
             <label>เพศ <span className="eiEditReq">*</span></label>
             <select value={draft.gender} onChange={e => set("gender", e.target.value)}>
+              {!draft.gender && <option value="" disabled>— กรุณาเลือกเพศ —</option>}
               <option value="male">ชาย</option>
               <option value="female">หญิง</option>
             </select>
@@ -378,12 +379,14 @@ function RowEditDrawer({ student, onSave, onCancel }) {
           <div className="eiEditField">
             <label>ระดับชั้น <span className="eiEditReq">*</span></label>
             <select value={draft.education_level} onChange={e => set("education_level", e.target.value)}>
+              {!draft.education_level && <option value="" disabled>— กรุณาเลือกระดับชั้น —</option>}
               {VALID_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
           <div className="eiEditField">
             <label>ความเร่งด่วน <span className="eiEditReq">*</span></label>
             <select value={draft.urgency} onChange={e => set("urgency", e.target.value)}>
+              {!draft.urgency && <option value="" disabled>— กรุณาเลือกความเร่งด่วน —</option>}
               <option value="very_urgent">เร่งด่วนมาก</option>
               <option value="urgent">เร่งด่วน</option>
               <option value="can_wait">รอได้</option>
@@ -392,6 +395,7 @@ function RowEditDrawer({ student, onSave, onCancel }) {
           <div className="eiEditField">
             <label>การรับ <span className="eiEditReq">*</span></label>
             <select value={draft.support_mode} onChange={e => set("support_mode", e.target.value)}>
+              {!draft.support_mode && <option value="" disabled>— กรุณาเลือกรูปแบบการรับ —</option>}
               <option value="one_time">รับครั้งเดียว</option>
               <option value="recurring">รับต่อเนื่อง</option>
             </select>

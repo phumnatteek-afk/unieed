@@ -158,10 +158,17 @@ export default function PostProductPage() {
     setErr("");
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
+      const label = `รายการที่ ${i + 1}`;
       if (!it.uniform_type_id && !it.custom_type_name?.trim())
-        return setErr(`รายการที่ ${i + 1}: กรุณาเลือกหรือกรอกประเภทชุด`);
+        return setErr(`${label}: กรุณาเลือกหรือกรอกประเภทชุด`);
       if (!it.price || isNaN(Number(it.price)))
-        return setErr(`รายการที่ ${i + 1}: กรุณากรอกราคา`);
+        return setErr(`${label}: กรุณากรอกราคา`);
+      if (Number(it.price) <= 0)
+        return setErr(`${label}: ราคาต้องมากกว่า 0 บาท`);
+      if (!it.quantity || Number(it.quantity) < 1 || Number(it.quantity) > 99)
+        return setErr(`${label}: จำนวนสินค้าต้องอยู่ระหว่าง 1-99`);
+      if (!it.images || it.images.length === 0)
+        return setErr(`${label}: กรุณาอัปโหลดรูปภาพอย่างน้อย 1 รูป`);
     }
     setStep(2);
     setOpenIdx(0);

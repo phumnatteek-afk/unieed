@@ -164,9 +164,9 @@ export async function registerSchoolOneStep(payload) {
   }
 
   const phoneDigits = normalizeThaiPhone(school_phone);
-  if (!phoneDigits || !/^0\d{9}$/.test(phoneDigits)) {
+  if (!phoneDigits || !/^(02\d{7}|0[3-9]\d{8})$/.test(phoneDigits)) {
     throw Object.assign(
-      new Error("เบอร์โทรต้องเป็นตัวเลข 10 หลัก และขึ้นต้นด้วย 0"),
+      new Error("เบอร์โทรไม่ถูกต้อง (02xxxxxxx หรือ 08xxxxxxxx)"),
       { status: 400 }
     );
   }

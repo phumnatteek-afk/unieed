@@ -1273,19 +1273,18 @@ export default function AdminPayoutPage() {
                             <div className="admPayoutActionRow">
                               <button
                                 className="admPayoutBtn admPayoutBtn--transfer"
-                                disabled={!canPay}
-                                title={canPay ? "โอนเงินรอบที่พร้อมโอน" : "ยังไม่ถึงวันตัดรอบสิ้นเดือน"}
+                                title="โอนเงินรอบที่พร้อมโอน"
                                 onClick={() => setSelectedItem({
                                   ...row,
-                                  total_sales: row.payable_total_sales,
-                                  shipping_total: row.payable_shipping_total,
-                                  fee_amount: row.payable_fee_amount,
-                                  net_amount: row.payable_amount,
-                                  order_count: Number(row.ready_count || 0) + Number(row.overdue_count || 0),
+                                  total_sales: row.payable_total_sales || row.total_sales,
+                                  shipping_total: row.payable_shipping_total || row.shipping_total,
+                                  fee_amount: row.payable_fee_amount || row.fee_amount,
+                                  net_amount: row.payable_amount || row.net_amount,
+                                  order_count: row.order_count || (Number(row.ready_count || 0) + Number(row.overdue_count || 0) + Number(row.cycle_pending_count || 0)),
                                 })}
                               >
                                 <Icon icon="mdi:bank-transfer-out" style={{ fontSize: 15 }} />
-                                {canPay ? "โอนเงิน" : "รอตัดรอบ"}
+                                โอนเงิน
                               </button>
                               <button className="admPayoutBtn admPayoutBtn--detail" onClick={() => setOrderDetail({ ...row })}>
                                 <Icon icon="mdi:file-document-outline" style={{ fontSize: 15 }} />

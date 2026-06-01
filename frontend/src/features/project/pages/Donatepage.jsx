@@ -166,7 +166,10 @@ function DropoffCalendar({ value, onChange, schedule }) {
     return !schedule.open_days.includes(DAY_INDEX_TO_KEY[dow]);
   };
 
+  const isCurrentMonth = calYear === today.getFullYear() && calMonth === today.getMonth();
+
   const prevMonth = () => {
+    if (isCurrentMonth) return; // ห้ามย้อนกลับก่อนเดือนปัจจุบัน
     if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
     else setCalMonth(m => m - 1);
   };
@@ -179,7 +182,7 @@ function DropoffCalendar({ value, onChange, schedule }) {
     <div className="dnCalWrap">
       {/* nav */}
       <div className="dnCalNav">
-        <button className="dnCalNavBtn" onClick={prevMonth} type="button">
+        <button className="dnCalNavBtn" onClick={prevMonth} type="button" disabled={isCurrentMonth} style={isCurrentMonth ? { opacity: 0.3, cursor: "not-allowed" } : {}}>
           <Icon icon="mdi:chevron-left" width="18" />
         </button>
         <span className="dnCalMonthLabel">{TH_MONTHS_FULL[calMonth]} {calYear + 543}</span>
@@ -388,10 +391,12 @@ export default function DonatePage() {
       if (!appointDate) return setErr("กรุณาเลือกวันนัดหมาย");
       if (!appointTime) return setErr("กรุณาเลือกเวลานัดหมาย");
       if (!donorPhone.trim()) return setErr("กรุณากรอกเบอร์ติดต่อ");
-      if (donorPhone.startsWith("02")) {
-        if (donorPhone.length !== 9) return setErr("เบอร์บ้าน (02) ต้องมี 9 หลัก");
+      const cleanPhone = donorPhone.replace(/\D/g, "");
+      if (!cleanPhone) return setErr("กรุณากรอกเบอร์ติดต่อเป็นตัวเลข");
+      if (cleanPhone.startsWith("02")) {
+        if (cleanPhone.length !== 9) return setErr("เบอร์บ้าน (02) ต้องมี 9 หลัก");
       } else {
-        if (donorPhone.length !== 10) return setErr("เบอร์มือถือต้องมี 10 หลัก");
+        if (!/^0[0-9]{9}$/.test(cleanPhone)) return setErr("เบอร์มือถือต้องเป็นตัวเลข 10 หลัก ขึ้นต้นด้วย 0");
       }
     }
     if (selectedItems.length === 0) return setErr("ไม่พบรายการที่เลือก กรุณากลับไปเลือกใหม่");

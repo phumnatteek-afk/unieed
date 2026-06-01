@@ -32,14 +32,19 @@ function EvidenceModal({ c, onClose }) {
   const [imgFull, setImgFull] = useState(false);
   const snapItems = parseJson(c.items_snapshot);
   const condSnap  = parseJson(c.items_condition_snapshot);
-  const condMap   = {};
-  const reasonMap = {};
-  const noteMap   = {};
+  const condByType = {};
   for (const x of condSnap) {
-    condMap[x.uniform_type_id]   = x.item_condition;
-    if (x.reason) reasonMap[x.uniform_type_id] = x.reason;
-    if (x.note)   noteMap[x.uniform_type_id]   = x.note;
+    if (!condByType[x.uniform_type_id]) condByType[x.uniform_type_id] = [];
+    condByType[x.uniform_type_id].push(x);
   }
+  const _typeOcc = {};
+  const itemConds = snapItems.map(it => {
+    const tid = it.uniform_type_id;
+    _typeOcc[tid] = (_typeOcc[tid] || 0);
+    const entry = condByType[tid]?.[_typeOcc[tid]] || null;
+    _typeOcc[tid]++;
+    return entry;
+  });
 
   const COND_LABEL = {
     usable:     { label: "ใช้งานได้",    color: "#16a34a", bg: "#f0fdf4", border: "#86efac" },
@@ -115,8 +120,9 @@ function EvidenceModal({ c, onClose }) {
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {snapItems.map((it, i) => {
-                      const cond = condMap[it.uniform_type_id];
-                      const meta = COND_LABEL[cond];
+                      const entry = itemConds[i];
+                      const cond  = entry?.item_condition;
+                      const meta  = COND_LABEL[cond];
                       return (
                         <div key={i} style={{ fontSize: 12, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                           <span style={{ color: "#1e293b" }}>{String(it.name || "").replace(/\s*\(.*?\)\s*/g, "").trim()} × {it.quantity}</span>
@@ -125,14 +131,14 @@ function EvidenceModal({ c, onClose }) {
                               <span style={{ fontSize: 11, fontWeight: 600, color: meta.color, background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: 20, padding: "2px 8px", whiteSpace: "nowrap" }}>
                                 {meta.label}
                               </span>
-                              {reasonMap[it.uniform_type_id] && (
+                              {entry?.reason && (
                                 <span style={{ fontSize: 10, fontWeight: 600, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "1px 7px", whiteSpace: "nowrap" }}>
-                                  {reasonMap[it.uniform_type_id]}
+                                  {entry.reason}
                                 </span>
                               )}
-                              {noteMap[it.uniform_type_id] && (
+                              {entry?.note && (
                                 <span style={{ fontSize: 10, color: "#78350f", background: "#fffbeb", borderRadius: 6, padding: "2px 7px", display: "block", marginTop: 2, maxWidth: 160, wordBreak: "break-word" }}>
-                                  {noteMap[it.uniform_type_id]}
+                                  {entry.note}
                                 </span>
                               )}
                             </div>
@@ -591,11 +597,21 @@ export default function AdminWrongItemPage() {
                     ) : cases.map((c, i) => {
                       const snapItems = parseJson(c.items_snapshot);
                       const condSnap  = parseJson(c.items_condition_snapshot);
-                      const condMap   = {};
-                      for (const x of condSnap) condMap[x.uniform_type_id] = x.item_condition;
-
-                      const wrongItems  = snapItems.filter(it => condMap[it.uniform_type_id] === "wrong_item");
-                      const usableItems = snapItems.filter(it => condMap[it.uniform_type_id] === "usable");
+                      const _cbt = {};
+                      for (const x of condSnap) {
+                        if (!_cbt[x.uniform_type_id]) _cbt[x.uniform_type_id] = [];
+                        _cbt[x.uniform_type_id].push(x.item_condition);
+                      }
+                      const _to = {};
+                      const _ic = snapItems.map(it => {
+                        const tid = it.uniform_type_id;
+                        _to[tid] = (_to[tid] || 0);
+                        const cond = _cbt[tid]?.[_to[tid]] ?? null;
+                        _to[tid]++;
+                        return cond;
+                      });
+                      const wrongItems  = snapItems.filter((_, idx) => _ic[idx] === "wrong_item");
+                      const usableItems = snapItems.filter((_, idx) => _ic[idx] === "usable");
 
                       return (
                         <div key={c.donation_id} style={{ padding: "14px 20px 14px 72px", borderBottom: i < cases.length - 1 ? "1px solid #e2e8f0" : "none" }}>

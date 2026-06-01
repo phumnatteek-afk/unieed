@@ -508,6 +508,8 @@ const handleMaxPriceChange = (e) => {
 };
 
 // ── Reorder products: Meilisearch ranking + donation products first ─────────
+const hasImages = (p) => !!(p.images?.length || p.cover_image);
+
 const displayedProducts = useMemo(() => {
   let list = products;
 
@@ -519,10 +521,11 @@ const displayedProducts = useMemo(() => {
     list = [...ranked, ...rest];
   }
 
-    // Donation-matched products (from meili is_donation OR from donationNeededLabels) always first
-  const donationFirst = list.filter(p => donationNeededLabels.has(p.product_id));
-  const others        = list.filter(p => !donationNeededLabels.has(p.product_id));
-  return [...donationFirst, ...others];
+  // Priority: 1) donation, 2) complete (has images), 3) mock-up (no images)
+  const donation  = list.filter(p =>  donationNeededLabels.has(p.product_id));
+  const complete  = list.filter(p => !donationNeededLabels.has(p.product_id) &&  hasImages(p));
+  const mockup    = list.filter(p => !donationNeededLabels.has(p.product_id) && !hasImages(p));
+  return [...donation, ...complete, ...mockup];
 }, [products, search, meiliHits, donationNeededLabels]);
 
 

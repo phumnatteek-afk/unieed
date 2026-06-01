@@ -558,7 +558,7 @@ useEffect(() => {
           ? Math.max((totalNeeded - totalFulfilled) / totalNeeded, 0)
           : 0;
 
-        // ปัจจัย 2: จำนวนชุดที่ยังขาด (25%)
+        // ปัจจัย 2: จำนวนชุดที่ยังขาด (25%)=
         const remaining = totalNeeded - totalFulfilled;
         const absoluteDeficit = remaining > 40 ? 1.0 : remaining >= 10 ? 0.5 : 0;
 

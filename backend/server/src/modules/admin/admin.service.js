@@ -255,8 +255,11 @@ export async function adminUpdateSchool(school_id, payload = {}) {
 
 /** คำนวณ % เปลี่ยนแปลง เทียบกับค่าก่อนหน้า (ไม่ให้หาร 0) */
 function pctChange(current, previous) {
-  if (!previous || previous === 0) return current > 0 ? 100 : 0;
-  return Math.round(((current - previous) / previous) * 100);
+  const cur = Number(current || 0);
+  const prev = Number(previous || 0);
+  if (!Number.isFinite(cur) || !Number.isFinite(prev)) return null;
+  if (prev === 0) return cur === 0 ? 0 : null;
+  return Math.round(((cur - prev) / prev) * 1000) / 10;
 }
 
 export async function getOverviewStats() {

@@ -106,6 +106,10 @@ export default function RegisterSchoolPage() {
       setErr("กรุณากรอกรหัสสถานศึกษา");
       return;
     }
+    if (schoolCodeDigits.length !== 10) {
+      setErr("รหัสสถานศึกษาต้องเป็นตัวเลข 10 หลักพอดี");
+      return;
+    }
 
     setStep(3);
   };
