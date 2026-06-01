@@ -16,11 +16,6 @@ function thaiNow() {
 
 /* ────── helpers ────── */
 
-function formatSqlDateTime(d) {
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
 function normalizeThaiPhone(input) {
   if (!input) return null;
   let raw = String(input).replace(/\D/g, "");
@@ -33,10 +28,9 @@ function normalizeThaiPhone(input) {
 function periodToDateRange(period, startDate = null, endDate = null) {
   const now = new Date();
   if (period === "custom" && startDate && endDate) {
-    let f = new Date(startDate); f.setHours(0, 0, 0, 0);
-    let t = new Date(endDate);   t.setHours(23, 59, 59, 999);
-    if (f > t) [f, t] = [t, f];
-    return { from: formatSqlDateTime(f), to: formatSqlDateTime(t) };
+    const f = new Date(startDate); f.setHours(0, 0, 0, 0);
+    const t = new Date(endDate);   t.setHours(23, 59, 59, 999);
+    return { from: f.toISOString().slice(0, 19), to: t.toISOString().slice(0, 19) };
   }
   let from;
   switch (period) {
@@ -47,16 +41,8 @@ function periodToDateRange(period, startDate = null, endDate = null) {
     case "year":    from = new Date(now); from.setFullYear(now.getFullYear() - 1); break;
     default:        from = new Date(now); from.setDate(now.getDate() - 7);
   }
-  return { from: formatSqlDateTime(from), to: formatSqlDateTime(now) };
+  return { from: from.toISOString().slice(0, 19), to: now.toISOString().slice(0, 19) };
 }
-
-function parseSqlDateTime(value) {
-  return new Date(String(value).replace(" ", "T"));
-}
-
-const PAYOUT_READY_SQL = `LAST_DAY(o.created_at) < CURDATE()`;
-const PAYOUT_OVERDUE_SQL = `DATE_ADD(LAST_DAY(o.created_at), INTERVAL 7 DAY) < CURDATE()`;
-const PAYOUT_CURRENT_CYCLE_SQL = `LAST_DAY(o.created_at) >= CURDATE()`;
 
 /* ────── Schools ────── */
 
@@ -255,11 +241,8 @@ export async function adminUpdateSchool(school_id, payload = {}) {
 
 /** คำนวณ % เปลี่ยนแปลง เทียบกับค่าก่อนหน้า (ไม่ให้หาร 0) */
 function pctChange(current, previous) {
-  const cur = Number(current || 0);
-  const prev = Number(previous || 0);
-  if (!Number.isFinite(cur) || !Number.isFinite(prev)) return null;
-  if (prev === 0) return cur === 0 ? 0 : null;
-  return Math.round(((cur - prev) / prev) * 1000) / 10;
+  if (!previous || previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
 }
 
 export async function getOverviewStats() {
@@ -352,11 +335,11 @@ export async function getRevenueStats({ period = "month", start_date = null, end
   const { from, to } = periodToDateRange(period, start_date, end_date);
 
   // คำนวณ "ช่วงก่อนหน้า" ที่ยาวเท่ากัน สำหรับ % เปลี่ยนแปลง
-  const fromDate = parseSqlDateTime(from);
-  const toDate   = parseSqlDateTime(to);
+  const fromDate = new Date(from);
+  const toDate   = new Date(to);
   const diffMs   = toDate - fromDate;
-  const prevTo   = formatSqlDateTime(new Date(fromDate - 1));
-  const prevFrom = formatSqlDateTime(new Date(fromDate - diffMs - 1));
+  const prevTo   = new Date(fromDate - 1).toISOString().slice(0, 19);
+  const prevFrom = new Date(fromDate - diffMs - 1).toISOString().slice(0, 19);
 
   // Query รายได้ + แยกประเภทค่าธรรมเนียม
   // ใช้ logic ใหม่: max(subtotal * 15%, ฿20) ต่อออเดอร์
@@ -413,123 +396,77 @@ export async function getRevenueStats({ period = "month", start_date = null, end
   };
 }
 
-function chartGrainForRange(period, from, to) {
-  if (period === "today") return "hour";
-  if (period === "month") return "day";
-  if (period === "custom") {
-    const diffDays = Math.ceil((parseSqlDateTime(to) - parseSqlDateTime(from)) / (24 * 60 * 60 * 1000));
-    if (diffDays <= 1) return "hour";
-    if (diffDays <= 62) return "day";
-  }
-  return "month";
-}
-
-function addChartUnit(d, grain) {
-  const next = new Date(d);
-  if (grain === "hour") next.setHours(next.getHours() + 1);
-  else if (grain === "day") next.setDate(next.getDate() + 1);
-  else next.setMonth(next.getMonth() + 1);
-  return next;
-}
-
-function startOfChartBucket(d, grain) {
-  const next = new Date(d);
-  next.setMilliseconds(0);
-  next.setSeconds(0);
-  if (grain === "month") {
-    next.setDate(1);
-    next.setHours(0, 0, 0, 0);
-  } else if (grain === "day") {
-    next.setHours(0, 0, 0, 0);
-  } else {
-    next.setMinutes(0, 0, 0);
-  }
-  return next;
-}
-
-function chartBucketKey(d, grain) {
-  const pad = (n) => String(n).padStart(2, "0");
-  if (grain === "hour") {
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:00`;
-  }
-  if (grain === "day") {
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  }
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
-}
-
-function chartBucketLabel(d, grain) {
-  const MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-  const pad = (n) => String(n).padStart(2, "0");
-  if (grain === "hour") return `${pad(d.getHours())}:00`;
-  if (grain === "day") return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
-  return `${MONTHS[d.getMonth()]} ${String(d.getFullYear() + 543).slice(-2)}`;
-}
-
 /**
- * ข้อมูลกราฟ "ยอดขายรวม vs ค่าธรรมเนียม"
- * - ใช้ช่วงเวลาเดียวกับการ์ดรายได้ เพื่อให้ filter กับกราฟตรงกัน
+ * ข้อมูลกราฟ "ยอดขายรวม vs ค่าธรรมเนียม" ย้อนหลัง N เดือน
  * - กรองด้วย payment_status = 'paid' (ครอบคลุม confirmed/shipping/delivered)
+ *   ไม่ filter เฉพาะ delivered เพื่อให้ chart มีข้อมูลทันทีหลัง buyer จ่ายเงิน
+ * - ใช้ 1 query เดียวต่อ N เดือน (เร็วกว่า loop)
  */
-export async function getChartData(options = {}) {
-  const opts = typeof options === "number" ? { months: options } : options;
-  const { period = null, start_date = null, end_date = null, months = null } = opts || {};
-  const legacyMonths = Math.max(1, Math.min(24, Number(months) || 6));
-  const now = new Date();
-  const range = period
-    ? periodToDateRange(period, start_date, end_date)
-    : {
-        from: formatSqlDateTime(new Date(now.getFullYear(), now.getMonth() - Math.max(legacyMonths - 1, 0), 1, 0, 0, 0)),
-        to: formatSqlDateTime(now),
-      };
-  const grain = period ? chartGrainForRange(period, range.from, range.to) : "month";
-  const sqlBucket = grain === "hour"
-    ? "DATE_FORMAT(o.created_at, '%Y-%m-%d %H:00')"
-    : grain === "day"
-      ? "DATE_FORMAT(o.created_at, '%Y-%m-%d')"
-      : "DATE_FORMAT(o.created_at, '%Y-%m')";
+export async function getChartData({ period = "month", start_date = null, end_date = null } = {}) {
+  const { from, to } = periodToDateRange(period, start_date, end_date);
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const diffDays = Math.max(1, Math.ceil((toDate - fromDate) / 86400000));
 
-  const [rows] = await db.query(`
+  let dateFormat;
+  let granularity;
+  if (period === "today" || diffDays <= 2) {
+    dateFormat = "%Y-%m-%d %H:00";
+    granularity = "hour";
+  } else if (diffDays <= 62) {
+    dateFormat = "%Y-%m-%d";
+    granularity = "day";
+  } else {
+    dateFormat = "%Y-%m";
+    granularity = "month";
+  }
+
+  const [rows] = await db.query(
+    `
     SELECT
-      ${sqlBucket} AS bucket,
+      DATE_FORMAT(o.created_at, ?) AS bucket,
       COALESCE(SUM(o.total_price), 0)  AS sales,
       COALESCE(SUM(o.platform_fee), 0) AS fees
     FROM orders o
     WHERE o.payment_status = 'paid'
       AND o.created_at BETWEEN ? AND ?
     GROUP BY bucket
-    ORDER BY bucket ASC
-  `, [range.from, range.to]);
+    ORDER BY bucket
+    `,
+    [dateFormat, from, to],
+  );
 
-  const byBucket = Object.fromEntries(rows.map(r => [r.bucket, r]));
+  const byBucket = Object.fromEntries(rows.map((r) => [r.bucket, r]));
   const labels = [];
   const salesArr = [];
-  const feesArr  = [];
-  const toDate = parseSqlDateTime(range.to);
+  const feesArr = [];
 
-  for (let d = startOfChartBucket(parseSqlDateTime(range.from), grain); d <= toDate; d = addChartUnit(d, grain)) {
-    const key = chartBucketKey(d, grain);
+  let cur = startOfChartBucket(fromDate, granularity);
+  const end = new Date(toDate);
+  const guard = 400;
+  let steps = 0;
+  while (cur <= end && steps < guard) {
+    const key = chartBucketKey(cur, granularity);
     const r = byBucket[key] || { sales: 0, fees: 0 };
-    labels.push(chartBucketLabel(d, grain));
+    labels.push(chartBucketLabel(cur, granularity));
     salesArr.push(Math.round(Number(r.sales || 0)));
     feesArr.push(Math.round(Number(r.fees || 0)));
+    advanceChartBucket(cur, granularity);
+    steps += 1;
   }
 
-  // Donation status (donation_request)
   const [[donOpen]] = await db.query(`SELECT COUNT(*) AS c FROM donation_request WHERE status='open'`)
     .catch(() => [[{ c: 0 }]]);
-  const [[donAll]]  = await db.query(`SELECT COUNT(*) AS c FROM donation_request`)
+  const [[donAll]] = await db.query(`SELECT COUNT(*) AS c FROM donation_request`)
     .catch(() => [[{ c: 0 }]]);
   const openPct = Number(donAll?.c) > 0 ? Math.round((Number(donOpen.c) / Number(donAll.c)) * 100) : 0;
 
   return {
-    months:            labels,
-    sales:             salesArr,
-    fees:              feesArr,
+    months: labels,
+    sales: salesArr,
+    fees: feesArr,
+    granularity,
     donation_open_pct: openPct,
-    granularity:       grain,
-    from:              range.from,
-    to:                range.to,
   };
 }
 
@@ -838,19 +775,6 @@ export async function listPayouts({
       COALESCE(SUM(o.platform_fee), 0)               AS fee_amount,
       COALESCE(SUM(o.seller_payout_amount), 0)       AS net_amount,
       COALESCE(SUM(ship_agg.ship_sum), 0)            AS shipping_total,
-      COUNT(CASE WHEN ${PAYOUT_CURRENT_CYCLE_SQL} THEN 1 END) AS cycle_pending_count,
-      COUNT(CASE WHEN ${PAYOUT_READY_SQL} AND NOT (${PAYOUT_OVERDUE_SQL}) THEN 1 END) AS ready_count,
-      COUNT(CASE WHEN ${PAYOUT_OVERDUE_SQL} THEN 1 END) AS overdue_count,
-      COALESCE(SUM(CASE WHEN ${PAYOUT_CURRENT_CYCLE_SQL} THEN o.seller_payout_amount ELSE 0 END), 0) AS cycle_pending_amount,
-      COALESCE(SUM(CASE WHEN ${PAYOUT_READY_SQL} THEN o.seller_payout_amount ELSE 0 END), 0) AS payable_amount,
-      COALESCE(SUM(CASE WHEN ${PAYOUT_READY_SQL} THEN o.total_price ELSE 0 END), 0) AS payable_total_sales,
-      COALESCE(SUM(CASE WHEN ${PAYOUT_READY_SQL} THEN o.platform_fee ELSE 0 END), 0) AS payable_fee_amount,
-      COALESCE(SUM(CASE WHEN ${PAYOUT_READY_SQL} THEN COALESCE(ship_agg.ship_sum, 0) ELSE 0 END), 0) AS payable_shipping_total,
-      COALESCE(SUM(CASE WHEN ${PAYOUT_OVERDUE_SQL} THEN o.seller_payout_amount ELSE 0 END), 0) AS overdue_amount,
-      MIN(DATE_FORMAT(o.created_at, '%Y-%m'))        AS first_cycle_month,
-      MIN(LAST_DAY(o.created_at))                    AS next_cutoff_date,
-      MIN(DATE_ADD(LAST_DAY(o.created_at), INTERVAL 7 DAY)) AS next_due_date,
-      GROUP_CONCAT(DISTINCT DATE_FORMAT(o.created_at, '%Y-%m') ORDER BY o.created_at SEPARATOR ', ') AS payout_cycle_months,
       MIN(o.created_at)                              AS first_order_at
     FROM orders o
     LEFT JOIN users u ON u.user_id = o.seller_id
@@ -885,14 +809,11 @@ export async function listPayouts({
   `, [from, to, historySafeLimit, historyOffset]).catch(() => [[]]);
 
   const [[countRow]] = await db.query(`
-    SELECT
-      COUNT(DISTINCT seller_id) AS c,
-      COUNT(DISTINCT CASE WHEN LAST_DAY(created_at) < CURDATE() THEN seller_id END) AS payable_c
+    SELECT COUNT(DISTINCT seller_id) AS c
     FROM orders
-    WHERE order_status='delivered'
-      AND payout_status='pending'
+    WHERE order_status='delivered' AND payout_status='pending'
       AND created_at BETWEEN ? AND ?
-  `, [from, to]).catch(() => [[{ c: 0, payable_c: 0 }]]);
+  `, [from, to]).catch(() => [[{ c: 0 }]]);
 
   const [[histCountRow]] = await db.query(`
     SELECT COUNT(*) AS c
@@ -902,15 +823,7 @@ export async function listPayouts({
 
   // Summary stats (ตามช่วงเวลาเดียวกัน)
   const [[pendStats]] = await db.query(`
-    SELECT
-      COALESCE(SUM(seller_payout_amount), 0) AS pending_total,
-      COUNT(*) AS pending_count,
-      COALESCE(SUM(CASE WHEN LAST_DAY(created_at) >= CURDATE() THEN seller_payout_amount ELSE 0 END), 0) AS cycle_pending_total,
-      COUNT(CASE WHEN LAST_DAY(created_at) >= CURDATE() THEN 1 END) AS cycle_pending_count,
-      COALESCE(SUM(CASE WHEN LAST_DAY(created_at) < CURDATE() THEN seller_payout_amount ELSE 0 END), 0) AS payable_total,
-      COUNT(CASE WHEN LAST_DAY(created_at) < CURDATE() THEN 1 END) AS payable_count,
-      COALESCE(SUM(CASE WHEN DATE_ADD(LAST_DAY(created_at), INTERVAL 7 DAY) < CURDATE() THEN seller_payout_amount ELSE 0 END), 0) AS overdue_total,
-      COUNT(CASE WHEN DATE_ADD(LAST_DAY(created_at), INTERVAL 7 DAY) < CURDATE() THEN 1 END) AS overdue_count
+    SELECT COALESCE(SUM(seller_payout_amount), 0) AS pending_total, COUNT(*) AS pending_count
     FROM orders
     WHERE order_status='delivered' AND payout_status='pending'
       AND created_at BETWEEN ? AND ?
@@ -933,13 +846,6 @@ export async function listPayouts({
       pending_total: Math.round(Number(pendStats?.pending_total || 0)),
       pending_count: Number(pendStats?.pending_count || 0),
       pending_seller_count: Number(countRow?.c || 0),
-      payable_seller_count: Number(countRow?.payable_c || 0),
-      cycle_pending_total: Math.round(Number(pendStats?.cycle_pending_total || 0)),
-      cycle_pending_count: Number(pendStats?.cycle_pending_count || 0),
-      payable_total: Math.round(Number(pendStats?.payable_total || 0)),
-      payable_count: Number(pendStats?.payable_count || 0),
-      overdue_total: Math.round(Number(pendStats?.overdue_total || 0)),
-      overdue_count: Number(pendStats?.overdue_count || 0),
       paid_total:    Math.round(Number(paidStats?.paid_total    || 0)),
       paid_count:    Number(paidStats?.paid_count    || 0),
       fee_total:     Math.round(Number(feeStats?.fee_total      || 0)),
@@ -956,21 +862,6 @@ export async function listPayouts({
         net_amount:     Math.round(Number(r.net_amount     || 0)),
         shipping_total: Math.round(Number(r.shipping_total || 0)),
         order_count:    Number(r.order_count || 0),
-        cycle_pending_count:  Number(r.cycle_pending_count || 0),
-        ready_count:          Number(r.ready_count || 0),
-        overdue_count:        Number(r.overdue_count || 0),
-        cycle_pending_amount: Math.round(Number(r.cycle_pending_amount || 0)),
-        payable_amount:       Math.round(Number(r.payable_amount || 0)),
-        payable_total_sales:  Math.round(Number(r.payable_total_sales || 0)),
-        payable_fee_amount:   Math.round(Number(r.payable_fee_amount || 0)),
-        payable_shipping_total: Math.round(Number(r.payable_shipping_total || 0)),
-        overdue_amount:       Math.round(Number(r.overdue_amount || 0)),
-        payout_stage:         Number(r.overdue_count || 0) > 0 ? "overdue" : (Number(r.ready_count || 0) > 0 ? "ready" : "cycle_pending"),
-        can_pay:              Number(r.payable_amount || 0) > 0,
-        first_cycle_month:    r.first_cycle_month,
-        payout_cycle_months:  r.payout_cycle_months || "",
-        next_cutoff_date:     r.next_cutoff_date,
-        next_due_date:        r.next_due_date,
       };
     }),
     history: (historyRows || []).map(r => {
@@ -1035,10 +926,7 @@ export async function paySeller(seller_id, net_amount) {
          COALESCE(SUM(seller_payout_amount), 0)    AS net_total,
          COALESCE(SUM(platform_fee), 0)            AS fee_total
        FROM orders
-       WHERE seller_id=?
-         AND order_status='delivered'
-         AND payout_status='pending'
-         AND LAST_DAY(created_at) < CURDATE()`,
+       WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
       [seller_id]
     );
     if (Number(sum.order_count) === 0) {
@@ -1058,10 +946,7 @@ export async function paySeller(seller_id, net_amount) {
     await conn.query(
       `UPDATE orders
           SET payout_status='paid', payout_id=?, payout_date=?
-        WHERE seller_id=?
-          AND order_status='delivered'
-          AND payout_status='pending'
-          AND LAST_DAY(created_at) < CURDATE()`,
+        WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
       [payoutId, nowThai, seller_id]
     );
 
@@ -1560,10 +1445,7 @@ export async function payAllSellers() {
       await conn.query(
         `UPDATE orders
             SET payout_status='paid', payout_id=?, payout_date=?
-          WHERE seller_id=?
-            AND order_status='delivered'
-            AND payout_status='pending'
-            AND LAST_DAY(created_at) < CURDATE()`,
+          WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
         [ins.insertId, nowThai, s.seller_id]
       );
       // แจ้งเตือนผู้ขาย (non-blocking)
