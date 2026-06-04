@@ -78,19 +78,52 @@ export default function SchoolLayout() {
         {/* ── Header ── */}
         <header className="scHeader">
           {schoolName && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: "auto" }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 12,
+              marginRight: "auto",
+              padding: "4px 0",
+            }}>
               {schoolLogo ? (
                 <img
                   src={schoolLogo}
                   alt={schoolName}
-                  style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, background: "#fff" }}
+                  style={{
+                    width: 46, height: 46,
+                    borderRadius: 10,
+                    objectFit: "cover",
+                    flexShrink: 0,
+                    background: "#fff",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.14)",
+                  }}
                   onError={e => { e.currentTarget.style.display = "none"; e.currentTarget.nextSibling.style.display = "flex"; }}
                 />
               ) : null}
-              <span style={{ display: schoolLogo ? "none" : "flex", alignItems: "center" }}>
+              <span style={{
+                display: schoolLogo ? "none" : "flex",
+                alignItems: "center", justifyContent: "center",
+                width: 46, height: 46, borderRadius: 10,
+                background: "rgba(255,255,255,0.2)",
+                flexShrink: 0,
+              }}>
                 <Icon icon="mdi:school-outline" width="26" style={{ color: "#fff" }} />
               </span>
-              <span style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{schoolName}</span>
+              <div>
+                <div style={{
+                  fontSize: 10, fontWeight: 600,
+                  color: "rgba(255,255,255,0.65)",
+                  textTransform: "uppercase", letterSpacing: "0.08em",
+                  marginBottom: 2,
+                }}>
+                  ผู้ดูแลโรงเรียน
+                </div>
+                <div style={{
+                  fontSize: 18, fontWeight: 800, color: "#1e3a8a",
+                  lineHeight: 1, textShadow: "0 1px 0 rgba(255,255,255,0.6)",
+                  letterSpacing: "0.01em",
+                }}>
+                  {schoolName}
+                </div>
+              </div>
             </div>
           )}
           <NotificationBell />

@@ -177,8 +177,13 @@ export default function SchoolTestimonialPage() {
                     <Icon icon="mdi:calendar-range" width="14" />
                     {formatDate(p.created_at)}
                     {p.end_date && <> – {formatDate(p.end_date)}</>}
-                    {p.duration_months && <span className="stProjRowDur">({p.duration_months} เดือน)</span>}
                   </div>
+                  {p.duration_months && (
+                    <div className="stProjRowDuration">
+                      <Icon icon="mdi:clock-outline" width="13" />
+                      ระยะเวลา: <strong>{p.duration_months} เดือน</strong>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

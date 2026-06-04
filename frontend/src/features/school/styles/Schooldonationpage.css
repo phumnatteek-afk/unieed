@@ -1,8 +1,9 @@
-/* ===== SchoolDonationPage.css ===== */
+/* ===== SchoolDonationPage.css  — v3 full overhaul ===== */
 @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
 
 :root {
   --blue:      #3b6fd4;
+  --blue-dk:   #2558c0;
   --blue-lt:   #eff6ff;
   --blue-mid:  #bfdbfe;
   --green:     #16a34a;
@@ -16,100 +17,140 @@
   --indigo:    #5285E8;
   --indigo-lt: #eff6ff;
   --surface:   #ffffff;
-  --bg:        #f1f5f9;
+  --bg:        #f8fafc;
   --border:    #e2e8f0;
+  --border-dk: #cbd5e1;
   --text:      #1e293b;
   --text-2:    #64748b;
   --text-3:    #94a3b8;
-  --radius-sm: 8px;
-  --radius:    12px;
-  --radius-lg: 16px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow:    0 4px 16px rgba(0,0,0,0.07);
+  --radius-xs: 6px;
+  --radius-sm: 9px;
+  --radius:    13px;
+  --radius-lg: 18px;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow:    0 4px 20px rgba(0,0,0,0.08);
   --shadow-lg: 0 20px 60px rgba(0,0,0,0.16);
 }
 
-/* ── Page ── */
+/* ══════════════════════════════════════════
+   PAGE
+══════════════════════════════════════════ */
 .sdPage {
-  padding: 32px 40px 60px;
+  padding: 28px 36px 64px;
   font-family: 'Kanit', sans-serif;
-  background: var(--bg);
+  background: #fff;
   min-height: 100vh;
+  color: var(--text);
 }
 
-/* ── Page Header ── */
+/* ══════════════════════════════════════════
+   PAGE HEADER
+══════════════════════════════════════════ */
 .sdPageHeader {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1.5px solid var(--border);
 }
 
 .sdTitle {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 23px;
+  font-weight: 800;
   color: var(--text);
   margin: 0 0 4px;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sdTitle::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 26px;
+  background: linear-gradient(to bottom, var(--blue), #7c3aed);
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .sdTitleSub {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--text-3);
   font-weight: 400;
   margin: 0;
+  padding-left: 14px;
 }
 
-/* ── Overdue banner ── */
+/* ══════════════════════════════════════════
+   OVERDUE BANNER
+══════════════════════════════════════════ */
 .sdOverdueBanner {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-left: 4px solid var(--amber);
+  background: linear-gradient(to right, #fffbeb, #fff8e1);
+  border: 1.5px solid #fde68a;
+  border-left: 5px solid var(--amber);
   border-radius: var(--radius);
   padding: 14px 18px;
-  margin-bottom: 24px;
-  font-size: 13.5px;
+  margin-bottom: 22px;
+  font-size: 13px;
   color: #92400e;
+  box-shadow: 0 2px 10px rgba(217,119,6,0.1);
+  line-height: 1.6;
 }
-.sdOverdueBanner strong { font-weight: 700; }
-.sdOverdueBannerIcon { margin-left: auto; flex-shrink: 0; opacity: 0.7; }
+.sdOverdueBanner strong { font-weight: 700; color: #b45309; }
+.sdOverdueBannerIcon { margin-left: auto; flex-shrink: 0; opacity: 0.5; }
 
-/* ── Summary grid ── */
+/* ══════════════════════════════════════════
+   SUMMARY DASHBOARD CARDS
+══════════════════════════════════════════ */
 .sdSummaryRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 26px;
 }
 
 .sdSummaryCard {
   background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  border-radius: var(--radius);
+  padding: 18px 20px 16px;
   border: 1.5px solid var(--border);
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  transition: none;
+  gap: 6px;
   position: relative;
   overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
+/* Top accent bar */
 .sdSummaryCard::before {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
   background: currentColor;
-  opacity: 0.5;
-  border-radius: 3px 3px 0 0;
+  opacity: 0.55;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+/* Subtle bg tint */
+.sdSummaryCard::after {
+  content: "";
+  position: absolute;
+  bottom: -20px; right: -20px;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.04;
 }
 .sdSummaryCard:hover {
-  transform: none;
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
   cursor: default;
 }
 
@@ -117,89 +158,104 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 8px;
 }
 
 .sdSummaryIcon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
 }
 
 .sdSummaryLabel {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-2);
   font-weight: 500;
   margin-top: 2px;
+  line-height: 1.4;
 }
 
 .sdSummaryVal {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
-  letter-spacing: -1px;
+  letter-spacing: -1.5px;
 }
 
-/* ── Toolbar ── */
+.sdSummaryUnit {
+  font-size: 11.5px;
+  font-weight: 600;
+  opacity: 0.7;
+  letter-spacing: 0;
+}
+
+/* ══════════════════════════════════════════
+   TOOLBAR (Search + Filter tabs)
+══════════════════════════════════════════ */
 .sdToolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-xs);
 }
 
 .sdSearchWrap {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
   flex: 1;
-  min-width: 240px;
-  box-shadow: var(--shadow-sm);
+  min-width: 220px;
+  height: 38px;
   transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
 }
 .sdSearchWrap:focus-within {
-  border-color: #e2e8f0;
-  box-shadow: none;
+  border-color: var(--blue-mid);
+  box-shadow: 0 0 0 3px rgba(59,111,212,0.09);
 }
 
 .sdSearch {
   border: none;
   outline: none;
-  font-size: 14px;
+  font-size: 13.5px;
   font-family: 'Kanit', sans-serif;
   color: var(--text);
   width: 100%;
   background: transparent;
 }
-.sdSearch:focus,
-.sdSearch:focus-visible {
-  outline: none;
-  box-shadow: none;
-}
+.sdSearch:focus, .sdSearch:focus-visible { outline: none; box-shadow: none; }
 .sdSearch::placeholder { color: var(--text-3); }
 
-/* ── Filter tabs ── */
+/* ── Filter tabs pill-set ── */
 .sdFilterTabs {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 4px;
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  flex-shrink: 0;
 }
 
 .sdFilterTab {
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  border-radius: var(--radius-xs);
   border: none;
   background: transparent;
   color: var(--text-2);
@@ -207,7 +263,7 @@
   font-weight: 500;
   font-family: 'Kanit', sans-serif;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.12s, color 0.12s;
   white-space: nowrap;
 }
 .sdFilterTab:hover { background: var(--bg); color: var(--text); }
@@ -215,7 +271,7 @@
   background: var(--blue) !important;
   color: #fff !important;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(59,111,212,0.28);
+  box-shadow: 0 2px 6px rgba(59,111,212,0.25);
 }
 
 /* Legacy radio (kept for compat) */
@@ -226,117 +282,141 @@
 }
 .sdRadio input[type="radio"] { accent-color: var(--blue); width: 16px; height: 16px; }
 
-/* ── Table ── */
+/* ══════════════════════════════════════════
+   TABLE
+══════════════════════════════════════════ */
 .sdTableWrap {
-  overflow-x: auto;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   border: 1.5px solid var(--border);
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 .sdTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 12px;
+  table-layout: fixed;
 }
 
+/* Header */
 .sdTable thead tr {
-  background: #f8fafc;
-  border-bottom: 1.5px solid var(--border);
+  background: #f1f5f9;
+  border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .sdTable th {
-  padding: 13px 16px;
+  padding: 12px 11px;
   text-align: left;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-2);
-  font-size: 11.5px;
+  font-size: 12px;
   white-space: nowrap;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+/* Cells */
 .sdTable td {
-  padding: 13px 16px;
+  padding: 10px 11px;
   vertical-align: middle;
   color: var(--text);
-  font-size: 13.5px;
+  font-size: 12px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
+/* Rows */
 .sdRow {
-  border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
   transition: background 0.1s;
 }
-.sdRow:last-child { border-bottom: none; }
-.sdRow:hover { background: #f8fafc; }
-.sdRowExpanded { background: #f0f9ff !important; }
+.sdRow:last-child td { border-bottom: none; }
+.sdRow:hover { background: #f5f8ff; }
+.sdRowExpanded {
+  background: #eff7ff !important;
+  box-shadow: inset 4px 0 0 var(--blue);
+}
+
+/* ── Date column ── */
+.sdDateCell {
+  font-size: 11px;
+  color: var(--text-2);
+  padding-right: 32px !important;
+}
 
 /* ── Donor name column ── */
 .sdDonorName {
-  font-weight: 600;
-  color: var(--text);
-  font-size: 14px;
-  min-width: 160px;
-  width: 160px;
+  font-weight: 700;
+  color: #1e3a8a !important;
+  font-size: 13px;
+  padding-left: 16px !important;
 }
 
 /* ── Delivery cell ── */
 .sdDelivery {
-  font-size: 13px;
+  font-size: 11.5px;
   color: var(--text);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .sdDeliveryRow {
   display: flex;
-  align-items: flex-start;
-  gap: 5px;
+  align-items: center;
+  gap: 4px;
   color: var(--text-2);
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 500;
   flex-wrap: nowrap;
+  white-space: nowrap;
 }
-
 .sdDeliveryRow > svg,
-.sdDeliveryRow > [class*="iconify"] {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
+.sdDeliveryRow > [class*="iconify"] { flex-shrink: 0; }
 
+/* Tracking number button */
 .sdTrackBtn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: var(--blue-lt);
   border: 1px solid var(--blue-mid);
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   color: var(--blue);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   font-family: 'Kanit', sans-serif;
   cursor: pointer;
-  padding: 3px 8px;
+  padding: 2px 7px;
   text-decoration: none;
   transition: all 0.12s;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sdTrackBtn:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
 
-.sdTrackPending { font-size: 11.5px; color: var(--text-3); font-style: italic; }
+.sdTrackPending {
+  font-size: 10.5px;
+  color: var(--text-3);
+  font-style: italic;
+}
 
 /* ── Proof / Appointment buttons ── */
 .sdProofBtn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   background: #fffbeb;
   border: 1.5px solid #fcd34d;
   border-radius: var(--radius-sm);
-  padding: 5px 12px;
-  font-size: 12px;
+  padding: 3px 9px;
+  font-size: 11px;
   font-weight: 600;
   font-family: 'Kanit', sans-serif;
   color: #92400e;
@@ -349,12 +429,12 @@
 .sdApptBtn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   background: var(--blue-lt);
   border: 1.5px solid var(--blue-mid);
   border-radius: var(--radius-sm);
-  padding: 5px 12px;
-  font-size: 12px;
+  padding: 3px 9px;
+  font-size: 11px;
   font-weight: 600;
   font-family: 'Kanit', sans-serif;
   color: var(--blue);
@@ -368,35 +448,45 @@
 .sdItemCount {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
+  gap: 4px;
+  font-size: 11px;
   color: var(--text-2);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 3px 10px;
+  padding: 2px 8px;
   cursor: pointer;
   transition: all 0.12s;
+  white-space: nowrap;
 }
 .sdItemCount:hover { background: var(--blue-lt); border-color: var(--blue-mid); color: var(--blue); }
 
-/* ── Badge ── */
+/* ── Status / Condition badges ── */
 .sdBadge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 11px;
+  gap: 3px;
+  padding: 2px 9px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
+  border: 1px solid currentColor;
+  border-opacity: 0.25;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
-/* ── Action buttons ── */
-.sdActions { display: flex; gap: 6px; align-items: center; }
+/* ── Action area ── */
+.sdActions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 120px;
+}
 
 .sdBtnConfirm {
-  padding: 6px 14px;
+  padding: 5px 13px;
   border-radius: var(--radius-sm);
   border: none;
   background: var(--green);
@@ -407,24 +497,30 @@
   cursor: pointer;
   transition: all 0.12s;
   white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(22,163,74,0.28);
+  box-shadow: 0 2px 6px rgba(22,163,74,0.25);
 }
-.sdBtnConfirm:hover { background: #15803d; transform: translateY(-1px); }
+.sdBtnConfirm:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(22,163,74,0.3); }
 
 .sdBtnVerify {
-  padding: 6px 14px;
+  padding: 3px 10px;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--blue);
   background: var(--blue-lt);
   color: var(--blue);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   font-family: 'Kanit', sans-serif;
   cursor: pointer;
   transition: all 0.12s;
   white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(59,111,212,0.12);
 }
-.sdBtnVerify:hover { background: var(--blue); color: #fff; }
+.sdBtnVerify:hover {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(59,111,212,0.28);
+  transform: translateY(-1px);
+}
 
 .sdBtnMore {
   display: flex;
@@ -439,10 +535,15 @@
   color: var(--text-3);
   transition: all 0.12s;
 }
-.sdBtnMore:hover { background: var(--bg); color: var(--text-2); }
+.sdBtnMore:hover { background: var(--bg); color: var(--text-2); border-color: var(--border-dk); }
 
-/* ── Expanded row ── */
-.sdExpandRow { background: #f0f9ff; }
+/* ══════════════════════════════════════════
+   EXPANDED ROW
+══════════════════════════════════════════ */
+.sdExpandRow {
+  background: #f5f9ff;
+  box-shadow: inset 4px 0 0 var(--blue);
+}
 .sdExpandInner {
   padding: 12px 20px 16px 36px;
   display: flex;
@@ -452,31 +553,41 @@
 .sdExpandItem {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: var(--surface);
   border: 1.5px solid var(--blue-mid);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   padding: 8px 14px;
-  transition: border-color 0.12s;
+  transition: border-color 0.12s, box-shadow 0.12s;
+  box-shadow: var(--shadow-xs);
 }
-.sdExpandItem:hover { border-color: var(--blue); }
+.sdExpandItem:hover { border-color: var(--blue); box-shadow: 0 2px 10px rgba(59,111,212,0.14); }
 .sdExpandDot { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); flex-shrink: 0; }
 .sdExpandName { font-size: 13px; font-weight: 600; color: var(--text); }
 .sdExpandSize { font-size: 12px; color: var(--text-2); }
-.sdExpandLevel { font-size: 11px; color: var(--text-2); background: #e0f2fe; border-radius: 4px; padding: 2px 7px; }
+.sdExpandLevel {
+  font-size: 11px;
+  color: #1d4ed8;
+  background: #dbeafe;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-weight: 600;
+}
 .sdExpandQty { font-size: 13px; color: var(--blue); font-weight: 700; }
 
-/* ── Pagination ── */
+/* ══════════════════════════════════════════
+   PAGINATION
+══════════════════════════════════════════ */
 .sdPagination {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 20px;
+  gap: 6px;
+  margin-top: 18px;
   flex-wrap: wrap;
 }
 
 .sdPageBtn {
-  padding: 8px 18px;
+  padding: 7px 16px;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--border);
   background: var(--surface);
@@ -488,18 +599,14 @@
   transition: all 0.15s;
   white-space: nowrap;
 }
-.sdPageBtn:hover:not(:disabled) {
-  background: var(--blue);
-  color: #fff;
-  border-color: var(--blue);
-}
-.sdPageBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+.sdPageBtn:hover:not(:disabled) { background: var(--blue); color: #fff; border-color: var(--blue); }
+.sdPageBtn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-.sdPageNumbers { display: flex; gap: 4px; flex-wrap: wrap; }
+.sdPageNumbers { display: flex; gap: 3px; flex-wrap: wrap; }
 
 .sdPageNum {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--border);
   background: var(--surface);
@@ -519,51 +626,68 @@
   color: #fff !important;
   border-color: var(--blue) !important;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(59,111,212,0.28);
+  box-shadow: 0 2px 8px rgba(59,111,212,0.3);
 }
 
 .sdPageInfo {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-3);
   margin-left: auto;
   white-space: nowrap;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
 }
 
-/* ── Overlay & Popup ── */
+/* ── Loading spinner keyframe ── */
+@keyframes sdSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ══════════════════════════════════════════
+   OVERLAY & POPUP
+══════════════════════════════════════════ */
 .sdOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(15,23,42,0.5);
+  background: rgba(15,23,42,0.52);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(4px);
   padding: 16px;
 }
 
 .sdPopup {
   background: var(--surface);
-  border-radius: 20px;
-  padding: 36px 32px;
+  border-radius: var(--radius-lg);
+  padding: 32px 28px;
   max-width: 440px;
   width: 100%;
   text-align: center;
   position: relative;
   box-shadow: var(--shadow-lg);
-  animation: sdPopIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  animation: sdPopIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
 }
-.sdPopupLg { max-width: 560px; text-align: left; max-height: 88vh; overflow-y: auto; }
+.sdPopupLg {
+  max-width: 580px;
+  text-align: left;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px 26px;
+}
 
 @keyframes sdPopIn {
-  from { opacity: 0; transform: scale(0.94) translateY(12px); }
+  from { opacity: 0; transform: scale(0.92) translateY(14px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .sdPopupClose {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 14px;
+  right: 14px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -573,30 +697,46 @@
   display: flex;
   align-items: center;
   transition: all 0.12s;
+  z-index: 1;
 }
 .sdPopupClose:hover { background: var(--border); color: var(--text); }
 
-.sdPopupIcon { font-size: 48px; margin-bottom: 14px; display: block; }
-.sdPopupTitle { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.sdPopupIcon { font-size: 46px; margin-bottom: 12px; display: block; }
+.sdPopupTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
 .sdPopupSubtitle {
   font-size: 13px;
   color: var(--text-3);
-  margin-bottom: 22px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
-.sdPopupBody { font-size: 14.5px; color: var(--text-2); margin-bottom: 24px; line-height: 1.75; }
-.sdPopupActions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.sdPopupBody {
+  font-size: 14px;
+  color: var(--text-2);
+  margin-bottom: 22px;
+  line-height: 1.75;
+}
+.sdPopupActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
 
 .sdPopupBtnGhost {
-  padding: 10px 22px;
+  padding: 9px 20px;
   border-radius: var(--radius);
   border: 1.5px solid var(--border);
   background: var(--surface);
   color: var(--text-2);
-  font-size: 14px;
+  font-size: 13.5px;
   font-family: 'Kanit', sans-serif;
   cursor: pointer;
   transition: all 0.12s;
@@ -605,27 +745,30 @@
 .sdPopupBtnGhost:hover { background: var(--bg); color: var(--text); }
 
 .sdPopupBtnPrimary {
-  padding: 10px 22px;
+  padding: 9px 20px;
   border-radius: var(--radius);
   border: none;
   background: var(--blue);
   color: #fff;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   font-family: 'Kanit', sans-serif;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background 0.12s, box-shadow 0.12s;
+  box-shadow: 0 2px 8px rgba(59,111,212,0.25);
 }
-.sdPopupBtnPrimary:hover { background: #2558c0; }
-.sdPopupBtnPrimary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.sdPopupBtnPrimary:hover { background: var(--blue-dk); box-shadow: 0 4px 14px rgba(59,111,212,0.35); }
+.sdPopupBtnPrimary:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
-/* ── Verify popup ── */
-.sdVerifySection { margin-bottom: 20px; }
+/* ══════════════════════════════════════════
+   VERIFY POPUP
+══════════════════════════════════════════ */
+.sdVerifySection { margin-bottom: 18px; }
 .sdVerifyLabel {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 10px;
@@ -634,8 +777,8 @@
   width: 100%;
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px 14px;
-  font-size: 13.5px;
+  padding: 11px 13px;
+  font-size: 13px;
   font-family: 'Kanit', sans-serif;
   color: var(--text);
   resize: vertical;
@@ -653,7 +796,7 @@
 
 .sdConditionGroup { display: flex; gap: 8px; flex-wrap: wrap; }
 .sdConditionBtn {
-  padding: 8px 18px;
+  padding: 7px 16px;
   border-radius: 999px;
   border: 1.5px solid var(--border);
   background: var(--surface);
@@ -681,22 +824,36 @@
   gap: 8px;
 }
 
-/* ── Appointment popup ── */
+/* ══════════════════════════════════════════
+   APPOINTMENT POPUP + MINI CALENDAR
+══════════════════════════════════════════ */
 .sdPopupAppt { max-width: 700px; }
-.sdApptLayout { display: grid; grid-template-columns: 230px 1fr; gap: 20px; margin: 16px 0; }
+.sdApptLayout { display: grid; grid-template-columns: 220px 1fr; gap: 18px; margin: 14px 0; }
 
-/* ── Mini Calendar ── */
 .sdCal {
   background: var(--bg);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 14px;
   border: 1.5px solid var(--border);
 }
-.sdCalHeader { text-align: center; margin-bottom: 12px; }
-.sdCalMonth { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.sdCalHeader { text-align: center; margin-bottom: 10px; }
+.sdCalMonth { font-size: 13px; font-weight: 700; color: var(--text); }
 .sdCalGrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-.sdCalDayLabel { font-size: 11px; font-weight: 600; color: var(--text-3); text-align: center; padding: 4px 0; }
-.sdCalCell { font-size: 12px; text-align: center; padding: 5px 2px; border-radius: 6px; color: var(--text); line-height: 1; }
+.sdCalDayLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-align: center;
+  padding: 3px 0;
+}
+.sdCalCell {
+  font-size: 12px;
+  text-align: center;
+  padding: 5px 2px;
+  border-radius: 6px;
+  color: var(--text);
+  line-height: 1;
+}
 .sdCalCell.sdCalEmpty { color: transparent; }
 .sdCalCell.sdCalMarked {
   background: var(--blue);
@@ -706,13 +863,12 @@
   box-shadow: 0 2px 8px rgba(59,111,212,0.4);
 }
 
-/* ── Schedule card ── */
 .sdSchedule { display: flex; flex-direction: column; gap: 10px; }
 .sdScheduleTitle {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   color: var(--text-2);
   text-transform: uppercase;
@@ -722,27 +878,27 @@
   background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
 }
 .sdScheduleDate, .sdScheduleTime, .sdScheduleDetail {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--text);
 }
-.sdScheduleDate { font-weight: 700; font-size: 15px; }
+.sdScheduleDate { font-weight: 700; font-size: 14.5px; }
 .sdScheduleTime { color: var(--violet); font-weight: 600; }
 .sdScheduleDivider { border: none; border-top: 1px dashed var(--border); margin: 2px 0; }
-.sdScheduleItems { display: flex; flex-direction: column; gap: 6px; }
+.sdScheduleItems { display: flex; flex-direction: column; gap: 5px; }
 .sdScheduleItemsTitle {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--text-2);
   margin-bottom: 2px;
@@ -752,14 +908,83 @@
 .sdScheduleItemQty { margin-left: auto; font-weight: 700; color: var(--blue); font-size: 13px; }
 .sdScheduleStatus { margin-top: 4px; }
 
-/* ── Responsive ── */
+/* ══════════════════════════════════════════
+   IMAGE POPUP
+══════════════════════════════════════════ */
+.sdImagePopup {
+  max-width: min(92vw, 820px);
+  width: 100%;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+.sdImagePopupClose {
+  position: absolute;
+  top: -44px;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  backdrop-filter: blur(4px);
+}
+.sdImagePopupClose:hover { background: rgba(255,255,255,0.28); }
+
+.sdImagePopupImg {
+  display: block;
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: var(--radius);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+  object-fit: contain;
+  background: #000;
+}
+
+.sdImagePopupCaption {
+  font-size: 12px;
+  color: rgba(255,255,255,0.65);
+  text-align: center;
+}
+
+/* ══════════════════════════════════════════
+   COLUMN WIDTHS (table-layout: fixed)
+══════════════════════════════════════════ */
+.sdColDate     { width: 8%; }
+.sdColDonor    { width: 13%; }
+.sdColDelivery { width: 17%; }
+.sdColProof    { width: 9%; }
+.sdColItems    { width: 10%; }
+.sdColStatus   { width: 10%; }
+.sdColCond     { width: 11%; }
+.sdColAction   { width: 15%; }
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
 @media (max-width: 900px) {
-  .sdPage { padding: 20px 16px 48px; }
+  .sdPage { padding: 16px 14px 48px; }
   .sdSummaryRow { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
   .sdSummaryVal { font-size: 26px; }
+  .sdToolbar { padding: 8px 10px; }
 }
 @media (max-width: 640px) {
-  .sdTitle { font-size: 20px; }
+  .sdTitle { font-size: 19px; }
   .sdApptLayout { grid-template-columns: 1fr; }
   .sdToolbar { flex-direction: column; align-items: stretch; }
+  .sdFilterTabs { justify-content: center; flex-wrap: wrap; }
+  .sdPage { padding: 14px 10px 48px; }
 }

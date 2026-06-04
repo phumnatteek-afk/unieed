@@ -566,3 +566,234 @@
   display: flex; justify-content: flex-end; gap: 8px;
   padding-top: 4px;
 }
+
+/* ═══════════════════════════════════════════════
+   IssuePanel v2 — Accordion style
+   ═══════════════════════════════════════════════ */
+.eiIssuePanel2 {
+  border: 1.5px solid #fca5a5;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background: #fff;
+}
+
+.eiIssuePanel2Header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 16px;
+  background: #fef2f2;
+}
+.eiIssuePanel2Icon { font-size: 14px; color: #b91c1c; }
+.eiIssuePanel2Title {
+  flex: 1; font-size: 13px; font-weight: 600; color: #991b1b;
+}
+.eiIssuePanel2Counts { display: flex; gap: 6px; }
+
+.eiIssuePanel2List {
+  display: flex; flex-direction: column;
+  max-height: 420px; overflow-y: auto;
+}
+
+/* ── Accordion card ─────────────────────────── */
+.eiAccordion {
+  border-top: 1px solid #f0f0f0;
+}
+.eiAccordion--open { background: #fafbff; }
+
+.eiAccordionHead {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: none; border: none; cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.eiAccordionHead:hover { background: #fafbff; }
+
+.eiAccBadge {
+  flex-shrink: 0; font-size: 11px; font-weight: 700;
+  padding: 3px 8px; border-radius: 6px;
+  white-space: nowrap;
+}
+.eiAccBadge--err  { background: #ef4444; color: #fff; }
+.eiAccBadge--warn { background: #f59e0b; color: #fff; }
+
+.eiAccHeadInfo {
+  flex: 1; display: flex; flex-direction: column;
+  gap: 3px; min-width: 0;
+}
+.eiAccName {
+  font-size: 13.5px; font-weight: 600; color: #1a1a2e;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.eiAccDupTag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; color: #0369a1; font-weight: 500;
+  background: #e0f2fe; border: 1px solid #bae6fd;
+  padding: 1px 8px; border-radius: 6px;
+  width: fit-content;
+}
+
+.eiAccHeadRight {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.eiIssueFieldCount {
+  font-size: 11.5px; font-weight: 600;
+  padding: 2px 9px; border-radius: 999px;
+}
+.eiIssueFieldCount--err  { background: #fee2e2; color: #b91c1c; }
+.eiIssueFieldCount--warn { background: #fef3c7; color: #92400e; }
+
+/* .eiAccChevron replaced by .eiAccChevronIcon */
+
+/* ── Accordion body ─────────────────────────── */
+.eiAccordionBody {
+  display: flex; flex-direction: column; gap: 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.eiAccSection {
+  padding: 12px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.eiAccSection--err  {
+  background: #fff5f5;
+  border-left: 3px solid #ef4444;
+}
+.eiAccSection--warn {
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+}
+.eiAccSection + .eiAccSection { border-top: 1px solid #f0f0f0; }
+
+.eiAccSectionTitle {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600;
+}
+.eiAccSection--err  .eiAccSectionTitle { color: #b91c1c; }
+.eiAccSection--warn .eiAccSectionTitle { color: #92400e; }
+
+.eiAccSectionIcon { font-size: 13px; }
+.eiAccSectionIcon--err  { color: #ef4444; }
+.eiAccSectionIcon--warn { color: #f59e0b; }
+
+.eiAccSectionDesc {
+  font-size: 12.5px; color: #6b7280; line-height: 1.55;
+  padding-left: 19px;
+}
+
+/* ── Error item list ────────────────────────── */
+.eiAccErrList {
+  display: flex; flex-direction: column; gap: 5px;
+  padding-left: 22px;
+}
+.eiAccErrItem {
+  display: flex; align-items: baseline; gap: 6px;
+  flex-wrap: wrap;
+}
+.eiAccErrField {
+  font-size: 12px; font-weight: 600; color: #b91c1c;
+  background: #fef2f2; border: 1px solid #fca5a5;
+  padding: 2px 8px; border-radius: 6px;
+  white-space: nowrap;
+}
+.eiAccErrDetail {
+  font-size: 12px; color: #6b7280; line-height: 1.5;
+}
+
+/* ── Action buttons ─────────────────────────── */
+.eiAccActions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #f8f9fc;
+  border-top: 1px solid #eef0f6;
+}
+
+.eiAccActionBtn {
+  flex: 1; min-width: 150px;
+  padding: 8px 14px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  border: 1.5px solid transparent;
+}
+
+/* Edit button — blue outlined */
+.eiAccActionBtn--edit {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+.eiAccActionBtn--edit:hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+.eiAccActionBtn--edit-active {
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
+  color: #15803d !important;
+}
+
+/* View button — neutral outlined */
+.eiAccActionBtn--view {
+  background: #fff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+.eiAccActionBtn--view:hover {
+  background: #f4f5f8;
+  border-color: #9ca3af;
+}
+.eiAccActionBtn--view-active {
+  background: #f0f9ff !important;
+  border-color: #7dd3fc !important;
+  color: #0369a1 !important;
+}
+
+/* ── Existing student view ──────────────────── */
+.eiExistingView {
+  background: #f0f9ff;
+  border-top: 1px solid #bae6fd;
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.eiExistingViewLabel {
+  font-size: 11px; font-weight: 700; color: #0369a1;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.eiExistingViewGrid {
+  display: flex; flex-wrap: wrap; gap: 6px 16px;
+}
+.eiExistingField {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12.5px;
+}
+.eiExistingFieldKey {
+  color: #64748b; font-weight: 500;
+}
+.eiExistingFieldKey::after { content: ":"; margin-right: 2px; }
+.eiExistingFieldVal {
+  color: #0f172a; font-weight: 600;
+}
+.eiExistingUniforms {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid #e0f2fe;
+}
+.eiExistingUniform {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 7px;
+  font-size: 12px;
+}
+.eiExistingUniform--male   { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+.eiExistingUniform--female { background: #fdf2f8; border: 1px solid #f9a8d4; color: #9d174d; }
+.eiExistingUniformDot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.eiExistingUniformName { font-weight: 600; }
+.eiExistingUniformDetail { color: inherit; opacity: 0.75; font-size: 11.5px; }
+
+/* Chevron icon */
+.eiAccChevronIcon {
+  color: #9ca3af; flex-shrink: 0;
+  transition: transform 0.2s;
+}

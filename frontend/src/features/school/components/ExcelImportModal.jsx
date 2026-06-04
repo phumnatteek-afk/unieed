@@ -103,11 +103,13 @@ function uniformsToNeeds(uniforms, support_mode, support_years) {
 function parseRows(ws) {
   const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
   const results = [];
+  let dataRowNum = 0;
   for (let i = 7; i < data.length; i++) {
     const r            = data[i];
     const student_code = String(r[0] ?? "").trim() || null;
     const name         = String(r[1] ?? "").trim();
     if (!name) continue;
+    dataRowNum++;
 
     const gender          = mapVal(MAP_GENDER,  r[2]);
     const education_level = String(r[3] ?? "").trim();
@@ -138,7 +140,7 @@ function parseRows(ws) {
         });
       }
     }
-    results.push({ _rowNum: i + 1, student_code, student_name: name, gender, education_level, urgency, support_mode, support_years, needs });
+    results.push({ _rowNum: dataRowNum, student_code, student_name: name, gender, education_level, urgency, support_mode, support_years, needs });
   }
   return results;
 }
@@ -453,98 +455,277 @@ function RowEditDrawer({ student, onSave, onCancel }) {
 }
 
 // ─── IssuePanel ───────────────────────────────────────────────────────────────
+// ─── ExistingStudentView ──────────────────────────────────────────────────────
+function ExistingStudentView({ student }) {
+  if (!student) return null;
+  const uniforms = needsToUniforms(student.needs || student.uniform_needs || []);
+  const hasAnyUniform = [1,2,3,4].some(tid => uniforms[tid]?.size || uniforms[tid]?.qty);
+  return (
+    <div className="eiExistingView">
+      <div className="eiExistingViewLabel">ข้อมูลที่มีในระบบ</div>
+      <div className="eiExistingViewGrid">
+        <div className="eiExistingField">
+          <span className="eiExistingFieldKey">ชื่อ-นามสกุล</span>
+          <span className="eiExistingFieldVal">{student.student_name}</span>
+        </div>
+        <div className="eiExistingField">
+          <span className="eiExistingFieldKey">เพศ</span>
+          <span className="eiExistingFieldVal">{GENDER_TH[student.gender] ?? student.gender ?? "—"}</span>
+        </div>
+        <div className="eiExistingField">
+          <span className="eiExistingFieldKey">ระดับชั้น</span>
+          <span className="eiExistingFieldVal">{student.education_level ?? "—"}</span>
+        </div>
+        <div className="eiExistingField">
+          <span className="eiExistingFieldKey">ความเร่งด่วน</span>
+          <span className="eiExistingFieldVal">{URGENCY_TH[student.urgency] ?? student.urgency ?? "—"}</span>
+        </div>
+        <div className="eiExistingField">
+          <span className="eiExistingFieldKey">การรับ</span>
+          <span className="eiExistingFieldVal">
+            {student.support_mode === "recurring" ? `ต่อเนื่อง ${student.support_years} ปี` : "รับครั้งเดียว"}
+          </span>
+        </div>
+      </div>
+      {hasAnyUniform && (
+        <div className="eiExistingUniforms">
+          {[1,2,3,4].map(tid => {
+            const u = uniforms[tid];
+            if (!u?.size && !u?.qty) return null;
+            const isMale = MALE_TYPES.includes(tid);
+            return (
+              <div key={tid} className={`eiExistingUniform ${isMale ? "eiExistingUniform--male" : "eiExistingUniform--female"}`}>
+                <span className="eiExistingUniformDot" style={{ background: isMale ? "#1565C0" : "#AD1457" }} />
+                <span className="eiExistingUniformName">{U_META[tid].name}</span>
+                <span className="eiExistingUniformDetail">รอบ {u.size || "—"} &nbsp;·&nbsp; {u.qty || 0} ตัว</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── IssuePanel ───────────────────────────────────────────────────────────────
 function IssuePanel({ students, rowIssues, dupMap, editingIdx, onEdit, onCancelEdit, onSave }) {
-  // Build flat list of issue items
-  const items = [];
-  const seenIdx = new Set();
+  const [openIdx, setOpenIdx]       = useState(null);
+  const [viewingIdx, setViewingIdx] = useState(null);
 
-  // Hard errors first
+  // Build per-student issue list
+  const issueRows = [];
+  const seenIdxs = new Set();
+
   for (const [idx, { hard, soft }] of rowIssues.entries()) {
-    if (hard.length > 0) {
-      items.push({ idx, severity: "hard", msgs: hard });
-      seenIdx.add(`${idx}-hard`);
-    }
-    if (soft.length > 0) {
-      items.push({ idx, severity: "soft", msgs: soft });
+    if (hard.length > 0 || soft.length > 0) {
+      seenIdxs.add(idx);
+      issueRows.push({ idx, hard, soft, dup: dupMap.get(idx) ?? null });
     }
   }
-
-  // Similarity warnings
   for (const [idx, dup] of dupMap.entries()) {
-    if (dup.type === "similar") {
-      const ex = dup.existingStudent;
-      items.push({
-        idx,
-        severity: "dup",
-        msgs: [`คล้ายกับ "${ex?.student_name}" ในระบบ — ตรงกัน: ${dup.matchFields.join(", ")}`],
-      });
+    if (!seenIdxs.has(idx) && dup.type === "similar") {
+      issueRows.push({ idx, hard: [], soft: [], dup });
     }
   }
+  issueRows.sort((a, b) => a.idx - b.idx);
 
-  if (items.length === 0) return null;
+  if (issueRows.length === 0) return null;
 
-  const hardCount = items.filter(it => it.severity === "hard").length;
-  const warnCount = items.filter(it => it.severity !== "hard").length;
+  const hardRowCount = issueRows.filter(r => r.hard.length > 0).length;
+  const warnRowCount = issueRows.filter(r => r.hard.length === 0).length;
+
+  const toggle = (idx) => {
+    const next = openIdx === idx ? null : idx;
+    setOpenIdx(next);
+    if (next !== openIdx) setViewingIdx(null);
+    if (editingIdx !== null) onCancelEdit();
+  };
 
   return (
-    <div className="eiIssuePanel">
-      <div className="eiIssuePanelHeader">
-        <div className="eiIssuePanelLeft">
-          <span className="eiIssuePanelIcon">⊙</span>
-          <span className="eiIssuePanelTitle">สรุปปัญหาทั้งหมด {items.length} รายการ</span>
-        </div>
-        <div className="eiIssuePanelCounts">
-          {hardCount > 0 && <span className="eiIssueCountPill eiIssueCountPill--hard">{hardCount} ข้อผิดพลาด</span>}
-          {warnCount > 0 && <span className="eiIssueCountPill eiIssueCountPill--warn">{warnCount} คำเตือน</span>}
+    <div className="eiIssuePanel2">
+      {/* Summary header */}
+      <div className="eiIssuePanel2Header">
+        <span className="eiIssuePanel2Icon">⊙</span>
+        <span className="eiIssuePanel2Title">
+          สรุปปัญหาทั้งหมด {issueRows.length} รายการ
+        </span>
+        <div className="eiIssuePanel2Counts">
+          {hardRowCount > 0 && <span className="eiIssueCountPill eiIssueCountPill--hard">{hardRowCount} ข้อผิดพลาด</span>}
+          {warnRowCount > 0 && <span className="eiIssueCountPill eiIssueCountPill--warn">{warnRowCount} คำเตือน</span>}
         </div>
       </div>
 
-      <div className="eiIssuePanelList">
-        {items.map((item, ii) => {
-          const s         = students[item.idx];
-          const isEditing = editingIdx === item.idx && item.severity === "hard";
+      {/* Accordion list */}
+      <div className="eiIssuePanel2List">
+        {issueRows.map(({ idx, hard, soft, dup }) => {
+          const s           = students[idx];
+          const isOpen      = openIdx === idx;
+          const isEditing   = editingIdx === idx;
+          const isViewing   = viewingIdx === idx;
+
+          // Badge on right
+          let badgeLabel = null, badgeClass = "";
+          if (hard.length > 0)          { badgeLabel = `${hard.length} ฟิลด์ขาด`; badgeClass = "eiIssueFieldCount--err"; }
+          else if (soft.length > 0)     { badgeLabel = "คำเตือน";                  badgeClass = "eiIssueFieldCount--warn"; }
+          else if (dup?.type === "similar") { badgeLabel = "คำเตือน";              badgeClass = "eiIssueFieldCount--warn"; }
+
+          // Dup tag
+          let dupTagLabel = null;
+          if (dup) {
+            const ex = dup.existingStudent;
+            const code = ex?.student_code ? ` · รหัส ${ex.student_code}` : "";
+            if (dup.type === "exact" || dup.type === "update") dupTagLabel = `ชื่อซ้ำในระบบ${code}`;
+            else if (dup.type === "similar") dupTagLabel = `คล้ายกับ "${ex?.student_name}"`;
+          }
+
           return (
-            <div key={`${item.idx}-${item.severity}-${ii}`}
-                 className={`eiIssueItem eiIssueItem--${item.severity} ${isEditing ? "eiIssueItem--editing" : ""}`}>
-              <div className="eiIssueItemRow">
-                <span className={`eiIssueBadge eiIssueBadge--${item.severity}`}>
+            <div key={idx} className={`eiAccordion ${isOpen ? "eiAccordion--open" : ""}`}>
+              {/* Header */}
+              <button className="eiAccordionHead" type="button" onClick={() => toggle(idx)}>
+                <span className={`eiAccBadge ${hard.length > 0 ? "eiAccBadge--err" : "eiAccBadge--warn"}`}>
                   แถว {s._rowNum}
                 </span>
-                <span className="eiIssueName">"{s.student_name}"</span>
-                <span className="eiIssueMsgs">
-                  {item.msgs.map((m, mi) => (
-                    <span key={mi}>
-                      {mi > 0 && <span className="eiIssueDot"> · </span>}
-                      {m}
+                <div className="eiAccHeadInfo">
+                  <span className="eiAccName">{s.student_name}</span>
+                  {dupTagLabel && (
+                    <span className="eiAccDupTag">
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{flexShrink:0}}>
+                        <rect x="1" y="4" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                        <rect x="5" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                      </svg>
+                      {dupTagLabel}
                     </span>
-                  ))}
-                </span>
-                <div className="eiIssueAction">
-                  {item.severity === "hard" && (
-                    <button
-                      className={`eiIssueBtn eiIssueBtn--fix ${isEditing ? "eiIssueBtn--open" : ""}`}
-                      type="button"
-                      onClick={() => isEditing ? onCancelEdit() : onEdit(item.idx)}
-                    >
-                      {isEditing ? "ปิด ✕" : "แก้ไข →"}
-                    </button>
-                  )}
-                  {item.severity === "dup" && (
-                    <button className="eiIssueBtn eiIssueBtn--compare" type="button">เทียบ →</button>
-                  )}
-                  {item.severity === "soft" && (
-                    <span className="eiIssueWarnTag">⚠ คำเตือน</span>
                   )}
                 </div>
-              </div>
+                <div className="eiAccHeadRight">
+                  {badgeLabel && <span className={`eiIssueFieldCount ${badgeClass}`}>{badgeLabel}</span>}
+                  <svg className="eiAccChevronIcon" style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                    width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </button>
 
-              {isEditing && (
-                <RowEditDrawer
-                  key={`edit-${item.idx}-${s._rowNum}`}
-                  student={students[item.idx]}
-                  onSave={(updated) => onSave(item.idx, updated)}
-                  onCancel={onCancelEdit}
-                />
+              {/* Body */}
+              {isOpen && (
+                <div className="eiAccordionBody">
+
+                  {/* Hard error section */}
+                  {hard.length > 0 && (
+                    <div className="eiAccSection eiAccSection--err">
+                      <div className="eiAccSectionTitle">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                          <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                        </svg>
+                        ข้อมูลไม่ครบ — จะไม่ถูกนำเข้า
+                      </div>
+                      <div className="eiAccErrList">
+                        {hard.map((msg, i) => {
+                          const colonIdx = msg.indexOf(":");
+                          const field  = colonIdx >= 0 ? msg.slice(0, colonIdx).trim() : msg;
+                          const detail = colonIdx >= 0 ? msg.slice(colonIdx + 1).trim() : "";
+                          return (
+                            <div key={i} className="eiAccErrItem">
+                              <span className="eiAccErrField">{field}</span>
+                              {detail && <span className="eiAccErrDetail">{detail}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Warning/dup section */}
+                  {(soft.length > 0 || dup) && (
+                    <div className="eiAccSection eiAccSection--warn">
+                      {dup && (
+                        <>
+                          <div className="eiAccSectionTitle">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                              <circle cx="12" cy="17" r="1" fill="currentColor"/>
+                            </svg>
+                            {dup.type === "similar"
+                              ? `คล้ายกับ "${dup.existingStudent?.student_name}" ในระบบ — ตรวจสอบก่อน import`
+                              : `ชื่อซ้ำกับรหัส ${dup.existingStudent?.student_code} ในระบบ — ข้อมูลเดิมจะถูกเก็บไว้`}
+                          </div>
+                          {hard.length > 0 && (
+                            <div className="eiAccSectionDesc">
+                              เนื่องจากข้อมูลบางฟิลด์ว่าง ระบบจะไม่อัปเดต และคงข้อมูลเดิมไว้ทั้งหมด
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {soft.map((msg, i) => (
+                        <div key={i} className="eiAccSectionDesc">{msg}</div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="eiAccActions">
+                    {hard.length > 0 && (
+                      <button
+                        className={`eiAccActionBtn eiAccActionBtn--edit ${isEditing ? "eiAccActionBtn--edit-active" : ""}`}
+                        type="button"
+                        onClick={() => { isEditing ? onCancelEdit() : onEdit(idx); setViewingIdx(null); }}
+                      >
+                        {isEditing ? (
+                          <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                            ปิดการแก้ไข
+                          </>
+                        ) : (
+                          <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            แก้ไขก่อนนำข้อมูลเข้า
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {dup?.existingStudent && (
+                      <button
+                        className={`eiAccActionBtn eiAccActionBtn--view ${isViewing ? "eiAccActionBtn--view-active" : ""}`}
+                        type="button"
+                        onClick={() => { setViewingIdx(isViewing ? null : idx); if (!isViewing && isEditing) onCancelEdit(); }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                        {isViewing ? "ซ่อนข้อมูลเดิม" : "ดูข้อมูลเดิม ในระบบ"}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                          style={{ transition: "transform 0.2s", transform: isViewing ? "rotate(180deg)" : "rotate(0deg)", marginLeft: 2 }}>
+                          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Existing student info */}
+                  {isViewing && dup?.existingStudent && (
+                    <ExistingStudentView student={dup.existingStudent} />
+                  )}
+
+                  {/* Inline edit drawer */}
+                  {isEditing && (
+                    <RowEditDrawer
+                      key={`edit-${idx}-${s._rowNum}`}
+                      student={students[idx]}
+                      onSave={(updated) => onSave(idx, updated)}
+                      onCancel={onCancelEdit}
+                    />
+                  )}
+                </div>
               )}
             </div>
           );

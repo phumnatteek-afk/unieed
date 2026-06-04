@@ -84,7 +84,7 @@
 .stBackBtn:hover{color:#f97316}
 
 /* ── View 1: Project list (vertical cards) ── */
-.stProjList{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.stProjList{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .stProjRow{display:flex;flex-direction:column;background:#fff;border-radius:18px;border:1.5px solid #e2e8f0;cursor:pointer;transition:background .15s;overflow:hidden}
 .stProjRow:hover{background:#f8fafc}
 .stProjRowImg{width:100%;height:160px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
@@ -93,8 +93,9 @@
 .stProjRowBody{flex:1;padding:16px 18px 18px;display:flex;flex-direction:column;gap:6px}
 .stProjRowTop{margin-bottom:2px}
 .stProjRowTitle{font-size:15px;font-weight:700;color:#1e293b;line-height:1.4}
-.stProjRowDates{display:flex;align-items:center;gap:5px;font-size:12px;color:#6b7280}
+.stProjRowDates{display:flex;align-items:center;gap:5px;font-size:12px;color:#6b7280;flex-wrap:nowrap;white-space:nowrap;overflow:hidden}
 .stProjRowDur{color:#94a3b8;margin-left:2px}
+.stProjRowDuration{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#f97316;font-weight:600;background:#fff4ec;border:1.5px solid #fed7aa;border-radius:20px;padding:2px 10px;width:fit-content}
 
 /* ── View 2: Mini project card ── */
 .stMiniCard{display:flex;align-items:center;gap:16px;background:#fff;border-radius:16px;padding:14px 18px;margin-bottom:24px}

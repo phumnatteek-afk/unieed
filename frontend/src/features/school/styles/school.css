@@ -25,16 +25,17 @@
     box-shadow:0 5px 3px rgba(0,0,0,.08);
 }
 .scHeader {
-  width: 100%;              /* ← เพิ่ม */
-  box-sizing: border-box;   /* ← เพิ่ม */
-  height: 110px;
-  background: #8ec7ea; /* ← สีเดียวกับ scSide */
+  width: 100%;
+  box-sizing: border-box;
+  height: 76px;
+  background: linear-gradient(135deg, #8ec7ea 0%, #6db5e0 100%);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding: 0 24px;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,.10);
+  gap: 12px;
 }
 .swBrand{
   display:flex;
