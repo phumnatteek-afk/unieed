@@ -6,7 +6,7 @@
 .desc { margin:8px 0; opacity:.85; }
 .schoolHero { width:900px; text-align:center; }
 .primaryBtn { padding:16px 22px; border:0; border-radius:999px; background:#f4b400; font-weight:800; }
-
+ 
 /* welcomepage */
 .swPage{
   min-height:100vh;
@@ -14,7 +14,7 @@
   display:flex;
   flex-direction:column;
 }
-
+ 
 .swTopbar{
   height:86px;
   background:#87C7EB; /* ฟ้าอ่อน */
@@ -54,7 +54,7 @@
     background: transparent; /* ล็อคให้พื้นหลังใสเหมือนเดิม */
     transform: none;         /* ป้องกันการขยับ */
 }
-
+ 
 .swLogo{
     width:280px;
   height:86px;
@@ -76,9 +76,9 @@ height: auto;
     z-index: 1;
     margin: 20px 0 ;
     
-
+ 
 }
-
+ 
 .swAdminTag{
   display:flex;
   align-items:center;
@@ -87,11 +87,11 @@ height: auto;
   font-size:18px;
   padding: 0 26px;
 }
-
+ 
 .swAvatar {
   display: inline-flex;
   vertical-align: middle; 
-
+ 
 }
 .swAvatar svg {
   width: 32px;
@@ -106,9 +106,9 @@ height: auto;
   justify-content:center;
   padding:28px;
   margin: 40px 0;
-
+ 
 }
-
+ 
 .swHero{
   width:min(980px, 92vw);
   display:flex;
@@ -117,30 +117,30 @@ height: auto;
   text-align:center;
   gap:18px;
 }
-
+ 
 .swIllustration img{
   width:min(600px, 92vw);
     height:auto;
-
+ 
 }
 .swWelcomeText{
     line-height: 1.6;
 }
-
+ 
 .swTitle{
   margin:0;
   font-size:38px;
   font-weight:600;
   color:#0b3d59;
 }
-
+ 
 .swSub{
   margin:0;
   font-size:40px;
   font-weight:700;
   color:#0b3d59;
 }
-
+ 
 .swCTA{
   margin:30px 0 40px;
   width:min(500px, 92vw);
@@ -154,7 +154,7 @@ height: auto;
   cursor:pointer;
   box-shadow:0 10px 24px rgba(0,0,0,.12);
 }
-
+ 
 .swMuted{ color:#6b7280; }
 .swError{
   color:#b91c1c;
@@ -163,7 +163,7 @@ height: auto;
   border-radius:12px;
   border:1px solid #fecaca;
 }
-
+ 
 /* ===== Pending Page ===== */
 .pendingPage {
   min-height: 100vh;
@@ -173,7 +173,7 @@ height: auto;
   justify-content: center;
   padding: 24px;
 }
-
+ 
 /* Card */
 .pendingCard {
   background: #ffffff;
@@ -183,7 +183,7 @@ height: auto;
   padding: 32px 28px;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
 }
-
+ 
 /* Title */
 .pendingTitle {
   margin: 0 0 18px;
@@ -192,7 +192,7 @@ height: auto;
   color: #1f2937;
   text-align: center;
 }
-
+ 
 /* Status */
 .pendingStatus {
   padding: 20px 16px;
@@ -207,23 +207,23 @@ height: auto;
   margin-right: 8px;
   font-size: 35px;
 }
-
+ 
 /* Status colors */
 .pendingStatus.pending {
   background: #fffae2;
   color: #FFBE1B;
 }
-
+ 
 .pendingStatus.approved {
   background: #ecfdf5;
   color: #047857;
 }
-
+ 
 .pendingStatus.rejected {
   background: #fef2f2;
   color: #b91c1c;
 }
-
+ 
 /* Description */
 .pendingDesc {
   margin: 0 0 16px;
@@ -235,7 +235,7 @@ height: auto;
   line-height: 1.55;
   /* border: 1px solid #eef2f7; */
 }
-
+ 
 /* Note */
 .pendingNote {
   background: #f9fafb;
@@ -246,9 +246,9 @@ height: auto;
   font-size: 14px;
   color: #374151;
   margin-bottom: 18px;
-
+ 
 }
-
+ 
 /* Actions */
 .pendingActions {
   display: flex;
@@ -256,7 +256,7 @@ height: auto;
   gap: 12px;
   margin-top: 18px;
 }
-
+ 
 /* Buttons */
 .btn {
   padding: 12px 16px;
@@ -267,37 +267,37 @@ height: auto;
   transition: all 0.2s ease;
   border: none;
 }
-
+ 
 .btnPrimary {
   background: #5285E8;
   color: #ffffff;
 }
-
+ 
 .btnPrimary:hover {
   background: #3a6fd4;
   transform: none;
 }
-
+ 
 .btnGhost {
   background: #f4b400;
   color: #ffff;
   border: 1.5px solid #f4b400;
   padding: 8px 18px;
 }
-
+ 
 .btnGhost:hover {
   background: #eff6ff;
   transform: none;
 }
-
+ 
 /* layoutschool */
-
+ 
 .scShell{display:flex;min-height:100vh;background:#f6f7fb;}
 .scSide{width:280px;background:#8ec7ea;color:#fff;padding:24px 18px;}
 .scBrand{display:flex;align-items:center;gap:12px;margin-bottom:18px;background:transparent;border:0;cursor:pointer;}
 .scLogo{height:44px;width:auto;display:block;}
 .scSideLine{height:1px;background:rgba(255,255,255,.45);margin:14px 0;}
-
+ 
 .scContent {
   flex: 1;
   display: flex;
@@ -305,10 +305,206 @@ height: auto;
   min-width: 0;
   width: 100%; /* ← เพิ่ม */
 }
-
+ 
 .scMenu{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
 .scItem{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:12px;color:#fff;text-decoration:none;opacity:.9;}
 .scItem.active{background:rgba(255,255,255,.18);opacity:1;}
 .scMenuIcon{width:32px;height:32px;display:grid;place-items:center;background:rgba(255,255,255,.22);border-radius:10px;}
-
+ 
 .scMain{flex:1;padding:24px 28px;}
+ 
+/* ══════════════════════════════════════════
+   Hamburger / Drawer — mobile responsive
+   ══════════════════════════════════════════ */
+ 
+/* ซ่อน hamburger บน desktop */
+.scHamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.22);
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+ 
+/* Header school info */
+.scHeaderSchool {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: auto;
+  padding: 4px 0;
+}
+.scHeaderSchoolLogo {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.14);
+}
+.scHeaderSchoolIconFallback {
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.2);
+  flex-shrink: 0;
+}
+.scHeaderSchoolSub {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+.scHeaderSchoolName {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e3a8a;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+  letter-spacing: 0.01em;
+}
+ 
+/* Overlay */
+.scOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 999;
+}
+ 
+/* Drawer — ซ่อนบน desktop */
+.scDrawer {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 280px;
+  background: #8ec7ea;
+  color: #fff;
+  padding: 20px 18px 28px;
+  z-index: 1000;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+  overflow-y: auto;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+}
+.scDrawerOpen {
+  transform: translateX(0) !important;
+}
+.scDrawerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.scDrawerClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.22);
+  color: #fff;
+  cursor: pointer;
+}
+.scDrawerSchool {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 12px;
+  margin-bottom: 4px;
+}
+.scDrawerSchoolLogo {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #fff;
+}
+.scDrawerSchoolIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.2);
+  flex-shrink: 0;
+}
+.scDrawerSchoolSub {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+.scDrawerSchoolName {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+ 
+/* ── Mobile breakpoint ── */
+@media (max-width: 768px) {
+  .scSide { display: none; }
+  .scHamburger { display: flex; }
+  .scDrawer { display: block; }
+  .scOverlay { display: block; }
+ 
+  /* แสดง school info ข้าง hamburger บน mobile */
+  .scHeaderSchool { display: flex; }
+  .scHeaderSchoolName { font-size: 12px; max-width: 130px; }
+  .scHeaderSchoolSub  { font-size: 9px; }
+  .scHeaderSchoolLogo,
+  .scHeaderSchoolIconFallback { width: 34px; height: 34px; }
+ 
+  .scMain { padding: 16px 14px; }
+  .scHeader { padding: 0 12px; gap: 6px; }
+}
+ 
+/* ── Header Left/Right groups ── */
+.scHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.scHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+ 
+/* school info text ตัดถ้ายาวเกิน */
+.scHeaderSchoolText {
+  min-width: 0;
+}
+.scHeaderSchoolName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}

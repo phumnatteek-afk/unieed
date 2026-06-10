@@ -4,17 +4,17 @@ const Ctx = createContext(null);
 export const useAuth = () => useContext(Ctx);
 
 export function AuthProvider({ children }) {
-  // sessionStorage is per-tab → each tab can hold a different user session
-  const [token,     setToken]     = useState(sessionStorage.getItem("token"));
-  const [role,      setRole]      = useState(sessionStorage.getItem("role"));
-  const [userName,  setUserName]  = useState(sessionStorage.getItem("userName"));
-  const [userEmail, setUserEmail] = useState(sessionStorage.getItem("userEmail"));
+  // localStorage is per-tab → each tab can hold a different user session
+  const [token,     setToken]     = useState(localStorage.getItem("token"));
+  const [role,      setRole]      = useState(localStorage.getItem("role"));
+  const [userName,  setUserName]  = useState(localStorage.getItem("userName"));
+  const [userEmail, setUserEmail] = useState(localStorage.getItem("userEmail"));
 
   const login = ({ token, role, user_name, user_email }) => {
-    sessionStorage.setItem("token",     token);
-    sessionStorage.setItem("role",      role);
-    sessionStorage.setItem("userName",  user_name  || "");
-    sessionStorage.setItem("userEmail", user_email || "");
+    localStorage.setItem("token",     token);
+    localStorage.setItem("role",      role);
+    localStorage.setItem("userName",  user_name  || "");
+    localStorage.setItem("userEmail", user_email || "");
 
     setToken(token);
     setRole(role);
@@ -23,10 +23,10 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("role");
-    sessionStorage.removeItem("userName");
-    sessionStorage.removeItem("userEmail");
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userEmail");
     setToken(null);
     setRole(null);
     setUserName(null);
@@ -45,14 +45,14 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener("auth:logout", onLogout);
   }, []);
 
-  // เรียกหลัง batch post สำเร็จ — sync state + sessionStorage ให้ตรงกัน
+  // เรียกหลัง batch post สำเร็จ — sync state + localStorage ให้ตรงกัน
   const updateRole = (newRole) => {
-    sessionStorage.setItem("role", newRole);
+    localStorage.setItem("role", newRole);
     setRole(newRole);
   };
 
   const updateUserName = (newName) => {
-    sessionStorage.setItem("userName", newName);
+    localStorage.setItem("userName", newName);
     setUserName(newName);
   };
 

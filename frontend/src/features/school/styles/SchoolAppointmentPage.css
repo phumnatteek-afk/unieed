@@ -279,3 +279,28 @@
   color: #cbd5e1;
   background: #f1f5f9;
 }
+
+/* ── Mobile responsive (เพิ่มเติม) ── */
+@media (max-width: 768px) {
+  .sapPage { padding: 16px 12px; }
+  .sapTitle { font-size: 18px; }
+  .sapTitleSub { font-size: 12px; }
+  .sapLayout { grid-template-columns: 1fr; gap: 16px; }
+  .sapCalCard { padding: 16px; }
+  .sapCalMonthLabel { font-size: 14px; }
+  .sapCalNum { font-size: 12px; }
+  .sapCard { padding: 10px 12px; gap: 10px; }
+  .sapCardName { font-size: 13px; }
+  .sapCardMeta { gap: 8px; }
+  .sapCardMetaItem { font-size: 11px; }
+  .sapPopup { padding: 20px 16px; }
+  .sapPopupName { font-size: 15px; }
+  .sapPopupInfoRow { gap: 8px; padding: 10px 12px; }
+  .sapPopupInfoVal { font-size: 13px; }
+  .sapScheduleBannerEmpty,
+  .sapScheduleBannerSet { flex-wrap: wrap; gap: 10px; padding: 12px; }
+  .sapScheduleBannerTitle { font-size: 13px; }
+  .sapScheduleBannerSub { font-size: 11px; }
+  .sapDayPanel, .sapUpcomingPanel { padding: 16px; }
+  .sapDayPanelTitle, .sapUpcomingTitle { font-size: 13px; }
+}

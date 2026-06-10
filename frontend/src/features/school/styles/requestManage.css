@@ -302,7 +302,8 @@
 .pm-filter-sel {
   border: 1.5px solid var(--pm-border);
   border-radius: var(--pm-radius-sm);
-  padding: 0 30px 0 10px;
+  padding: 0 36px 0 12px;
+  min-width: 110px;
   height: 36px;
   font-size: 12.5px;
   font-weight: 500;
@@ -586,4 +587,27 @@
   color: #D1D5DB;
   font-size: 13px;
 }
- 
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  .pm-page { padding: 12px; }
+  .pm-topbar { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; }
+  .pm-project-title { font-size: 15px; }
+  .pm-project-meta { flex-wrap: wrap; gap: 4px; font-size: 11px; }
+  .pm-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .pm-stat-value { font-size: 22px; }
+  .pm-stat-label { font-size: 11px; }
+  .pm-toolbar { flex-direction: column; gap: 10px; }
+  .pm-toolbar-left, .pm-toolbar-right { flex-wrap: wrap; width: 100%; }
+  .pm-search-wrap { width: 100%; }
+  .pm-search { width: 100%; }
+  .pm-filter-sel { font-size: 12px; padding: 6px 8px; }
+  .pm-btn-ghost, .pm-btn-primary { font-size: 12px; padding: 7px 12px; }
+  .pm-table-wrap { overflow-x: auto; }
+  .pm-table { font-size: 12px; min-width: 600px; }
+  .pm-table th, .pm-table td { padding: 8px 8px; }
+  .pm-student-name { font-size: 13px; }
+  .pm-result-info { font-size: 12px; }
+  .pm-pagination { flex-wrap: wrap; gap: 4px; justify-content: center; }
+  .pm-closed-banner { font-size: 12px; padding: 10px 12px; }
+}

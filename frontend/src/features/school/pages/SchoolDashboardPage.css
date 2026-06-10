@@ -270,3 +270,51 @@
   .dbTestiGrid { grid-template-columns: 1fr; }
   .dbTabBar { flex-wrap: wrap; }
 }
+ 
+/* ── Mobile responsive (≤768px) ── */
+@media (max-width: 768px) {
+  /* stat grid 2 คอลัมน์ */
+  .dbStatGrid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .dbStatCard { padding: 12px 14px; gap: 10px; }
+  .dbStatValue { font-size: 20px; }
+  .dbStatUnit { font-size: 11px; }
+  .dbStatLabel { font-size: 11px; }
+  .dbStatIconWrap { width: 36px; height: 36px; border-radius: 10px; }
+ 
+  /* chart stack */
+  .dbChartRow { grid-template-columns: 1fr; }
+  .dbChartCard { padding: 16px; }
+  .dbChartTitle { font-size: 13px; }
+ 
+  /* testimonials stack */
+  .dbTestiGrid { grid-template-columns: 1fr; }
+  .dbTestiText { font-size: 12px; }
+ 
+  /* project banner */
+  .dbProjectCard { flex-direction: column; padding: 16px; gap: 12px; }
+  .dbProjectTitle { font-size: 15px; }
+  .dbProjectDate { font-size: 12px; }
+  .dbManageBtn { width: 100%; text-align: center; padding: 10px; }
+ 
+  /* card header */
+  .dbCard { padding: 16px; }
+  .dbCardHeader { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .dbCardTitle { font-size: 14px; }
+  .dbCardSub { font-size: 11px; }
+ 
+  /* tab bar */
+  .dbTabBar { margin-left: 0; flex-wrap: wrap; gap: 4px; width: 100%; }
+  .dbTab { font-size: 12px; padding: 5px 10px; }
+ 
+  /* action list */
+  .dbColItem { gap: 8px; padding: 10px 10px; }
+  .dbColItemName { font-size: 12px; flex-wrap: wrap; }
+  .dbColItemSub { font-size: 10px; }
+  .dbActionBtn { font-size: 12px; padding: 6px 10px; }
+ 
+  /* time filter */
+  .dbTimeFilter { padding: 12px 14px; }
+  .dbTimeFilter__chips { gap: 4px; }
+  .dbTimeChip { font-size: 11px; padding: 5px 10px; }
+  .dbTimeFilter__title { font-size: 13px; }
+}

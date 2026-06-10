@@ -9,7 +9,7 @@ export async function request(path, options = {}) {
   if (body !== undefined && !isFormData) headers["Content-Type"] = "application/json";
 
   if (auth) {
-    const token = sessionStorage.getItem("token");
+    const token = localStorage.getItem("token");
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
@@ -28,7 +28,7 @@ export async function request(path, options = {}) {
     // Auto-logout when token is invalid or expired
     if (res.status === 401) {
       ["token", "role", "userName", "userEmail"].forEach((k) =>
-        sessionStorage.removeItem(k)
+        localStorage.removeItem(k)
       );
       window.dispatchEvent(new Event("auth:logout"));
     }
@@ -53,7 +53,7 @@ export async function getBlob(path, auth = true) {
     method: "GET",
     headers: auth
       ? {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         }
       : {},
   });

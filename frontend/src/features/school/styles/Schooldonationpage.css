@@ -988,3 +988,27 @@
   .sdFilterTabs { justify-content: center; flex-wrap: wrap; }
   .sdPage { padding: 14px 10px 48px; }
 }
+ 
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  .sdPage { padding: 16px 12px; }
+  .sdTitle { font-size: 18px; }
+  .sdTitleSub { font-size: 12px; }
+  .sdSummaryRow { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .sdSummaryVal { font-size: 22px; }
+  .sdSummaryLabel { font-size: 11px; }
+  .sdToolbar { flex-direction: column; gap: 10px; }
+  .sdSearchWrap { width: 100%; }
+  .sdSearch { width: 100%; font-size: 13px; }
+  .sdFilterTabs { flex-wrap: wrap; gap: 4px; }
+  .sdFilterTab { font-size: 12px; padding: 5px 10px; }
+  .sdTableWrap { overflow-x: auto; }
+  .sdTable { font-size: 12px; min-width: 640px; }
+  .sdTable th, .sdTable td { padding: 8px 8px; }
+  .sdDonorName { font-size: 12px; }
+  .sdOverdueBanner { font-size: 12px; padding: 10px 12px; gap: 8px; }
+  .sdPopup { padding: 20px 16px; }
+  .sdPopupTitle { font-size: 15px; }
+  .sdPopupSubtitle { font-size: 12px; }
+  .sdPagination { flex-wrap: wrap; justify-content: center; gap: 4px; }
+}
