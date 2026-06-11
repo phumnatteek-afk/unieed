@@ -1001,22 +1001,17 @@
   color: #DC2626;
   border-color: #FCA5A5;
 }
+@media (max-width: 980px) {
+  .epTopSection { grid-template-columns: 1fr; }
+  .epRight { position: static; }
+  .epPreviewWrap { justify-content: flex-start; }
+}
 
-/* ── Mobile responsive ── */
 @media (max-width: 768px) {
   .epPage { padding: 12px; gap: 14px; }
-  .epUniformSection { padding: 14px; }
-  .epUniformLabel { font-size: 13px; }
-  .epLevelBtnGroup { flex-wrap: wrap; gap: 8px; }
-  .epLevelBtn { font-size: 12px; padding: 8px 10px; min-width: unset; }
-  .epLevelBtnLabel { font-size: 11px; }
-  .epUniformTypeGrid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .epUniCard { padding: 10px; }
-  .epUniCardTypeName { font-size: 12px; }
-  .epStepLabel { font-size: 13px; }
-  .epModal { padding: 20px 16px; border-radius: 18px; }
-  .epModalTitle { font-size: 15px; }
-  .epModalSub { font-size: 11px; }
-  .epModalInput, .epModalSelect { font-size: 13px; }
-  .epBtn { font-size: 13px; padding: 9px 16px; }
+  .epTopSection { grid-template-columns: 1fr; gap: 16px; }
+  .epLeft h2 { font-size: 16px; }
+  .epLeft input, .epLeft textarea, .epLeft select { font-size: 13px; padding: 10px; }
+  .epActions { flex-direction: column; }
+  .epBtn { width: 100%; text-align: center; }
 }

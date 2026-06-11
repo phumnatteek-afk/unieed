@@ -12,15 +12,12 @@ export default defineConfig({
       "Cross-Origin-Opener-Policy": "unsafe-none",
       "Cross-Origin-Embedder-Policy": "unsafe-none",
     },
+    // SPA fallback — ทุก path ที่ไม่ใช่ API ให้ serve index.html
+    historyApiFallback: true,
     proxy: {
       "/api": {
         target: "http://localhost:3000",
         changeOrigin: true,
-      },
-      "^/school/(?!accept-invite)": {
-        target: "http://localhost:3000",
-        changeOrigin: true,
-        rewrite: (path) => path,
       },
     },
   },

@@ -141,7 +141,7 @@ export default function App() {
                 <Route path="request/new" element={<SchoolRequestCreatePage />} />
                 <Route path="projects/:requestId" element={<SchoolRequestManagePage />} />
                 <Route path="donations" element={<SchoolDonationsPage />} />
-                <Route path="/school/projects/:id/edit" element={<EditProjectPage />} />
+                <Route path="projects/:id/edit" element={<EditProjectPage />} />
                 <Route path="uniform-manage" element={<SchoolUniformManagePage />} />
                 <Route path="appointments" element={<SchoolAppointmentPage />} />
                 <Route path="testimonials" element={<SchoolTestimonialPage />} />

@@ -297,7 +297,8 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-  table-layout: fixed;
+  table-layout: auto;
+  min-width: 700px;
 }
 
 /* Header */
@@ -353,7 +354,7 @@
   font-weight: 700;
   color: #1e3a8a !important;
   font-size: 13px;
-  padding-left: 16px !important;
+  padding-left: 0;
 }
 
 /* ── Delivery cell ── */
@@ -963,14 +964,14 @@
 /* ══════════════════════════════════════════
    COLUMN WIDTHS (table-layout: fixed)
 ══════════════════════════════════════════ */
-.sdColDate     { width: 8%; }
-.sdColDonor    { width: 13%; }
-.sdColDelivery { width: 17%; }
-.sdColProof    { width: 9%; }
+.sdColDate     { width: 10%; }
+.sdColDonor    { width: 15%; }
+.sdColDelivery { width: 20%; }
+.sdColProof    { width: 10%; }
 .sdColItems    { width: 10%; }
-.sdColStatus   { width: 10%; }
+.sdColStatus   { width: 11%; }
 .sdColCond     { width: 11%; }
-.sdColAction   { width: 15%; }
+.sdColAction   { width: 13%; }
 
 /* ══════════════════════════════════════════
    RESPONSIVE

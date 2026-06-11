@@ -451,7 +451,7 @@ for (const cat of MAIN_CATEGORIES) {
       <div className="epLeft">
         <h2>แก้ไขข้อมูลโครงการ</h2>
         <div className="epError">{err}</div>
-        <div className="epActions"><button className="epBtn epBtnGhost" onClick={() => navigate(-1)}>ย้อนกลับ</button></div>
+        {/* <div className="epActions"><button className="epBtn epBtnGhost" onClick={() => navigate(-1)}>ย้อนกลับ</button></div> */}
       </div>
       <div className="epRight" />
     </div>
@@ -498,6 +498,12 @@ for (const cat of MAIN_CATEGORIES) {
             <input value={image} onChange={e => setImage(e.target.value)} placeholder="https://..." />
           </div>
         </div>
+        <div className="epActions">
+          <button className="epBtn epBtnGhost" onClick={() => navigate(-1)} disabled={uploading}>ย้อนกลับ</button>
+          <button className="epBtn epBtnPrimary" disabled={!canSave} onClick={onSave}>
+            {uploading ? "กำลังอัปโหลด..." : "บันทึก"}
+          </button>
+        </div>
 
       </div>{/* end epLeft */}
 
@@ -523,121 +529,7 @@ for (const cat of MAIN_CATEGORIES) {
       </div>{/* end epTopSection */}
 
       {/* ===== UNIFORM SECTION (full width) ===== */}
-      <div className="epUniformSection">
-        <label className="epUniformLabel">
-          รูปภาพชุดนักเรียน
-          <span className="epUniformLabelSub">
-            แต่ละหมวดหมู่มีรูป default ให้ — กด "แก้ไข" เพื่อเปลี่ยนรูปและระบุ type ของโรงเรียน
-          </span>
-        </label>
-        <div className="epField">
-
-          {/* Step 1: เลือกระดับชั้น */}
-          <div className="epLevelStepBox">
-            <div className="epStepLabel">
-              <span className="epStepBadge">1</span>
-              เลือกระดับชั้น
-            </div>
-            <div className="epLevelBtnGroup">
-              {EDUCATION_LEVELS.map(lv => {
-                const cnt = countCustomByLevel(lv.value);
-                return (
-                  <button key={lv.value} type="button"
-                    className={`epLevelBtn ${activeLevel === lv.value ? "epLevelBtnActive" : ""}`}
-                    onClick={() => setActiveLevel(lv.value)}
-                  >
-                    <span className="epLevelBtnEmoji">{LEVEL_ICONS[lv.value]}</span>
-                    <span className="epLevelBtnLabel">{lv.label}</span>
-                    {cnt > 0 && <span className="epLevelBtnBadge">{cnt} แก้ไขแล้ว</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Step 2: grid หมวดหมู่หลัก */}
-          <div className="epUniformStepBox">
-            <div className="epStepLabel">
-              <span className="epStepBadge">2</span>
-              แก้ไขรูปและ type สำหรับระดับ
-              <strong style={{ color: "#29B6E8", marginLeft: 6 }}>
-                {EDUCATION_LEVELS.find(l => l.value === activeLevel)?.label}
-              </strong>
-            </div>
-
-            {/* ── ชาย ── */}
-            <div className="epUniformGenderSection">
-              <div className="epUniformGenderHeader" style={{ background: "#EFF6FF", color: "#1D4ED8" }}>
-                <span style={{display:"inline-flex",alignItems:"center"}}><svg width="22" height="22" viewBox="0 0 31 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.9376 0.466934C17.2996 -0.386066 11.0936 -0.154066 9.54263 1.86293C5.50863 1.94093 0.77663 5.58693 0.15563 10.3969C-0.45837 15.1569 0.90963 17.3679 1.39663 20.9479C1.94863 25.0039 4.22863 26.3009 6.05163 26.8439C8.67463 30.3089 11.4626 30.1609 16.1436 30.1609C25.2846 30.1609 29.6386 24.0449 30.0236 13.6559C30.2556 7.37193 26.5696 2.61293 19.9376 0.466934Z" fill="#292F33"/><path d="M25.1655 14.0988C24.2815 12.8738 23.1485 11.8878 20.6665 11.5388C21.5975 11.9658 22.4895 13.4398 22.6055 14.2538C22.7215 15.0688 22.8385 15.7278 22.1015 14.9128C19.1495 11.6498 15.9345 12.9348 12.7475 10.9408C10.5215 9.54881 9.84454 8.00781 9.84454 8.00781C9.84454 8.00781 9.57254 10.0638 6.19854 12.1578C5.22054 12.7648 4.05354 14.1168 3.40554 16.1138C2.94054 17.5488 3.08454 18.8288 3.08454 21.0168C3.08454 27.4018 8.34654 32.7698 14.8375 32.7698C21.3285 32.7698 26.5905 27.3548 26.5905 21.0168C26.5905 17.0468 26.1745 15.4958 25.1655 14.0988Z" fill="#F7DECE"/><path d="M14.8267 29.386C12.4797 29.386 11.2517 28.226 11.1197 28.093C10.7287 27.702 10.7287 27.07 11.1197 26.679C11.5067 26.292 12.1327 26.289 12.5237 26.669C12.5747 26.716 13.3297 27.386 14.8267 27.386C16.3457 27.386 17.0997 26.696 17.1317 26.667C17.5297 26.294 18.1587 26.305 18.5397 26.696C18.9187 27.089 18.9197 27.707 18.5337 28.093C18.4017 28.226 17.1737 29.386 14.8267 29.386ZM15.8267 24.386H13.8267C13.2747 24.386 12.8267 23.939 12.8267 23.386C12.8267 22.833 13.2747 22.386 13.8267 22.386H15.8267C16.3797 22.386 16.8267 22.833 16.8267 23.386C16.8267 23.939 16.3797 24.386 15.8267 24.386Z" fill="#C1694F"/><path d="M9.82666 20.386C9.27466 20.386 8.82666 19.939 8.82666 19.386V17.386C8.82666 16.834 9.27466 16.386 9.82666 16.386C10.3787 16.386 10.8267 16.834 10.8267 17.386V19.386C10.8267 19.939 10.3787 20.386 9.82666 20.386ZM19.8267 20.386C19.2737 20.386 18.8267 19.939 18.8267 19.386V17.386C18.8267 16.834 19.2737 16.386 19.8267 16.386C20.3797 16.386 20.8267 16.834 20.8267 17.386V19.386C20.8267 19.939 20.3797 20.386 19.8267 20.386Z" fill="#662113"/></svg></span><span>ชุดนักเรียนชาย</span>
-                <span className="epUniformGenderCount">
-                  {MAIN_CATEGORIES.filter(c => c.gender === "male" && cardState[cKey(c.id, activeLevel)]?.isCustom).length}
-                  /{MAIN_CATEGORIES.filter(c => c.gender === "male").length} แก้ไขแล้ว
-                </span>
-              </div>
-              <div className="epUniformTypeGrid">
-                {MAIN_CATEGORIES.filter(c => c.gender === "male").map(cat => (
-                  <CategoryCard key={cat.id} cat={cat} level={activeLevel}
-                    state={cardState[cKey(cat.id, activeLevel)] || {}}
-                    onEdit={() => openModal(cat)} onReset={() => resetCard(cat)} />
-                ))}
-              </div>
-            </div>
-
-            {/* ── หญิง ── */}
-            <div className="epUniformGenderSection">
-              <div className="epUniformGenderHeader" style={{ background: "#FDF2F8", color: "#BE185D" }}>
-                <span style={{display:"inline-flex",alignItems:"center"}}><svg width="22" height="22" viewBox="0 0 33 34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M28.088 22.0871C32.128 26.0001 32.171 33.0211 31.149 33.0211C30.127 33.0211 27.034 31.1691 25.081 29.0841C23.128 27.0001 23.331 22.3061 23.331 22.3061L24.917 17.9871C24.917 17.9861 24.048 18.1741 28.088 22.0871Z" fill="#292F33"/><path d="M25.0881 22.0871C29.1281 26.0001 29.1711 33.0211 28.1491 33.0211C27.1271 33.0211 24.0341 31.1691 22.0811 29.0841C20.1281 27.0001 20.3311 22.3061 20.3311 22.3061L21.9171 17.9871C21.9171 17.9861 21.0481 18.1741 25.0881 22.0871ZM1.12807 33.0001C0.128065 33.0001 0.128065 26.0001 4.12807 22.0001C8.12807 18.0001 7.12807 18.0001 7.12807 18.0001L9.12807 22.0001C9.12807 22.0001 9.12807 27.0001 7.12807 29.0001C5.12807 31.0001 2.12807 33.0001 1.12807 33.0001Z" fill="#292F33"/><path d="M4.12807 33C3.12807 33 3.12807 26 7.12807 22C11.1281 18 10.1281 18 10.1281 18L12.1281 22C12.1281 22 12.1281 27 10.1281 29C8.12807 31 5.12807 33 4.12807 33Z" fill="#292F33"/><path d="M5.04205 17.3529C4.47105 15.2189 2.92605 13.7779 1.59205 14.1359C0.258048 14.4939 -0.357952 16.5139 0.213048 18.6469C0.784048 20.7819 2.32905 22.2209 3.66305 21.8639C4.99705 21.5059 5.61405 19.4859 5.04205 17.3529ZM32.043 18.6469C32.614 16.5129 31.997 14.4929 30.663 14.1349C29.33 13.7789 27.785 15.2179 27.214 17.3529C26.642 19.4869 27.259 21.5059 28.593 21.8639C29.927 22.2219 31.472 20.7809 32.043 18.6469Z" fill="#F7DECE"/><path d="M29.1279 18C29.1279 8.611 23.3079 2 16.1279 2C8.94793 2 3.12793 8.611 3.12793 18C3.12793 27.389 8.94793 33 16.1279 33C23.3079 33 29.1279 27.389 29.1279 18Z" fill="#F7DECE"/><path d="M16.128 26.651C13.708 26.651 11.854 25.964 11.776 25.936C11.259 25.742 10.997 25.165 11.192 24.648C11.386 24.131 11.961 23.869 12.478 24.063C12.494 24.069 14.088 24.651 16.128 24.651C18.169 24.651 19.763 24.069 19.778 24.063C20.294 23.869 20.872 24.134 21.063 24.65C21.256 25.167 20.996 25.742 20.479 25.936C20.402 25.965 18.549 26.651 16.128 26.651Z" fill="#DF1F32"/><path d="M17.1279 22H15.1279C14.5759 22 14.1279 21.553 14.1279 21C14.1279 20.447 14.5759 20 15.1279 20H17.1279C17.6809 20 18.1279 20.447 18.1279 21C18.1279 21.553 17.6809 22 17.1279 22Z" fill="#C1694F"/><path d="M10.1279 19C9.57593 19 9.12793 18.553 9.12793 18V16C9.12793 15.448 9.57593 15 10.1279 15C10.6799 15 11.1279 15.448 11.1279 16V18C11.1279 18.553 10.6799 19 10.1279 19ZM22.1279 19C21.5749 19 21.1279 18.553 21.1279 18V16C21.1279 15.448 21.5749 15 22.1279 15C22.6809 15 23.1279 15.448 23.1279 16V18C23.1279 18.553 22.6809 19 22.1279 19Z" fill="#662113"/><path d="M30.1282 9C28.1282 2 23.1282 0 20.1282 0C18.1282 0 16.1282 2 16.1282 2C16.1282 2 14.1282 0 12.1282 0C9.12815 0 4.12815 2 2.12815 9C0.480152 14.769 3.12815 20 3.12815 20C3.12815 16.999 5.12815 11 10.1282 11C15.1282 11 16.1282 7 16.1282 7C16.1282 7 16.9142 11 21.9142 11C26.9142 11 29.1282 17 29.1282 20C29.1282 20 31.7762 14.769 30.1282 9Z" fill="#292F33"/></svg></span><span>ชุดนักเรียนหญิง</span>
-                <span className="epUniformGenderCount">
-                  {MAIN_CATEGORIES.filter(c => c.gender === "female" && cardState[cKey(c.id, activeLevel)]?.isCustom).length}
-                  /{MAIN_CATEGORIES.filter(c => c.gender === "female").length} แก้ไขแล้ว
-                </span>
-              </div>
-              <div className="epUniformTypeGrid">
-                {MAIN_CATEGORIES.filter(c => c.gender === "female").map(cat => (
-                  <CategoryCard key={cat.id} cat={cat} level={activeLevel}
-                    state={cardState[cKey(cat.id, activeLevel)] || {}}
-                    onEdit={() => openModal(cat)} onReset={() => resetCard(cat)} />
-                ))}
-              </div>
-            </div>
-
-            {/* Summary */}
-            <div className="epUniformSummary">
-              <div className="epUniformSummaryTitle">สรุปที่แก้ไขแล้วทุกระดับชั้น</div>
-              {EDUCATION_LEVELS.map(lv => {
-                const done = MAIN_CATEGORIES.filter(c => cardState[cKey(c.id, lv.value)]?.isCustom);
-                if (!done.length) return null;
-                return (
-                  <div key={lv.value} className="epUniformSummaryLevel">
-                    <span className="epUniformSummaryLevelName">{lv.emoji} {lv.label}</span>
-                    <div className="epUniformSummaryImgs">
-                      {done.map(cat => {
-                        const s = cardState[cKey(cat.id, lv.value)];
-                        return (
-                          <div key={cat.id} className="epUniformSummaryThumb">
-                            <img src={s.preview} alt={cat.name} />
-                            <span>{s.customTypeName || cat.name}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-              {MAIN_CATEGORIES.every(c => !cardState[cKey(c.id, activeLevel)]?.isCustom) && (
-                <div className="epUniformSummaryEmpty">ยังใช้รูป default ทั้งหมด</div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="epActions">
-          <button className="epBtn epBtnGhost" onClick={() => navigate(-1)} disabled={uploading}>ย้อนกลับ</button>
-          <button className="epBtn epBtnPrimary" disabled={!canSave} onClick={onSave}>
-            {uploading ? "กำลังอัปโหลด..." : "บันทึก"}
-          </button>
-        </div>
-      </div>{/* end epUniformSection */}
+      
 
       {/* ═══════════════════════════════════════════════════════════════
           Modal แก้ไข type + รูป

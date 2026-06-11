@@ -747,7 +747,7 @@ export default function SchoolAppointmentPage() {
             </div>
 
             <div className="sapPopupActions">
-              <button className="sapPopupBtnGhost" onClick={() => setDetailPopup(null)}>ปิด</button>
+              {/* <button className="sapPopupBtnGhost" onClick={() => setDetailPopup(null)}>ปิด</button> */}
               {detailPopup.status === "pending" && (() => {
                 if (detailPopup.is_overdue) {
                   return (
