@@ -327,7 +327,11 @@ export async function getOverdueDonations() {
        dr.status = 'pending'
        OR (dr.status IN ('approved', 'rejected') AND dr.admin_approved = 1)
      )
-     AND NOT (dr.delivery_method = 'market_purchase' AND dr.tracking_number IS NULL)
+     AND NOT (
+       dr.delivery_method = 'market_purchase' 
+       AND dr.tracking_number IS NULL 
+       AND dr.status != 'pending'
+     )
      AND (
        (dr.delivery_method = 'dropoff'
          AND dr.donation_date IS NOT NULL

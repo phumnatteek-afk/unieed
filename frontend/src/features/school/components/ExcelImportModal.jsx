@@ -1098,9 +1098,9 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
           {/* {step === "idle" && (
             <button className="eiBtnGhost" onClick={handleClose} type="button">ยกเลิก</button>
           )} */}
-          {step === "done" && (
+          {/* {step === "done" && (
             <button className="eiBtnGhost" onClick={handleClose} type="button">ปิด</button>
-          )}
+          )} */}
         </div>
 
       </div>

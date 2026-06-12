@@ -122,10 +122,7 @@ function ConfirmPopup({ donation, onConfirm, onCancel, loading }) {
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onCancel}>
       <div style={{ background:"#fff", borderRadius:16, padding:"28px 32px", maxWidth:420, width:"90%", boxShadow:"0 20px 60px rgba(0,0,0,0.15)" }} onClick={e => e.stopPropagation()}>
         <div style={{ textAlign:"center", marginBottom:12 }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none" />
-            <path fill="#16a34a" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd" />
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="#16a34a" fillRule="evenodd" d="M12 21a9 9 0 1 0 0-18a9 9 0 0 0 0 18m-.232-5.36l5-6l-1.536-1.28l-4.3 5.159l-2.225-2.226l-1.414 1.414l3 3l.774.774z" clipRule="evenodd" /></svg>
         </div>
         <div style={{ fontWeight:700, fontSize:16, color:"#0f172a", textAlign:"center", marginBottom:8 }}>อนุมัติรายการบริจาค</div>
         <div style={{ fontSize:13, color:"#64748b", textAlign:"center", marginBottom:20 }}>
@@ -148,10 +145,7 @@ function RejectPopup({ donation, onReject, onCancel, loading }) {
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onCancel}>
       <div style={{ background:"#fff", borderRadius:16, padding:"28px 32px", maxWidth:460, width:"90%", boxShadow:"0 20px 60px rgba(0,0,0,0.15)" }} onClick={e => e.stopPropagation()}>
         <div style={{ textAlign:"center", marginBottom:12 }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none" />
-            <path fill="#dc2626" d="M12 2c5.53 0 10 4.47 10 10s-4.47 10-10 10S2 17.53 2 12S6.47 2 12 2m3.59 5L12 10.59L8.41 7L7 8.41L10.59 12L7 15.59L8.41 17L12 13.41L15.59 17L17 15.59L13.41 12L17 8.41z" />
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="#dc2626" d="M12 2c5.53 0 10 4.47 10 10s-4.47 10-10 10S2 17.53 2 12S6.47 2 12 2m3.59 5L12 10.59L8.41 7L7 8.41L10.59 12L7 15.59L8.41 17L12 13.41L15.59 17L17 15.59L13.41 12L17 8.41z" /></svg>
         </div>
         <div style={{ fontWeight:700, fontSize:16, color:"#0f172a", textAlign:"center", marginBottom:8 }}>ไม่อนุมัติรายการบริจาค</div>
         <div style={{ fontSize:13, color:"#64748b", textAlign:"center", marginBottom:20 }}>จาก <strong>{donation.donor_name}</strong></div>
@@ -159,11 +153,9 @@ function RejectPopup({ donation, onReject, onCancel, loading }) {
           <label style={{ fontSize:12, fontWeight:600, color:"#374151", display:"block", marginBottom:6 }}>
             เหตุผลที่ไม่อนุมัติ <span style={{ color:"#ef4444" }}>*</span>
           </label>
-          <textarea rows={4}
-            className="adPlainTextarea"
-            placeholder="เช่น พัสดุถูกตีกลับ, ของที่บริจาคไม่ตรงความต้องการ, ไม่มีหลักฐานการส่ง..."
+          <textarea rows={4} placeholder="เช่น พัสดุถูกตีกลับ, ของที่บริจาคไม่ตรงความต้องการ..."
             value={reason} onChange={e => setReason(e.target.value)}
-            style={{ width:"100%", boxSizing:"border-box", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#1e293b", resize:"vertical", outline:"none", fontFamily:"inherit", lineHeight:1.6, background:"#fff", marginTop:0 }}
+            style={{ width:"100%", boxSizing:"border-box", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#1e293b", resize:"vertical", outline:"none", fontFamily:"inherit", lineHeight:1.6, background:"#fff" }}
           />
           {reason.trim()==="" && <div style={{ fontSize:11, color:"#ef4444", marginTop:4 }}>กรุณากรอกเหตุผล</div>}
         </div>
@@ -188,19 +180,17 @@ function DonationRow({ donation, token, doneStatus, onDone }) {
   const [rejecting,   setRejecting]   = useState(false);
   const done     = !!doneStatus;
   const doneType = doneStatus?.type ?? doneStatus;
-  const doneReason = doneStatus?.reason ?? null;
 
   const authHeaders = { "Content-Type":"application/json", ...(token ? { Authorization:`Bearer ${token}` } : {}) };
   const items = parseItems(donation.items_snapshot);
-  const statusMeta    = STATUS_META[donation.status] || STATUS_META.pending;
-  const conditionMeta = donation.condition_status ? CONDITION_META[donation.condition_status] : null;
+  const statusMeta = STATUS_META[donation.status] || STATUS_META.pending;
 
   const handleApprove = async () => {
     try {
       setApproving(true);
       await fetch(`${BASE}/donations/${donation.donation_id}/verify`, {
         method:"PATCH", headers:authHeaders,
-        body: JSON.stringify({thank_message:"แอดมินได้ตรวจสอบและอนุมัติการบริจาคของท่านเรียบร้อยแล้ว ขอขอบคุณสำหรับน้ำใจของท่าน" }),
+        body: JSON.stringify({ thank_message:"แอดมินได้ตรวจสอบและอนุมัติการบริจาคของท่านเรียบร้อยแล้ว ขอขอบคุณสำหรับน้ำใจของท่าน" }),
       });
       onDone(donation.donation_id, "approved");
       setShowConfirm(false);
@@ -260,72 +250,37 @@ function DonationRow({ donation, token, doneStatus, onDone }) {
               : donation.quantity ? `${donation.quantity} ชิ้น` : "—"}
           </span>
         </td>
-        {/* สถานะ */}
-{/* สถานะ */}
-<td style={{ padding:"12px 16px" }}>
-  {done ? (
-    <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:600,
-        color:doneType==="approved"?"#16a34a":"#dc2626",
-        background:doneType==="approved"?"#dcfce7":"#fee2e2",
-        padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
-        <Icon icon={doneType==="approved"?"mdi:check":"mdi:close"} width={13} />
-        {doneType==="approved" ? "อนุมัติแล้ว" : "ไม่อนุมัติ"}
-      </span>
-      {/* ✅ เพิ่มตรงนี้ — แสดงเหตุผลเมื่อ reject */}
-      {doneType==="rejected" && donation.reject_reason && (
-        <span style={{ fontSize:11, color:"#64748b", background:"#f8fafc", border:"1px solid #e2e8f0", padding:"3px 8px", borderRadius:8 }}>
-          {donation.reject_reason}
-        </span>
-      )}
-    </div>
-  ) : (
-    <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-      <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:600, color:statusMeta.color, background:statusMeta.bg, padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
-        {donation.status==="approved" && <Icon icon="mdi:check" width={13} />}
-        {statusMeta.label}
-      </span>
-      {donation.status==="rejected" && donation.reject_reason && (
-        <span style={{ fontSize:11, color:"#64748b", background:"#f8fafc", border:"1px solid #e2e8f0", padding:"3px 8px", borderRadius:8 }}>
-          {donation.reject_reason}
-        </span>
-      )}
-    </div>
-  )}
-</td>
-        {/* <td style={{ padding:"12px 16px" }}>
-          {conditionMeta ? (
-            <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:600, color:conditionMeta.color, background:conditionMeta.bg, padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
-              {conditionMeta.label}
+        <td style={{ padding:"12px 16px" }}>
+          {done ? (
+            <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:600,
+              color:doneType==="approved"?"#16a34a":"#dc2626",
+              background:doneType==="approved"?"#dcfce7":"#fee2e2",
+              padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
+              <Icon icon={doneType==="approved"?"mdi:check":"mdi:close"} width={13} />
+              {doneType==="approved" ? "อนุมัติแล้ว" : "ไม่อนุมัติ"}
             </span>
-          ) : <span style={{ color:"#e2e8f0" }}>—</span>}
-        </td> */}
+          ) : (
+            <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, fontWeight:600, color:statusMeta.color, background:statusMeta.bg, padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap" }}>
+              {donation.status==="approved" && <Icon icon="mdi:check" width={13} />}
+              {statusMeta.label}
+            </span>
+          )}
+        </td>
         <td style={{ padding:"12px 16px" }} onClick={e => e.stopPropagation()}>
           {!done && (
             <div style={{ display:"flex", gap:8, flexWrap:"nowrap" }}>
-              {/* ปุ่มอนุมัติ */}
-<button onClick={() => setShowConfirm(true)}
-  style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"6px 12px", borderRadius:8, border:"none", background:"#2563eb", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap",
-    transition:"background 0.15s",  // ← เปลี่ยนจาก "all"
-    transform:"none",               // ← เพิ่ม
-  }}
-  onMouseEnter={e => e.currentTarget.style.background = "#1d4ed8"}
-  onMouseLeave={e => e.currentTarget.style.background = "#2563eb"}
->
-  <Icon icon="mdi:check-circle-outline" width={14} />อนุมัติ
-</button>
-
-      {/* ปุ่มไม่อนุมัติ */}
-      <button onClick={() => setShowReject(true)}
-        style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"6px 12px", borderRadius:8, border:"1.5px solid #fca5a5", background:"#fff5f5", color:"#dc2626", fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap",
-          transition:"background 0.15s",  // ← เปลี่ยนจาก "all"
-          transform:"none",               // ← เพิ่ม
-        }}
-        onMouseEnter={e => e.currentTarget.style.background = "#fee2e2"}
-        onMouseLeave={e => e.currentTarget.style.background = "#fff5f5"}
-      >
-        <Icon icon="mdi:close-circle-outline" width={14} />ไม่อนุมัติ
-      </button>
+              <button onClick={() => setShowConfirm(true)}
+                style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"6px 12px", borderRadius:8, border:"none", background:"#2563eb", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap", transition:"background 0.15s", transform:"none" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#1d4ed8"}
+                onMouseLeave={e => e.currentTarget.style.background = "#2563eb"}>
+                <Icon icon="mdi:check-circle-outline" width={14} />อนุมัติ
+              </button>
+              <button onClick={() => setShowReject(true)}
+                style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"6px 12px", borderRadius:8, border:"1.5px solid #fca5a5", background:"#fff5f5", color:"#dc2626", fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap", transition:"background 0.15s", transform:"none" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#fee2e2"}
+                onMouseLeave={e => e.currentTarget.style.background = "#fff5f5"}>
+                <Icon icon="mdi:close-circle-outline" width={14} />ไม่อนุมัติ
+              </button>
             </div>
           )}
         </td>
@@ -367,13 +322,11 @@ function ProjectStatusBadge({ status }) {
   );
 }
 
-function SchoolCard({ school, onSelect }) {
-  const allDonations = school.projects.flatMap(p => p.donations);
-  const maxDays = Math.max(...allDonations.map(d => d.days_elapsed));
-  const urgent  = maxDays >= 14;
+function SchoolCard({ school, pendingCount, maxDays, onSelect }) {
+  const urgent = maxDays >= 14;
   return (
     <div onClick={() => onSelect(school)}
-      style={{ background:"#fff", border:urgent?"1.5px solid #fca5a5":"1.5px solid #e2e8f0", borderRadius:14, padding:"18px 20px", cursor:"pointer", transition:"box-shadow 0.15s, transform 0.15s", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}
+      style={{ background:"#fff", border:urgent?"1.5px solid #fca5a5":"1.5px solid #e2e8f0", borderRadius:14, padding:"18px 20px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}
       onMouseEnter={e => { e.currentTarget.style.background = urgent ? "#fff0f0" : "#f8faff"; }}
       onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
       <div style={{ display:"flex", alignItems:"center", gap:14 }}>
@@ -382,20 +335,23 @@ function SchoolCard({ school, onSelect }) {
         </div>
         <div>
           <div style={{ fontWeight:600, fontSize:14, color:"#1e293b" }}>{school.school_name}</div>
-          <div style={{ fontSize:12, color:"#64748b", marginTop:3, display:"flex", alignItems:"center", gap:6 }}>
-            {allDonations.length} รายการรอดำเนินการ · รายการเก่าสุด <DaysBadge days={maxDays} />
+          <div style={{ fontSize:12, color:"#64748b", marginTop:3, display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+            {pendingCount > 0 ? (
+              <><span>{pendingCount} รายการรอดำเนินการ</span> · รายการเก่าสุด <DaysBadge days={maxDays} /></>
+            ) : (
+              <span style={{ color:"#16a34a", fontWeight:600 }}>✓ ดำเนินการครบแล้ว</span>
+            )}
           </div>
         </div>
       </div>
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        {urgent && <span style={{ fontSize:11, fontWeight:600, color:"#dc2626", background:"#fee2e2", padding:"3px 9px", borderRadius:20, whiteSpace:"nowrap" }}>เร่งด่วน</span>}
+        {urgent && pendingCount > 0 && <span style={{ fontSize:11, fontWeight:600, color:"#dc2626", background:"#fee2e2", padding:"3px 9px", borderRadius:20, whiteSpace:"nowrap" }}>เร่งด่วน</span>}
         <Icon icon="mdi:chevron-right" width={20} color="#94a3b8" />
       </div>
     </div>
   );
 }
 
-// ── Filter Tabs ───────────────────────────────────────────────────────────────
 function FilterTabs({ filterMethod, setFilterMethod, tabCounts }) {
   return (
     <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
@@ -408,23 +364,13 @@ function FilterTabs({ filterMethod, setFilterMethod, tabCounts }) {
         const count = tabCounts[v] ?? 0;
         const active = filterMethod === v;
         return (
-          // ใน FilterTabs component เพิ่ม onMouseEnter/onMouseLeave
-           <button key={v} onClick={() => setFilterMethod(v)}
-            style={{ 
-              display:"inline-flex", alignItems:"center", gap:6, 
-              padding:"6px 14px", borderRadius:20, fontSize:12, fontWeight:600, 
-              cursor:"pointer", border:"none", 
-              transition:"background 0.15s", // ← เปลี่ยนจาก "all" เป็น "background"
-              transform:"none",              // ← เพิ่ม
-              background: active ? "#2563eb" : "#f1f5f9",
-              color:      active ? "#fff"    : "#64748b",
-            }}
+          <button key={v} onClick={() => setFilterMethod(v)}
+            style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer", border:"none", transition:"background 0.15s", transform:"none", background:active?"#2563eb":"#f1f5f9", color:active?"#fff":"#64748b" }}
             onMouseEnter={e => { if (!active) e.currentTarget.style.background = "#e2e8f0"; }}
-            onMouseLeave={e => { if (!active) e.currentTarget.style.background = "#f1f5f9"; }}
-          >
+            onMouseLeave={e => { if (!active) e.currentTarget.style.background = "#f1f5f9"; }}>
             {l}
             {count > 0 && (
-              <span style={{ background: active ? "rgba(255,255,255,0.3)" : "#e2e8f0", color: active ? "#fff" : "#475569", borderRadius:10, padding:"1px 7px", fontSize:11, fontWeight:700 }}>
+              <span style={{ background:active?"rgba(255,255,255,0.3)":"#e2e8f0", color:active?"#fff":"#475569", borderRadius:10, padding:"1px 7px", fontSize:11, fontWeight:700 }}>
                 {count}
               </span>
             )}
@@ -446,10 +392,9 @@ export default function AdminDonationManagement() {
   const [search,         setSearch]         = useState("");
   const [filterMethod,   setFilterMethod]   = useState("all");
   const [doneMap, setDoneMap] = useState(() => {
-      try {
-        return JSON.parse(localStorage.getItem("adminDoneMap") || "{}");
-      } catch { return {}; }
-    });
+    try { return JSON.parse(localStorage.getItem("adminDoneMap") || "{}"); }
+    catch { return {}; }
+  });
 
   const loadData = async () => {
     try {
@@ -466,20 +411,24 @@ export default function AdminDonationManagement() {
   };
 
   useEffect(() => { loadData(); }, []);
+  useEffect(() => { localStorage.setItem("adminDoneMap", JSON.stringify(doneMap)); }, [doneMap]);
 
-  useEffect(() => {
-  localStorage.setItem("adminDoneMap", JSON.stringify(doneMap));
-  }, [doneMap]);
-
+  // schools ที่แสดงในลิสต์ — ยังคง show แม้ done ครบ แต่แสดงสถานะ "ดำเนินการครบแล้ว"
   const filteredSchools = useMemo(() =>
     schools.filter(sc => !search || sc.school_name.toLowerCase().includes(search.toLowerCase())),
     [schools, search]
   );
 
+  // donations ที่ยังรอดำเนินการ (pending) ของแต่ละ school สำหรับ stats ใน card
+  const getPendingDonations = (school) =>
+    school.projects.flatMap(p => p.donations.filter(d => !doneMap[d.donation_id]));
+
+  // donations ทั้งหมด (รวม done) ของ selectedSchool สำหรับแสดงในตาราง
   const allSelectedDonations = useMemo(() =>
     selectedSchool ? selectedSchool.projects.flatMap(p => p.donations) : [],
   [selectedSchool]);
 
+  // tab counts นับจาก donations ทั้งหมด (รวม done)
   const tabCounts = useMemo(() => {
     const d = allSelectedDonations;
     return {
@@ -490,13 +439,14 @@ export default function AdminDonationManagement() {
     };
   }, [allSelectedDonations]);
 
+  // filteredProjects แสดงทุก donation (รวม done) แต่ filter ตาม method
   const filteredProjects = useMemo(() => {
     if (!selectedSchool) return [];
     return selectedSchool.projects.map(proj => ({
       ...proj,
-      donations: filterMethod === "all"
-        ? proj.donations
-        : proj.donations.filter(d => d.delivery_method === filterMethod),
+      donations: proj.donations.filter(d =>
+        filterMethod === "all" || d.delivery_method === filterMethod
+      ),
     })).filter(proj => proj.donations.length > 0);
   }, [selectedSchool, filterMethod]);
 
@@ -534,35 +484,26 @@ export default function AdminDonationManagement() {
 
       {selectedSchool ? (
         <div>
-          {/* ── แถวเดียวกัน: ปุ่มกลับ (ซ้าย) + Filter Tabs (ขวา) ── */}
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
             <button onClick={() => { setSelectedSchool(null); setFilterMethod("all"); }}
-              style={{ 
-                display:"flex", alignItems:"center", gap:6, 
-                background:"none", border:"none", color:"#2563eb", 
-                fontSize:13, fontWeight:600, cursor:"pointer", padding:0,
-                transform:"none",  // ← เพิ่ม
-              }}
+              style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"#2563eb", fontSize:13, fontWeight:600, cursor:"pointer", padding:0, transform:"none" }}
               onMouseEnter={e => e.currentTarget.style.color = "#1d4ed8"}
-              onMouseLeave={e => e.currentTarget.style.color = "#2563eb"}
-            >
+              onMouseLeave={e => e.currentTarget.style.color = "#2563eb"}>
               <Icon icon="mdi:arrow-left" width={16} />กลับไปหน้ารายการโรงเรียน
             </button>
             <FilterTabs filterMethod={filterMethod} setFilterMethod={setFilterMethod} tabCounts={tabCounts} />
           </div>
 
-          {/* School header */}
           <div style={{ background:"#fff", border:"1.5px solid #e2e8f0", borderRadius:14, padding:"16px 20px", marginBottom:16, display:"flex", alignItems:"center", gap:12 }}>
             <div style={{ width:38, height:38, borderRadius:10, background:"#eff6ff", display:"flex", alignItems:"center", justifyContent:"center" }}>
               <Icon icon="teenyicons:school-outline" width={18} color="#2563eb" />
             </div>
             <div>
               <div style={{ fontWeight:700, fontSize:15, color:"#0f172a" }}>{selectedSchool.school_name}</div>
-              <div style={{ fontSize:12, color:"#64748b" }}>{allSelectedDonations.length} รายการที่เกิน 7 วันและยังไม่ได้รับการยืนยัน</div>
+              <div style={{ fontSize:12, color:"#64748b" }}>{allSelectedDonations.length} รายการทั้งหมด · {getPendingDonations(selectedSchool).length} รายการที่ยังรอดำเนินการ</div>
             </div>
           </div>
 
-          {/* Projects grouped */}
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
             {filteredProjects.length === 0 ? (
               <div style={{ textAlign:"center", padding:32, color:"#94a3b8", fontSize:13, background:"#fff", borderRadius:14, border:"1.5px solid #e2e8f0" }}>
@@ -570,7 +511,6 @@ export default function AdminDonationManagement() {
               </div>
             ) : filteredProjects.map(proj => (
               <div key={proj.request_id} style={{ background:"#fff", border:"1.5px solid #e2e8f0", borderRadius:14, overflow:"hidden" }}>
-                {/* Project header */}
                 <div style={{ padding:"12px 20px", borderBottom:"1px solid #f1f5f9", display:"flex", alignItems:"center", gap:10, background:"#f8fafc" }}>
                   <Icon icon="mdi:clipboard-text-outline" width={16} color="#475569" />
                   <span style={{ fontWeight:600, fontSize:14, color:"#1e293b", flex:1 }}>{proj.request_title}</span>
@@ -591,7 +531,6 @@ export default function AdminDonationManagement() {
                         <DonationRow
                           key={d.donation_id}
                           donation={d}
-                          onRefresh={loadData}
                           token={token}
                           doneStatus={doneMap[d.donation_id] ?? null}
                           onDone={(id, data) => setDoneMap(prev => ({ ...prev, [id]: data }))}
@@ -606,18 +545,10 @@ export default function AdminDonationManagement() {
         </div>
       ) : (
         <div>
-          <div style={{ display:"flex", alignItems:"center", gap:10, background:"#fff", 
-            border:"1.5px solid #e2e8f0", borderRadius:10, padding:"9px 14px", 
-            marginBottom:16, maxWidth:400 , outline:"none"}}
-            // ✅ เพิ่ม 2 บรรทัดนี้
-            onFocus={e => e.currentTarget.style.border = "1.5px solid #e2e8f0"}
-            onBlur={e => e.currentTarget.style.border = "1.5px solid #e2e8f0"}
-          >
+          <div style={{ display:"flex", alignItems:"center", gap:10, background:"#fff", border:"1.5px solid #e2e8f0", borderRadius:10, padding:"9px 14px", marginBottom:16, maxWidth:400 }}>
             <Icon icon="mdi:magnify" width={18} color="#94a3b8" />
             <input
-              className="wi-search-input"
               style={{ border:"none", outline:"none", fontSize:13, flex:1, color:"#334155", background:"transparent" }}
-              onFocus={e => { e.target.style.outline = "none"; e.target.style.boxShadow = "none"; }}
               placeholder="ค้นหาโรงเรียน..."
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -632,9 +563,21 @@ export default function AdminDonationManagement() {
             </div>
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              {filteredSchools.map(school => (
-                <SchoolCard key={school.school_id} school={school} onSelect={setSelectedSchool} />
-              ))}
+              {filteredSchools.map(school => {
+                const pending = getPendingDonations(school);
+                const maxDays = pending.length > 0
+                  ? Math.max(...pending.map(d => d.days_elapsed))
+                  : Math.max(...school.projects.flatMap(p => p.donations).map(d => d.days_elapsed));
+                return (
+                  <SchoolCard
+                    key={school.school_id}
+                    school={school}
+                    pendingCount={pending.length}
+                    maxDays={maxDays}
+                    onSelect={setSelectedSchool}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
