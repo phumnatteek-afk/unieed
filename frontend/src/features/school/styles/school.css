@@ -502,3 +502,16 @@ height: auto;
   text-overflow: ellipsis;
   max-width: 200px;
 }
+/* ── Welcome page mobile ── */
+@media (max-width: 768px) {
+  .swMain { padding: 16px; margin: 16px 0; }
+  .swHero { gap: 12px; }
+  .swIllustration img { width: min(280px, 88vw); }
+  .swTitle { font-size: 22px; }
+  .swSub { font-size: 20px; }
+  .swCTA {
+    font-size: 18px;
+    height: 52px;
+    margin: 16px 0 24px;
+  }
+}

@@ -85,6 +85,7 @@
 .nb-list {
   max-height: 380px;
   overflow-y: auto;
+  overscroll-behavior: contain; /* ✅ เพิ่มบรรทัดนี้ */
 }
 
 .nb-empty {
@@ -421,4 +422,20 @@
   pointer-events: none;
   z-index: 9999;
   overflow: hidden;
+}
+
+@media (max-width: 400px) {
+  .nb-wrap {
+    position: static; /* ให้ dropdown อิง body แทน */
+  }
+
+  .nb-dropdown {
+    position: fixed;       /* fixed แต่ block scroll ด้วย */
+    top: 56px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: calc(100vh - 72px);
+    overflow-y: auto;
+  }
 }
