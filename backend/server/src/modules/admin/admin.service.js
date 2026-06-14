@@ -14,6 +14,18 @@ function thaiNow() {
   return d.toISOString().replace("T", " ").slice(0, 19);
 }
 
+function toSqlLocalDateTime(date) {
+  return [
+    date.getFullYear(),
+    pad2(date.getMonth() + 1),
+    pad2(date.getDate()),
+  ].join("-") + " " + [
+    pad2(date.getHours()),
+    pad2(date.getMinutes()),
+    pad2(date.getSeconds()),
+  ].join(":");
+}
+
 /* ────── helpers ────── */
 
 function normalizeThaiPhone(input) {
@@ -30,7 +42,7 @@ function periodToDateRange(period, startDate = null, endDate = null) {
   if (period === "custom" && startDate && endDate) {
     const f = new Date(startDate); f.setHours(0, 0, 0, 0);
     const t = new Date(endDate);   t.setHours(23, 59, 59, 999);
-    return { from: f.toISOString().slice(0, 19), to: t.toISOString().slice(0, 19) };
+    return { from: toSqlLocalDateTime(f), to: toSqlLocalDateTime(t) };
   }
   let from;
   switch (period) {
@@ -41,7 +53,120 @@ function periodToDateRange(period, startDate = null, endDate = null) {
     case "year":    from = new Date(now); from.setFullYear(now.getFullYear() - 1); break;
     default:        from = new Date(now); from.setDate(now.getDate() - 7);
   }
-  return { from: from.toISOString().slice(0, 19), to: now.toISOString().slice(0, 19) };
+  return { from: toSqlLocalDateTime(from), to: toSqlLocalDateTime(now) };
+}
+
+const orderFinancialSql = {
+  itemSubtotal: "COALESCE(items_sub.subtotal, GREATEST(COALESCE(o.total_price, 0) - COALESCE(ship_agg.ship_sum, 0), 0), 0)",
+  shipping: "COALESCE(ship_agg.ship_sum, 0)",
+};
+orderFinancialSql.fee = `
+  CASE
+    WHEN COALESCE(o.platform_fee, 0) > 0 THEN COALESCE(o.platform_fee, 0)
+    WHEN ${orderFinancialSql.itemSubtotal} > 0 THEN GREATEST(ROUND(${orderFinancialSql.itemSubtotal} * 0.15, 2), 20)
+    ELSE 0
+  END
+`;
+orderFinancialSql.total = `
+  CASE
+    WHEN COALESCE(o.total_price, 0) > 0 THEN COALESCE(o.total_price, 0)
+    ELSE ${orderFinancialSql.itemSubtotal} + ${orderFinancialSql.shipping}
+  END
+`;
+orderFinancialSql.net = `
+  CASE
+    WHEN COALESCE(o.seller_payout_amount, 0) > 0 THEN COALESCE(o.seller_payout_amount, 0)
+    ELSE GREATEST((${orderFinancialSql.itemSubtotal} + ${orderFinancialSql.shipping}) - (${orderFinancialSql.fee}), 0)
+  END
+`;
+
+function pendingPayoutOrderSelect(extraWhere = "") {
+  const completedBase = "COALESCE(o.completed_at, o.created_at)";
+  const cycleEnd = `TIMESTAMP(LAST_DAY(${completedBase}), '23:59:59')`;
+  const payoutDeadline = `DATE_ADD(${cycleEnd}, INTERVAL 7 DAY)`;
+  return `
+    SELECT
+      o.order_id,
+      COALESCE(o.seller_id, seller_map.seller_id) AS seller_id,
+      o.created_at,
+      ${completedBase} AS completed_base_at,
+      ${orderFinancialSql.total} AS total_sales,
+      ${orderFinancialSql.shipping} AS shipping_total,
+      ${orderFinancialSql.fee} AS fee_amount,
+      ${orderFinancialSql.net} AS net_amount,
+      ${cycleEnd} AS cycle_end_at,
+      ${payoutDeadline} AS payout_deadline_at,
+      CASE
+        WHEN NOW() > ${payoutDeadline} THEN 'overdue'
+        WHEN NOW() > ${cycleEnd} THEN 'ready'
+        ELSE 'cycle'
+      END AS payout_stage
+    FROM orders o
+    LEFT JOIN (
+      SELECT order_id, SUM(price_at_purchase * quantity) AS subtotal
+      FROM order_items
+      GROUP BY order_id
+    ) items_sub ON items_sub.order_id = o.order_id
+    LEFT JOIN (
+      SELECT order_id, COALESCE(SUM(shipping_price), 0) AS ship_sum
+      FROM order_shipping
+      GROUP BY order_id
+    ) ship_agg ON ship_agg.order_id = o.order_id
+    LEFT JOIN (
+      SELECT oi2.order_id, MIN(p2.seller_id) AS seller_id
+      FROM order_items oi2
+      JOIN products p2 ON p2.product_id = oi2.product_id
+      GROUP BY oi2.order_id
+    ) seller_map ON seller_map.order_id = o.order_id
+    WHERE o.order_status = 'delivered'
+      AND o.payout_status = 'pending'
+      AND COALESCE(o.seller_id, seller_map.seller_id) IS NOT NULL
+      ${extraWhere}
+  `;
+}
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function chartBucketKey(date, granularity) {
+  const y = date.getFullYear();
+  const m = pad2(date.getMonth() + 1);
+  const d = pad2(date.getDate());
+  if (granularity === "month") return `${y}-${m}`;
+  if (granularity === "hour") return `${y}-${m}-${d} ${pad2(date.getHours())}:00`;
+  return `${y}-${m}-${d}`;
+}
+
+function chartBucketLabel(date, granularity) {
+  if (granularity === "hour") return `${pad2(date.getHours())}:00`;
+  if (granularity === "month") {
+    return date.toLocaleDateString("th-TH", { month: "short", year: "2-digit" });
+  }
+  return date.toLocaleDateString("th-TH", { day: "numeric", month: "short" });
+}
+
+function startOfChartBucket(date, granularity) {
+  const d = new Date(date);
+  if (granularity === "month") {
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+  } else if (granularity === "hour") {
+    d.setMinutes(0, 0, 0);
+  } else {
+    d.setHours(0, 0, 0, 0);
+  }
+  return d;
+}
+
+function advanceChartBucket(date, granularity) {
+  if (granularity === "month") {
+    date.setMonth(date.getMonth() + 1);
+  } else if (granularity === "hour") {
+    date.setHours(date.getHours() + 1);
+  } else {
+    date.setDate(date.getDate() + 1);
+  }
 }
 
 /* ────── Schools ────── */
@@ -338,8 +463,8 @@ export async function getRevenueStats({ period = "month", start_date = null, end
   const fromDate = new Date(from);
   const toDate   = new Date(to);
   const diffMs   = toDate - fromDate;
-  const prevTo   = new Date(fromDate - 1).toISOString().slice(0, 19);
-  const prevFrom = new Date(fromDate - diffMs - 1).toISOString().slice(0, 19);
+  const prevTo   = toSqlLocalDateTime(new Date(fromDate - 1));
+  const prevFrom = toSqlLocalDateTime(new Date(fromDate - diffMs - 1));
 
   // Query รายได้ + แยกประเภทค่าธรรมเนียม
   // ใช้ logic ใหม่: max(subtotal * 15%, ฿20) ต่อออเดอร์
@@ -348,21 +473,21 @@ export async function getRevenueStats({ period = "month", start_date = null, end
   //   fee_min_revenue = รายการที่ใช้ขั้นต่ำ ฿20 (subtotal ≤ 133.33)
   const revenueQuery = `
     SELECT
-      COALESCE(SUM(o.platform_fee), 0)          AS platform_revenue,
-      COALESCE(SUM(o.total_price), 0)           AS order_volume,
-      COALESCE(SUM(o.platform_fee), 0)          AS fee_revenue,
-      COALESCE(SUM(o.seller_payout_amount), 0)  AS net_revenue,
+      COALESCE(SUM(${orderFinancialSql.fee}), 0)          AS platform_revenue,
+      COALESCE(SUM(${orderFinancialSql.total}), 0)         AS order_volume,
+      COALESCE(SUM(${orderFinancialSql.fee}), 0)           AS fee_revenue,
+      COALESCE(SUM(${orderFinancialSql.net}), 0)           AS net_revenue,
       COUNT(*)                                  AS fee_count,
       -- ค่าธรรมเนียม 15% จริง (subtotal > 133.33 → 15% เกิน ฿20)
       COALESCE(SUM(
-        CASE WHEN COALESCE(items_sub.subtotal, 0) > 133.33 THEN o.platform_fee ELSE 0 END
+        CASE WHEN COALESCE(items_sub.subtotal, 0) > 133.33 THEN ${orderFinancialSql.fee} ELSE 0 END
       ), 0) AS fee_15_revenue,
       -- ขั้นต่ำ ฿20 (subtotal ≤ 133.33 → 15% ต่ำกว่า ฿20 → ใช้ขั้นต่ำ)
       COALESCE(SUM(
-        CASE WHEN COALESCE(items_sub.subtotal, 0) <= 133.33 AND o.platform_fee > 0 THEN o.platform_fee ELSE 0 END
+        CASE WHEN COALESCE(items_sub.subtotal, 0) <= 133.33 AND ${orderFinancialSql.fee} > 0 THEN ${orderFinancialSql.fee} ELSE 0 END
       ), 0) AS fee_min_revenue,
       COUNT(CASE WHEN COALESCE(items_sub.subtotal, 0) > 133.33 THEN 1 END)                                     AS fee_15_count,
-      COUNT(CASE WHEN COALESCE(items_sub.subtotal, 0) <= 133.33 AND o.platform_fee > 0 THEN 1 END)             AS fee_min_count
+      COUNT(CASE WHEN COALESCE(items_sub.subtotal, 0) <= 133.33 AND ${orderFinancialSql.fee} > 0 THEN 1 END)   AS fee_min_count
     FROM orders o
     LEFT JOIN (
       SELECT order_id,
@@ -370,6 +495,12 @@ export async function getRevenueStats({ period = "month", start_date = null, end
       FROM order_items
       GROUP BY order_id
     ) items_sub ON items_sub.order_id = o.order_id
+    LEFT JOIN (
+      SELECT order_id,
+             COALESCE(SUM(shipping_price), 0) AS ship_sum
+      FROM order_shipping
+      GROUP BY order_id
+    ) ship_agg ON ship_agg.order_id = o.order_id
     WHERE o.payment_status = 'paid'
       AND o.created_at BETWEEN ? AND ?
   `;
@@ -425,9 +556,21 @@ export async function getChartData({ period = "month", start_date = null, end_da
     `
     SELECT
       DATE_FORMAT(o.created_at, ?) AS bucket,
-      COALESCE(SUM(o.total_price), 0)  AS sales,
-      COALESCE(SUM(o.platform_fee), 0) AS fees
+      COALESCE(SUM(${orderFinancialSql.total}), 0) AS sales,
+      COALESCE(SUM(${orderFinancialSql.fee}), 0) AS fees
     FROM orders o
+    LEFT JOIN (
+      SELECT order_id,
+             SUM(price_at_purchase * quantity) AS subtotal
+      FROM order_items
+      GROUP BY order_id
+    ) items_sub ON items_sub.order_id = o.order_id
+    LEFT JOIN (
+      SELECT order_id,
+             COALESCE(SUM(shipping_price), 0) AS ship_sum
+      FROM order_shipping
+      GROUP BY order_id
+    ) ship_agg ON ship_agg.order_id = o.order_id
     WHERE o.payment_status = 'paid'
       AND o.created_at BETWEEN ? AND ?
     GROUP BY bucket
@@ -523,7 +666,7 @@ export async function listOrders({ status = "", q = "", page = 1, limit = 10, se
     const like = `%${q}%`; params.push(like, like, like);
   }
   if (seller_id) {
-    where.push("o.seller_id = ?"); params.push(Number(seller_id));
+    where.push("COALESCE(o.seller_id, seller_map.seller_id) = ?"); params.push(Number(seller_id));
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const safeLimit  = Math.min(100, Math.max(1, Number(limit) || 10));
@@ -548,9 +691,9 @@ export async function listOrders({ status = "", q = "", page = 1, limit = 10, se
       COALESCE(SUM(os.shipping_price), 0) AS shipping_total,
       GROUP_CONCAT(DISTINCT p.product_title SEPARATOR ', ') AS products,
       COALESCE(SUM(oi.quantity), 0) AS total_qty,
-      buyer.user_name  AS buyer_name,
-      buyer.user_phone AS buyer_phone,
-      seller.user_name AS seller_name
+      MAX(buyer.user_name)  AS buyer_name,
+      MAX(buyer.user_phone) AS buyer_phone,
+      MAX(seller.user_name) AS seller_name
     FROM orders o
     LEFT JOIN order_items oi ON oi.order_id  = o.order_id
     LEFT JOIN products    p  ON p.product_id = oi.product_id
@@ -562,7 +705,7 @@ export async function listOrders({ status = "", q = "", page = 1, limit = 10, se
       JOIN products p2 ON p2.product_id = oi2.product_id
       GROUP BY oi2.order_id
     ) seller_map ON seller_map.order_id = o.order_id
-    LEFT JOIN users  seller  ON seller.user_id = seller_map.seller_id
+    LEFT JOIN users  seller  ON seller.user_id = COALESCE(o.seller_id, seller_map.seller_id)
     ${whereSql}
     GROUP BY o.order_id
     ORDER BY o.created_at DESC
@@ -577,7 +720,13 @@ export async function listOrders({ status = "", q = "", page = 1, limit = 10, se
     LEFT JOIN order_items oi ON oi.order_id  = o.order_id
     LEFT JOIN products    p  ON p.product_id = oi.product_id
     LEFT JOIN users  buyer   ON buyer.user_id  = o.buyer_id
-    LEFT JOIN users  seller  ON seller.user_id = o.seller_id
+    LEFT JOIN (
+      SELECT oi2.order_id, MIN(p2.seller_id) AS seller_id
+      FROM order_items oi2
+      JOIN products p2 ON p2.product_id = oi2.product_id
+      GROUP BY oi2.order_id
+    ) seller_map ON seller_map.order_id = o.order_id
+    LEFT JOIN users  seller  ON seller.user_id = COALESCE(o.seller_id, seller_map.seller_id)
     ${whereSql}
   `, params);
 
@@ -603,9 +752,9 @@ export async function listOrders({ status = "", q = "", page = 1, limit = 10, se
     },
     rows: (rows || []).map((r) => {
       const itemsSubtotal = Number(r.items_subtotal || 0);
-      const calculatedFee = itemsSubtotal >= 100
-        ? Math.round(itemsSubtotal * 0.15 * 100) / 100
-        : (itemsSubtotal > 0 ? 20 : 0);
+      const calculatedFee = itemsSubtotal > 0
+        ? Math.max(Math.round(itemsSubtotal * 0.15 * 100) / 100, 20)
+        : 0;
       return {
         ...r,
         items_subtotal: Math.round(itemsSubtotal),
@@ -695,9 +844,9 @@ export async function getOrderDetail(orderId) {
     (sum, s) => sum + Number(s.shipping_price || 0),
     0
   );
-  const calculatedFee = itemsSubtotal >= 100
-    ? Math.round(itemsSubtotal * 0.15 * 100) / 100
-    : (itemsSubtotal > 0 ? 20 : 0);
+  const calculatedFee = itemsSubtotal > 0
+    ? Math.max(Math.round(itemsSubtotal * 0.15 * 100) / 100, 20)
+    : 0;
 
   // ยอดโอนให้ผู้ขาย = ยอดสินค้า - ค่าธรรมเนียม + ค่าส่ง
   const platformFee = Number(order.platform_fee || calculatedFee);
@@ -761,36 +910,46 @@ export async function listPayouts({
   const historySafePage  = Math.max(1, Number(history_page) || fallbackPage);
   const pendingOffset    = (pendingSafePage - 1) * pendingSafeLimit;
   const historyOffset    = (historySafePage - 1) * historySafeLimit;
+  const pendingBaseSql = pendingPayoutOrderSelect("AND o.created_at BETWEEN ? AND ?");
+  const pendingParams = [from, to];
 
   // ผู้ขายที่มีออเดอร์ delivered + ยังไม่ได้จ่าย (กรองตามวันที่สั่งซื้อของออเดอร์)
+  // ใช้ seller_id จาก orders ก่อน หากข้อมูลเก่ายังว่างจะ fallback จาก products ผ่าน order_items
   const [pendingRows] = await db.query(`
     SELECT
-      u.user_id                                      AS seller_id,
-      u.user_name                                    AS seller_name,
+      po.seller_id,
+      u.user_name AS seller_name,
       u.bank_account_number,
       u.bank_account_name,
       u.bank_code,
-      COUNT(o.order_id)                              AS order_count,
-      COALESCE(SUM(o.total_price), 0)                AS total_sales,
-      COALESCE(SUM(o.platform_fee), 0)               AS fee_amount,
-      COALESCE(SUM(o.seller_payout_amount), 0)       AS net_amount,
-      COALESCE(SUM(ship_agg.ship_sum), 0)            AS shipping_total,
-      MIN(o.created_at)                              AS first_order_at
-    FROM orders o
-    LEFT JOIN users u ON u.user_id = o.seller_id
-    LEFT JOIN (
-      SELECT order_id, COALESCE(SUM(shipping_price), 0) AS ship_sum
-      FROM order_shipping
-      GROUP BY order_id
-    ) AS ship_agg ON ship_agg.order_id = o.order_id
-    WHERE o.order_status  = 'delivered'
-      AND o.payout_status = 'pending'
-      AND o.created_at BETWEEN ? AND ?
-    GROUP BY u.user_id, u.user_name, u.bank_account_number, u.bank_account_name, u.bank_code
-    HAVING COUNT(o.order_id) > 0
-    ORDER BY first_order_at ASC, u.user_id ASC
+      COUNT(po.order_id) AS order_count,
+      COALESCE(SUM(po.total_sales), 0) AS total_sales,
+      COALESCE(SUM(po.fee_amount), 0) AS fee_amount,
+      COALESCE(SUM(po.net_amount), 0) AS net_amount,
+      COALESCE(SUM(po.shipping_total), 0) AS shipping_total,
+      COALESCE(SUM(CASE WHEN po.payout_stage IN ('ready','overdue') THEN po.total_sales ELSE 0 END), 0) AS payable_total_sales,
+      COALESCE(SUM(CASE WHEN po.payout_stage IN ('ready','overdue') THEN po.fee_amount ELSE 0 END), 0) AS payable_fee_amount,
+      COALESCE(SUM(CASE WHEN po.payout_stage IN ('ready','overdue') THEN po.net_amount ELSE 0 END), 0) AS payable_amount,
+      COALESCE(SUM(CASE WHEN po.payout_stage IN ('ready','overdue') THEN po.shipping_total ELSE 0 END), 0) AS payable_shipping_total,
+      COUNT(CASE WHEN po.payout_stage = 'ready' THEN 1 END) AS ready_count,
+      COUNT(CASE WHEN po.payout_stage = 'overdue' THEN 1 END) AS overdue_count,
+      COUNT(CASE WHEN po.payout_stage = 'cycle' THEN 1 END) AS cycle_pending_count,
+      COALESCE(SUM(CASE WHEN po.payout_stage = 'cycle' THEN po.net_amount ELSE 0 END), 0) AS cycle_pending_amount,
+      CASE
+        WHEN COUNT(CASE WHEN po.payout_stage = 'overdue' THEN 1 END) > 0 THEN 'overdue'
+        WHEN COUNT(CASE WHEN po.payout_stage = 'ready' THEN 1 END) > 0 THEN 'ready'
+        ELSE 'cycle'
+      END AS payout_stage,
+      MIN(po.created_at) AS first_order_at,
+      DATE_FORMAT(MIN(po.completed_base_at), '%Y-%m') AS first_cycle_month,
+      GROUP_CONCAT(DISTINCT DATE_FORMAT(po.completed_base_at, '%Y-%m') ORDER BY DATE_FORMAT(po.completed_base_at, '%Y-%m') SEPARATOR ', ') AS payout_cycle_months
+    FROM (${pendingBaseSql}) po
+    LEFT JOIN users u ON u.user_id = po.seller_id
+    GROUP BY po.seller_id, u.user_name, u.bank_account_number, u.bank_account_name, u.bank_code
+    HAVING COUNT(po.order_id) > 0
+    ORDER BY first_order_at ASC, po.seller_id ASC
     LIMIT ? OFFSET ?
-  `, [from, to, pendingSafeLimit, pendingOffset]).catch(() => [[]]);
+  `, [...pendingParams, pendingSafeLimit, pendingOffset]).catch(() => [[]]);
 
   // ประวัติการโอน — กรองตามวันที่โอนสำเร็จ
   const [historyRows] = await db.query(`
@@ -803,49 +962,85 @@ export async function listPayouts({
     FROM payouts p
     LEFT JOIN users u ON u.user_id = p.seller_id
     WHERE p.status = 'completed'
-      AND p.completed_at BETWEEN ? AND ?
-    ORDER BY p.completed_at DESC
+      AND COALESCE(p.completed_at, p.created_at) BETWEEN ? AND ?
+    ORDER BY COALESCE(p.completed_at, p.created_at) DESC
     LIMIT ? OFFSET ?
   `, [from, to, historySafeLimit, historyOffset]).catch(() => [[]]);
 
   const [[countRow]] = await db.query(`
-    SELECT COUNT(DISTINCT seller_id) AS c
-    FROM orders
-    WHERE order_status='delivered' AND payout_status='pending'
-      AND created_at BETWEEN ? AND ?
-  `, [from, to]).catch(() => [[{ c: 0 }]]);
+    SELECT COUNT(*) AS c
+    FROM (
+      SELECT seller_id
+      FROM (${pendingBaseSql}) po
+      GROUP BY seller_id
+    ) sellers
+  `, pendingParams).catch(() => [[{ c: 0 }]]);
 
   const [[histCountRow]] = await db.query(`
     SELECT COUNT(*) AS c
     FROM payouts
-    WHERE status='completed' AND completed_at BETWEEN ? AND ?
+    WHERE status='completed' AND COALESCE(completed_at, created_at) BETWEEN ? AND ?
   `, [from, to]).catch(() => [[{ c: 0 }]]);
 
   // Summary stats (ตามช่วงเวลาเดียวกัน)
   const [[pendStats]] = await db.query(`
-    SELECT COALESCE(SUM(seller_payout_amount), 0) AS pending_total, COUNT(*) AS pending_count
-    FROM orders
-    WHERE order_status='delivered' AND payout_status='pending'
-      AND created_at BETWEEN ? AND ?
-  `, [from, to]).catch(() => [[{ pending_total: 0, pending_count: 0 }]]);
+    SELECT
+      COALESCE(SUM(net_amount), 0) AS pending_total,
+      COUNT(*) AS pending_count,
+      COUNT(DISTINCT seller_id) AS pending_seller_count,
+      COALESCE(SUM(CASE WHEN payout_stage IN ('ready','overdue') THEN net_amount ELSE 0 END), 0) AS payable_total,
+      COUNT(CASE WHEN payout_stage IN ('ready','overdue') THEN 1 END) AS payable_count,
+      COUNT(DISTINCT CASE WHEN payout_stage IN ('ready','overdue') THEN seller_id END) AS payable_seller_count,
+      COALESCE(SUM(CASE WHEN payout_stage = 'ready' THEN net_amount ELSE 0 END), 0) AS ready_total,
+      COUNT(CASE WHEN payout_stage = 'ready' THEN 1 END) AS ready_count,
+      COALESCE(SUM(CASE WHEN payout_stage = 'overdue' THEN net_amount ELSE 0 END), 0) AS overdue_total,
+      COUNT(CASE WHEN payout_stage = 'overdue' THEN 1 END) AS overdue_count,
+      COALESCE(SUM(CASE WHEN payout_stage = 'cycle' THEN net_amount ELSE 0 END), 0) AS cycle_pending_total,
+      COUNT(CASE WHEN payout_stage = 'cycle' THEN 1 END) AS cycle_pending_count
+    FROM (${pendingBaseSql}) po
+  `, pendingParams).catch(() => [[{
+    pending_total: 0, pending_count: 0, pending_seller_count: 0,
+    payable_total: 0, payable_count: 0, payable_seller_count: 0,
+    ready_total: 0, ready_count: 0, overdue_total: 0, overdue_count: 0,
+    cycle_pending_total: 0, cycle_pending_count: 0,
+  }]]);
 
   const [[paidStats]] = await db.query(`
     SELECT COALESCE(SUM(net_amount), 0) AS paid_total, COUNT(*) AS paid_count
     FROM payouts
-    WHERE status='completed' AND completed_at BETWEEN ? AND ?
+    WHERE status='completed' AND COALESCE(completed_at, created_at) BETWEEN ? AND ?
   `, [from, to]).catch(() => [[{ paid_total: 0, paid_count: 0 }]]);
 
   const [[feeStats]] = await db.query(`
-    SELECT COALESCE(SUM(platform_fee), 0) AS fee_total
-    FROM orders
-    WHERE order_status='delivered' AND created_at BETWEEN ? AND ?
+    SELECT COALESCE(SUM(${orderFinancialSql.fee}), 0) AS fee_total
+    FROM orders o
+    LEFT JOIN (
+      SELECT order_id, SUM(price_at_purchase * quantity) AS subtotal
+      FROM order_items
+      GROUP BY order_id
+    ) items_sub ON items_sub.order_id = o.order_id
+    LEFT JOIN (
+      SELECT order_id, COALESCE(SUM(shipping_price), 0) AS ship_sum
+      FROM order_shipping
+      GROUP BY order_id
+    ) ship_agg ON ship_agg.order_id = o.order_id
+    WHERE o.order_status='delivered' AND o.created_at BETWEEN ? AND ?
   `, [from, to]).catch(() => [[{ fee_total: 0 }]]);
 
   return {
     stats: {
       pending_total: Math.round(Number(pendStats?.pending_total || 0)),
       pending_count: Number(pendStats?.pending_count || 0),
-      pending_seller_count: Number(countRow?.c || 0),
+      pending_seller_count: Number(pendStats?.pending_seller_count || countRow?.c || 0),
+      payable_total: Math.round(Number(pendStats?.payable_total || 0)),
+      payable_count: Number(pendStats?.payable_count || 0),
+      payable_seller_count: Number(pendStats?.payable_seller_count || 0),
+      ready_total: Math.round(Number(pendStats?.ready_total || 0)),
+      ready_count: Number(pendStats?.ready_count || 0),
+      overdue_total: Math.round(Number(pendStats?.overdue_total || 0)),
+      overdue_count: Number(pendStats?.overdue_count || 0),
+      cycle_pending_total: Math.round(Number(pendStats?.cycle_pending_total || 0)),
+      cycle_pending_count: Number(pendStats?.cycle_pending_count || 0),
       paid_total:    Math.round(Number(paidStats?.paid_total    || 0)),
       paid_count:    Number(paidStats?.paid_count    || 0),
       fee_total:     Math.round(Number(feeStats?.fee_total      || 0)),
@@ -861,6 +1056,17 @@ export async function listPayouts({
         fee_amount:     Math.round(Number(r.fee_amount     || 0)),
         net_amount:     Math.round(Number(r.net_amount     || 0)),
         shipping_total: Math.round(Number(r.shipping_total || 0)),
+        payable_total_sales: Math.round(Number(r.payable_total_sales || 0)),
+        payable_fee_amount:  Math.round(Number(r.payable_fee_amount  || 0)),
+        payable_amount:      Math.round(Number(r.payable_amount      || 0)),
+        payable_shipping_total: Math.round(Number(r.payable_shipping_total || 0)),
+        ready_count: Number(r.ready_count || 0),
+        overdue_count: Number(r.overdue_count || 0),
+        cycle_pending_count: Number(r.cycle_pending_count || 0),
+        cycle_pending_amount: Math.round(Number(r.cycle_pending_amount || 0)),
+        payout_stage: r.payout_stage || "cycle",
+        first_cycle_month: r.first_cycle_month || "",
+        payout_cycle_months: r.payout_cycle_months || "",
         order_count:    Number(r.order_count || 0),
       };
     }),
@@ -919,18 +1125,22 @@ export async function paySeller(seller_id, net_amount) {
       throw Object.assign(new Error("เลขบัญชีผู้ขายไม่ถูกต้อง"), { status: 400 });
     }
 
-    // 1) สรุปยอดผู้ขายก่อน mark
-    const [[sum]] = await conn.query(
-      `SELECT
-         COUNT(*)                                  AS order_count,
-         COALESCE(SUM(seller_payout_amount), 0)    AS net_total,
-         COALESCE(SUM(platform_fee), 0)            AS fee_total
-       FROM orders
-       WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
+    // 1) สรุปยอดผู้ขายก่อน mark เฉพาะรายการที่ผ่านรอบสิ้นเดือนแล้ว
+    const eligibleSql = pendingPayoutOrderSelect(`
+      AND COALESCE(o.seller_id, seller_map.seller_id) = ?
+      AND NOW() > TIMESTAMP(LAST_DAY(COALESCE(o.completed_at, o.created_at)), '23:59:59')
+    `);
+    const [eligibleOrders] = await conn.query(
+      `SELECT order_id, net_amount, fee_amount FROM (${eligibleSql}) po`,
       [seller_id]
     );
+    const sum = {
+      order_count: eligibleOrders.length,
+      net_total: eligibleOrders.reduce((acc, r) => acc + Number(r.net_amount || 0), 0),
+      fee_total: eligibleOrders.reduce((acc, r) => acc + Number(r.fee_amount || 0), 0),
+    };
     if (Number(sum.order_count) === 0) {
-      throw Object.assign(new Error("ไม่มีออเดอร์ที่รอจ่าย"), { status: 400 });
+      throw Object.assign(new Error("ไม่มีออเดอร์ที่ผ่านรอบรอโอน"), { status: 400 });
     }
 
     // 2) บันทึก payout ด้วยเวลาไทย
@@ -943,11 +1153,13 @@ export async function paySeller(seller_id, net_amount) {
     const payoutId = ins.insertId;
 
     // 3) อัปเดต orders -> payout_status='paid' + ผูก payout_id
+    const orderIds = eligibleOrders.map((r) => r.order_id);
+    const placeholders = orderIds.map(() => "?").join(",");
     await conn.query(
       `UPDATE orders
           SET payout_status='paid', payout_id=?, payout_date=?
-        WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
-      [payoutId, nowThai, seller_id]
+        WHERE order_id IN (${placeholders})`,
+      [payoutId, nowThai, ...orderIds]
     );
 
     await conn.commit();
@@ -1409,14 +1621,17 @@ export async function getDonorSuspensionHistory(userId) {
 }
 
 export async function payAllSellers() {
+  const eligibleSql = pendingPayoutOrderSelect(`
+    AND NOW() > TIMESTAMP(LAST_DAY(COALESCE(o.completed_at, o.created_at)), '23:59:59')
+  `);
   const [sellers] = await db.query(`
     SELECT
       seller_id,
-      COUNT(*)                                  AS order_count,
-      COALESCE(SUM(seller_payout_amount), 0)    AS net_amount,
-      COALESCE(SUM(platform_fee), 0)            AS fee_amount
-    FROM orders
-    WHERE order_status='delivered' AND payout_status='pending'
+      COUNT(*) AS order_count,
+      COALESCE(SUM(net_amount), 0) AS net_amount,
+      COALESCE(SUM(fee_amount), 0) AS fee_amount,
+      GROUP_CONCAT(order_id ORDER BY order_id SEPARATOR ',') AS order_ids
+    FROM (${eligibleSql}) po
     GROUP BY seller_id
   `).catch(() => [[]]);
 
@@ -1442,11 +1657,17 @@ export async function payAllSellers() {
          VALUES (?, ?, ?, ?, 'completed', ?, ?)`,
         [s.seller_id, Math.round(Number(s.net_amount)), Math.round(Number(s.fee_amount)), Number(s.order_count), nowThai, nowThai]
       );
+      const orderIds = String(s.order_ids || "")
+        .split(",")
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id));
+      if (!orderIds.length) continue;
+      const placeholders = orderIds.map(() => "?").join(",");
       await conn.query(
         `UPDATE orders
             SET payout_status='paid', payout_id=?, payout_date=?
-          WHERE seller_id=? AND order_status='delivered' AND payout_status='pending'`,
-        [ins.insertId, nowThai, s.seller_id]
+          WHERE order_id IN (${placeholders})`,
+        [ins.insertId, nowThai, ...orderIds]
       );
       // แจ้งเตือนผู้ขาย (non-blocking)
       sendNotification(s.seller_id, {

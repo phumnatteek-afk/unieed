@@ -422,7 +422,16 @@
   background: #fff; border: 1.5px solid #e0e7ff;
   border-radius: 10px; z-index: 9999;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12); overflow: hidden;
+  max-height: 260px; overflow-y: auto;
 }
+.coAddrDropdownLoading { max-height: none; }
+.coAddrDropdownHint {
+  color: #6b7280; font-size: 12px; cursor: default; justify-content: center;
+  background: #f9fafb;
+}
+.coAddrDropdownHint:hover { background: #f9fafb; }
+.coAddrSpin { animation: coAddrSpin 0.8s linear infinite; margin-right: 6px; }
+@keyframes coAddrSpin { to { transform: rotate(360deg); } }
 .coAddrDropdownItem {
   padding: 9px 14px; cursor: pointer; font-size: 13px;
   display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
@@ -463,12 +472,162 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .coLayout { grid-template-columns: 1fr; }
-  .coSummaryCard { position: static; }
-  .coStepLine { width: 32px; }
+  .coContainer { padding: 16px 14px 48px; }
+  .coLayout { grid-template-columns: 1fr; gap: 16px; }
+  .coSummaryCard { position: static; padding: 18px 16px; }
+  .coSection { padding: 20px 16px; border-radius: 14px; }
+  .coSection h2 { font-size: 16px; margin-bottom: 16px; }
+  .coSectionHead { flex-direction: column; align-items: flex-start; gap: 12px; }
+
+  /* Steps */
+  .coSteps {
+    margin-bottom: 20px;
+    padding: 0 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .coSteps::-webkit-scrollbar { display: none; }
+  .coStep { font-size: 11px; gap: 6px; flex-shrink: 0; }
+  .coStepCircle { width: 28px; height: 28px; font-size: 12px; }
+  .coStepLine { width: 24px; margin: 0 6px; }
+
+  /* Nav buttons */
+  .coNavBtns { flex-direction: column-reverse; gap: 10px; margin-top: 20px; }
+  .coNavBtns .coBtnPrimary,
+  .coNavBtns .coBtnOutline,
+  .coNavBtns a.coBtnOutline {
+    width: 100%;
+    justify-content: center;
+    padding: 13px 20px;
+    font-size: 14px;
+  }
+
+  /* Forms & modals */
   .coFormGrid, .coFormGrid2, .coFormGrid3 { grid-template-columns: 1fr; }
   .coSpan2 { grid-column: 1; }
   .coModalLg { max-width: 100%; border-radius: 16px 16px 0 0; }
+  .coModalOverlay { padding: 0; align-items: flex-end; }
+  .coModalFooter { flex-direction: column-reverse; }
+  .coModalFooter .coBtnPrimary,
+  .coModalFooter .coBtnOutline { width: 100%; justify-content: center; }
+
+  /* Address cards */
+  .coAddrCard { padding: 14px; gap: 10px; }
+  .coAddrTop { gap: 6px; }
+  .coAddrName { font-size: 13px; }
+  .coAddrText { font-size: 12px; }
+
+  /* Shipping */
+  .coSellerHeader { padding: 12px 14px; }
+  .coSellerItems { padding: 10px 14px; }
+  .coShipSection { padding: 14px; }
+  .coShipOption { padding: 12px; gap: 10px; }
+  .coShipOptionLogo { width: 44px; height: 44px; }
+  .coShipOptionName { font-size: 13px; white-space: normal; }
+  .coShipOptionPrice { font-size: 13px; }
+
+  /* Confirm blocks */
+  .coConfirmBlock { padding: 12px 14px; gap: 10px; }
+  .coConfirmVal { font-size: 12px; }
+  .coSummaryGroup { margin-bottom: 12px; }
+  .coDonationNote { font-size: 12px; padding: 10px 12px; }
+
+  /* Pay method */
+  .coPayMethodBar { margin-bottom: 14px; }
+  .coPayMethodBtn { padding: 11px 12px; font-size: 13px; }
+
+  /* Card payment form */
+  .coCardForm {
+    padding: 18px 16px;
+    border-radius: 14px;
+    border-color: #e8edf5;
+  }
+  .coCardFormHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+  }
+  .coCardFormTitle { font-size: 14px; }
+  .coCardBrands {
+    width: 100%;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+  .coCardBrandChip { width: 40px; height: 26px; }
+
+  .coCardFormBody {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 12px;
+    margin-bottom: 16px;
+  }
+  .coCardField { gap: 6px; }
+  .coCardField label { font-size: 11.5px; }
+  .coCardField input {
+    height: 44px;
+    font-size: 15px;
+    padding: 0 12px;
+  }
+  .coCardNumWrap input {
+    padding-left: 38px !important;
+    padding-right: 46px !important;
+    letter-spacing: 1px;
+    font-size: 14px;
+  }
+  .coCardTestNote {
+    font-size: 11px;
+    padding: 9px 10px;
+    line-height: 1.5;
+    margin-top: 6px;
+    border-radius: 10px;
+  }
+  .coCardTestNote svg { font-size: 14px; }
+
+  .coCardTotal {
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 13px;
+  }
+  .coCardTotalAmt { font-size: 17px; }
+  .coCardPayBtn {
+    padding: 15px 20px !important;
+    font-size: 15px !important;
+    border-radius: 12px !important;
+  }
+  .coCardSecureNote {
+    font-size: 11px;
+    margin-top: 12px;
+    line-height: 1.5;
+    text-align: center;
+    padding: 0 4px;
+  }
+
+  /* Donation */
+  .coDonationBanner { font-size: 12px; padding: 9px 14px; }
+  .coDonationAddrToggle { flex-direction: column; gap: 6px; }
+  .coDonationAddrToggleBtn,
+  .coDonationToggleBtn { padding: 11px 14px; font-size: 13px; }
+}
+
+@media (max-width: 480px) {
+  .coContainer { padding: 12px 12px 40px; }
+  .coSection { padding: 16px 14px; }
+  .coStep span { max-width: 72px; text-align: center; line-height: 1.25; }
+  .coStepLine { width: 16px; margin: 0 4px; }
+
+  .coCardForm { padding: 16px 14px; }
+  .coCardFormBody { grid-template-columns: 1fr; gap: 14px; }
+  .coCardField.coSpan2 { grid-column: 1; }
+
+  .coCardFormTitle { font-size: 13px; }
+  .coCardField input { height: 46px; }
+
+  .coSellerItem { flex-wrap: wrap; }
+  .coSellerItemPrice { width: 100%; text-align: right; padding-top: 4px; }
 }
 
 /* ================================================================
@@ -637,12 +796,17 @@
   padding: 24px; background: #fff;
 }
 .coCardFormHeader {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 12px;
   margin-bottom: 20px; padding-bottom: 16px;
   border-bottom: 1px solid #f0f0f0;
-  font-size: 15px; font-weight: 600; color: #111827;
 }
-.coCardBrands { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.coCardFormTitle {
+  display: flex; align-items: center; gap: 8px;
+  flex: 1; min-width: 0;
+  font-size: 15px; font-weight: 600; color: #111827;
+  line-height: 1.35;
+}
+.coCardBrands { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
 .coCardBrandChip {
   display: flex; align-items: center; justify-content: center;
@@ -694,6 +858,16 @@
   z-index: 1;
 }
 .coCardNumWrap input { padding-left: 40px !important; padding-right: 52px !important; letter-spacing: 2px; }
+
+.coCardTestNote {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin-top: 8px; padding: 10px 12px;
+  border-radius: 8px;
+  background: #fffbeb; border: 1px solid #fde68a;
+  font-size: 12px; color: #92400e; line-height: 1.55;
+}
+.coCardTestNote svg { flex-shrink: 0; font-size: 16px; margin-top: 1px; color: #d97706; }
+.coCardTestNote strong { color: #78350f; font-weight: 600; }
 
 /* brand badge ด้านขวาของ input */
 .coCardNumBrandBadge {
@@ -873,7 +1047,8 @@
   padding: 4px;
   border-radius: 12px;
 }
-.coDonationAddrToggleBtn {
+.coDonationAddrToggleBtn,
+.coDonationToggleBtn {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 10px 16px; border-radius: 10px;
   border: 1.5px solid #e5e7eb; background: #fff;
@@ -881,7 +1056,8 @@
   cursor: pointer; transition: all 0.18s;
   font-family: 'Mitr', 'Kanit', sans-serif;
 }
-.coDonationAddrToggleBtn.active {
+.coDonationAddrToggleBtn.coDonationToggleActive,
+.coDonationToggleBtn.coDonationToggleActive {
   border-color: #5285E8; color: #5285E8; background: #f0f6ff;
 }
 

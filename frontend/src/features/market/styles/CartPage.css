@@ -188,8 +188,101 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .cpLayout { grid-template-columns: 1fr; }
-  .cpItem { grid-template-columns: 24px 70px 1fr; }
-  .cpItemRight { grid-column: 2 / -1; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; }
-  .cpSummaryCard { position: static; }
+  .cpContainer { padding: 16px 14px 48px; }
+
+  .cpHeader { margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .cpTitle { font-size: 20px; }
+
+  .cpLayout { grid-template-columns: 1fr; gap: 16px; }
+
+  .cpSelectAll { padding: 12px 14px; }
+  .cpCheckLabel { font-size: 13px; line-height: 1.4; }
+
+  .cpGroupHeader { padding: 12px 14px; }
+
+  .cpItem {
+    grid-template-columns: 22px 72px 1fr;
+    grid-template-areas:
+      "check img info"
+      "actions actions actions";
+    gap: 10px 12px;
+    padding: 14px 12px;
+    align-items: start;
+  }
+
+  .cpItemCheck { grid-area: check; margin-top: 4px; }
+
+  .cpItemImg {
+    grid-area: img;
+    width: 72px;
+    height: 72px;
+  }
+
+  .cpItemInfo {
+    grid-area: info;
+    min-width: 0;
+  }
+
+  .cpItemTitle {
+    font-size: 13px;
+    word-break: break-word;
+  }
+
+  .cpItemMeta { flex-wrap: wrap; }
+
+  .cpItemRight {
+    grid-area: actions;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 12px;
+    min-width: unset;
+    width: 100%;
+    padding-top: 10px;
+    margin-top: 2px;
+    border-top: 0.5px solid #f0f0f0;
+  }
+
+  .cpItemPrice { font-size: 15px; }
+  .cpQtyBtn { width: 32px; height: 32px; }
+  .cpRemoveBtn { margin-left: auto; }
+
+  .cpSummaryCard { position: static; padding: 18px 16px; }
+}
+
+@media (max-width: 480px) {
+  .cpContainer { padding: 12px 12px 40px; }
+
+  .cpTitle { font-size: 18px; }
+  .cpCount { font-size: 12px; }
+
+  .cpItem {
+    grid-template-columns: 20px 64px 1fr;
+    gap: 8px 10px;
+    padding: 12px 10px;
+  }
+
+  .cpItemImg { width: 64px; height: 64px; }
+
+  .cpItemRight {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 8px 10px;
+    align-items: center;
+  }
+
+  .cpItemPrice { grid-column: 1; grid-row: 1; font-size: 14px; }
+  .cpQtyRow { grid-column: 2; grid-row: 1; justify-self: end; }
+  .cpItemSubtotal { grid-column: 1; grid-row: 2; }
+  .cpRemoveBtn {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+    margin-left: 0;
+    padding: 6px 0;
+  }
+
+  .cpCheckoutBtn { height: 48px; font-size: 14px; }
 }

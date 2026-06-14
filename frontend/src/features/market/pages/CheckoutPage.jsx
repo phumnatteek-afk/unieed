@@ -5,7 +5,7 @@ import { Icon } from "@iconify/react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import Navbar from "../../../pages/Navbar.jsx";
 import "../styles/CheckoutPage.css";
-import { searchAddress, suggestProvinces } from "../../../utils/thaiAddress.js";
+import { searchAddress, suggestProvinces, ensureAddressDataReady, isAddressDataReady } from "../../../utils/thaiAddress.js";
 
 // ── Helpers ───────────────────────────────────────────────
 function getCategoryLabel(cid, gender) {
@@ -46,12 +46,21 @@ function groupBySeller(items) {
 }
 
 // ── Address Autocomplete Dropdown ─────────────────────────
-function AddrDropdown({ items, onSelect }) {
+function AddrDropdown({ items, loading, onSelect }) {
+  if (loading) {
+    return (
+      <div className="coAddrDropdown coAddrDropdownLoading">
+        <div className="coAddrDropdownItem coAddrDropdownHint">
+          <Icon icon="mdi:loading" className="coAddrSpin" fontSize={14} /> กำลังโหลดข้อมูลที่อยู่...
+        </div>
+      </div>
+    );
+  }
   if (!items.length) return null;
   return (
     <div className="coAddrDropdown">
       {items.map((it, i) => (
-        <div key={i} className="coAddrDropdownItem" onMouseDown={() => onSelect(it)}>
+        <div key={`${it.tambon}-${it.amphoe}-${it.zipcode}-${i}`} className="coAddrDropdownItem" onMouseDown={() => onSelect(it)}>
           <span className="coAddrDropTambon">{it.tambon}</span>
           <span className="coAddrDropSep"> › </span>
           <span className="coAddrDropAmphoe">{it.amphoe}</span>
@@ -60,6 +69,9 @@ function AddrDropdown({ items, onSelect }) {
           <span className="coAddrDropZip">{it.zipcode}</span>
         </div>
       ))}
+      {items.length >= 15 && (
+        <div className="coAddrDropdownItem coAddrDropdownHint">พิมพ์เพิ่มเพื่อค้นหาให้เฉพาะเจาะจง</div>
+      )}
     </div>
   );
 }
@@ -93,27 +105,48 @@ function AddressModal({ address, onSave, onClose }) {
   const [addrSuggestions, setAddrSuggestions] = useState([]);
   const [provSuggestions, setProvSuggestions]  = useState([]);
   const [activeField, setActiveField] = useState(null);
+  const [addrDataLoading, setAddrDataLoading] = useState(!isAddressDataReady());
+
+  useEffect(() => {
+    let cancelled = false;
+    ensureAddressDataReady()
+      .then(() => { if (!cancelled) setAddrDataLoading(false); })
+      .catch(() => { if (!cancelled) setAddrDataLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const update = (k, v) => {
     setForm(f => ({ ...f, [k]: v }));
     setErrors(e => ({ ...e, [k]: "" }));
   };
 
+  const runAddrSearch = (value, field) => {
+    if (addrDataLoading || !isAddressDataReady()) return [];
+    const minLen = field === "postcode" ? 3 : 2;
+    const raw = field === "postcode" ? value.replace(/\D/g, "") : value;
+    if (raw.length < minLen) return [];
+    return searchAddress(raw, { field });
+  };
+
+  const refreshAddrSuggestions = (field, value) => {
+    setAddrSuggestions(runAddrSearch(value, field));
+  };
+
   // autocomplete: ตำบล / อำเภอ / รหัสไปรษณีย์
   const handleDistrictChange = (v) => {
     update("district", v);
-    setAddrSuggestions(v.length >= 2 ? searchAddress(v) : []);
+    setAddrSuggestions(runAddrSearch(v, "district"));
     setActiveField("district");
   };
   const handleAmphoChange = (v) => {
     update("amphoe", v);
-    setAddrSuggestions(v.length >= 2 ? searchAddress(v) : []);
+    setAddrSuggestions(runAddrSearch(v, "amphoe"));
     setActiveField("amphoe");
   };
   const handleZipChange = (v) => {
     const digits = v.replace(/\D/g, "").slice(0, 5);
     update("postcode", digits);
-    setAddrSuggestions(digits.length >= 4 ? searchAddress(digits) : []);
+    setAddrSuggestions(runAddrSearch(digits, "postcode"));
     setActiveField("postcode");
   };
   const handleProvinceChange = (v) => {
@@ -121,6 +154,14 @@ function AddressModal({ address, onSave, onClose }) {
     setProvSuggestions(v.length >= 1 ? suggestProvinces(v) : []);
     setActiveField("province");
   };
+
+  // โหลดข้อมูลเสร็จแล้ว → ค้นหาใหม่ถ้ามีข้อความอยู่แล้ว
+  useEffect(() => {
+    if (addrDataLoading || !activeField) return;
+    const map = { district: form.district, amphoe: form.amphoe, postcode: form.postcode };
+    const val = map[activeField];
+    if (val) refreshAddrSuggestions(activeField, val);
+  }, [addrDataLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectAddr = (it) => {
     setForm(f => ({ ...f, district: it.tambon, amphoe: it.amphoe, province: it.province, postcode: it.zipcode }));
@@ -233,7 +274,7 @@ function AddressModal({ address, onSave, onClose }) {
 
             <div className="coAddrHint">
               <Icon icon="mdi:lightbulb-outline" fontSize={14} />
-              <span>พิมพ์ตำบล, อำเภอ หรือรหัสไปรษณีย์ แล้วเลือกจากรายการ เพื่อกรอกข้อมูลอัตโนมัติ</span>
+              <span>พิมพ์ตำบล, อำเภอ, จังหวัด หรือรหัสไปรษณีย์ แล้วเลือกจากรายการ เพื่อกรอกข้อมูลอัตโนมัติ</span>
             </div>
 
             <div className="coFormGrid3">
@@ -243,11 +284,16 @@ function AddressModal({ address, onSave, onClose }) {
                     className={`coFormInput${errors.district ? " coInputErr" : ""}`}
                     value={form.district}
                     onChange={e => handleDistrictChange(e.target.value)}
-                    onFocus={() => setActiveField("district")}
+                    onFocus={() => {
+                      setActiveField("district");
+                      refreshAddrSuggestions("district", form.district);
+                    }}
                     onBlur={() => setTimeout(() => setAddrSuggestions([]), 200)}
                     placeholder="ตำบล / แขวง"
                   />
-                  {activeField === "district" && <AddrDropdown items={addrSuggestions} onSelect={selectAddr} />}
+                  {activeField === "district" && (
+                    <AddrDropdown items={addrSuggestions} loading={addrDataLoading} onSelect={selectAddr} />
+                  )}
                 </div>
               </FormField>
 
@@ -257,11 +303,16 @@ function AddressModal({ address, onSave, onClose }) {
                     className={`coFormInput${errors.amphoe ? " coInputErr" : ""}`}
                     value={form.amphoe}
                     onChange={e => handleAmphoChange(e.target.value)}
-                    onFocus={() => setActiveField("amphoe")}
+                    onFocus={() => {
+                      setActiveField("amphoe");
+                      refreshAddrSuggestions("amphoe", form.amphoe);
+                    }}
                     onBlur={() => setTimeout(() => setAddrSuggestions([]), 200)}
                     placeholder="อำเภอ / เขต"
                   />
-                  {activeField === "amphoe" && <AddrDropdown items={addrSuggestions} onSelect={selectAddr} />}
+                  {activeField === "amphoe" && (
+                    <AddrDropdown items={addrSuggestions} loading={addrDataLoading} onSelect={selectAddr} />
+                  )}
                 </div>
               </FormField>
 
@@ -294,13 +345,18 @@ function AddressModal({ address, onSave, onClose }) {
                     className={`coFormInput${errors.postcode ? " coInputErr" : ""}`}
                     value={form.postcode}
                     onChange={e => handleZipChange(e.target.value)}
-                    onFocus={() => setActiveField("postcode")}
+                    onFocus={() => {
+                      setActiveField("postcode");
+                      refreshAddrSuggestions("postcode", form.postcode);
+                    }}
                     onBlur={() => setTimeout(() => setAddrSuggestions([]), 200)}
                     placeholder="10xxx"
                     inputMode="numeric"
                     maxLength={5}
                   />
-                  {activeField === "postcode" && <AddrDropdown items={addrSuggestions} onSelect={selectAddr} />}
+                  {activeField === "postcode" && (
+                    <AddrDropdown items={addrSuggestions} loading={addrDataLoading} onSelect={selectAddr} />
+                  )}
                 </div>
               </FormField>
             </div>
@@ -573,6 +629,7 @@ function DonationAddressBlock({ shippingAddress, projectTitle }) {
 
 // ── Omise Card Form ───────────────────────────────────────
 const OMISE_PUBLIC_KEY = import.meta.env.VITE_OMISE_PUBLIC_KEY || "pkey_test_xxxxxxxx";
+const OMISE_TEST_MODE  = OMISE_PUBLIC_KEY.includes("pkey_test");
 
 /* ── Card-type detection ─────────────────────────────────── */
 const detectCardType = (num) => {
@@ -646,8 +703,10 @@ function OmiseCardForm({ amount, onToken, onError, disabled }) {
   return (
     <div className="coCardForm">
       <div className="coCardFormHeader">
-        <Icon icon="mdi:credit-card-outline" />
-        <span>ชำระด้วยบัตรเครดิต/เดบิต</span>
+        <div className="coCardFormTitle">
+          <Icon icon="mdi:credit-card-outline" />
+          <span>ชำระด้วยบัตรเครดิต/เดบิต</span>
+        </div>
         <div className="coCardBrands">
           {[
             { type: "visa",       icon: "logos:visa",        color: "#1a1f71", size: 28 },
@@ -705,6 +764,15 @@ function OmiseCardForm({ amount, onToken, onError, disabled }) {
               </div>
             )}
           </div>
+          {OMISE_TEST_MODE && (
+            <div className="coCardTestNote">
+              <Icon icon="mdi:information-outline" />
+              <span>
+                <strong>โหมดทดสอบ</strong> — ไม่มีการตัดเงินจริง กรุณาใช้เลขบัตร{" "}
+                <strong>4242 4242 4242 4242</strong> วันหมดอายุ <strong>12/30</strong> และ CVV <strong>123</strong>
+              </span>
+            </div>
+          )}
         </div>
         <div className="coCardField">
           <label>วันหมดอายุ</label>

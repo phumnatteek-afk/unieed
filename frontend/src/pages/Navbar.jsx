@@ -40,7 +40,7 @@ export default function Navbar({ activeLink = "" }) {
       <Link className="navBtn navBtnWhite" to="/login">เข้าสู่ระบบ</Link>
     </div>
   ) : (
-    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+    <div className="navUserActions">
       {isDonor && hasPendingTracking && (
         <Link to="/donations/history" className="navPendingLink" style={{ fontSize: 14, color: "#ffffff", textDecoration: "underline", marginRight: 4, whiteSpace: "nowrap", lineHeight: 1 }}>
           รอกรอกเลขพัสดุ

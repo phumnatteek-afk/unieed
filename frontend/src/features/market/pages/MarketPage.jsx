@@ -381,7 +381,7 @@ const handleSearchInput = (e) => {
   }, 300);
 };
 
-  const LIMIT = 12;
+  const LIMIT = 10;
 
   useEffect(() => {
     if (toast) {

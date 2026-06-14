@@ -103,13 +103,14 @@ function uniformsToNeeds(uniforms, support_mode, support_years) {
 function parseRows(ws) {
   const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
   const results = [];
-  let dataRowNum = 0;
+  let importNo = 0;
   for (let i = 7; i < data.length; i++) {
     const r            = data[i];
+    const excelRowNum  = i + 1;
     const student_code = String(r[0] ?? "").trim() || null;
     const name         = String(r[1] ?? "").trim();
     if (!name) continue;
-    dataRowNum++;
+    importNo++;
 
     const gender          = mapVal(MAP_GENDER,  r[2]);
     const education_level = String(r[3] ?? "").trim();
@@ -140,7 +141,20 @@ function parseRows(ws) {
         });
       }
     }
-    results.push({ _rowNum: dataRowNum, student_code, student_name: name, gender, education_level, urgency, support_mode, support_years, needs });
+    results.push({
+      _importNo: importNo,
+      _excelRowNum: excelRowNum,
+      // Keep _rowNum as the real spreadsheet row for older call sites.
+      _rowNum: excelRowNum,
+      student_code,
+      student_name: name,
+      gender,
+      education_level,
+      urgency,
+      support_mode,
+      support_years,
+      needs,
+    });
   }
   return results;
 }
@@ -239,8 +253,8 @@ function buildRowIssues(rows, existing) {
     const nc = normStudentCode(s.student_code);
     if (codeToIdx.has(nc)) {
       const prevIdx = codeToIdx.get(nc);
-      addErr(i,       `รหัสนักเรียน ${s.student_code} ซ้ำกับแถวที่ ${rows[prevIdx]._rowNum} ในไฟล์`);
-      addErr(prevIdx, `รหัสนักเรียน ${s.student_code} ซ้ำกับแถวที่ ${s._rowNum} ในไฟล์`);
+      addErr(i,       `รหัสนักเรียน ${s.student_code} ซ้ำกับแถว Excel ${rows[prevIdx]._excelRowNum} ในไฟล์`);
+      addErr(prevIdx, `รหัสนักเรียน ${s.student_code} ซ้ำกับแถว Excel ${s._excelRowNum} ในไฟล์`);
     } else codeToIdx.set(nc, i);
   });
 
@@ -583,10 +597,11 @@ function IssuePanel({ students, rowIssues, dupMap, editingIdx, onEdit, onCancelE
               {/* Header */}
               <button className="eiAccordionHead" type="button" onClick={() => toggle(idx)}>
                 <span className={`eiAccBadge ${hard.length > 0 ? "eiAccBadge--err" : "eiAccBadge--warn"}`}>
-                  แถว {s._rowNum}
+                  รายการที่ {s._importNo}
                 </span>
                 <div className="eiAccHeadInfo">
                   <span className="eiAccName">{s.student_name}</span>
+                  <span className="eiAccRowMeta">แถว Excel {s._excelRowNum}</span>
                   {dupTagLabel && (
                     <span className="eiAccDupTag">
                       <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{flexShrink:0}}>
@@ -719,7 +734,7 @@ function IssuePanel({ students, rowIssues, dupMap, editingIdx, onEdit, onCancelE
                   {/* Inline edit drawer */}
                   {isEditing && (
                     <RowEditDrawer
-                      key={`edit-${idx}-${s._rowNum}`}
+                      key={`edit-${idx}-${s._excelRowNum}`}
                       student={students[idx]}
                       onSave={(updated) => onSave(idx, updated)}
                       onCancel={onCancelEdit}
@@ -850,7 +865,8 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
         failed++;
         failedRows.push({
           name:  s.student_name,
-          row:   s._rowNum,
+          importNo: s._importNo,
+          excelRow: s._excelRowNum,
           error: err?.data?.message || err?.response?.data?.message || err.message || "เกิดข้อผิดพลาด",
         });
       }
@@ -964,6 +980,7 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                   <thead>
                     <tr>
                       <th style={{width:56}}>#</th>
+                      <th style={{width:92}}>แถว Excel</th>
                       <th style={{width:86}}>รหัส</th>
                       <th>ชื่อ-นามสกุล</th>
                       <th>เพศ</th>
@@ -986,12 +1003,13 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                       return (
                         <tr key={i} className={rowCls}>
                           <td>
-                            <span className="eiRowNum">{i + 1}</span>
+                            <span className="eiRowNum">{s._importNo}</span>
                             {hasHard && <span className="eiTag eiTagErr">Error</span>}
                             {!hasHard && dup?.type === "exact"   && <span className="eiTag eiTagExact">ซ้ำ</span>}
                             {!hasHard && dup?.type === "update"  && <span className="eiTag eiTagUpdate">Update</span>}
                             {!hasHard && dup?.type === "similar" && <span className="eiTag eiTagDup">คล้าย</span>}
                           </td>
+                          <td><span className="eiExcelRowBadge">{s._excelRowNum}</span></td>
                           <td>
                             {s.student_code
                               ? <span className="eiCodeBadge">{s.student_code}</span>
@@ -1071,7 +1089,8 @@ export default function ExcelImportModal({ open, onClose, requestId, onDone }) {
                     {result.failedRows.map((r, i) => (
                       <div key={i} className="eiIssueItem eiIssueItem--hard">
                         <div className="eiIssueItemRow">
-                          {r.row && <span className="eiIssueBadge eiIssueBadge--hard">แถว {r.row}</span>}
+                          {r.importNo && <span className="eiIssueBadge eiIssueBadge--hard">รายการที่ {r.importNo}</span>}
+                          {r.excelRow && <span className="eiIssueBadge eiIssueBadge--soft">แถว Excel {r.excelRow}</span>}
                           <span className="eiIssueName">"{r.name}"</span>
                           <span className="eiIssueMsgs">{translateGenderInText(r.error)}</span>
                         </div>

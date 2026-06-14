@@ -389,6 +389,7 @@
   display: flex; align-items: center; justify-content: center;
   transition: background 0.18s; flex-shrink: 0; font-size: 20px;
 }
+.mkCartBtn svg { width: 22px; height: 22px; }
 .mkCartBtn:hover { background: #f0ad00; }
 
 /* ── Skeleton ── */
@@ -431,7 +432,46 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .mkGrid, .mkLoadingGrid { grid-template-columns: repeat(2, 1fr); }
+  .mkGrid, .mkLoadingGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .mkMain { padding: 0 12px; margin: 24px auto 40px; }
+  .mkListHeader { gap: 8px; align-items: center; }
+  .mkListTitle {
+    font-size: 17px;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: nowrap;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+  .mkListCount { font-size: 13px; white-space: nowrap; }
+  .mkSortSelect {
+    flex-shrink: 0;
+    font-size: 12px;
+    height: 36px;
+    padding: 0 28px 0 10px;
+    max-width: 120px;
+  }
+  .mkCardThumb { height: auto; aspect-ratio: 1 / 1; }
+  .mkCardBody { padding: 8px 10px 10px; }
+  .mkCardTitle { font-size: 12px; }
+  .mkCardSchool { font-size: 11px; margin-bottom: 4px; }
+  .mkMeta { gap: 2px; margin-bottom: 6px; }
+  .mkMetaRow { font-size: 10px; }
+  .mkMetaLabel { min-width: 28px; }
+  .mkBadgeLevel, .mkBadgeCond { font-size: 9px; padding: 1px 5px; }
+  .mkCardDivider { margin: 6px 0; }
+  .mkCardPrice { font-size: 16px; }
+  .mkCardPrice span { font-size: 11px; }
+  .mkCartBtn {
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+  }
+  .mkCartBtn svg { width: 22px; height: 22px; }
+  .mkDonateBadge { font-size: 0.62rem; padding: 3px 8px; }
+  .mkStockBadge { font-size: 9px; padding: 2px 6px; }
+  .mkCardSkeleton { height: 220px; }
   .mkHero { height: 320px; }
   .mkHeroBgLeft  { height: 70%; }
   .mkHeroBgRight { height: 78%; }
@@ -443,7 +483,18 @@
   .mkResetBtn { margin-right: 0; }
 }
 @media (max-width: 480px) {
-  .mkGrid, .mkLoadingGrid { grid-template-columns: 1fr; }
+  .mkGrid, .mkLoadingGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .mkListTitle { font-size: 15px; }
+  .mkListCount { font-size: 11px; }
+  .mkSortSelect { font-size: 11px; max-width: 100px; height: 34px; }
+  .mkCardTitle { font-size: 11px; }
+  .mkCardPrice { font-size: 14px; }
+  .mkCartBtn {
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+  }
+  .mkCartBtn svg { width: 20px; height: 20px; }
 
   /* ── Hero ── */
   .mkHero { height: auto; min-height: 260px; padding: 24px 16px 60px; align-items: flex-start; }

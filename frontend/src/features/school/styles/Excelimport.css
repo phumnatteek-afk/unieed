@@ -214,6 +214,18 @@
 
 /* Cell helpers */
 .eiRowNum { font-weight: 600; color: #888; margin-right: 4px; }
+.eiExcelRowBadge {
+  display: inline-block;
+  min-width: 28px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+}
 .eiCellErr { color: #b91c1c; font-weight: 600; }
 .eiCellMissing { color: #ccc; }
 
@@ -624,6 +636,12 @@
 .eiAccName {
   font-size: 13.5px; font-weight: 600; color: #1a1a2e;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.eiAccRowMeta {
+  width: fit-content;
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 600;
 }
 .eiAccDupTag {
   display: inline-flex; align-items: center; gap: 4px;

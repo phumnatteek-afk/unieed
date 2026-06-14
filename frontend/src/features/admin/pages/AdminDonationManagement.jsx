@@ -1,9 +1,10 @@
 // AdminDonationManagement.jsx
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Icon } from "@iconify/react";
 import ProfileDropdown from "../../auth/pages/ProfileDropdown.jsx";
 import NotificationBell from "../../../pages/NotificationBell.jsx";
+import "../styles/adminPages.css";
 
 const BASE = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:3000";
 
@@ -326,9 +327,7 @@ function SchoolCard({ school, pendingCount, maxDays, onSelect }) {
   const urgent = maxDays >= 14;
   return (
     <div onClick={() => onSelect(school)}
-      style={{ background:"#fff", border:urgent?"1.5px solid #fca5a5":"1.5px solid #e2e8f0", borderRadius:14, padding:"18px 20px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}
-      onMouseEnter={e => { e.currentTarget.style.background = urgent ? "#fff0f0" : "#f8faff"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
+      className={`admDonationSchoolCard${urgent ? " admDonationSchoolCard--urgent" : ""}`}>
       <div style={{ display:"flex", alignItems:"center", gap:14 }}>
         <div style={{ width:44, height:44, borderRadius:12, background:urgent?"#fee2e2":"#eff6ff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
           <Icon icon="teenyicons:school-outline" width={22} color={urgent?"#dc2626":"#2563eb"} />
@@ -383,7 +382,6 @@ function FilterTabs({ filterMethod, setFilterMethod, tabCounts }) {
 
 export default function AdminDonationManagement() {
   const { token } = useAuth();
-  const headers = token ? { Authorization:`Bearer ${token}` } : {};
 
   const [schools,        setSchools]        = useState([]);
   const [stats,          setStats]          = useState({ total:0, schools:0, urgent:0 });
@@ -391,14 +389,17 @@ export default function AdminDonationManagement() {
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [search,         setSearch]         = useState("");
   const [filterMethod,   setFilterMethod]   = useState("all");
+  const [schoolFilter,   setSchoolFilter]   = useState("all");
+  const [schoolSort,     setSchoolSort]     = useState("most_overdue");
   const [doneMap, setDoneMap] = useState(() => {
     try { return JSON.parse(localStorage.getItem("adminDoneMap") || "{}"); }
     catch { return {}; }
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      const headers = token ? { Authorization:`Bearer ${token}` } : {};
       const res  = await fetch(`${BASE}/admin/autocheck/overdue/by-school`, { headers });
       const json = await res.json();
       const list = json.schools ?? [];
@@ -408,20 +409,72 @@ export default function AdminDonationManagement() {
       setStats({ total:totalDonations, schools:list.length, urgent:urgentSchools });
     } catch(e) { console.error(e); }
     finally { setLoading(false); }
-  };
+  }, [token]);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { localStorage.setItem("adminDoneMap", JSON.stringify(doneMap)); }, [doneMap]);
 
-  // schools ที่แสดงในลิสต์ — ยังคง show แม้ done ครบ แต่แสดงสถานะ "ดำเนินการครบแล้ว"
-  const filteredSchools = useMemo(() =>
-    schools.filter(sc => !search || sc.school_name.toLowerCase().includes(search.toLowerCase())),
-    [schools, search]
-  );
-
   // donations ที่ยังรอดำเนินการ (pending) ของแต่ละ school สำหรับ stats ใน card
-  const getPendingDonations = (school) =>
-    school.projects.flatMap(p => p.donations.filter(d => !doneMap[d.donation_id]));
+  const getPendingDonations = useCallback((school) =>
+    school.projects.flatMap(p => p.donations.filter(d => !doneMap[d.donation_id])),
+  [doneMap]);
+
+  const getSchoolDonations = useCallback((school) =>
+    school.projects.flatMap(p => p.donations),
+  []);
+
+  const getSchoolLatestTime = useCallback((school) => {
+    const times = getSchoolDonations(school)
+      .map(d => new Date(d.created_at || d.donation_date || 0).getTime())
+      .filter(Number.isFinite);
+    return times.length ? Math.max(...times) : 0;
+  }, [getSchoolDonations]);
+
+  // schools ที่แสดงในลิสต์ — ยังคง show แม้ done ครบ แต่แสดงสถานะ "ดำเนินการครบแล้ว"
+  const filteredSchools = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return schools
+      .map(sc => {
+        const pending = getPendingDonations(sc);
+        const donations = getSchoolDonations(sc);
+        const pendingMaxDays = pending.length
+          ? Math.max(...pending.map(d => Number(d.days_elapsed) || 0))
+          : 0;
+        const maxDays = pending.length
+          ? pendingMaxDays
+          : Math.max(0, ...donations.map(d => Number(d.days_elapsed) || 0));
+        const latestTime = getSchoolLatestTime(sc);
+
+        return {
+          school: sc,
+          pendingCount: pending.length,
+          maxDays,
+          latestTime,
+          urgent: pendingMaxDays >= 14,
+          done: pending.length === 0,
+        };
+      })
+      .filter(row => {
+        const projectMatch = row.school.projects.some(p =>
+          String(p.request_title || "").toLowerCase().includes(q)
+        );
+        const schoolMatch = row.school.school_name.toLowerCase().includes(q);
+        const searchMatch = !q || schoolMatch || projectMatch;
+        if (!searchMatch) return false;
+        if (schoolFilter === "urgent") return row.urgent;
+        if (schoolFilter === "pending") return row.pendingCount > 0;
+        if (schoolFilter === "done") return row.done;
+        return true;
+      })
+      .sort((a, b) => {
+        if (schoolSort === "latest_overdue") return b.latestTime - a.latestTime;
+        if (schoolSort === "school_name") {
+          return a.school.school_name.localeCompare(b.school.school_name, "th");
+        }
+        return b.maxDays - a.maxDays || b.pendingCount - a.pendingCount || b.latestTime - a.latestTime;
+      });
+  }, [schools, search, schoolFilter, schoolSort, getPendingDonations, getSchoolDonations, getSchoolLatestTime]);
 
   // donations ทั้งหมด (รวม done) ของ selectedSchool สำหรับแสดงในตาราง
   const allSelectedDonations = useMemo(() =>
@@ -545,15 +598,51 @@ export default function AdminDonationManagement() {
         </div>
       ) : (
         <div>
-          <div style={{ display:"flex", alignItems:"center", gap:10, background:"#fff", border:"1.5px solid #e2e8f0", borderRadius:10, padding:"9px 14px", marginBottom:16, maxWidth:400 }}>
-            <Icon icon="mdi:magnify" width={18} color="#94a3b8" />
-            <input
-              style={{ border:"none", outline:"none", fontSize:13, flex:1, color:"#334155", background:"transparent" }}
-              placeholder="ค้นหาโรงเรียน..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+          <div className="admDonationToolbar">
+            <div className="admDonationSearch">
+              <Icon icon="mdi:magnify" width={20} color="#5285e8" />
+              <input
+                placeholder="ค้นหาโรงเรียน หรือชื่อโครงการ..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              {search && (
+                <button type="button" onClick={() => setSearch("")} aria-label="ล้างคำค้นหา">
+                  <Icon icon="mdi:close" width={16} />
+                </button>
+              )}
+            </div>
+
+            <div className="admDonationControls">
+              <div className="admDonationSegment" aria-label="ตัวกรองรายการค้างนาน">
+                {[
+                  ["all", "ทั้งหมด"],
+                  ["pending", "รอดำเนินการ"],
+                  ["urgent", "เร่งด่วน"],
+                  ["done", "ครบแล้ว"],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={schoolFilter === value ? "active" : ""}
+                    onClick={() => setSchoolFilter(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <label className="admDonationSort">
+                <Icon icon="mdi:sort" width={18} />
+                <select value={schoolSort} onChange={e => setSchoolSort(e.target.value)}>
+                  <option value="most_overdue">ค้างส่งมากสุด</option>
+                  <option value="latest_overdue">ค้างส่งล่าสุด</option>
+                  <option value="school_name">ชื่อโรงเรียน ก-ฮ</option>
+                </select>
+              </label>
+            </div>
           </div>
+
           {loading ? (
             <div style={{ textAlign:"center", padding:48, color:"#94a3b8", fontSize:13 }}>กำลังโหลด...</div>
           ) : filteredSchools.length === 0 ? (
@@ -563,16 +652,12 @@ export default function AdminDonationManagement() {
             </div>
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              {filteredSchools.map(school => {
-                const pending = getPendingDonations(school);
-                const maxDays = pending.length > 0
-                  ? Math.max(...pending.map(d => d.days_elapsed))
-                  : Math.max(...school.projects.flatMap(p => p.donations).map(d => d.days_elapsed));
+              {filteredSchools.map(({ school, pendingCount, maxDays }) => {
                 return (
                   <SchoolCard
                     key={school.school_id}
                     school={school}
-                    pendingCount={pending.length}
+                    pendingCount={pendingCount}
                     maxDays={maxDays}
                     onSelect={setSelectedSchool}
                   />

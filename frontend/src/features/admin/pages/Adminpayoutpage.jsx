@@ -878,7 +878,14 @@ function ConfirmPayoutModal({ item, onConfirm, onCancel }) {
    AdminPayoutPage — หน้าหลัก
 ═══════════════════════════════════════════════════════════ */
 export default function AdminPayoutPage() {
-  const [summaryStats, setSummaryStats] = useState({ pending_total: 0, pending_count: 0, paid_total: 0, paid_count: 0, fee_total: 0 });
+  const [summaryStats, setSummaryStats] = useState({
+    pending_total: 0, pending_count: 0, pending_seller_count: 0,
+    payable_total: 0, payable_count: 0, payable_seller_count: 0,
+    ready_total: 0, ready_count: 0,
+    overdue_total: 0, overdue_count: 0,
+    cycle_pending_total: 0, cycle_pending_count: 0,
+    paid_total: 0, paid_count: 0, fee_total: 0,
+  });
   const [pendingRows, setPendingRows]   = useState([]);
   const [historyRows, setHistoryRows]   = useState([]);
   const [payoutCycle, setPayoutCycle]   = useState(null);
@@ -1273,18 +1280,22 @@ export default function AdminPayoutPage() {
                             <div className="admPayoutActionRow">
                               <button
                                 className="admPayoutBtn admPayoutBtn--transfer"
-                                title="โอนเงินรอบที่พร้อมโอน"
-                                onClick={() => setSelectedItem({
-                                  ...row,
-                                  total_sales: row.payable_total_sales || row.total_sales,
-                                  shipping_total: row.payable_shipping_total || row.shipping_total,
-                                  fee_amount: row.payable_fee_amount || row.fee_amount,
-                                  net_amount: row.payable_amount || row.net_amount,
-                                  order_count: row.order_count || (Number(row.ready_count || 0) + Number(row.overdue_count || 0) + Number(row.cycle_pending_count || 0)),
-                                })}
+                                title={canPay ? "โอนเงินรอบที่พร้อมโอน" : "รายการนี้ยังไม่ถึงรอบโอน"}
+                                disabled={!canPay}
+                                onClick={() => {
+                                  if (!canPay) return;
+                                  setSelectedItem({
+                                    ...row,
+                                    total_sales: row.payable_total_sales,
+                                    shipping_total: row.payable_shipping_total,
+                                    fee_amount: row.payable_fee_amount,
+                                    net_amount: row.payable_amount,
+                                    order_count: Number(row.ready_count || 0) + Number(row.overdue_count || 0),
+                                  });
+                                }}
                               >
                                 <Icon icon="mdi:bank-transfer-out" style={{ fontSize: 15 }} />
-                                โอนเงิน
+                                {canPay ? "โอนเงิน" : "รอตัดรอบ"}
                               </button>
                               <button className="admPayoutBtn admPayoutBtn--detail" onClick={() => setOrderDetail({ ...row })}>
                                 <Icon icon="mdi:file-document-outline" style={{ fontSize: 15 }} />
@@ -1442,8 +1453,8 @@ export default function AdminPayoutPage() {
       {payAllModal && (
         <PayAllConfirmModal
           rows={pendingRows}
-          totalNet={summaryStats.pending_total}
-          sellerCount={summaryStats.pending_seller_count}
+          totalNet={summaryStats.payable_total}
+          sellerCount={summaryStats.payable_seller_count}
           onConfirm={handlePayAll}
           onCancel={() => setPayAllModal(false)}
         />

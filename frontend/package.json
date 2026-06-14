@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@amiearth/thai-address-finder": "^0.0.16",
     "@flaticon/flaticon-uicons": "^3.3.1",
     "@fontsource/mitr": "^5.2.8",
     "@fontsource/prompt": "^5.2.8",
