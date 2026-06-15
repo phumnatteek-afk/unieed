@@ -1116,7 +1116,8 @@ function CampaignModal({ province, onClose }) {
 
   return (
     <div className="boProjectModalOverlay" onClick={onClose}>
-      <div className="boProjectModal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
+      <div className="boProjectModal" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0,maxWidth: 560 , display: "flex",
+    flexDirection: "column"  }}>
         {/* Header */}
         <div className="boProjectModal__header" style={{ background: "linear-gradient(90deg,#1d4ed8,#3b82f6)", borderRadius: "12px 12px 0 0", padding: "16px 20px" }}>
           <div className="boProjectModal__titleWrap">
@@ -1128,12 +1129,13 @@ function CampaignModal({ province, onClose }) {
               <div className="boProjectModal__sub" style={{ color: "rgba(255,255,255,0.75)" }}>จังหวัด{province.province} · {province.still_needed.toLocaleString()} ชิ้นที่ยังขาด</div>
             </div>
           </div>
-          <button type="button" className="boProjectModal__close" onClick={onClose} style={{ color: "#fff", background: "rgba(255,255,255,0.15)" }}>
+          <button type="button" className="boProjectModal__close" onClick={onClose} style={{ color: "#fff" }}>
             <Icon icon="mdi:close" />
           </button>
         </div>
 
-        <div style={{ padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: 16, overflowY: "auto",    // ✅ เพิ่ม
+    flex: 1     }}>
           {/* Summary chips */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <span style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>

@@ -411,7 +411,7 @@ export default function AdminWrongItemPage() {
       </div>
 
       {/* ── Time filter ── */}
-      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "14px 18px", marginBottom: 14, boxShadow: "0 2px 8px rgba(15,23,42,0.05)" }}>
+      {/* <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "14px 18px", marginBottom: 14, boxShadow: "0 2px 8px rgba(15,23,42,0.05)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -469,7 +469,7 @@ export default function AdminWrongItemPage() {
             </div>
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* ── History View ─────────────────────────────────────────────────────── */}
       {mainView === "history" && (
