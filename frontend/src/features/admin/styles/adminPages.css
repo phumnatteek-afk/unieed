@@ -1888,21 +1888,26 @@
 .boProjectModal__close {
   width: 36px;
   height: 36px;
-  border: 1px solid #e2e8f0;
   border-radius: 10px;
-  background: #fff;
-  color: #64748b;
   display: grid;
   place-items: center;
   font-size: 20px;
   flex-shrink: 0;
+   background: transparent;  /* ✅ เพิ่ม */
+  border: none;              /* ✅ เพิ่ม */
 }
 
 .boProjectModal__close:hover {
-  background: #f8fafc;
-  color: #0f172a;
+  color: #fff;  
+  background: transparent;  /* ✅ เพิ่ม */
+  border: none;
 }
-
+.boShell .boProjectModal__close:hover,
+.boProjectModal__close:hover {
+  background: transparent !important;
+  transform: none !important;
+  color: #fff;
+}
 .boProjectModal__state {
   margin: 22px;
   min-height: 180px;
@@ -2474,6 +2479,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: filter 0.15s ease, opacity 0.15s ease;
   gap: 6px;
   background: linear-gradient(90deg, #1d4ed8, #2563eb);
   color: #fff;
@@ -2484,6 +2490,16 @@
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
+}
+
+.boProvinceCard__campaign:hover {
+  filter: brightness(1.08);
+  transform: none !important;  /* กัน global hover transform */
+  opacity: 0.92;
+  opacity: 1 !important;        /* ✅ เพิ่ม */
+  visibility: visible !important; /* ✅ เพิ่ม */
+  color: #fff !important;       /* ✅ กัน color หาย */
+  background: linear-gradient(90deg, #1d4ed8, #2563eb) !important;
 }
 
 .boProvinceProjectsModal .boProjectModal__list {
