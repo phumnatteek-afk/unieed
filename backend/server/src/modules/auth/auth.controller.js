@@ -87,22 +87,6 @@ export async function googleLogin(req, res, next) {
   } catch (e) { next(e); }
 }
 
-// ─── OTP ─────────────────────────────────────────────────────
-
-export async function requestOtp(req, res, next) {
-  try {
-    const result = await svc.requestOtp(req.body);
-    res.json(result);
-  } catch (e) { next(e); }
-}
-
-export async function verifyOtp(req, res, next) {
-  try {
-    const result = await svc.verifyOtp(req.body);
-    res.json(result);
-  } catch (e) { next(e); }
-}
-
 // ─── User Profile ─────────────────────────────────────────────
 
 export async function updateProfile(req, res, next) {

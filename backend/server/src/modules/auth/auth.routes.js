@@ -5,8 +5,6 @@ import {
   registerSchoolOneStep,
   login,
   mySchoolStatus,
-  requestOtp,
-  verifyOtp,
   verifyEmail,
   resendVerification,
   forgotPassword,
@@ -42,10 +40,6 @@ r.post("/reset-password", resetPassword);
 
 // ─── School ──────────────────────────────────────────────────
 r.get("/school/status", auth, mySchoolStatus);
-
-// ─── OTP ─────────────────────────────────────────────────────
-r.post("/otp/request", requestOtp);
-r.post("/otp/verify", verifyOtp);
 
 // ─── User Profile ────────────────────────────────────────────
 r.patch("/profile", auth, updateProfile);

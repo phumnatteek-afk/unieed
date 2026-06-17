@@ -5,7 +5,6 @@ import { getJson } from "../../../api/http.js";
 import { Icon } from "@iconify/react";
 import "../../../pages/styles/Homepage.css";
 import "../styles/ProjectDetail.css";
-import "../../ai/styles/AIAssess.css";
 import Navbar from "../../../pages/Navbar.jsx";
 
 
@@ -33,9 +32,6 @@ export default function ProjectDetailPage() {
   const [appealReason,  setAppealReason]  = useState("");
   const [appealLoading, setAppealLoading] = useState(false);
   const [appealErr,     setAppealErr]     = useState("");
-
-  // ── AI match state (passed from AIAssessPage) ──
-  const aiMatch = location.state?.aiMatch || null;
 
   // ── Uniform lightbox ──
   const [uniformLbIdx,   setUniformLbIdx]   = useState(null);
@@ -78,40 +74,6 @@ export default function ProjectDetailPage() {
       }, 100);
     }
   }, [project]);
-
-  // ── Auto-select AI-matched items and scroll to delivery ───────────────────
-  useEffect(() => {
-    if (!aiMatch?.auto_select || !project?.uniform_items?.length) return;
-
-    const aiUniforms = aiMatch.uniforms || [];
-    const newQty = {};
-
-    for (const aiU of aiUniforms) {
-      // Match by type_name + gender
-      const matched = project.uniform_items.find(item => {
-        const typeOk = item.uniform_category === aiU.type_name ||
-                       item.name?.includes(aiU.type_name);
-        const genderOk = !aiU.gender ||
-                         item.gender === aiU.gender ||
-                         item.gender === null;
-        const hasQty = (item.quantity_remaining ?? item.quantity) > 0;
-        return typeOk && genderOk && hasQty;
-      });
-
-      if (matched) {
-        const k = itemKey(matched);
-        newQty[k] = 1;
-      }
-    }
-
-    if (Object.keys(newQty).length > 0) {
-      setDonateQty(newQty);
-      // Scroll to delivery/summary section
-      setTimeout(() => {
-        summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 400);
-    }
-  }, [project, aiMatch]);
 
   useEffect(() => {
     (async () => {
@@ -368,17 +330,11 @@ export default function ProjectDetailPage() {
             const key = itemKey(item);
             const qty = donateQty[key] || 0;
             const remaining = item.quantity_remaining ?? item.quantity;
-            // Check if this item was AI-matched
-            const isAIMatched = aiMatch?.auto_select && qty > 0;
             return (
               <div
-                className={`pdUniformRow${isAIMatched ? " aiMatchHighlight" : ""}`}
+                className="pdUniformRow"
                 key={`${item.uniform_type_id}-${i}`}
-                style={{ position: "relative" }}
               >
-                {isAIMatched && (
-                  <span className="aiMatchBadge">🤖 AI แนะนำ</span>
-                )}
                 <span className="pdUniformName">
                   {item.uniform_subtype_name?.trim() || item.name}
                   {item.size && (
@@ -465,28 +421,6 @@ export default function ProjectDetailPage() {
           <div className="muted" style={{ padding: "60px", textAlign: "center" }}>ไม่พบโครงการนี้</div>
         ) : (
           <>
-            {/* AI Match Banner */}
-            {aiMatch?.auto_select && (
-              <div style={{
-                background: "linear-gradient(135deg, #064663 0%, #0a7ea4 100%)",
-                borderRadius: 14,
-                padding: "14px 20px",
-                marginBottom: 20,
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                color: "#fff",
-              }}>
-                <span style={{ fontSize: 28 }}>🤖</span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>AI แนะนำโครงการนี้สำหรับชุดของคุณ</div>
-                  <div style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>
-                    รายการชุดที่ตรงกันถูกเลือกไว้แล้ว — เลื่อนลงเพื่อเลือกวิธีจัดส่งและกดส่งต่อ
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Hero Card */}
             <div className="pdHeroCard">
               {/* Left */}

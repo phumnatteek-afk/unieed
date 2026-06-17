@@ -187,18 +187,6 @@ export async function registerSchoolOneStep(payload) {
     throw Object.assign(new Error("Email already used"), { status: 409 });
   }
 
-  if (process.env.REQUIRE_OTP === "true") {
-    const [rows] = await db.query(
-      `SELECT verified_at FROM phone_otps
-       WHERE phone=? AND purpose='register_school'
-       ORDER BY otp_id DESC LIMIT 1`,
-      [phoneDigits]
-    );
-    if (!rows[0]?.verified_at) {
-      throw Object.assign(new Error("กรุณายืนยัน OTP ก่อนส่งคำขอ"), { status: 400 });
-    }
-  }
-
   const conn = await db.getConnection();
   let school_id;
   let verificationToken;
@@ -631,16 +619,6 @@ export async function removeSchoolAdmin(schoolId, targetUserId, requesterId) {
   );
 
   return { message: "ลบผู้ดูแลสำเร็จ" };
-}
-
-/* ─────────────────────── OTP / School Status ─────────────────────── */
-
-export async function requestOtp(body) {
-  // existing OTP logic...
-}
-
-export async function verifyOtp(body) {
-  // existing OTP logic...
 }
 
 export async function getMySchoolStatus(user) {

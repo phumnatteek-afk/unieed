@@ -8,7 +8,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass, faFilter } from "@fortawesome/free-solid-svg-icons";
 import "../../../pages/styles/Homepage.css";
 import "../styles/DonationProject.css";
-import "../../ai/styles/AIAssess.css";
 import Navbar from "../../../pages/Navbar.jsx";
 
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
@@ -1124,24 +1123,6 @@ useEffect(() => {
           )}
         </div>
       </div>
-
-
-      {/* ===== AI Banner — hidden temporarily ===== */}
-      {/* <div className="dpAIBanner">
-        <div className="dpAIBannerInner" onClick={() => navigate("/ai-assess")}>
-          <div className="dpAIBannerIconWrap">
-            <Icon icon="ph:sparkle" width={28} />
-          </div>
-          <div className="dpAIBannerText">
-            <p className="dpAIBannerTitle">ไม่รู้ว่าชุดตรงไหน? ให้ AI ช่วยเลือกให้</p>
-            <p className="dpAIBannerSub">ถ่ายรูปชุดนักเรียน — AI วิเคราะห์สภาพ วัดขนาด และแนะนำโครงการที่ต้องการพอดี</p>
-          </div>
-          <button className="dpAIBannerBtn" onClick={e => { e.stopPropagation(); navigate("/ai-assess"); }}>
-            <Icon icon="ph:arrow-right" width={14} />
-            เริ่มประเมิน
-          </button>
-        </div>
-      </div> */}
 
       {/* ===== Project List ===== */}
       <div className="dpMain">

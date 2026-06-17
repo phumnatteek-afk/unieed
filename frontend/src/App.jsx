@@ -71,8 +71,6 @@ import SellerOrdersPage from "./features/seller/pages/SellerOrdersPage.jsx";
 import SellerPayoutsPage from "./features/seller/pages/SellerPayoutsPage.jsx";
 import SellerProductsPage from "./features/seller/pages/SellerProductsPage.jsx";
 
-// AI Assessment
-import AIAssessPage from "./features/ai/pages/AIAssessPage.jsx";
 import AboutPage from "./pages/AboutPage.jsx";
 
 export default function App() {
@@ -86,8 +84,6 @@ export default function App() {
               <Route path="/" element={<RoleRedirect><HomePage /></RoleRedirect>} />
               <Route path="/projects" element={<RoleRedirect><DonationProject /></RoleRedirect>} />
               <Route path="/about" element={<AboutPage />} />
-              {/* AI assess — hidden temporarily */}
-              {/* <Route path="/ai-assess" element={<AIAssessPage />} /> */}
               <Route path="/login" element={<RoleRedirect><LoginPage /></RoleRedirect>} />
               <Route path="/register" element={<RoleRedirect><RegisterChoicePage /></RoleRedirect>} />
               <Route path="/register/general" element={<RoleRedirect><RegisterGeneralPage /></RoleRedirect>} />
