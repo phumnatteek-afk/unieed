@@ -11,8 +11,10 @@ async function start() {
   const httpServer = createServer(app);
   initSocket(httpServer);
 
-  httpServer.listen(3000, () => {
-    console.log("API + Socket.io running on :3000");
+  const PORT = process.env.PORT || 3000;
+
+  httpServer.listen(PORT, () => {
+    console.log(`API + Socket.io running on :${PORT}`);
   });
 
   // Seed Meilisearch in background (won't crash server if Docker isn't running)
@@ -25,4 +27,3 @@ start().catch((err) => {
   console.error("Server failed to start:", err);
   process.exit(1);
 });
-
